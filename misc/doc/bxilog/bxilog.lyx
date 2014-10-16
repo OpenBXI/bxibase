@@ -1,0 +1,727 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{babel}
+\end_preamble
+\use_default_options false
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding latin9
+\fontencoding T1
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 0
+\use_mathdots 0
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1.5cm
+\topmargin 1.5cm
+\rightmargin 1.5cm
+\bottommargin 1.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Description of the bxilog library architecture
+\end_layout
+
+\begin_layout Author
+Pierre Vignéras
+\end_layout
+
+\begin_layout Date
+2014-04-24
+\end_layout
+
+\begin_layout Section
+Objectives
+\end_layout
+
+\begin_layout Standard
+This document describes the architecture of the bxi logging api named bxilog.
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+Any serious project needs a logging library.
+ As an example, Python provides the 
+\family typewriter
+logging 
+\family default
+module and Java provides the 
+\family typewriter
+java.logging
+\family default
+ package.
+ Unfortunately neither the C language nor the POSIX standard provides an
+ efficient logging library
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Whereas 
+\family typewriter
+syslog
+\family default
+ is defined by POSIX, it is not considered here, since it is quite heavy:
+ it requires a daemon 
+\family typewriter
+syslogd
+\family default
+ and lack several features described in this document.
+\end_layout
+
+\end_inset
+
+.
+ A state of the art study has been conducted, but conclusions were disappointing.
+ See document bxiclib/misc/sdk-choosen.txt for details.
+\end_layout
+
+\begin_layout Standard
+Therefore, a new logging solution has been developped with the following
+ features: 
+\end_layout
+
+\begin_layout Itemize
+Easy: straightforward to use; 
+\end_layout
+
+\begin_layout Itemize
+Complete: be sufficient in itself to produce all sort of messages from a
+ given process; 
+\end_layout
+
+\begin_layout Itemize
+Performant: reduces the overhead as far as possible, in particular, the
+ actual business code should not suffer too much from logging; 
+\end_layout
+
+\begin_layout Itemize
+Flexible: fits many different applications, in particular daemons and non-daemon
+s processes; 
+\end_layout
+
+\begin_layout Itemize
+Lightweigth: does not require a daemon; 
+\end_layout
+
+\begin_layout Itemize
+Robust: supports forking, signals and multi-threading;
+\end_layout
+
+\begin_layout Itemize
+Scalable: maintains good performance with a huge amount of threads and logs.
+\end_layout
+
+\begin_layout Standard
+To our knowledge, no current logging solution in C provides these features.
+\end_layout
+
+\begin_layout Section
+Architecture
+\end_layout
+
+\begin_layout Standard
+The bxilog solution is thread-safe, but lockless by design: it uses an asynchron
+ous message passing paradigm, implemented by the 
+\family typewriter
+zeromq
+\family default
+ library for internal and external communication.
+ The architecture is illustrated on figure
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:architecture"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Subsection
+Business Code parts
+\end_layout
+
+\begin_layout Standard
+The business code is traditionnally made of several modules, each having
+ one or many 
+\family typewriter
+logger
+\family default
+ data-structure (object like).
+ A 
+\family typewriter
+logger
+\family default
+ has a 
+\family typewriter
+name
+\family default
+ and a 
+\family typewriter
+level
+\family default
+.
+ The name is just a string (
+\family typewriter
+char *
+\family default
+), a level is defined by an integer among the following:
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+CRITICAL: 
+\family default
+used in critical cases, usually, the process is no more able to run after
+ such a message;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+ERROR:
+\family default
+ used to indicate normal errors;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+WARNING:
+\family default
+ used to indicate warnings;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+OUTPUT: 
+\family default
+used for any normal messages that should be displayed, this should replace
+ 
+\family typewriter
+printf()
+\family default
+;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+INFO:
+\family default
+ used for messages that can help end-user understand what is going on;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+DEBUG: 
+\family default
+used for detailed messages that can help debugging the application;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+TRACE: 
+\family default
+used for very detailed informations, probably only helpful for application
+ developpers.
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+OUTPUT
+\family default
+ level is very important: replacing all 
+\family typewriter
+printf() 
+\family default
+output by a log at this level provides various advantages:
+\end_layout
+
+\begin_layout Itemize
+performance: the business code thread won't perform any costly output operation,
+ the bxilog will do it on its behalf (in another thread or process), letting
+ the business code thread moving forward;
+\end_layout
+
+\begin_layout Itemize
+flexibility: since all messages are sent through bxilog \SpecialChar \-
+\SpecialChar \-
+\SpecialChar \-
+ including outputs
+ \SpecialChar \-
+\SpecialChar \-
+\SpecialChar \-
+ they can be treated in various ways.
+ As an example, all 
+\family typewriter
+OUTPUT 
+\family default
+and 
+\family typewriter
+WARNING 
+\family default
+messages can be sent to 
+\family typewriter
+stdout
+\family default
+, all 
+\family typewriter
+ERROR 
+\family default
+and 
+\family typewriter
+CRITICAL
+\family default
+ can be sent to 
+\family typewriter
+stderr
+\family default
+, while at the same time, all logs including 
+\family typewriter
+TRACE
+\family default
+,
+\family typewriter
+ DEBUG
+\family default
+, and 
+\family typewriter
+INFO
+\family default
+, can be flushed to storage in a file in a very detailed format.
+ With such a mechanism, a developper of an application can ask one of its
+ user facing a strange behavior to send the file: it will contain all the
+ data seen by the end-user (
+\family typewriter
+OUTPUT, WARNING, ERROR, CRITICAL
+\family default
+) and also the low level messages (
+\family typewriter
+TRACE, DEBUG, INFO).
+ 
+\end_layout
+
+\begin_layout Standard
+The business code can have multiple threads traversing its own code, and
+ therefore, using its own modules: there is no relationship between 
+\family typewriter
+loggers
+\family default
+ and business code threads.
+ Such a thread can traverse all business code modules and therefore produce
+ logs with different 
+\family typewriter
+loggers
+\family default
+.
+\end_layout
+
+\begin_layout Subsection
+bxilog part
+\end_layout
+
+\begin_layout Standard
+The main component of the bxilog is the internal thread that runs a very
+ thin layer of code.
+ When the API is initialized, an internal thread is created.
+ This internal thread creates a special 
+\family typewriter
+zeromq
+\family default
+ 
+\family typewriter
+PULL 
+\family default
+socket that will receive all messages from business code threads through
+ the 
+\family typewriter
+zeromq inproc
+\family default
+ protocol.
+ This protocol does not induce costly input/output operations.
+ The main role of this internal thread is therefore to release each business
+ code thread from costly input/output operations: as soon as a message has
+ been given to the bxilog library, the thread can move on to its actual
+ processing code.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename bxilog-arch.eps
+	width 75line%
+	clip
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:architecture"
+
+\end_inset
+
+The architecture of bxilog.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The internal thread main code is reduced to the transformation of raw log
+ data into a language neutral log format, and their publishing to subscribers
+ using a 
+\family typewriter
+zeromq PUB
+\family default
+ socket.
+ The actual protocol used can be specified during the initialization.
+ It can be any of 
+\family typewriter
+inproc, ipc, tcp, 
+\family default
+or even 
+\family typewriter
+pgm 
+\family default
+or 
+\family typewriter
+epgm
+\family default
+.
+ A log includes many information such as: 
+\end_layout
+
+\begin_layout Itemize
+log level, 
+\end_layout
+
+\begin_layout Itemize
+precise timestamp, 
+\end_layout
+
+\begin_layout Itemize
+process id, kernel thread id, software thread id, 
+\end_layout
+
+\begin_layout Itemize
+program name, 
+\end_layout
+
+\begin_layout Itemize
+source file, line number, and function name, 
+\end_layout
+
+\begin_layout Itemize
+logger name, 
+\end_layout
+
+\begin_layout Itemize
+and the message.
+ 
+\end_layout
+
+\begin_layout Standard
+A subscriber can be internal to the process that emits the log, or external.
+ 
+\end_layout
+
+\begin_layout Standard
+Typically, a single internal subscriber will create a message from the log
+ and will display it on the console and store it as well on storage according
+ to some parameters given from the command line and/or the environment.
+\end_layout
+
+\begin_layout Standard
+An external subscriber might filter according to system level criteria and
+ forward only interesting messages to a dedicated system logger such as
+ syslog.
+\end_layout
+
+\begin_layout Standard
+Note that if no subscriber exist, then all logs will just be dropped.
+ 
+\end_layout
+
+\begin_layout Section
+Complexities
+\end_layout
+
+\begin_layout Subsection
+Initialization and termination
+\end_layout
+
+\begin_layout Standard
+When the internal thread is started, the thread that initialize the bxilog
+ API should wait until the internal thread is ready to process logging message.
+\end_layout
+
+\begin_layout Subsection
+Logger configuration
+\end_layout
+
+\begin_layout Standard
+When a log is emmitted, a check is made to know wether the given 
+\family typewriter
+logger
+\family default
+ has been configured or not.
+ If not, the logger is configured according to rules specified during the
+ bxilog initialization.
+\end_layout
+
+\begin_layout Subsection
+Synchronization of the internal thread with subscribers
+\end_layout
+
+\begin_layout Standard
+Due to the nature of ZeroMQ PUB/SUB sockets, if a synchronization mechanism
+ is not implemented between subscribers and publishers, a significant proportion
+ of first logs will be missed by subscribers.
+ Therefore, the internal threads will immediatly emit special 
+\family typewriter
+SYNC
+\family default
+ messages on its PUB ZeroMQ socket.
+ The internal thread is initially given the number of subscribers to synchronize
+ with.
+ It then regularly polls a specific socket (not shown on figure) for a 
+\family typewriter
+SYNC_ACK
+\family default
+ message from a subscriber, stating that a new subscriber has received the
+ 
+\family typewriter
+SYNC 
+\family default
+message, and is therefore ready to receive real logs.
+ Once the expected number of subscribers have been synchronized, the internal
+ thread will notify the business code thread that it is ready to proceed.
+\end_layout
+
+\begin_layout Subsection
+Supporting fork() system call
+\end_layout
+
+\begin_layout Standard
+Forking a multithreaded process is undefined in POSIX.
+ And the bxilog API is not only thread-safe, it is itself multithreaded
+ since at least the internal thread and the main thread cohabits in the
+ same process.
+ Therefore, forking such a process is challenging.
+ The main solution is to gently kill the bxilog specific threads (internal
+ thread and any other subscriber threads), helping the whole process to
+ turn into a single threaded program just before the fork, then to fork,
+ and then in the parent to come back to the state recorded before the fork,
+ and in the child to stay in the uninitialized state as if a new process
+ has been launched.
+ If the child wants to perform some logs using bxilog, it should initialize
+ the bxilog library as any process does.
+ Therefore the bxilog library maintains a finite state machine given by
+ figure
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:bxilog-fsm"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename bxilog-fsm.eps
+	lyxscale 50
+	width 100col%
+	clip
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:bxilog-fsm"
+
+\end_inset
+
+Finite State Machine of bxilog.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Dealing with signals
+\end_layout
+
+\begin_layout Standard
+Handling UNIX signals is tricky.
+ It becomes even trickier in a multi-threaded applications.
+ Two cases should be distinguished: signals received by the internal thread
+ and signals received by the business code.
+\end_layout
+
+\begin_layout Subsubsection
+Internal Thread Signals Handling
+\end_layout
+
+\begin_layout Standard
+Inside the internal thread: asynchronous signals such as SIGINT, SIGTERM,
+ SIGQUIT and so on should not be received.
+ It is not the role of the internal thread to deal with them.
+ Those signals should be dealt with by the business code itself.
+ Other signals (SIGSEGV, SIGBUS, ...) might happenend in the internal thread
+ due to bugs, memory corruption, etc.
+ It should therefore deal with them.
+\end_layout
+
+\begin_layout Standard
+The solution is to include those signals in the internal thread polling
+ loop.
+ If such a signal is received, a log is produced internally, flushed
+\end_layout
+
+\begin_layout Standard
+and the signal is raised again with the default signal handler in order
+ to kill the application (and produce a core dump if required).
+\end_layout
+
+\begin_layout Subsubsection
+Business Code Signals Handling
+\end_layout
+
+\begin_layout Standard
+When the business code receive a signal, the good thing to do is to emit
+ a log with a backtrace.
+ Therefore, bxilog provides a function that sets up signal handlers for
+ doing that.
+ The business code is free to use it or to provide its own signal handlers.
+ 
+\end_layout
+
+\begin_layout Standard
+Since after a SIGSEGV the best thing to do is to quit, and since exiting
+ without calling 
+\family typewriter
+bxilog_finalize()
+\family default
+ will lost messages, the end result will be that the log produced by the
+ SIGSEGV handling won't be seen at all in the log.
+ The issue is to make sure the internal thread has flushed all logs before
+ exiting.
+ Therefore, the sighandler, ask for the termination of the internal thread
+ \SpecialChar \-
+\SpecialChar \-
+\SpecialChar \-
+ which flushes the logs as far as it can \SpecialChar \-
+\SpecialChar \-
+\SpecialChar \-
+, waits some time and then exit
+ (raising the original signal with the default signal handler).
+ 
+\end_layout
+
+\end_body
+\end_document

@@ -1,0 +1,3 @@
+See the wiki for Coding Convention:
+
+http://intranet.frec.bull.fr/projet/BXI/private_wiki/index.php/Coding

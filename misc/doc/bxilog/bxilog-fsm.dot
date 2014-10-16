@@ -1,0 +1,32 @@
+digraph bxilog_fsm {
+    rankdir=LR;
+    size="8,5"
+
+    node [shape = doublecircle ]; UNSET;
+    node [shape=circle];INITIALIZING;
+    node [shape=circle]; INITIALIZED;
+    node [shape=circle];FINALIZING;
+    node [shape=circle];FINALIZED;
+    node [shape=square];ILLEGAL;
+    node [shape=square];FORKED;
+    
+
+
+    UNSET -> INITIALIZING [label="_init()"];
+    INITIALIZING -> INITIALIZED;
+    INITIALIZED -> FINALIZING [label="_finalize()"];
+    FINALIZING -> FINALIZED;
+    UNSET -> UNSET [label="fork()"];
+    FINALIZED -> FINALIZED [label="fork()"];
+    INITIALIZING -> ILLEGAL [label="fork()"];
+    FINALIZING -> ILLEGAL [label="fork()"];
+
+	INITIALIZED -> FINALIZING [label="fork()", style="dashed"];
+    FINALIZING -> FINALIZED [label="_parent_before_fork()", style="dashed"];
+    FINALIZED -> FORKED [label="_parent_before_fork()", style="dashed"];
+    FORKED -> INITIALIZING [label="_parent_after_fork()", style="dashed"];
+    INITIALIZING -> INITIALIZED [label="_parent_after_fork()", style="dashed"];
+    
+    FORKED -> FINALIZED [label="_child_after_fork()", style="dotted"];
+
+}

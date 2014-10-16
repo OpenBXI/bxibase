@@ -1,0 +1,32 @@
+C lacks a standard SDK that provides usefull libraries for standard stuff such as:
+
+- logging
+- config file parsing
+- I/O operations (fopen() sucks, open() is not portable and too low level)
+- data structures (list, hash map, and so on)
+- among others.
+
+
+GLib provides such an SDK, however the following are cons:
+
+- any glib application requires at least two threads since glib starts
+its own thread internally
+
+- it does not provide lock-free data structures (actually data
+structure are not thread safe). 
+
+ - by the way, GLib uses wrapper on top of most standard C type which
+makes it cumbersome to use at the first place.
+
+
+123/1424 packets uses the GLIB.
+
+Apache Runtime Runtime (APR) provides similar SDK.  But the
+documentation is just very thin, consisting of a doxygen web site with
+no tutorial, and good stuff. It does not seem to be used that much by
+the way: 2/1424 packets use it on my desktop.
+
+I finally found that article which just shows how cumbersome it is to
+find a good SDK in C:
+
+http://www.drdobbs.com/cpp/general-purpose-c-libraries-limited-opti/231000967

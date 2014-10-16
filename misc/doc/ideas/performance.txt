@@ -1,0 +1,77 @@
+Increasing performance reading:
+
+http://www.gerhards.net/download/LinuxKongress2010rsyslog.pdf
+
+Other idea:
+
+Reduce syscalls: 
+
+	time(CLOCK_REALTIME) -> Can't we use something faster ? For example
+	something less precise (CLOCK_MONOTONIC) and called less often
+	globally, but each thread then increment a
+	counter to ensure sequence between its own call. How to order then
+	these counters between different threads? Find research on clock and
+	ordering starting with Lamport.
+
+	One solution might be: record the time clock at init time, then only
+	log delta from that chrono. Post processing will give the actual date.
+
+	Also see RFC5424 and lamport clocks.
+
+
+Reduce call to localtime_r:
+	
+	Log only seconds and nanoseconds in raw format. This will prevent
+	costly calls to localtime_r(). Post processing the logs will provide
+	the related date/time in the format they want by the way.
+
+
+Dynamic increase of High Water Mark:
+
+	When a send needs a retry, you might get the current high water mark,
+	and increase its value (*2) for example. Log this to the end user so
+	it can start with a default high water mark set to a higher value in
+	order to prevent this situation.
+
+Use mmap() instead of fwrite()
+
+	Or any other kernel helper that improve I/O performance.
+
+Reduce call to printf()	
+
+	printf() is very costly, but all of what is printed is either:
+		- a simple character (Log level)
+		- an integer (seconds, nanoseconds, pid, tid, ...)
+		- a string (process, function name and log message)
+	
+	Therefore, puts() might be used instead. Transforming integer to
+	string required a very efficient function itoa() but it does not
+	exist. Note that it would be better to implement this function
+	ourself since we need constant length string whatever the actual 
+	number is (e.g. we use %05d for example).
+
+	Several implementation exists for itoa() we might get inspired by 
+	the most efficient one and tune it to our specific needs.
+
+
+Prevent malloc() calls:
+
+	Use a per-thread pool of pre-allocated buffer of fixed size.
+	Such a buffer will contain all data:
+
+		- level, time, tid, rank, line_nb, *_len, and the logmsg (up
+		  to the default size)
+	
+	If the logmsg does not fit in the default size, we reach the slow path
+	and allocate from scratch a whole new buffer of the correct size
+	before sending it to ZMQ.
+
+		- The ZMQ zero copy mechanism will be used -> the function
+		  called when the message is ready to be freed should not be
+		  free() but should be a new internal function that puts the 
+		  whole buffer in the pool of ready-to-be-used buffer instead.
+		  As such, malloc() calls will be reduce to the bare minimum.
+
+Remove stdio calls (fprintf() for example) -> it does not support atomic write (from multiple thread/processes).
+	fprintf() might also use locking -> remove them -> replace by simple write() calls.
+	The IHT write into a single buffer and write it down atomically using write().
