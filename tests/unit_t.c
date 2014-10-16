@@ -124,7 +124,8 @@ int main(int argc, char * argv[]) {
     /* add the tests to the suite */
     if (false
         || (NULL == CU_add_test(pSuite, "test free", test_free))
-
+        // Do not change this order: since unit test uses logging,
+        // it is better to check that logging works first.
         || (NULL == CU_add_test(pSuite, "test logger", test_logger))
         || (NULL == CU_add_test(pSuite, "test logger fork", test_logger_fork))
         || (NULL == CU_add_test(pSuite, "test logger signal", test_logger_signal))
