@@ -158,8 +158,6 @@ PKG_CHECK_MODULES([UUID], [uuid], [], [
 
 
 LDFLAGS+=" $ZMQ_LIBS "
-AC_CHECK_LIB([bxibb], [bxibb_server_new],[],
-             [AC_MSG_ERROR([Could not find bxibb library])])
 
 
 #

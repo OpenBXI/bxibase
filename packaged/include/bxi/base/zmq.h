@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <zmq.h>
 
-#include <bxi/bxierr.h>
+#include <bxi/base/err.h>
 
 
 // *********************************************************************************

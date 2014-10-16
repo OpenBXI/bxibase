@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #endif
-#include <bxi/bximem.h>
+#include <bxi/base/mem.h>
 
 
 /**

@@ -24,8 +24,8 @@
 #include <stdint.h>
 #endif
 
-#include "bxi/bximem.h"
-#include "bxi/bxierr.h"
+#include "bxi/base/mem.h"
+#include "bxi/base/err.h"
 
 
 /**
