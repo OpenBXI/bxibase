@@ -2,7 +2,7 @@
 <configurations>
 <configuration id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1474683561">
 <option id="configure" value="configure"/>
-<option id="configdir" value="packaged"/>
+<option id="configdir" value=""/>
 <option id="cache-file" value=""/>
 <option id="help" value="false"/>
 <option id="no-create" value="false"/>
@@ -36,7 +36,7 @@
 <flagvalue id="cflags-gcov" value="true"/>
 </flag>
 <option id="user" value=""/>
-<option id="autogen" value="packaged/bootstrap.sh"/>
+<option id="autogen" value="bootstrap.sh"/>
 <option id="autogenOpts" value=""/>
 </configuration>
 </configurations>
