@@ -191,7 +191,7 @@ CLEANFILES=config.h
 
 config.h:svnversion template_config.h
 	cp template_config.h $@
-	SVNVERSION=`sed 's/.*: //' $(top_srcdir)/svnversion | sed 's/ .*//'`
+	SVNVERSION=`sed 's/.*: //' $< | sed 's/ .*//'`
 	echo "#define SVNVERSION $$SVNVERSION" >> $@
 
 
