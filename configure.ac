@@ -180,7 +180,7 @@ if test x"$enable_doc" != "xno" ; then
         if ! test -z "$DOT";
         then
             ENABLE_DOC="yes"
-            AC_CONFIG_FILES([doc/Doxyfile])
+            AC_CONFIG_FILES([packaged/doc/Doxyfile])
         fi
     fi
 fi
@@ -227,7 +227,7 @@ AM_PATH_PYTHON
 
 
 #TODO add the pc.in file
-AC_CONFIG_FILES([Makefile packaged/Makefile packaged/lib/Makefile packaged/include/Makefile doc/Makefile tests/Makefile])
+AC_CONFIG_FILES([Makefile packaged/Makefile packaged/lib/Makefile packaged/include/Makefile packaged/doc/Makefile tests/Makefile])
 AC_OUTPUT
 
 echo "summary   :"

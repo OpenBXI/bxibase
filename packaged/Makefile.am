@@ -25,5 +25,5 @@ lib_libbxibase_la_LIBADD=$(LIB_LIBS)
 
 
 
-SUBDIRS=lib include
+SUBDIRS=lib include doc
 

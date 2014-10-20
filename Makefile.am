@@ -1,7 +1,7 @@
 
 ACLOCAL_AMFLAGS="-I ./.autotools_cache/m4"
 
-SUBDIRS=packaged tests doc
+SUBDIRS=packaged tests
 
 
 current_makefile=$(lastword $(MAKEFILE_LIST))
