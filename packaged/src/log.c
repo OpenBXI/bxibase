@@ -539,6 +539,21 @@ bxierr_p bxilog_finalize(void) {
     return err;
 }
 
+bxilog_p bxilog_new(const char * logger_name) {
+    bxilog_p self = bximem_calloc(sizeof(*self));
+    self->name = strdup(logger_name);
+    self->name_length = strlen(logger_name) + 1;
+    self->level = BXILOG_TRACE;
+
+    return self;
+}
+
+void bxilog_destroy(bxilog_p * self_p) {
+    BXIFREE((*self_p)->name);
+    BXIFREE(*self_p);
+}
+
+
 bxierr_p bxilog_flush(void) {
     if (INITIALIZED != STATE) return BXIERR_OK;
     DEBUG(BXILOG_INTERNAL_LOGGER, "Requesting a flush().");
@@ -904,9 +919,9 @@ void _tsd_free(void * const data) {
 
     if (NULL != tsd->log_channel) {
         bxierr_p err = BXIERR_OK, err2;
-        err2 = bxizmq_zocket_cleanup(tsd->log_channel);
+        err2 = bxizmq_zocket_destroy(tsd->log_channel);
         BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_cleanup(tsd->ctl_channel);
+        err2 = bxizmq_zocket_destroy(tsd->ctl_channel);
         BXIERR_CHAIN(err, err2);
         if (bxierr_isko(err)) {
             char * str = bxierr_str(err);
@@ -1061,8 +1076,8 @@ void * _iht_main(void * param) {
         }
     }
     QUIT:
-    err2 =  bxizmq_zocket_cleanup(DATA_CHANNEL); BXIERR_CHAIN(err, err2);
-    err2 = bxizmq_zocket_cleanup(CONTROL_CHANNEL); BXIERR_CHAIN(err, err2);
+    err2 =  bxizmq_zocket_destroy(DATA_CHANNEL); BXIERR_CHAIN(err, err2);
+    err2 = bxizmq_zocket_destroy(CONTROL_CHANNEL); BXIERR_CHAIN(err, err2);
     err2 = _sync(); BXIERR_CHAIN(err, err2);
     errno = 0;
     int rc = close(IHT_DATA.fd);

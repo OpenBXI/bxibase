@@ -68,7 +68,7 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
             err2 = bxierr_error("Can't set option %d on zmq socket",
                                 option_name);
             BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_zocket_cleanup(socket);
+            err2 = bxizmq_zocket_destroy(socket);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -82,7 +82,7 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
             err2 = bxierr_error("Can't set option ZMQ_RCVHWM=%d "
                                 "on zmq socket", _hwm);
             BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_zocket_cleanup(socket);
+            err2 = bxizmq_zocket_destroy(socket);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -94,7 +94,7 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
             err2 = bxierr_error("Can't set option ZMQ_SNDHWM=%d "
                                 "on zmq socket", _hwm);
             BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_zocket_cleanup(socket);
+            err2 = bxizmq_zocket_destroy(socket);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -136,7 +136,7 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
         }
     }
     if (bxierr_isko(err)) {
-        err2 = bxizmq_zocket_cleanup(socket);
+        err2 = bxizmq_zocket_destroy(socket);
         BXIERR_CHAIN(err, err2);
         return err;
     }
@@ -149,7 +149,7 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
  * Called for closing a zmq socket.
  * Returns 0, if ok.
  */
-bxierr_p bxizmq_zocket_cleanup(void * const zocket) {
+bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     if (NULL == zocket) return BXIERR_OK;
     errno = 0;
     int linger = DEFAULT_CLOSING_LINGER;

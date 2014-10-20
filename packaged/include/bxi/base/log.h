@@ -75,17 +75,54 @@
 
 // WARNING: These macros should be first initialized with bxilog_init_default_logger()
 // This is reentrant
+
+/**
+ * xoueo
+ */
 #define LOWEST(logger, ...) bxilog_log(logger, BXILOG_LOWEST, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
+/**
+ *oueo
+ */
 #define TRACE(logger, ...) bxilog_log(logger, BXILOG_TRACE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
+/**
+ *oueo
+ */
 #define FINE(logger, ...) bxilog_log(logger, BXILOG_FINE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *oueou
+ */
 #define DEBUG(logger, ...) bxilog_log(logger, BXILOG_DEBUG, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *oue
+ */
 #define INFO(logger, ...)  bxilog_log(logger, BXILOG_INFO, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define OUT(logger, ...)   bxilog_log(logger, BXILOG_OUTPUT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define NOTICE(logger, ...)  bxilog_log(logger, BXILOG_NOTICE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define WARNING(logger, ...)  bxilog_log(logger, BXILOG_WARNING, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define ERROR(logger, ...)   bxilog_log(logger, BXILOG_ERROR, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define CRITICAL(logger, ...)  bxilog_log(logger, BXILOG_CRITICAL, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define ALERT(logger, ...)  bxilog_log(logger, BXILOG_ALERT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+/**
+ *
+ */
 #define PANIC(logger, ...)  bxilog_log(logger, BXILOG_PANIC, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 
 
@@ -293,7 +330,7 @@ typedef enum {
  */
 struct bxilog_s {
     const char * name;              //< Logger name
-    const size_t name_length;       //< Logger name length, including NULL ending byte.
+    size_t name_length;             //< Logger name length, including NULL ending byte.
     bxilog_level_e level;           //< Logger level
 };
 
@@ -401,6 +438,25 @@ bxierr_p bxilog_init(const char * progname, const char * filename);
  *
  */
 bxierr_p bxilog_finalize(void);
+
+/**
+ * Create a new logger instance.
+ *
+ * Note: this function is mainly for language bindings (such as Python).
+ * In C, use SET_LOGGER macro instead.
+ *
+ * @param logger name
+ * @return a new logger instance
+ */
+bxilog_p bxilog_new(const char * logger_name);
+
+/**
+ * Destroy the given logger.
+ *
+ * @param self_p a pointer on a logger instance
+ */
+void bxilog_destroy(bxilog_p * self_p);
+
 
 /**
  * Request a flush of all pending logs.

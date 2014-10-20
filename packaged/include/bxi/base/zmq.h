@@ -73,7 +73,7 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
  * @param zocket the socket to cleanup
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_cleanup(void * const zocket);
+bxierr_p bxizmq_zocket_destroy(void * const zocket);
 
 
 /**
