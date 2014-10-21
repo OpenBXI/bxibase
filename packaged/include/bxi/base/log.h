@@ -16,6 +16,7 @@
 
 #ifndef BXICFFI
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include <signal.h>
 #include <sys/signalfd.h>
@@ -29,42 +30,143 @@
 
 
 /**
- * HOWTO USE
- * ==========
+ * @file    log.h
+ * @brief   High Performance Logging Module
  *
- * 1. use macro SET_LOGGER(varname, 'logger_name') at the beginning of each C module
- *    (in .c, not in .h)
- * 2. in the same source file, use DEBUG(varname, ....), or INFO(varname, ...) as usual...
- * 3. call bxilog_init() (in your main()) to initialize the whole module
- * 4. call bxilog_finalize() (in your main()) otherwise YOUR PROGRAM WON'T TERMINATE!
+ * ### Overview
  *
- * For 2. and 3., examples:
+ * This module provides a high performance logging library (>500k logs/s),
+ * for heavy multi-threaded processes, while supporting fork() system call,
+ * and signal handling. It provides convenient functions to deal with:
  *
- * > #include<bxilog.h>
- * > SET_LOGGER(mylogger, 'mylog');
- * > ...
- * > void f(...) {
- * > ...
- * > DEBUG(mylogger, "we passed here");
- * > }
+ * - logging at various log levels: `bxilog_level_e`,
+ * - logging configuration: `bxilog_cfg_registered()`,
+ * - error reporting: `BXILOG_REPORT()`,
+ * - assertion: `BXIASSERT()` and `BXIUNREACHABLE_STATEMENT()`,
+ * - exiting: `BXIEXIT`,
+ * - signal handling set-up: `bxilog_install_sighandler()`
  *
+ * ### Basic 4-steps usage:
  *
- * Note:
+ * 1. use macro `SET_LOGGER()` at the beginning of each C module (in .c, not in .h)
+ * 2. in the same source file, use `DEBUG()`, `INFO()`, `WARNING()`, `ERROR()`, ...
+ * 3. call `bxilog_init()` (in your `main()`) to initialize the whole module
+ * 4. call `bxilog_finalize()` (in your `main()`) otherwise *your program won't terminate*!
  *
- * - OUT() should be seen as a replacement for printf()
- * - The bxilog API uses an internal logger named 'bxilog'
- * - Default level of each logger is BXILOG_LOWEST. You might change it from anywhere.
- *   One solution
- *   is to declare each logger as external in your main file (global variables)
- *   and to set their levels according to some configuration file specified on the
- *   command line.
+ * ### Notes:
  *
- * - You might need the installation of a signal handler in order to call bxilog_finalize()
- *   properly and to flush all pending messages. Use bxilog_install_sighanler()
- *   for this purpose.
+ * - `OUT()` should be seen as a replacement for `printf()`
+ * - Loggers created with `SET_LOGGER()` are automatically registered with the library
+ * - Dynamically created loggers with `bxilog_new()` (such as from higher level languages)
+ *   can be registered with `bxilog_register()`
+ * - Default level of each logger is `BXILOG_LOWEST`. Use `bxilog_cfg_registered()`
+ *   to configure all registered loggers.
+ * - Use `BXIASSERT()` instead of `assert()` and `BXIEXIT()` instead of `exit()`
+ *   to guarantee that logs are flushed before exiting the process.
+ * - For the same reason, you might need the installation of a signal handler in order
+ *   to call `bxilog_finalize()` properly and to flush all pending messages.
+ *   See `bxilog_install_sighanler()` for this purpose.
+ * - For `bxierr_p` reporting, use `BXILOG_REPORT`.
+ * - Exiting a process (with `BXIEXIT`) normally requires at least the level
+ *   `BXILOG_CRITICAL` or above and a standard exit code (see sysexits.h).
  *
- * - WARNING: if you fork(), the parent will remain in the same state,
- *   but the child will have to call bxilog_init() in order to log.
+ * - All functions in this library are thread safe.
+ * - Fork is supported, but note that after a `fork()`, while the parent remains in same
+ *   state as before the `fork()`, the child have to call `bxilog_init()` in order to
+ *   produce logs.
+ *
+ * Full running example (compile with `-lbxibase`):
+ *
+ *      #include <sys/types.h>
+ *      #include <unistd.h>
+ *      #include <string.h>
+ *      #include <libgen.h>
+ *      #include <sysexits.h>
+ *
+ *      #include <bxi/base/mem.h>
+ *      #include <bxi/base/str.h>
+ *      #include <bxi/base/err.h>
+ *      #include <bxi/base/time.h>
+ *      #include <bxi/base/log.h>
+ *
+ *      // Create a logger for my module/main
+ *      SET_LOGGER(MY_LOGGER, "my.logger");
+ *
+ *      // This function does not raise an error
+ *      // It deals with error itself, internally
+ *      // using BXILOG_REPORT()
+ *      void foo_noraise(void) {
+ *        struct timespec start, stop;
+ *        bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
+ *        if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
+ *                                            BXILOG_ERROR,
+ *                                            err,
+ *                                            "Calling bxitime_gettime() failed");
+ *        DEBUG(MY_LOGGER, "Producing a log");
+ *        double duration;
+ *        err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
+ *        if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
+ *                                            BXILOG_ERROR,
+ *                                            err,
+ *                                            "Calling bxitime_duration() failed");
+ *        OUT(MY_LOGGER, "Duration: %lf", duration);
+ *      }
+ *
+ *      // This function is the equivalent but it does raise errors
+ *      // It uses BXIERR_CHAIN() for this purpose.
+ *      bxierr_p bar_raise(void) {
+ *        struct timespec start, stop;
+ *        bxierr_p err = BXIERR_OK, err2;
+ *        err2 = bxitime_get(CLOCK_MONOTONIC, &start);
+ *        BXIERR_CHAIN(err, err2); // This makes err2->cause = err, err=err2 on error
+ *        // We choose to continue here, despite the error.
+ *        // We migh have returned sooner with:
+ *        // if (bxierr_isko(err)) return err;
+ *        DEBUG(MY_LOGGER, "Producing a log");
+ *        double duration = 0;
+ *        err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
+ *        BXIERR_CHAIN(err, err2);
+ *        OUT(MY_LOGGER, "Duration: %lf", duration);
+ *        return err;
+ *      }
+ *
+ *      int main(int argc, char** argv) {
+ *        // Produce the log on stdout
+ *        bxierr_p err = bxilog_init(argv[0], "-");
+ *
+ *        if (bxierr_isko(err)) {
+ *          // Nothing can be logged, use fprintf() exceptionnaly
+ *          char * str = bxierr_str(err);
+ *          fprintf(stderr, "Calling bxilog_init() failed: %s", str);
+ *          BXIFREE(str); // Nullify the pointer!
+ *          BXIASSERT(MY_LOGGER, NULL == str);
+ *          int rc = err->code;
+ *          bxierr_destroy(&err);
+ *          exit(rc);
+ *        }
+ *
+ *        DEBUG(MY_LOGGER, "Calling noraise");
+ *        foo_noraise();
+ *        DEBUG(MY_LOGGER, "Calling raise");
+ *        err = bar_raise();
+ *        if (bxierr_isko(err)) {
+ *          // Exit the program
+ *          BXIEXIT(EX_SOFTWARE, err, MY_LOGGER, BXILOG_CRITICAL);
+ *          // The following statement must never be reached
+ *          BXIUNREACHABLE_STATEMENT(MY_LOGGER);
+ *        }
+ *
+ *        err = bxilog_finalize();
+ *        if (bxierr_isko(err)) {
+ *          // Logging cannot be used, use fprintf() exceptionnaly
+ *          char * str = bxierr_str(err);
+ *          fprintf(stderr, "Calling bxilog_finalize() failed: %s",
+ *                  str);
+ *          BXIFREE(str);
+ *          bxierr_destroy(&err);
+ *        }
+ *        exit(EXIT_SUCCESS);
+ *      }
  *
  * *************************************************************************************
  */
@@ -77,64 +179,64 @@
 // This is reentrant
 
 /**
- * xoueo
+ * Produce a log at the `BXILOG_LOWEST` level
  */
 #define LOWEST(logger, ...) bxilog_log(logger, BXILOG_LOWEST, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
 /**
- *oueo
+ * Produce a log at the `BXILOG_TRACE` level
  */
 #define TRACE(logger, ...) bxilog_log(logger, BXILOG_TRACE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
 /**
- *oueo
+ * Produce a log at the `BXILOG_FINE` level
  */
 #define FINE(logger, ...) bxilog_log(logger, BXILOG_FINE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *oueou
+ * Produce a log at the `BXILOG_DEBUG` level
  */
 #define DEBUG(logger, ...) bxilog_log(logger, BXILOG_DEBUG, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *oue
+ * Produce a log at the `BXILOG_INFO` level
  */
 #define INFO(logger, ...)  bxilog_log(logger, BXILOG_INFO, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_OUTPUT` level
  */
 #define OUT(logger, ...)   bxilog_log(logger, BXILOG_OUTPUT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_NOTICE` level
  */
 #define NOTICE(logger, ...)  bxilog_log(logger, BXILOG_NOTICE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_WARNING` level
  */
 #define WARNING(logger, ...)  bxilog_log(logger, BXILOG_WARNING, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_ERROR` level
  */
 #define ERROR(logger, ...)   bxilog_log(logger, BXILOG_ERROR, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_CRITICAL` level
  */
 #define CRITICAL(logger, ...)  bxilog_log(logger, BXILOG_CRITICAL, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_ALERT` level
  */
 #define ALERT(logger, ...)  bxilog_log(logger, BXILOG_ALERT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
- *
+ * Produce a log at the `BXILOG_PANIC` level
  */
 #define PANIC(logger, ...)  bxilog_log(logger, BXILOG_PANIC, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 
 
 /**
- * Define the bxierr code for BXIASSERT
+ * Define the bxierr code for `BXIASSERT`
  *
  * @see bxierr_p
  */
 #define BXIASSERT_CODE 455327 // Leet speak! ;-)
 
 /**
- * Define the bxierr code for BXIUNREACHABLE_STATEMENT
+ * Define the bxierr code for `BXIUNREACHABLE_STATEMENT`
  */
 #define BXIUNREACHABLE_STATEMENT_CODE 666 // Devil's code! ;-)
 
@@ -152,23 +254,23 @@
  * The given `bxierr` is used to produce a log on the given `logger` at the
  * given `level`,  before flushing the log and exiting the program.
  *
- * Usage looks like (for an errno related error message):
+ * Usage looks like (for an `errno` related error message):
  *
- * errno = 0;
- * int rc = function_call(...);
- * if (rc != 0) BXIEXIT(EX_OSERR,  // See sysexits.h for other standard exit code
- *                      bxierr_perror("Can't call function_call()),
- *                      MYLOGGER, BXILOG_ERROR);
+ *      errno = 0;
+ *      int rc = function_call(...);
+ *      if (rc != 0) BXIEXIT(EX_OSERR,  // See sysexits.h for other standard exit code
+ *                           bxierr_perror("Can't call function_call()),
+ *                           MYLOGGER, BXILOG_ERROR);
  *
- * Same stuff with a generic bxierr:
+ * Same stuff with a generic `bxierr`:
  *
- * bxierr_p err = function_call(...);
- * if (BXIERR_OK != err) BXIEXIT(EXIT_FAILURE, err, MYLOGGER, BXILOG_ERROR);
+ *      bxierr_p err = function_call(...);
+ *      if (BXIERR_OK != err) BXIEXIT(EXIT_FAILURE, err, MYLOGGER, BXILOG_ERROR);
  *
- * @param exit_code the exit code to exit the program with (see sysexits.h)
- * @param bxierr the bxierr to log before exiting
- * @param logger the logger to produce a log with
- * @param level the level for the log (should be BXILOG_CRITICAL at least)
+ * @param exit_code the exit code to exit the program with (see `sysexits.h`)
+ * @param bxierr the `bxierr` to log before exiting
+ * @param logger the `logger` to produce a log with
+ * @param level the `bxilevel_e` for the log (should be `BXILOG_CRITICAL` at least)
  */
 #define BXIEXIT(exit_code, bxierr, logger, level) do {                              \
     bxilog_exit((exit_code), (bxierr), (logger), (level),                           \
@@ -194,6 +296,12 @@
 
 /**
  * Use this macro to exit with a log and a flush on unreachable statements.
+ *
+ * Call `BXIEXIT()` internally.
+ *
+ * @param logger the logger to use in the case the statement is reached
+ *
+ * @see BXIEXIT()
  */
 #define BXIUNREACHABLE_STATEMENT(logger) do {                                       \
     BXIEXIT(EX_SOFTWARE,                                                            \
@@ -206,7 +314,14 @@
     } while(0);
 
 /**
- * Log the given error and destroys it.
+ * Log the given error with the given message and destroys it.
+ *
+ * Basic usage is:
+ *
+ *      err = f(...);
+ *      if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER, BXILOG_ERROR, err,
+ *                                          "Calling f() failed");
+ *      ...
  */
 #define BXILOG_REPORT(logger, level, err, ...) do {                                 \
         bxilog_report(logger, level, err,                                           \
@@ -219,7 +334,7 @@
 /**
  * Create a log using the given logger at the given level.
  *
- * @see bxilog_log_nolevel_check()
+ * @see `bxilog_log_nolevel_check()`
  */
 #define bxilog_log(logger, lvl, filename, filename_len, funcname, funcname_len, line, ...) do {\
         if (bxilog_is_enabled_for((logger), (lvl))) {                                   \
@@ -238,10 +353,11 @@
 
 
 
-// Defines a new logger as a global variable
-// Should be set inside your .c file, in order to define a new logger structure.
-// Note that by default, loggers level is set to TRACE
-
+/**
+ * Defines a new logger as a global variable
+ * Should be set inside your .c file, in order to define a new logger structure.
+ * Note that by default, loggers level is set to `BXILOG_LOWEST`
+ */
 #ifdef __cplusplus
 #define SET_LOGGER(variable_name, logger_name) \
     struct bxilog_s variable_name ## _s = { \
@@ -283,10 +399,25 @@
 #endif
 
 
+/**
+ * The error code returned when a function is called while the library is
+ * in an illegal state.
+ */
 #define BXILOG_ILLEGAL_STATE_ERR       1
+
+/**
+ * The error code returned when a configuration error is encountered
+ */
 #define BXILOG_CONFIG_ERR        2
+
+/**
+ * The error code returned when an error occurred within the underlying protocol.
+ */
 #define BXILOG_IHT2BC_PROTO_ERR 3
 
+/**
+ * The error code returned when a signal prevented a function to complete successfully.
+ */
 #define BXILOG_SIGNAL_ERR     10
 
 // *********************************************************************************
@@ -297,43 +428,46 @@
  *  Superset of Syslog levels:
  *  see for a good introduction on log levels and their usage.
  *  http://www.ypass.net/blog/2012/06/introduction-to-syslog-log-levelspriorities/
- *
- *
  */
 typedef enum {
     // Note: first letter of a log level name should be unique
-    BXILOG_PANIC,                           //< system is unusable
-    BXILOG_ALERT,                           //< action must be taken immediately
-    BXILOG_CRITICAL,                        //< critical conditions
-    BXILOG_ERROR,                           //< error conditions
-    BXILOG_WARNING,                         //< warning conditions
-    BXILOG_NOTICE,                          //< notice conditions
-    BXILOG_OUTPUT,                          //< printf() replacement
-    BXILOG_INFO,                            //< informational message
-    BXILOG_DEBUG,                           //< debug-level message
-    BXILOG_FINE,                            //< detailed debug-level message
-    BXILOG_TRACE,                           //< very detailed debug-level message
-    BXILOG_LOWEST,                          //< most detailed debug-level message
+    BXILOG_PANIC,                           //!< system is unusable
+    BXILOG_ALERT,                           //!< action must be taken immediately
+    BXILOG_CRITICAL,                        //!< critical conditions
+    BXILOG_ERROR,                           //!< error conditions
+    BXILOG_WARNING,                         //!< warning conditions
+    BXILOG_NOTICE,                          //!< notice conditions
+    BXILOG_OUTPUT,                          //!< `printf()` replacement
+    BXILOG_INFO,                            //!< informational message
+    BXILOG_DEBUG,                           //!< debug-level message
+    BXILOG_FINE,                            //!< detailed debug-level message
+    BXILOG_TRACE,                           //!< very detailed debug-level message
+    BXILOG_LOWEST,                          //!< most detailed debug-level message
 // Alias
 #ifndef BXICFFI
-    BXILOG_EMERG = BXILOG_PANIC,    //!< BXILOG_EMERG
-    BXILOG_EMERGENCY = BXILOG_PANIC,//!< BXILOG_EMERGENCY
-    BXILOG_CRIT = BXILOG_CRITICAL,  //!< BXILOG_CRIT
-    BXILOG_ERR = BXILOG_ERROR,      //!< BXILOG_ERR
-    BXILOG_WARN = BXILOG_WARNING,   //!< BXILOG_WARN
-    BXLOG_OUT = BXILOG_OUTPUT,      //!< BXLOG_OUT
+    BXILOG_EMERG = BXILOG_PANIC,    //!< alias for `BXILOG_EMERG`
+    BXILOG_EMERGENCY = BXILOG_PANIC,//!< alias for `BXILOG_EMERGENCY`
+    BXILOG_CRIT = BXILOG_CRITICAL,  //!< alias for `BXILOG_CRIT`
+    BXILOG_ERR = BXILOG_ERROR,      //!< alias for `BXILOG_ERR`
+    BXILOG_WARN = BXILOG_WARNING,   //!< alias for `BXILOG_WARN`
+    BXLOG_OUT = BXILOG_OUTPUT,      //!< alias for `BXILOG_OUT`
 #endif
 } bxilog_level_e;
 
-/**
- * A logger "object".
- */
+
 struct bxilog_s {
-    const char * name;              //< Logger name
-    size_t name_length;             //< Logger name length, including NULL ending byte.
-    bxilog_level_e level;           //< Logger level
+    const char * name;              //!< Logger name
+    size_t name_length;             //!< Logger name length, including NULL ending byte.
+    bxilog_level_e level;           //!< Logger level
 };
 
+
+/**
+ * A logger "object".
+ *
+ * Use `SET_LOGGER()` to create one (or `bxilog_new()`
+ * from a high level language).
+ */
 typedef struct bxilog_s * bxilog_p;
 
 struct bxilog_cfg_item_s {
@@ -341,6 +475,9 @@ struct bxilog_cfg_item_s {
     bxilog_level_e level;
 };
 
+/**
+ * A logging configuration item.
+ */
 typedef struct bxilog_cfg_item_s * bxilog_cfg_item_p;
 // *********************************************************************************
 // ********************************** Global Variables *****************************
@@ -355,18 +492,18 @@ typedef struct bxilog_cfg_item_s * bxilog_cfg_item_p;
 /**
  * Register the current logger.
  *
- * This is used by macro SET_LOGGER(). Use SET_LOGGER() instead.
+ * This is used by macro `SET_LOGGER()`. Use `SET_LOGGER()` instead.
  *
- * @param logger
+ * @param logger the logger to register with.
  */
 void bxilog_register(bxilog_p logger);
 
 /**
  * Unregister the current logger.
  *
- * This is used by macro SET_LOGGER(). Use SET_LOGGER() instead.
+ * This is used by macro `SET_LOGGER()`. Use `SET_LOGGER()` instead.
  *
- * @param logger
+ * @param logger the logger to unregister with.
  */
 void bxilog_unregister(bxilog_p logger);
 
@@ -375,24 +512,30 @@ void bxilog_unregister(bxilog_p logger);
  *
  * @param loggers a pointer on an array of loggers where the result should be returned.
  * @return the number of loggers in the returned array
+ *
+ * @see bxilog_register()
+ * @see bxilog_unregister()
  */
 size_t bxilog_get_registered(bxilog_p *loggers[]);
 
 /**
- * Configure the whole library.
- * @param cfg
- * @return
+ * Configure all registered loggers with the following array of configuration items.
+ *
+ * @param cfg an array of configuration items.
+ * @return BXIERR_OK on success, anything else on error.
  */
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[]);
 
 /**
- * Returns the level corresponding to the given string reprensentation.
+ * Returns the level corresponding to the given string representation.
  *
  * @param level_str the log level name
  *
  * @param level a pointer where the result should be returned.
  *
  * @result BXIERR_OK on success, anything else on error.
+ *
+ * @see bxilog_get_all_level_names()
  */
 bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
 
@@ -406,13 +549,13 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
 size_t bxilog_get_all_level_names(char *** names);
 
 /**
- * Initialize the BXI logging module..
+ * Initialize the BXI logging module.
  *
- * WARNING: this function should be called once only (from the main() usually).
+ * WARNING: this function should be called once only (from the `main()` usually).
  *
  * If program_name is NULL, a name will be generated somehow. ;-)
  *
- * Note: bxilog_init() does not set any signal handler.
+ * Note: `bxilog_init()` does not set any signal handler.
  *
  * Most of the time, you want to guarantee that bxilog_finalize() will be called
  * before exiting whatever the reason is to prevent log lost.
@@ -421,7 +564,7 @@ size_t bxilog_get_all_level_names(char *** names);
  * specific purpose. It should be called just after `bxilog_init()`.
  *
  * @param progname the progname, as given by argv[0]
- * @return BXIERR_OK on success, anything else is an error.
+ * @return BXIERR_OK on success, anything else on error.
  *
  */
 bxierr_p bxilog_init(const char * progname, const char * filename);
@@ -434,7 +577,7 @@ bxierr_p bxilog_init(const char * progname, const char * filename);
  * related to a bad state such as when
  * `bxilog_init()` has not been called.
  *
- * @return BXIERR_OK on success, anything else is an error.
+ * @return BXIERR_OK on success, anything else on error.
  *
  */
 bxierr_p bxilog_finalize(void);
@@ -443,10 +586,12 @@ bxierr_p bxilog_finalize(void);
  * Create a new logger instance.
  *
  * Note: this function is mainly for language bindings (such as Python).
- * In C, use SET_LOGGER macro instead.
+ * In C, use `SET_LOGGER` macro instead.
  *
  * @param logger name
  * @return a new logger instance
+ *
+ * @see SET_LOGGER
  */
 bxilog_p bxilog_new(const char * logger_name);
 

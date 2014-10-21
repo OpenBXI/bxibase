@@ -18,6 +18,11 @@
 #include <stdlib.h>
 #endif
 
+/**
+ * @file    mem.h
+ * @brief   Memory Related BXI Module
+ */
+
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
@@ -84,15 +89,17 @@ void * bximem_realloc(void *ptr, size_t n);
 /**
  * Free and nullify the given pointer.
  *
- * Note here, we take a char** pointer type but this is just
+ * Use the more convenient macro BXIFREE() instead.
+ *
+ * Note here, we take a `char**` pointer type but this is just
  * to prevent GCC strict aliasing from being disturbed and
- * raise error or warning. Any pointer can be aliased to char*
+ * raise error or warning. Any pointer can be aliased to `char*`
  * according to C standard, and therefore, feel free to pass
- * any pointer casted to (char**) to this function.
+ * any pointer casted to `(char**)` to this function.
  *
  * @param pointer the address of a pointer on a memory area allocated using malloc()
  *                or bximem_calloc() or bximem_realloc().
- * @see bximem_alloc()
+ * @see bximem_calloc()
  */
 void bximem_destroy(char ** pointer);
 

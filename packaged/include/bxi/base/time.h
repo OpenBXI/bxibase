@@ -19,6 +19,13 @@
 
 #include "bxi/base/err.h"
 
+
+/**
+ * @file    time.h
+ * @brief   Time Handling Module
+ *
+ */
+
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
@@ -124,7 +131,7 @@ bxierr_p bxitime_duration(clockid_t clk_id,
 bxierr_p bxitime_str(struct timespec * time, char ** result);
 
 
-/*
+/**
  * Return an ISO8601 string for representing the given duration.
  */
 char * bxitime_duration_str(double duration);

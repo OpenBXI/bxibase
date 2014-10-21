@@ -361,6 +361,8 @@ volatile sig_atomic_t FATAL_ERROR_IN_PROGRESS = 0;
 /* Once-only initialisation of the pthread_atfork() */
 static pthread_once_t ATFORK_ONCE = PTHREAD_ONCE_INIT;
 
+static pthread_mutex_t register_lock = PTHREAD_MUTEX_INITIALIZER;
+
 bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -369,6 +371,8 @@ bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 
 void bxilog_register(bxilog_p logger) {
     assert(logger != NULL);
+    int rc = pthread_mutex_lock(&register_lock);
+    assert(0 == rc);
 //    fprintf(stderr, "***** Registering %s *****\n", logger->name);
     if (REGISTERED_LOGGERS == NULL) {
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
@@ -383,10 +387,14 @@ void bxilog_register(bxilog_p logger) {
     }
     REGISTERED_LOGGERS[REGISTERED_LOGGERS_NB] = logger;
     REGISTERED_LOGGERS_NB++;
+    rc = pthread_mutex_unlock(&register_lock);
+    assert(0 == rc);
 }
 
 void bxilog_unregister(bxilog_p logger) {
     assert(logger != NULL);
+    int rc = pthread_mutex_lock(&register_lock);
+    assert(0 == rc);
     bool found = false;
     for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
         if (REGISTERED_LOGGERS[i] == logger) {
@@ -400,6 +408,8 @@ void bxilog_unregister(bxilog_p logger) {
     if (0 == REGISTERED_LOGGERS_NB) {
         BXIFREE(REGISTERED_LOGGERS);
     }
+    rc = pthread_mutex_unlock(&register_lock);
+    assert(0 == rc);
 }
 
 size_t bxilog_get_registered(bxilog_p *loggers[]) {
@@ -409,6 +419,8 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
 }
 
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[n]) {
+    int rc = pthread_mutex_unlock(&register_lock);
+    assert(0 == rc);
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
     for (size_t i = 0; i < n; i++) {
         assert(NULL != cfg[i]->logger_name_prefix);
@@ -421,6 +433,8 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[n]) {
             }
         }
     }
+    rc = pthread_mutex_unlock(&register_lock);
+    assert(0 == rc);
     return BXIERR_OK;
 }
 
