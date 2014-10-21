@@ -394,7 +394,7 @@ bxierr_p bxizmq_rcv_data(void ** result, const size_t expected_size,
                          const bool check_more, size_t * received_size) {
     bxierr_p current = BXIERR_OK, new;
     if (check_more) {
-        bool more;
+        bool more = false;
         new = bxizmq_has_more_msg(zsocket, &more);
         if (BXIERR_OK != new) return new;
         if (!more) return bxierr_new(BXIZMQ_MISSING_FRAME_ERR,
