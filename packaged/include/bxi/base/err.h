@@ -298,7 +298,7 @@ void bxierr_destroy(bxierr_p * self_p);
  * @see bxierr_get_depth()
  * @see bxierr_get_cause()
  */
-char * bxierr_str_limit(bxierr_p self, size_t depth);
+char * bxierr_str_limit(bxierr_p self, uint64_t depth);
 
 /**
  * Return the depth of the given error.

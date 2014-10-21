@@ -70,7 +70,7 @@ AC_PROG_INSTALL
 ###########################
 AC_ARG_ENABLE([debug], [AS_HELP_STRING([--disable-debug], [enable debugging, default: yes])])
 if test x"$enable_debug" != "xno"; then
-    CFLAGS="-g3 -O0 ";
+    CFLAGS="-g3 -O0 $CFLAGS";
 fi
 
 ###########################
@@ -152,9 +152,6 @@ PKG_CHECK_MODULES([CZMQ], [libczmq >= 1.0.0], [],
                   #AC_SUBST([UUID_CFLAGS])
                   #AC_SUBST([UUID_LDFLAGS])
 
-PKG_CHECK_MODULES([UUID], [uuid], [], [
-                   AC_CHECK_LIB([uuid], [uuid_generate], [], [AC_MSG_ERROR([Could not find uuid library])])
-                 ])
 
 
 LDFLAGS+=" $ZMQ_LIBS "

@@ -698,7 +698,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
         if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
         // Recursive call!
         WARNING(BXILOG_INTERNAL_LOGGER,
-                "Sending last log required %lu retries.", (size_t) err->data);
+                "Sending last log required %lu retries.", (long) err->data);
         bxierr_destroy(&err);
     }
 

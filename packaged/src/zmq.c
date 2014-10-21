@@ -288,7 +288,7 @@ bxierr_p bxizmq_snd_msg(zmq_msg_t * const zmsg,
         bxierr_p new = bxitime_get(CLOCK_MONOTONIC, &now);
         BXIERR_CHAIN(current, new);
         uint32_t sleep =  (uint32_t) (now.tv_nsec % delay_ns);
-        new = bxitime_sleep(CLOCK_MONOTONIC, 0, sleep);
+        new = bxitime_sleep(CLOCK_MONOTONIC, 0, (long)sleep);
         BXIERR_CHAIN(current, new);
         delay_ns *= 2;
     }
@@ -430,7 +430,7 @@ bxierr_p bxizmq_rcv_data(void ** result, const size_t expected_size,
         new = bxizmq_msg_close(&zmsg);
         BXIERR_CHAIN(current, new);
         new = bxierr_gen("Received more bytes than expected on zsocket %p:"
-                         " expected %lu, got: %lu",
+                         " expected %zu, got: %zu",
                            zsocket, expected_size, rcv_size);
         BXIERR_CHAIN(current, new);
         return current;

@@ -85,7 +85,7 @@ void bxierr_destroy(bxierr_p * self_p) {
     BXIFREE(*self_p);
 }
 
-char * bxierr_str_limit(bxierr_p self, size_t depth) {
+char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
     assert(NULL != self);
     const char * cause_str;
     if (NULL == self->cause) {
