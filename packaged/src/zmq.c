@@ -461,7 +461,7 @@ bxierr_p bxizmq_rcv_str(void * const zsocket, const int flags, const bool check_
     // strlen(), but the allocated memory should strlen() + 1!!
     bxierr_p current = BXIERR_OK;
     if (check_more) {
-        bool more;
+        bool more = false;
         current = bxizmq_has_more_msg(zsocket, &more);
         if (BXIERR_OK != current) return current;
         if (!more) return bxierr_new(BXIZMQ_MISSING_FRAME_ERR,
