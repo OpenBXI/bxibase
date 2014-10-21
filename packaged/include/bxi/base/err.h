@@ -74,7 +74,7 @@
  *        ...
  *        if (error3) return bxierr_new(MY_THIRD_ERR, stuff_p, free, NULL, "%s", "Error");
  *
- * ### Handling Errors
+ * ### Handling Errors
  *
  * 1. Exiting with an error message:
  *
