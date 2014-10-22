@@ -20,3 +20,4 @@ all-local: $(nobase_python_PYTHON)
 #
 ##
 #
+CLEANFILES=bxilog_h.py
