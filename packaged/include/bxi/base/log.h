@@ -511,6 +511,7 @@ void bxilog_unregister(bxilog_p logger);
  * Return all registered loggers.
  *
  * @param loggers a pointer on an array of loggers where the result should be returned.
+ *
  * @return the number of loggers in the returned array
  *
  * @see bxilog_register()
@@ -522,6 +523,7 @@ size_t bxilog_get_registered(bxilog_p *loggers[]);
  * Configure all registered loggers with the following array of configuration items.
  *
  * @param cfg an array of configuration items.
+ *
  * @return BXIERR_OK on success, anything else on error.
  */
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[]);
@@ -530,7 +532,6 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[]);
  * Returns the level corresponding to the given string representation.
  *
  * @param level_str the log level name
- *
  * @param level a pointer where the result should be returned.
  *
  * @result BXIERR_OK on success, anything else on error.
@@ -544,6 +545,7 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
  * level names.
  *
  * @param names a pointer on an array of strings that will be set by this function.
+ *
  * @return the size of the array
  */
 size_t bxilog_get_all_level_names(char *** names);
@@ -588,7 +590,8 @@ bxierr_p bxilog_finalize(void);
  * Note: this function is mainly for language bindings (such as Python).
  * In C, use `SET_LOGGER` macro instead.
  *
- * @param logger name
+ * @param logger_name a logger name
+ *
  * @return a new logger instance
  *
  * @see SET_LOGGER
@@ -664,7 +667,8 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
 /**
  * Get the log level of the given logger
  *
- * @param the logger instance
+ * @param logger the logger instance
+ *
  * @return the given logger log level
  */
 bxilog_level_e bxilog_get_level(const bxilog_p logger);
@@ -672,8 +676,8 @@ bxilog_level_e bxilog_get_level(const bxilog_p logger);
 /**
  * Set the log level for the given logger.
  *
- * @param the logger instance
- * @param the log level
+ * @param logger the logger instance
+ * @param level the log level
  */
 void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level);
 
@@ -681,7 +685,8 @@ void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level);
  * Return true if the given logger is enabled at the given log level.
  *
  * @param logger the logger instance
- * @param the log level
+ * @param level the log level
+ *
  * @return true if the given logger is enabled at the given log level.
  */
 #ifndef BXICFFI
@@ -729,14 +734,6 @@ void bxilog_exit(int exit_code,
  * This function sole purpose is to make the macro BXIASSERT() cleaner.
  * Use BXIASSERT() instead.
  *
- * @param logger
- * @param result
- * @param file
- * @param filelen
- * @param func
- * @param funclen
- * @param line
- * @param expr
  * @see BXIASSERT
  */
 void bxilog_assert(bxilog_p logger, bool result,
@@ -747,16 +744,10 @@ void bxilog_assert(bxilog_p logger, bool result,
 /**
  * Report an error and destroys it.
  *
+ * This function sole purpose is to make the macro BXILOG_REPORT() cleaner.
+ * Use BXILOG_REPORT() instead.
  *
- * @param logger
- * @param level
- * @param err
- * @param file
- * @param filelen
- * @param func
- * @param funclen
- * @param line
- * @param fmt
+ * @see BXILOG_REPORT
  */
 void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
                    char * file, size_t filelen,

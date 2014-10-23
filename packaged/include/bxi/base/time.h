@@ -54,30 +54,30 @@
  *
  * If unsure, use the following rules:
  *
- *      - CLOCK_REALTIME: for highly accurate timestamp with actual
- *                        wall clock time
- *      - CLOCK_MONOTIC: for highly accurate duration computation
+ * - CLOCK_REALTIME: for highly accurate timestamp with actual
+ *   wall clock time
+ * - CLOCK_MONOTIC: for highly accurate duration computation
  *
- *      - CLOCK_REALTIME_COARSE: for less accurate timestamp
- *      - CLOCK_MONOTONIC_COARSE: for less accurate duration computation
+ * - CLOCK_REALTIME_COARSE: for less accurate timestamp
+ * - CLOCK_MONOTONIC_COARSE: for less accurate duration computation
  *
  * _COARSE variants are more performant but less accurate.
  * See misc/bench/timeclock for a bench. On my hardware:
  * the output is the following:
  *
- *  $ ./benchclock 1000000
- *  Resolution:
- *  CLOCK_REALTIME: 1ns
- *  CLOCK_REALTIME_COARSE: 1000000ns
- *  CLOCK_MONOTONIC: 1ns
- *  CLOCK_MONOTONIC_COARSE: 1000000ns
- *  CLOCK_MONOTONIC_RAW: 1ns
- *  Calling cost:
- *  33210695 ns   3.01108e+07 calls/s     33.2107 ns/call  1000000 CLOCK_REALTIME
- *  9195934 ns    1.08744e+08 calls/s     9.19593 ns/call  1000000 CLOCK_REALTIME_COARSE
- *  26141696 ns   3.82531e+07 calls/s     26.1417 ns/call  1000000 CLOCK_MONOTONIC
- *  9136039 ns    1.09457e+08 calls/s     9.13604 ns/call  1000000 CLOCK_MONOTONIC_COARSE
- *  72388694 ns   1.38143e+07 calls/s     72.3887 ns/call  1000000 CLOCK_MONOTONIC_RAW
+ *      $ ./benchclock 1000000
+ *      Resolution:
+ *      CLOCK_REALTIME: 1ns
+ *      CLOCK_REALTIME_COARSE: 1000000ns
+ *      CLOCK_MONOTONIC: 1ns
+ *      CLOCK_MONOTONIC_COARSE: 1000000ns
+ *      CLOCK_MONOTONIC_RAW: 1ns
+ *      Calling cost:
+ *      33210695 ns   3.01108e+07 calls/s     33.2107 ns/call  1000000 CLOCK_REALTIME
+ *      9195934 ns    1.08744e+08 calls/s     9.19593 ns/call  1000000 CLOCK_REALTIME_COARSE
+ *      26141696 ns   3.82531e+07 calls/s     26.1417 ns/call  1000000 CLOCK_MONOTONIC
+ *      9136039 ns    1.09457e+08 calls/s     9.13604 ns/call  1000000 CLOCK_MONOTONIC_COARSE
+ *      72388694 ns   1.38143e+07 calls/s     72.3887 ns/call  1000000 CLOCK_MONOTONIC_RAW
  *
  *
  * @param clk_id a clock (see clock_gettime(2) for details)

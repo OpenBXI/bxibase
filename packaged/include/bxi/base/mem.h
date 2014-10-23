@@ -30,6 +30,7 @@
 /**
  * Return the size of the given array in bytes.
  * @param a the array
+ *
  * @return the size in bytes of the given array
  */
 #define ARRAYLEN(a) (sizeof((a))/sizeof((a)[0]))
@@ -68,6 +69,7 @@
  * is usable.
  *
  * @param n the number of bytes to allocate
+ *
  * @return a usable pointer on a memory area of the given size
  *
  * @see bximem_destroy()
@@ -80,9 +82,11 @@ void * bximem_calloc(size_t n);
  * Same usage as realloc(). A check is performed to ensure the returned pointer
  * is usable.
  *
- * @param ptr
- * @param n
- * @return a usable pointer
+ * @param ptr the memory region to resize
+ *
+ * @param n the new number of allocated bytes
+ *
+ * @return a usable pointer with the given size
  */
 void * bximem_realloc(void *ptr, size_t n);
 
