@@ -1,4 +1,4 @@
-BXI Base Library                         {#mainpage}
+BXI Base Library                         {#index}
 =================
 
 ## Overview
