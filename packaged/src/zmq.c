@@ -154,12 +154,12 @@ bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     errno = 0;
     int linger = DEFAULT_CLOSING_LINGER;
     int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
-    if (rc != 0) return bxierr_perror("Can't set linger for socket cleanup");
+    if (rc != 0) return bxierr_error("Can't set linger for socket cleanup");
     errno = 0;
     rc = zmq_close(zocket);
     if (rc != 0) {
         while (rc == -1 && errno == EINTR) rc = zmq_close(zocket);
-        if (rc != 0) return bxierr_perror("Can't close socket");
+        if (rc != 0) return bxierr_error("Can't close socket");
     }
     counter--;
     return BXIERR_OK;
@@ -170,7 +170,7 @@ bxierr_p bxizmq_zocket_destroy(void * const zocket) {
 bxierr_p bxizmq_msg_init(zmq_msg_t * zmsg) {
     errno = 0;
     int rc = zmq_msg_init(zmsg);
-    if (rc != 0) return bxierr_perror("Problem during ZMQ message initialization");
+    if (rc != 0) return bxierr_error("Problem during ZMQ message initialization");
     return BXIERR_OK;
 }
 
@@ -183,7 +183,7 @@ bxierr_p bxizmq_rcv_msg(void * const zocket,
     int rc = zmq_msg_recv(zmsg, zocket, flags);
     if (rc == -1) {
         while (rc == -1 && errno == EINTR) rc = zmq_msg_recv(zmsg, zocket, flags);
-        if (0 != rc) return bxierr_perror("Problem while receiving ZMQ message");
+        if (0 != rc) return bxierr_error("Problem while receiving ZMQ message");
     }
     return BXIERR_OK;
 }
@@ -212,7 +212,7 @@ bxierr_p bxizmq_recv_async(void * const zocket, zmq_msg_t * const msg,
         BXIERR_CHAIN(current, new);
     }
 
-    return bxierr_pgen("Waiting on socket tooks too much time!");
+    return bxierr_gen("Waiting on socket tooks too much time!");
 }
 
 
@@ -220,7 +220,7 @@ bxierr_p bxizmq_recv_async(void * const zocket, zmq_msg_t * const msg,
 bxierr_p bxizmq_msg_close(zmq_msg_t * const zmsg) {
     errno = 0;
     int rc = zmq_msg_close(zmsg);
-    if (rc != 0) return bxierr_perror("Calling zmq_msg_close() failed");
+    if (rc != 0) return bxierr_error("Calling zmq_msg_close() failed");
 
     return BXIERR_OK;
 }
@@ -229,7 +229,7 @@ bxierr_p bxizmq_msg_close(zmq_msg_t * const zmsg) {
 // Copy a ZMQ message
 bxierr_p bxizmq_copy_msg(zmq_msg_t * const zmsg_src, zmq_msg_t * const zmsg_dst){
     int rc = zmq_msg_copy(zmsg_dst, zmsg_src);
-    if (rc != 0) return bxierr_perror("Problem while copying a zmsg");
+    if (rc != 0) return bxierr_error("Problem while copying a zmsg");
 
     return BXIERR_OK;
 }
@@ -294,7 +294,7 @@ bxierr_p bxizmq_snd_msg(zmq_msg_t * const zmsg,
     }
 
 
-    return bxierr_pgen("Should never reach this statement!");
+    return bxierr_gen("Should never reach this statement!");
 }
 
 
@@ -307,7 +307,7 @@ bxierr_p  bxizmq_snd_msg_cpy(zmq_msg_t * const zmsg,
     zmq_msg_t copy;
     errno = 0;
     int rc = zmq_msg_copy(&copy, zmsg);
-    if (rc == -1) return bxierr_perror("Calling zmq_msg_copy() failed");
+    if (rc == -1) return bxierr_error("Calling zmq_msg_copy() failed");
 
     return bxizmq_snd_msg(zmsg, zocket, flags, retries_max, delay_ns);
 
@@ -322,7 +322,7 @@ bxierr_p bxizmq_snd_data(void * const data, const size_t size,
     zmq_msg_t msg;
     errno = 0;
     int rc = zmq_msg_init_size(&msg, size);
-    if (rc != 0) return bxierr_perror("Calling zmq_msg_init_size() failed");
+    if (rc != 0) return bxierr_error("Calling zmq_msg_init_size() failed");
     memcpy(zmq_msg_data(&msg), data, size);
     bxierr_p current = bxizmq_snd_msg(&msg, zocket, flags, retries_max, delay_ns);
     bxierr_p new = bxizmq_msg_close(&msg);
@@ -340,7 +340,7 @@ bxierr_p bxizmq_snd_data_zc(const void * const data, const size_t size,
     zmq_msg_t msg;
     errno = 0;
     int rc = zmq_msg_init_data(&msg, (void *)data, size, ffn, hint);
-    if (0 != rc) return bxierr_perror("Calling zmq_msg_init_data() failed");
+    if (0 != rc) return bxierr_error("Calling zmq_msg_init_data() failed");
 
     bxierr_p current = bxizmq_snd_msg(&msg, zocket, flags, retries_max, delay_ns);
     bxierr_p new = bxizmq_msg_close(&msg);
@@ -383,7 +383,7 @@ inline bxierr_p bxizmq_has_more_msg(void * const zsocket, bool * const result) {
     int64_t more = 0;
     size_t more_size = sizeof(more);
     int rc = zmq_getsockopt(zsocket, ZMQ_RCVMORE, &more, &more_size);
-    if (-1 == rc) return bxierr_perror("Can't call zmq_getsockopt()");
+    if (-1 == rc) return bxierr_error("Can't call zmq_getsockopt()");
     *result = more;
     return BXIERR_OK;
 }
@@ -406,7 +406,7 @@ bxierr_p bxizmq_rcv_data(void ** result, const size_t expected_size,
     zmq_msg_t zmsg;
     errno = 0;
     int rc = zmq_msg_init(&zmsg);
-    if (-1 == rc) return bxierr_perror("Calling zmq_msg_init() failed");
+    if (-1 == rc) return bxierr_error("Calling zmq_msg_init() failed");
     errno = 0;
     rc = zmq_msg_recv(&zmsg, zsocket, flags);
     if (-1 == rc) {
@@ -472,7 +472,7 @@ bxierr_p bxizmq_rcv_str(void * const zsocket, const int flags, const bool check_
     }
     zmq_msg_t msg;
     int rc = zmq_msg_init(&msg);
-    if (rc != 0) return bxierr_perror("Can't initialize msg");
+    if (rc != 0) return bxierr_error("Can't initialize msg");
     errno = 0;
     rc = zmq_msg_recv(&msg, zsocket, flags);
     if (-1 == rc) {

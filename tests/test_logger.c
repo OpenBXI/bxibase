@@ -97,7 +97,7 @@ void test_logger(void) {
     BXIFREE(oldprogname);
 
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
-                  bxierr_pgen("An error to report"),
+                  bxierr_gen("An error to report"),
                   "Don't worry, this is just a test for error reporting");
 }
 
@@ -113,7 +113,7 @@ void _fork_childs(size_t n) {
         BXIFREE(filename);
         BXIFREE(progname);
         BXIEXIT(EXIT_FAILURE,
-                bxierr_perror("Can't fork()"),
+                bxierr_error("Can't fork()"),
                 TEST_LOGGER, BXILOG_CRITICAL);
         break;
     }
@@ -163,7 +163,7 @@ void _fork_childs(size_t n) {
         errno = 0;
         pid_t w = waitpid(cpid, &status, WUNTRACED);
         if (-1 == w) {
-            BXIEXIT(EX_SOFTWARE, bxierr_perror("Can't wait()"),
+            BXIEXIT(EX_SOFTWARE, bxierr_error("Can't wait()"),
                     TEST_LOGGER, BXILOG_CRIT);
         }
         CU_ASSERT_TRUE(WIFEXITED(status));
@@ -195,7 +195,7 @@ void _fork_kill(int signum) {
     switch(cpid) {
     case -1: {
         BXIEXIT(EXIT_FAILURE,
-                bxierr_perror("Can't fork()"),
+                bxierr_error("Can't fork()"),
                 TEST_LOGGER, BXILOG_CRITICAL);
         break;
     }
@@ -222,7 +222,7 @@ void _fork_kill(int signum) {
         assert(rc == 0);
         OUT(TEST_LOGGER, "Waiting for being killed!");
         bxitime_sleep(CLOCK_MONOTONIC, 5, 0);
-        BXIEXIT(EXIT_FAILURE, bxierr_pgen("Should have been killed, but was not"),
+        BXIEXIT(EXIT_FAILURE, bxierr_gen("Should have been killed, but was not"),
                 TEST_LOGGER, BXILOG_CRITICAL);
         break;
     }
@@ -251,7 +251,7 @@ void _fork_kill(int signum) {
             }
             if (-1 == w) {
                 BXIEXIT(EXIT_FAILURE,
-                        bxierr_perror("Can't wait()"),
+                        bxierr_error("Can't wait()"),
                         TEST_LOGGER, BXILOG_CRITICAL);
             }
             bxitime_sleep(CLOCK_MONOTONIC, 0, 1e6); // Wait a bit...

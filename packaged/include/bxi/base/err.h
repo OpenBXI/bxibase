@@ -162,27 +162,11 @@
 #define bxierr_error(...) bxierr_fromidx(errno, NULL, __VA_ARGS__)
 
 /**
- * Equivalent to bxierr_error() but with a single string as the parameter.
- *
- * @see bxierr_error()
- * @see bxierr_fromidx()
- */
-#define bxierr_perror(msg) bxierr_fromidx(errno, NULL, "%s", (msg))
-
-/**
  * Create a generic error, with the given printf-like message.
  *
  * @see bxierr_new()
  */
-#define bxierr_gen(fmt, ...) bxierr_new(BXIERR_GENERIC_CODE, \
-                                        NULL, NULL, NULL, (fmt), __VA_ARGS__)
-
-/**
- * Equivalent to bxierr_gen() but with a single string as the parameter.
- *
- * @see bxierr_new()
- */
-#define bxierr_pgen(msg) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, "%s", (msg))
+#define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, __VA_ARGS__)
 
 /**
  * Define a new static error.

@@ -1051,7 +1051,7 @@ void * _iht_main(void * param) {
             err2 = _sync();
             BXIERR_CHAIN(err, err2);
             if (bxierr_isko(err)) {
-                err2 = bxierr_pgen("Calling zmq_poll() failed");
+                err2 = bxierr_gen("Calling zmq_poll() failed");
                 BXIERR_CHAIN(err, err2);
                 goto QUIT;
             }
@@ -1120,7 +1120,7 @@ bxierr_p _flush_iht(void * data_channel) {
         if (-1 == rc) {
             if(EINTR == errno) continue; // One interruption happens
                                          // (e.g. when profiling)
-            err2 = bxierr_perror("Calling zmq_poll() failed.");
+            err2 = bxierr_error("Calling zmq_poll() failed.");
             BXIERR_CHAIN(err, err2);
             break;
         }
@@ -1197,7 +1197,7 @@ bxierr_p _process_data(void * const data_channel) {
     zmq_msg_t zmsg;
     errno = 0;
     int rc = zmq_msg_init(&zmsg);
-    if (0 != rc) return bxierr_perror("Can't initialize message content");
+    if (0 != rc) return bxierr_error("Can't initialize message content");
 
     // Fetch the first frame, it should be the header
     errno = 0;
@@ -1209,7 +1209,7 @@ bxierr_p _process_data(void * const data_channel) {
         }
         if (-1 == rc) {
             if (ETERM == errno) {
-                bxierr_p err = bxierr_perror("Calling zmq_msg_recv() failed");
+                bxierr_p err = bxierr_error("Calling zmq_msg_recv() failed");
                 bxierr_p err2 = bxizmq_msg_close(&zmsg);
                 BXIERR_CHAIN(err, err2);
                 return err;
@@ -1322,7 +1322,7 @@ bxierr_p _process_signal(const int sfd) {
     assert(rc == 0);
     rc = pthread_sigmask(SIG_SETMASK, &default_set, NULL);
     if (0 != rc) {
-        bxierr_p err2 = bxierr_perror("Calling pthread_sigmask() failed");
+        bxierr_p err2 = bxierr_error("Calling pthread_sigmask() failed");
         BXIERR_CHAIN(err, err2);
     }
     struct sigaction dft_action;
@@ -1330,7 +1330,7 @@ bxierr_p _process_signal(const int sfd) {
     dft_action.sa_handler = SIG_DFL;
     rc = sigaction((int) sfdinfo.ssi_signo, &dft_action, NULL);
     if (0 != rc) {
-        bxierr_p err2 = bxierr_perror("Calling sigaction() failed");
+        bxierr_p err2 = bxierr_error("Calling sigaction() failed");
         BXIERR_CHAIN(err, err2);
     }
     rc = pthread_kill(pthread_self(), (int) sfdinfo.ssi_signo);
@@ -1403,7 +1403,7 @@ bxierr_p _get_iht_signals_fd(int * fd) {
     // Blocks those signals in this thread.
     int rc = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
     if (0 != rc) {
-        err2 = bxierr_perror("Calling pthread_sigmask() failed");
+        err2 = bxierr_error("Calling pthread_sigmask() failed");
         BXIERR_CHAIN(err, err2);
     }
 
@@ -1414,7 +1414,7 @@ bxierr_p _get_iht_signals_fd(int * fd) {
     BXIERR_CHAIN(err, err2);
     *fd = signalfd(-1, &sigok, 0);
     if (-1 == *fd) {
-        err2 = bxierr_perror("Calling signalfd() failed");
+        err2 = bxierr_error("Calling signalfd() failed");
         BXIERR_CHAIN(err, err2);
     }
     return err;
@@ -1485,7 +1485,7 @@ bxierr_p _sync() {
     int rc = fdatasync(IHT_DATA.fd);
     if (rc != 0) {
         if (EROFS != errno && EINVAL != errno) {
-            return bxierr_perror("Call to fdatasync() failed");
+            return bxierr_error("Call to fdatasync() failed");
         }
         // OK otherwise, it just means the given FD does not support synchronisation
         // this is the case for example with stdout, stderr...
@@ -1533,7 +1533,7 @@ bxierr_p _init(void) {
     BXILOG_CONTEXT = zmq_ctx_new();
     if (NULL == BXILOG_CONTEXT) {
         STATE = ILLEGAL;
-        return bxierr_perror("Can't create a zmq context");
+        return bxierr_error("Can't create a zmq context");
     }
 
     // We use 'inproc', we might be tempted to remove io threads.

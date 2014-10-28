@@ -93,16 +93,15 @@ bxierr_p bxitime_str(struct timespec * time, char ** result) {
     errno = 0;
     struct tm dummy, * tm_p;
     tm_p = localtime_r(&t, &dummy);
-    if (tm_p == NULL) return bxierr_perror("Call to localtime_r() failed.");
+    if (tm_p == NULL) return bxierr_error("Call to localtime_r() failed.");
 
     *result = bximem_calloc(64);
     size_t n = strftime(*result, 32, "%FT%T", tm_p);
-    if (n == 0) return bxierr_pgen("Function strftime() returned 0, this is a failure");
+    if (n == 0) return bxierr_gen("Function strftime() returned 0, this is a failure");
 
     // Add the nanoseconds at the end of the string
     int err = snprintf(*result+n, 32, ".%ld", time->tv_nsec);
-    if (err < 0) return bxierr_pgen("Function snprintf() returned < 0,"
-                                    " this is a failure");
+    if (err < 0) return bxierr_gen("Function snprintf() returned < 0, this is a failure");
 
     return BXIERR_OK;
 }
