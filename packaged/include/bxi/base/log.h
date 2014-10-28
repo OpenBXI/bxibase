@@ -259,7 +259,7 @@
  *      errno = 0;
  *      int rc = function_call(...);
  *      if (rc != 0) BXIEXIT(EX_OSERR,  // See sysexits.h for other standard exit code
- *                           bxierr_error("Can't call function_call()),
+ *                           bxierr_errno("Can't call function_call()),
  *                           MYLOGGER, BXILOG_ERROR);
  *
  * Same stuff with a generic `bxierr`:

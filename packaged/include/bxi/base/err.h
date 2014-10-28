@@ -43,12 +43,12 @@
  *
  *        errno = 0;
  *        int rc = f(...);
- *        if (0 != rc) return bxierr_error("Cannot call f()");
+ *        if (0 != rc) return bxierr_errno("Cannot call f()");
  * 2. errno with a message:
  *
  *        errno = 0;
  *        int rc = f(i, j);
- *        if (0 != rc) return bxierr_error("Cannot call f(%d, %d)", i, j);
+ *        if (0 != rc) return bxierr_errno("Cannot call f(%d, %d)", i, j);
  * 3. generic error (no specific returned code, just a simple message):
  *
  *        if (error) return bxierr_gen("An error occured");
