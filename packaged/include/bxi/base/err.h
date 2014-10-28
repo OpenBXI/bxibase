@@ -43,7 +43,7 @@
  *
  *        errno = 0;
  *        int rc = f(...);
- *        if (0 != rc) return bxierr_perror("Cannot call f()");
+ *        if (0 != rc) return bxierr_error("Cannot call f()");
  * 2. errno with a message:
  *
  *        errno = 0;
@@ -51,11 +51,15 @@
  *        if (0 != rc) return bxierr_error("Cannot call f(%d, %d)", i, j);
  * 3. generic error (no specific returned code, just a simple message):
  *
- *        if (error) return bxierr_pgen("An error occured");
+ *        if (error) return bxierr_gen("An error occured");
  *
  * 4. error message given by an array of static messages
- *
- *        if (error) return bxierr_fromidx(code, "An error occured at %s", __FILE__);
+ *        const char * errmsg[] = {"A given type of error occured",
+ *                                 "Another type of error occured",
+ *                                 "Yet another type of error occured",
+ *                                 };
+ *        if (error) return bxierr_fromidx(idx, errmsg,
+ *                                         "An error occured at %s", __FILE__);
  *
  * 5. error message given by specific error code
  *
@@ -76,7 +80,10 @@
  *
  * ### Handling Errors
  *
- * 1. Exiting with an error message:
+ * When using `log.h` module (which is highly recommended),
+ * see `BXIEXIT()` and `BXILOG_REPORT()`.
+ *
+ * 1. Exiting with an error message (but use `BXIEXIT()` instead):
  *
  *        bxierr_p err = f(...);
  *        if (bxierr_isko(err)) {
@@ -100,9 +107,7 @@
  *
  *        return err;
  *
- * ### Reporting Errors
  *
- *  See `log.h` module, and in particular `BXILOG_REPORT()`.
  */
 
 
@@ -159,7 +164,7 @@
  *
  * @see bxierr_fromidx()
  */
-#define bxierr_error(...) bxierr_fromidx(errno, NULL, __VA_ARGS__)
+#define bxierr_errno(...) bxierr_fromidx(errno, NULL, __VA_ARGS__)
 
 /**
  * Create a generic error, with the given printf-like message.

@@ -52,7 +52,7 @@ bxierr_p bxitime_sleep(clockid_t clk_id, const time_t tv_sec, const long tv_nsec
         int rc = clock_nanosleep(clk_id, 0, &delay, &rem);
         if (0 == rc) break;
         if (-1 == rc && errno != EINTR) {
-            return bxierr_error("Calling nanosleep(%lu, %lu) failed",
+            return bxierr_errno("Calling nanosleep(%lu, %lu) failed",
                                 delay.tv_sec, delay.tv_nsec);
         }
         // Else we have been interrupted, start again
@@ -64,7 +64,7 @@ bxierr_p bxitime_sleep(clockid_t clk_id, const time_t tv_sec, const long tv_nsec
 bxierr_p bxitime_get(clockid_t clk_id, struct timespec * const time) {
     errno = 0;
     if (clock_gettime(clk_id, time) != 0) {
-        return bxierr_error("Can't get the time with clock_gettime() and clk_id %d.",
+        return bxierr_errno("Can't get the time with clock_gettime() and clk_id %d.",
                             clk_id);
     }
     return BXIERR_OK;
@@ -93,7 +93,7 @@ bxierr_p bxitime_str(struct timespec * time, char ** result) {
     errno = 0;
     struct tm dummy, * tm_p;
     tm_p = localtime_r(&t, &dummy);
-    if (tm_p == NULL) return bxierr_error("Call to localtime_r() failed.");
+    if (tm_p == NULL) return bxierr_errno("Call to localtime_r() failed.");
 
     *result = bximem_calloc(64);
     size_t n = strftime(*result, 32, "%FT%T", tm_p);
