@@ -159,7 +159,7 @@
  *
  * @see bxierr_fromidx()
  */
-#define bxierr_error(fmt, ...) bxierr_fromidx(errno, NULL, (fmt), __VA_ARGS__)
+#define bxierr_error(...) bxierr_fromidx(errno, NULL, __VA_ARGS__)
 
 /**
  * Equivalent to bxierr_error() but with a single string as the parameter.
@@ -174,7 +174,8 @@
  *
  * @see bxierr_new()
  */
-#define bxierr_gen(fmt, ...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, (fmt), __VA_ARGS__)
+#define bxierr_gen(fmt, ...) bxierr_new(BXIERR_GENERIC_CODE, \
+                                        NULL, NULL, NULL, (fmt), __VA_ARGS__)
 
 /**
  * Equivalent to bxierr_gen() but with a single string as the parameter.
