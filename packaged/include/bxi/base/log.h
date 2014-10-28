@@ -291,7 +291,7 @@
                       __FILE__, ARRAYLEN(__FILE__),                                 \
                       __func__, ARRAYLEN(__func__),                                 \
                       __LINE__, #expr);                                             \
-    } while(0);                                                                     \
+    } while(0)
 
 
 /**
@@ -311,7 +311,7 @@
                                  BXIBUG_STD_MSG),                                   \
             (logger),                                                               \
             BXILOG_CRITICAL);                                                       \
-    } while(0);
+    } while(0)
 
 /**
  * Log the given error with the given message and destroys it.
@@ -324,11 +324,11 @@
  *      ...
  */
 #define BXILOG_REPORT(logger, level, err, ...) do {                                 \
-        bxilog_report(logger, level, err,                                           \
-                  __FILE__, ARRAYLEN(__FILE__),                                     \
-                  __func__, ARRAYLEN(__func__),                                     \
-                  __LINE__, __VA_ARGS__);                                           \
-    } while(0);
+        bxilog_report((logger), (level), (err),                                     \
+                      __FILE__, ARRAYLEN(__FILE__),                                 \
+                      __func__, ARRAYLEN(__func__),                                 \
+                      __LINE__, __VA_ARGS__);                                       \
+    } while(0)
 
 
 /**
@@ -336,6 +336,8 @@
  *
  * @see `bxilog_log_nolevel_check()`
  */
+// TODO: do log the actual log also with the same format than the actual log instead
+// of throwing it away
 #define bxilog_log(logger, lvl, filename, filename_len, funcname, funcname_len, line, ...) do {\
         if (bxilog_is_enabled_for((logger), (lvl))) {                                   \
             bxierr_p __err__ = bxilog_log_nolevelcheck((logger), (lvl),                 \
