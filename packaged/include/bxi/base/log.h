@@ -524,7 +524,8 @@ size_t bxilog_get_registered(bxilog_p *loggers[]);
 /**
  * Configure all registered loggers with the following array of configuration items.
  *
- * @param cfg an array of configuration items.
+ * @param n the number of configuration items in the `cfg` array
+ * @param cfg an array of configuration items
  *
  * @return BXIERR_OK on success, anything else on error.
  */
@@ -568,6 +569,8 @@ size_t bxilog_get_all_level_names(char *** names);
  * specific purpose. It should be called just after `bxilog_init()`.
  *
  * @param progname the progname, as given by argv[0]
+ * @param filename the filename to write into ('-' means standard output,
+ *         '+': means stdandard error )
  * @return BXIERR_OK on success, anything else on error.
  *
  */

@@ -232,7 +232,7 @@ extern const bxierr_p BXIERR_OK;            //!< the single instance meaning OK
  *
  * @param code the error code
  * @param data an error specific data (can be NULL)
- * @param free the function that must be used to release the given `data` (can be NULL)
+ * @param free_fn the function that must be used to release the given `data` (can be NULL)
  * @param cause the error cause (can be NULL)
  * @param fmt the error message in a printf like style.
  *
@@ -283,6 +283,8 @@ void bxierr_destroy(bxierr_p * self_p);
  * The returned string *must* be freed. Use `BXIFREE()`.
  *
  * @param self the error
+ * @param depth the maximum depth at which the processing must stop
+ *
  * @return a human string representation of the given error
  *
  * @see bxierr_get_depth()
@@ -353,17 +355,17 @@ char * bxierr_str(bxierr_p self);
  * Most of the case, the errcode comes from errno itself, in this case, use the
  * simpler form `bxierr_perror()`.
  *
- * @param errcode the error code
- * @param errcode2str an array of error message
+ * @param erridx the error code
+ * @param erridx2str an array of error message
  * @param fmt a printf like format string
  * @return a bxierr instance
  *
  * @see bxierr_perror
  * @see bxierr_vstrerror
  */
-bxierr_p bxierr_fromidx(int errcode,
-                         const char * const * erridx2str,
-                         const char * fmt, ...);
+bxierr_p bxierr_fromidx(int erridx,
+                        const char * const * erridx2str,
+                        const char * fmt, ...);
 /**
  * Equivalent to `bxierr_strerror()` but with a variable argument list instead
  * of an ellipse, useful for library wrapper.

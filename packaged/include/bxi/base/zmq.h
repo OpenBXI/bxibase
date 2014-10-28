@@ -161,6 +161,9 @@ bxierr_p bxizmq_rcv_msg(void * zocket, zmq_msg_t * zmsg, int flags);
  *
  * @param zocket the zeromq socket
  * @param msg the zeromq message
+ * @param retries_max the maximum number of retries
+ * @param delay_ns the maximum number of nanoseconds to sleep between two retries
+ *
  * @return BXIERR_OK on success,
  *         `bxierr(code=BXIZMQ_RETRIES_MAX_ERR, data=(size_t) retries_nb)`
  *         among others
@@ -383,6 +386,8 @@ bxierr_p bxizmq_rcv_data(void ** result, size_t expected_size,
  * @param flags some zeromq flags
  * @param check_more if true, check that the received frame is part of
  *        a multi-part message
+ * @param result where the received data should be stored in
+ *
  * @return BXIERR_OK on success, any other bxierr otherwise
  */
 bxierr_p bxizmq_rcv_str(void * zocket, int flags, bool check_more, char ** result);
