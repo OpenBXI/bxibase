@@ -571,7 +571,7 @@ void bxilog_destroy(bxilog_p * self_p) {
 bxierr_p bxilog_flush(void) {
     if (INITIALIZED != STATE) return BXIERR_OK;
     DEBUG(BXILOG_INTERNAL_LOGGER, "Requesting a flush().");
-    tsd_p tsd;
+    tsd_p tsd = NULL;
     bxierr_p err = _get_tsd(&tsd);
     if (bxierr_isko(err)) return err;
     void * ctl_channel = tsd->ctl_channel;
@@ -970,10 +970,16 @@ inline bxierr_p _get_tsd(tsd_p * result) {
     tsd->log_buf = bximem_calloc(DEFAULT_LOG_BUF_SIZE);
     bxierr_p err = bxizmq_zocket_new(BXILOG_CONTEXT, ZMQ_PUSH, data_url,
                                      false, false, 0, 0 ,0, &tsd->log_channel);
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) {
+        *result = tsd;
+        return err;
+    }
     err = bxizmq_zocket_new(BXILOG_CONTEXT, ZMQ_REQ, control_url,
                             false, false, 0, 0, 0, &tsd->ctl_channel);
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) {
+        *result = tsd;
+        return err;
+    }
 #ifdef __linux__
     tsd->tid = (pid_t) syscall(SYS_gettid);
 #endif
