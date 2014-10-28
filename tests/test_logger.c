@@ -20,10 +20,10 @@ void test_logger(void) {
     // and watch how post processing deal with them.
     // Do not change it!
     srand((unsigned int)time(NULL));
-    for (size_t level = BXILOG_PANIC; level <= BXILOG_LOWEST; level++) {
+    for (bxilog_level_e level = BXILOG_PANIC; level <= BXILOG_LOWEST; level++) {
         size_t n = (size_t)(rand()% 3 + 3);
         for (size_t i = 0; i < n; i++) {
-            size_t len = (size_t)(rand()% 18 + 2);
+            bxilog_level_e len = (rand()% 18 + 2);
             char buf[len];
             for (size_t i = 0; i < len; i++) {
                 buf[i] = (char) ('A' + (char) (rand()%50));
@@ -113,7 +113,7 @@ void _fork_childs(size_t n) {
         BXIFREE(filename);
         BXIFREE(progname);
         BXIEXIT(EXIT_FAILURE,
-                bxierr_error("Can't fork()"),
+                bxierr_errno("Can't fork()"),
                 TEST_LOGGER, BXILOG_CRITICAL);
         break;
     }
@@ -163,7 +163,7 @@ void _fork_childs(size_t n) {
         errno = 0;
         pid_t w = waitpid(cpid, &status, WUNTRACED);
         if (-1 == w) {
-            BXIEXIT(EX_SOFTWARE, bxierr_error("Can't wait()"),
+            BXIEXIT(EX_SOFTWARE, bxierr_errno("Can't wait()"),
                     TEST_LOGGER, BXILOG_CRIT);
         }
         CU_ASSERT_TRUE(WIFEXITED(status));
@@ -195,7 +195,7 @@ void _fork_kill(int signum) {
     switch(cpid) {
     case -1: {
         BXIEXIT(EXIT_FAILURE,
-                bxierr_error("Can't fork()"),
+                bxierr_errno("Can't fork()"),
                 TEST_LOGGER, BXILOG_CRITICAL);
         break;
     }
@@ -233,7 +233,7 @@ void _fork_kill(int signum) {
         int rc = kill(cpid, signum);
         if (-1 == rc) {
             BXIEXIT(EXIT_FAILURE,
-                    bxierr_error("Calling kill(%d, %d) failed", cpid, signum),
+                    bxierr_errno("Calling kill(%d, %d) failed", cpid, signum),
                     TEST_LOGGER, BXILOG_CRITICAL);
         }
         int status;
@@ -246,12 +246,12 @@ void _fork_kill(int signum) {
             if (w > 0) break;
             if (0 == w && 0 == times) {
                 BXIEXIT(EXIT_FAILURE,
-                        bxierr_error("Unable to wait for %d", cpid),
+                        bxierr_errno("Unable to wait for %d", cpid),
                         TEST_LOGGER, BXILOG_CRITICAL);
             }
             if (-1 == w) {
                 BXIEXIT(EXIT_FAILURE,
-                        bxierr_error("Can't wait()"),
+                        bxierr_errno("Can't wait()"),
                         TEST_LOGGER, BXILOG_CRITICAL);
             }
             bxitime_sleep(CLOCK_MONOTONIC, 0, 1e6); // Wait a bit...
