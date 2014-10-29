@@ -90,7 +90,7 @@ therefore for most BXI functions:
   bxilog_new(), bxilog_get_level().
   
 - Functions that ask the caller to deal with the error (most functions actually),
-  return a `bxierr_s` instance. If they must also provide a result, 
+  return a `::bxierr_p` instance. If they must also provide a result, 
   a *pointer* on the result is taken as the *last* argument. See for example: 
   `bxizmq_zocket_new()`, `bxitime_get()`.
 

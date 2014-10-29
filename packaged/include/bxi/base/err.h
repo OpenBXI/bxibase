@@ -194,14 +194,18 @@
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************
+/**
+ * The bxi error instance structure.
+ */
 typedef struct bxierr_s bxierr_s;
 
-/**
+/** \public
+ *
  * Represents a bxi error instance.
  */
 typedef struct bxierr_s * bxierr_p;
 
-/**
+/** \public
  * The bxierr data structure representing an error.
  *
  * Note: bxierr can be chained
@@ -217,7 +221,15 @@ struct bxierr_s {
     size_t msg_len;                         //!< the length of the message
 };
 
-extern const bxierr_p BXIERR_OK;            //!< the single instance meaning OK
+/**
+ * The single instance meaning OK.
+ *
+ * Do not use it directly, use `bxierr_isko()` and `bxierr_isok()` instead.
+ *
+ * @see bxierr_isko()
+ * @see bxierr_isok()
+ */
+extern const bxierr_p BXIERR_OK;
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
