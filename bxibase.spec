@@ -15,7 +15,7 @@
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
 # to get the auto_tag man file
 # and to understand the SVN tagging process.
-# If you don't care, then, just starts with Bull.1.0{?dist}.snapshot
+# If you don't care, then, just starts with Bull.1.0%{?dist}.snapshot
 # and run 'make tag' when you want to tag.
 %define release Bull.1.0%{?dist}.snapshot
 
