@@ -33,7 +33,7 @@
 <flag id="CFLAGS" value="CFLAGS|CXXFLAGS">
 <flagvalue id="cflags-debug" value="true"/>
 <flagvalue id="cflags-gprof" value="true"/>
-<flagvalue id="cflags-gcov" value="true"/>
+<flagvalue id="cflags-gcov" value="false"/>
 </flag>
 <option id="user" value=""/>
 <option id="autogen" value="bootstrap.sh"/>
