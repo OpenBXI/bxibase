@@ -418,18 +418,18 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
     return REGISTERED_LOGGERS_NB;
 }
 
-bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[n]) {
+bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
     int rc = pthread_mutex_unlock(&register_lock);
     assert(0 == rc);
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
     for (size_t i = 0; i < n; i++) {
-        assert(NULL != cfg[i]->logger_name_prefix);
-        size_t len = strlen(cfg[i]->logger_name_prefix);
+        assert(NULL != cfg[i].prefix);
+        size_t len = strlen(cfg[i].prefix);
         for (size_t l = 0; l < REGISTERED_LOGGERS_NB; l++) {
             bxilog_p logger = REGISTERED_LOGGERS[l];
-            if (0 == strncmp(cfg[i]->logger_name_prefix, logger->name, len)) {
+            if (0 == strncmp(cfg[i].prefix, logger->name, len)) {
                 // We have a prefix, configure it
-                logger->level = cfg[i]->level;
+                logger->level = cfg[i].level;
             }
         }
     }

@@ -457,6 +457,11 @@ typedef enum {
 } bxilog_level_e;
 
 
+/**
+ * Data structure representing a logger.
+ *
+ * @see bxilog_p
+ */
 struct bxilog_s {
     const char * name;              //!< Logger name
     size_t name_length;             //!< Logger name length, including NULL ending byte.
@@ -472,15 +477,22 @@ struct bxilog_s {
  */
 typedef struct bxilog_s * bxilog_p;
 
-struct bxilog_cfg_item_s {
-    const char * logger_name_prefix;
-    bxilog_level_e level;
-};
+/**
+ * A logger configuration item.
+ *
+ * @see bxilog_cfg_registered()
+ */
+typedef struct bxilog_cfg_item_s {
+    const char * prefix;             //!< logger name prefix
+    bxilog_level_e level;            //!< the level to set each matching logger to
+} bxilog_cfg_item_s;
 
 /**
- * A logging configuration item.
+ * A logger configuration item.
+ *
+ * @see bxilog_cfg_registered()
  */
-typedef struct bxilog_cfg_item_s * bxilog_cfg_item_p;
+typedef bxilog_cfg_item_s * bxilog_cfg_item_p;
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
@@ -522,14 +534,95 @@ void bxilog_unregister(bxilog_p logger);
 size_t bxilog_get_registered(bxilog_p *loggers[]);
 
 /**
- * Configure all registered loggers with the following array of configuration items.
+ * Configure all registered loggers with the given array of configuration items.
+ *
+ * For each registered logger, a check is performed to know if its `bxilog_p.name`
+ * matches one of the given configuration item `bxilog_cfg_item_p.prefix`.
+ * If this is the case, its level is set to the related configuration
+ * item `bxilog_cfg_item_p.level`.
+ *
+ * Note: the algorithm scan the configuration items in order. Therefore, the usual case
+ * is to specify configuration items from the most generic one to the most specific one.
+ * In particular, the first item can be the empty string "" with the default level,
+ * since all registered loggers will match. Then, other configuration items can be
+ * specified with other log levels.
+ *
+ * Full running example (compile with `-lbxibase`):
+ *
+ *
+ *     #include <assert.h>
+ *
+ *     #include <bxi/base/err.h>
+ *     #include <bxi/base/log.h>
+ *
+ *     // Create a logger for my module/main
+ *     SET_LOGGER(MY_LOGGER, "my.logger");
+ *     // And other loggers to play with
+ *     SET_LOGGER(LOGGER_A, "a.logger");
+ *     SET_LOGGER(LOGGER_AB, "a.b.logger");
+ *     SET_LOGGER(LOGGER_AC, "a.c.logger");
+ *
+ *     char ** LEVEL_NAMES;
+ *
+ *     void log_stuff(bxilog_p logger) {
+ *       WARNING(logger, "A message");
+ *       OUT(logger, "A message");
+ *       DEBUG(logger, "A message");
+ *     }
+ *
+ *     void display_loggers(size_t n, bxilog_p loggers[n]) {
+ *
+ *       for (size_t i = 0; i < n; i++) {
+ *         OUT(MY_LOGGER, "%s: %s",
+ *         loggers[i]->name,
+ *         LEVEL_NAMES[loggers[i]->level]);
+ *       }
+ *     }
+ *
+ *     int main(int argc, char** argv) {
+ *       // Produce the log on stdout
+ *       bxierr_p err = bxilog_init(argv[0], "-");
+ *       assert(bxierr_isok(err));
+ *
+ *       // Fetching log level names
+ *       size_t n = bxilog_get_all_level_names(&LEVEL_NAMES);
+ *       BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
+ *
+ *
+ *       // Fetching all registered loggers
+ *       bxilog_p *loggers = NULL;
+ *       n = bxilog_get_registered(&loggers);
+ *       BXIASSERT(MY_LOGGER, n>0 && NULL != loggers);
+ *
+ *       OUT(MY_LOGGER, "Before configuration:");
+ *       display_loggers(n, loggers);
+ *       log_stuff(LOGGER_A);
+ *       log_stuff(LOGGER_AB);
+ *       log_stuff(LOGGER_AC);
+ *
+ *       bxilog_cfg_item_s cfg[] = {{.prefix="", .level=BXILOG_LOWEST},
+ *                      {.prefix="a", .level=BXILOG_OUTPUT},
+ *                      {.prefix="a.b", .level=BXILOG_WARNING},
+ *       };
+ *       bxilog_cfg_registered(3, cfg);
+ *       OUT(MY_LOGGER, "After configuration:");
+ *       display_loggers(n, loggers);
+ *       log_stuff(LOGGER_A);
+ *       log_stuff(LOGGER_AB);
+ *       log_stuff(LOGGER_AC);
+ *
+ *       err = bxilog_finalize();
+ *       assert(bxierr_isok(err));
+ *       return 0;
+ *     }
+ *
  *
  * @param n the number of configuration items in the `cfg` array
  * @param cfg an array of configuration items
  *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_p cfg[]);
+bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[]);
 
 /**
  * Returns the level corresponding to the given string representation.
