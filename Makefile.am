@@ -11,7 +11,7 @@ srcrpmdir=$(shell rpm --eval="%_srcrpmdir")
 sourcedir=$(shell rpm --eval="%_sourcedir")
 
 # TODO: specify your spec file here
-specfile=@PACKAGE_NAME@.spec
+specfile=$(top_srcdir)/@PACKAGE_NAME@.spec
 
 # For release target (rt_)
 # TODO: you may change that. See NovaForge for examples.
@@ -84,7 +84,7 @@ copy: config
 	mkdir -p archives
 	mkdir -p $(sourcedir)
 	mkdir -p $(tar_srcdir)
-	svn export --force . $(tar_srcdir)
+	svn export --force $(top_srcdir) $(tar_srcdir)
 	rm -rf  `ls -d $(tar_srcdir)/*/ |grep -v packaged`
 	cd $(tar_srcdir); mkdir tests; \
 		touch tests/Makefile.am; \

@@ -118,9 +118,11 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 # Specify files to be placed into the package
 %files
 %defattr(-,root,root)
-%{_libdir}/lib*
+#%{_libdir}/lib*
 %{_includedir}/bxi/base/*.h
-%{target_lib_dir}/*
+%{target_lib_dir}/lib*
+%{target_python_lib_dir}/*
+
 
 
 #%config(noreplace) %{target_conf_dir}/my.conf
