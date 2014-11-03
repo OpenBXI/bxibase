@@ -81,6 +81,7 @@ Implementation of basical functionnality in c required by bxifm tools
 #%setup -q -n %{name}
 test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %setup
+%configure 
 
 ###############################################################################
 # The current directory is the one main directory of the tar
@@ -94,8 +95,6 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 #%postun old
 #%posttrans new
 %build
-autoreconf -i
-%configure
 %{__make}
 
 %install
@@ -120,8 +119,8 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{_libdir}/lib*
-%{_includedir}/bxi/*.h
-%{python2_sitelib}/*
+%{_includedir}/bxi/base/*.h
+%{target_lib_dir}/*
 
 
 #%config(noreplace) %{target_conf_dir}/my.conf

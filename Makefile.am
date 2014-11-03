@@ -30,7 +30,7 @@ files=$(specfile) packaged/
 #TODO: if you have man pages, list them here (they should be in the doc source folder)
 man_files=
 
-name=@PACKAGE_NAME@.spec 
+name=@PACKAGE_NAME@
 version=@VERSION@
 raw_release=$(shell awk '/^%define release/ {print $$NF}' $(specfile))
 srelease=$(shell rpm --define='dist %{nil}' --eval=$(raw_release))
@@ -84,7 +84,13 @@ copy: config
 	mkdir -p archives
 	mkdir -p $(sourcedir)
 	mkdir -p $(tar_srcdir)
-	svn export --force packaged $(tar_srcdir)
+	svn export --force . $(tar_srcdir)
+	rm -rf  `ls -d $(tar_srcdir)/*/ |grep -v packaged`
+	cd $(tar_srcdir); mkdir tests; \
+		touch tests/Makefile.am; \
+		./bootstrap.sh; rm *.spec;
+
+
 
 
 # Create the ChangeLog file and add changelog entries to the RPM .spec file.
@@ -191,7 +197,7 @@ CLEANFILES=config.h
 
 config.h:svnversion template_config.h
 	cp template_config.h $@
-	SVNVERSION=`sed 's/.*: //' $< | sed 's/ .*//'`
+	SVNVERSION=`sed 's/.*: //' $< | sed 's/ .*//'`;\
 	echo "#define SVNVERSION $$SVNVERSION" >> $@
 
 
