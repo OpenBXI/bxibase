@@ -36,13 +36,13 @@
 
 %define target_conf_dir /etc/
 %define target_bin_dir /usr/bin
-%define target_lib_dir /usr/lib
+%define target_lib_dir /usr/lib*
 %define target_python_lib_dir %{python2_sitelib}
 %define target_man_dir %{_mandir}
 %define target_doc_dir /usr/share/doc/%{name}
 
 # TODO: Give your summary
-Summary:	bxiclib Implementation of basical functionnality in c like a logger a module of parallelization
+Summary:        Implementation of basical functionnality in c like a logger a module of parallelization
 Name:		%{name}
 Version:	%{version}
 Release:	%{release}
