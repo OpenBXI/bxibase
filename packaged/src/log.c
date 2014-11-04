@@ -1586,7 +1586,7 @@ bxierr_p _end_iht(void) {
     errno = 0;
     tsd_p tsd;
     bxierr_p err = _get_tsd(&tsd);
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) goto EXIT;
     err = bxizmq_snd_str(EXIT_CTRL_MSG_REQ, tsd->ctl_channel,
                          0, RETRIES_MAX, RETRY_DELAY);
     if (BXIZMQ_RETRIES_MAX_ERR == err->code) {
@@ -1596,6 +1596,7 @@ bxierr_p _end_iht(void) {
         bxierr_destroy(&err);
         err = BXIERR_OK;
     }
+EXIT:
     _tsd_free(tsd);
     return err;
 }
