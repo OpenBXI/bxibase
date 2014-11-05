@@ -1673,7 +1673,10 @@ void _parent_after_fork(void) {
     // comment your changes in bxilog_state_e above.
     if (FORKED != STATE) return;
     STATE = FINALIZED;
-    _init();
+    bxierr_p err = _init();
+    // Can't do a log
+    assert(bxierr_isok(err));
+
     if (INITIALIZING != STATE) {
         error(EX_SOFTWARE, 0,
               "Forking should leads bxilog to reach state %d (current state is %d)!",
