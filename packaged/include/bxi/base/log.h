@@ -274,7 +274,7 @@
  */
 #define BXIEXIT(exit_code, bxierr, logger, level) do {                              \
     bxilog_exit((exit_code), (bxierr), (logger), (level),                           \
-                __FILE__, ARRAYLEN(__FILE__),                                       \
+                (char *)__FILE__, ARRAYLEN(__FILE__),                               \
                 __func__, ARRAYLEN(__func__),                                       \
                 __LINE__);                                                          \
     } while(0)
@@ -288,7 +288,7 @@
  */
 #define BXIASSERT(logger, expr) do {                                                \
         bxilog_assert(logger, expr,                                                 \
-                      __FILE__, ARRAYLEN(__FILE__),                                 \
+                      (char *)__FILE__, ARRAYLEN(__FILE__),                         \
                       __func__, ARRAYLEN(__func__),                                 \
                       __LINE__, #expr);                                             \
     } while(0)
@@ -325,7 +325,7 @@
  */
 #define BXILOG_REPORT(logger, level, err, ...) do {                                 \
         bxilog_report((logger), (level), (err),                                     \
-                      __FILE__, ARRAYLEN(__FILE__),                                 \
+                      (char *)__FILE__, ARRAYLEN(__FILE__),                         \
                       __func__, ARRAYLEN(__func__),                                 \
                       __LINE__, __VA_ARGS__);                                       \
     } while(0)
