@@ -22,13 +22,6 @@
    fun:main
 }
 {
-   <bash>
-   Memcheck:Leak
-   ...
-   obj:/bin/bash
-   ...
-}
-{
    <CUNIT_addtest>
    Memcheck:Leak
    ...
