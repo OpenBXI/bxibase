@@ -74,7 +74,7 @@ cat > "${_OUTPUT}" <<EOF
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
 
-C_DEF="""
+C_DEF = """
 EOF
 
 sed "s/%%YEAR%%/$(date +%Y)/" -i "${_OUTPUT}"
