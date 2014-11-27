@@ -313,6 +313,8 @@
             BXILOG_CRITICAL);                                                       \
     } while(0)
 
+
+
 /**
  * Log the given error with the given message and destroys it.
  *
@@ -327,7 +329,7 @@
         bxilog_report((logger), (level), (err),                                     \
                       (char *)__FILE__, ARRAYLEN(__FILE__),                         \
                       __func__, ARRAYLEN(__func__),                                 \
-                      __LINE__, __VA_ARGS__);                                       \
+                      __LINE__, __VA_ARGS__);                                     \
     } while(0)
 
 
@@ -362,39 +364,39 @@
  */
 #ifdef __cplusplus
 #define SET_LOGGER(variable_name, logger_name) \
-    struct bxilog_s variable_name ## _s = { \
+    static struct bxilog_s variable_name ## _s = { \
                                         logger_name,\
                                         ARRAYLEN(logger_name),\
                                         BXILOG_LOWEST\
     };\
-    bxilog_p variable_name = &variable_name ## _s;\
-    __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
+    static bxilog_p const variable_name = &variable_name ## _s;\
+    static __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
         bxilog_register(variable_name);\
     }\
-    __attribute__((destructor)) void __bxilog_unregister_log__ ## variable_name(void) {\
+    static __attribute__((destructor)) void __bxilog_unregister_log__ ## variable_name(void) {\
         bxilog_unregister(variable_name);\
     }
 #else
 #ifdef BXICFFI
 #define SET_LOGGER(variable_name, logger_name) \
-    struct bxilog_s variable_name ## _s = { \
+    static struct bxilog_s variable_name ## _s = { \
                                         .name = logger_name,\
                                         .name_length = ARRAYLEN(logger_name),\
                                         .level = BXILOG_LOWEST\
     };\
-    bxilog_p variable_name = &variable_name ## _s;
+    static bxilog_p const variable_name = &variable_name ## _s;
 #else
 #define SET_LOGGER(variable_name, logger_name) \
-    struct bxilog_s variable_name ## _s = { \
+    static struct bxilog_s variable_name ## _s = { \
                                         .name = logger_name,\
                                         .name_length = ARRAYLEN(logger_name),\
                                         .level = BXILOG_LOWEST\
     };\
-    bxilog_p variable_name = &variable_name ## _s;\
-    __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
+    static bxilog_p const variable_name = &variable_name ## _s;\
+    static __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
         bxilog_register(variable_name);\
     }\
-    __attribute__((destructor)) void __bxilog_unregister_log__ ## variable_name(void) {\
+    static __attribute__((destructor)) void __bxilog_unregister_log__ ## variable_name(void) {\
          bxilog_unregister(variable_name);\
     }
 #endif
@@ -882,6 +884,7 @@ bxierr_p bxilog_set_thread_rank(uint16_t rank);
  */
 bxierr_p bxilog_get_thread_rank(uint16_t * rank_p);
 
+#ifndef BXICFFI
 /**
  * Install a signal handler that call bxilog_finalize() automatically
  * on reception of the following signals:  SIGTERM, SIGINT, SIGSEGV, SIGBUS,
@@ -892,10 +895,8 @@ bxierr_p bxilog_get_thread_rank(uint16_t * rank_p);
  *
  * @return BXIERR_OK on success, any other values is an error
  */
+bxierr_p bxilog_install_sighandler(void);
 
-bxierr_p bxilog_install_sighandler();
-
-#ifndef BXICFFI
 /**
  * Create a sigset structure according to the given array of signal numbers.
  *

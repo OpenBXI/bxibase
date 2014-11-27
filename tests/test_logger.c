@@ -11,10 +11,40 @@
  ###############################################################################
  */
 
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+#include <string.h>
+#include <pthread.h>
+#include <libgen.h>
+#include <sysexits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <wait.h>
+#include <error.h>
+#include <poll.h>
+#include <signal.h>
+
+#include <CUnit/Basic.h>
+
+#include "bxi/base/str.h"
+#include "bxi/base/time.h"
+#include "bxi/base/log.h"
+
+SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
+
+extern char * FULLPROGNAME;
+extern char * PROGNAME;
+extern char * FULLFILENAME;
+extern char ** ARGV;
+
 /*
  *  Check logger initialization
  */
-void test_logger(void) {
+void test_logger_levels(void) {
     OUT(TEST_LOGGER, "Starting test");
     // Log at all level, we use a loop here to generate many messages
     // and watch how post processing deal with them.
@@ -73,8 +103,12 @@ void test_logger(void) {
     buf[2047] = '\0';
     OUT(TEST_LOGGER, "One big log: %s", buf);
     bxilog_flush();
-    char * oldprogname = strdup(PROGNAME);
-    char * oldfilename = strdup(FILENAME);
+    BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
+                  bxierr_gen("An error to report"),
+                  "Don't worry, this is just a test for error reporting");
+}
+
+void test_logger_init() {
     char * fullprogname = bxistr_new("fakeprogram");
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("%s%s", progname, ".log");
@@ -83,35 +117,22 @@ void test_logger(void) {
     bxierr_destroy(&err);
     err = bxilog_finalize();
     CU_ASSERT_TRUE(bxierr_isok(err));
-    STATE = FINALIZING;
     err = bxilog_finalize();
     CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
     bxierr_destroy(&err);
-    STATE = FINALIZED;
     BXIFREE(fullprogname);
     BXIFREE(filename);
-    err = bxilog_init(oldprogname, oldfilename);
+    err = bxilog_init(PROGNAME, FULLFILENAME);
     CU_ASSERT_TRUE(bxierr_isok(err));
-    CU_ASSERT_EQUAL(STATE, INITIALIZED);
-    BXIFREE(oldfilename);
-    BXIFREE(oldprogname);
-
-    BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
-                  bxierr_gen("An error to report"),
-                  "Don't worry, this is just a test for error reporting");
 }
 
 void _fork_childs(size_t n) {
     if (n == 0) return;
     DEBUG(TEST_LOGGER, "Forking child #%zu", n - 1);
     errno = 0;
-    char * filename = strdup(FILENAME);
-    char * progname = strdup(PROGNAME);
     pid_t cpid = fork();
     switch(cpid) {
     case -1: {
-        BXIFREE(filename);
-        BXIFREE(progname);
         BXIEXIT(EXIT_FAILURE,
                 bxierr_errno("Can't fork()"),
                 TEST_LOGGER, BXILOG_CRITICAL);
@@ -119,17 +140,11 @@ void _fork_childs(size_t n) {
     }
     case 0: { // In the child
         n--;
-        char * child_progname = bxistr_new("%s.%zu", progname, n);
+        char * child_progname = bxistr_new("%s.%zu", PROGNAME, n);
         snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
-        if (STATE != FINALIZED) {
-            error(EXIT_FAILURE, 0,
-                  "Unexpected state for bxilog in child #%zu: %d", n, STATE);
-        }
-        bxierr_p err = bxilog_init(child_progname, filename);
+        bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
         BXIFREE(child_progname);
-        BXIFREE(progname);
-        BXIFREE(filename);
-        CU_ASSERT_TRUE(bxierr_isok(err));
+        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         // Check that logging works as expected in the child too
         CRITICAL(TEST_LOGGER, "Child #%zu: One log line", n);
         ERROR(TEST_LOGGER, "Child #%zu: One log line", n);
@@ -145,12 +160,12 @@ void _fork_childs(size_t n) {
                   "Calling bxilog_finalize() failed in child #%zu: %s",
                   n, bxierr_str(err));
         }
+        BXIFREE(FULLFILENAME);
+        BXIFREE(FULLPROGNAME);
         exit(EXIT_SUCCESS);
         break;
     }
     default: {  // In the parent
-        BXIFREE(filename);
-        BXIFREE(progname);
         CRITICAL(TEST_LOGGER, "Parent #%zu: One log line", n);
         ERROR(TEST_LOGGER, "Parent #%zu: One log line", n);
         WARNING(TEST_LOGGER, "Parent #%zu: One log line", n);
@@ -159,7 +174,8 @@ void _fork_childs(size_t n) {
         DEBUG(TEST_LOGGER, "Parent #%zu: One log line", n);
         TRACE(TEST_LOGGER, "Parent #%zu: One log line", n);
         int status;
-        DEBUG(TEST_LOGGER, "Parent #%zu: Waiting termination of child #%zu pid:%d", n, n - 1, cpid);
+        DEBUG(TEST_LOGGER,
+              "Parent #%zu: Waiting termination of child #%zu pid:%d", n, n - 1, cpid);
         errno = 0;
         pid_t w = waitpid(cpid, &status, WUNTRACED);
         if (-1 == w) {
@@ -179,17 +195,27 @@ void test_logger_fork(void) {
     _fork_childs((size_t)(rand()%5 + 5));
 }
 
-void * _logger_thread_dummy(void * dummy) {
-    UNUSED(dummy);
+static volatile bool _DUMMY_LOGGING = false;
+
+void * _logger_thread_dummy(void * data) {
+    size_t signum = (size_t) data;
+
     while(true) {
-        OUT(TEST_LOGGER, "Logging useless stuff");
-        bxitime_sleep(CLOCK_MONOTONIC, 0, 1e6);
+        OUT(TEST_LOGGER, "Waiting for signal: %zu", signum);
+        bxitime_sleep(CLOCK_MONOTONIC, 0, 2e8);
+        _DUMMY_LOGGING = true;
     }
-    return NULL;
+    BXIUNREACHABLE_STATEMENT(TEST_LOGGER);
 }
 
 void _fork_kill(int signum) {
-    DEBUG(TEST_LOGGER, "Starting test");
+    OUT(TEST_LOGGER, "Starting test for signum %d", signum);
+    _DUMMY_LOGGING = true;
+    char * name = bxistr_new("%s.%d", FULLFILENAME, getpid());
+    OUT(TEST_LOGGER, "Child output (stdout/stderr) is redirected to %s", name);
+    int pipefd[2];
+    int rc = pipe(pipefd);
+    BXIASSERT(TEST_LOGGER, 0 == rc);
     errno = 0;
     pid_t cpid = fork();
     switch(cpid) {
@@ -200,34 +226,62 @@ void _fork_kill(int signum) {
         break;
     }
     case 0: { // In the child
-        char * filename = strdup(FILENAME);
-        char * progname = strdup(PROGNAME);
-        int fd = open(filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+        rc = close(pipefd[0]); // Close the read-end of the pipe, we won't use it!
+        assert (0 == rc);
+        int fd = open(name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
         assert(fd != -1);
-        // Redirect input/output to the file
+//         Redirect input/output to the file
         dup2(fd, STDOUT_FILENO);
         dup2(fd, STDERR_FILENO);
         close(fd);
-        char * child_progname = bxistr_new("noval-%s.child", progname);
+        char * child_progname = bxistr_new("%s-sig-%d.child", PROGNAME, signum);
         snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
-        bxierr_p err = bxilog_init(child_progname, filename);
-        CU_ASSERT_TRUE(bxierr_isok(err));
+        bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
+        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         BXIFREE(child_progname);
-        BXIFREE(filename);
-        BXIFREE(progname);
-        bxilog_install_sighandler();
+        err = bxilog_install_sighandler();
+        BXILOG_REPORT(TEST_LOGGER, BXILOG_DEBUG, err, "Error?");
+        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         pthread_t thread;
         UNUSED(thread);
-        int rc = pthread_create(&thread, NULL, _logger_thread_dummy, NULL);
-        assert(rc == 0);
-        OUT(TEST_LOGGER, "Waiting for being killed!");
+        size_t data = (size_t) signum;
+        int rc = pthread_create(&thread, NULL, _logger_thread_dummy, (void*)data);
+        BXIASSERT(TEST_LOGGER, 0 == rc);
+        while(!_DUMMY_LOGGING) {
+            OUT(TEST_LOGGER, "Waiting until dummy thread log something...");
+            bxitime_sleep(CLOCK_MONOTONIC, 0, 2e8);
+        }
+        OUT(TEST_LOGGER, "Informing parent %d, we are ready to be killed!", getppid());
+        errno = 0;
+        char * readystr = "Ready";
+        size_t count = ARRAYLEN(readystr);
+        errno = 0;
+        ssize_t n = write(pipefd[1], readystr, count);
+        BXIASSERT(TEST_LOGGER, count == (size_t) n);
+        errno = 0;
+        rc = close(pipefd[1]);
+        BXIASSERT(TEST_LOGGER, 0 == rc || (-1 == rc && errno == EINTR));
+        OUT(TEST_LOGGER, "Waiting signal %d from %d", signum, getppid());
         bxitime_sleep(CLOCK_MONOTONIC, 5, 0);
         BXIEXIT(EXIT_FAILURE, bxierr_gen("Should have been killed, but was not"),
                 TEST_LOGGER, BXILOG_CRITICAL);
         break;
     }
     default: {  // In the parent
-        bxitime_sleep(CLOCK_MONOTONIC, 0, 10e6); // Wait a bit...
+        char buf[512];
+        memset(buf, 0, 512);
+        rc = close(pipefd[1]); // Close the write-end of the pipe
+        BXIASSERT(TEST_LOGGER, 0 == rc);
+        OUT(TEST_LOGGER, "Waiting ready signal from child %d", cpid);
+        while(true) { // Read while EOF
+            ssize_t n = read(pipefd[0], &buf, 512);
+            BXIASSERT(TEST_LOGGER, -1 != n);
+            if (0 == n) break; // EOF
+        }
+        rc = close(pipefd[0]);
+        BXIASSERT(TEST_LOGGER, 0 == rc);
+        OUT(TEST_LOGGER, "Child sent us: %s", buf);
+        bxitime_sleep(CLOCK_MONOTONIC, 0, 5e8);
         OUT(TEST_LOGGER, "Killing %d with signal %d", cpid, signum);
         errno = 0;
         int rc = kill(cpid, signum);
@@ -264,6 +318,15 @@ void _fork_kill(int signum) {
             OUT(TEST_LOGGER, "Process pid: %d terminated, with signal=%d",
                             cpid, WTERMSIG(status));
         }
+        CU_ASSERT_TRUE_FATAL(WIFSIGNALED(status));
+        CU_ASSERT_EQUAL_FATAL(signum, WTERMSIG(status));
+        OUT(TEST_LOGGER, "Removing file %s", name);
+        errno = 0;
+        rc = unlink(name);
+        if (0 != rc) BXILOG_REPORT(TEST_LOGGER, BXILOG_WARNING,
+                                   bxierr_errno("Calling unlink(%s) failed", name),
+                                   "Error during cleanup");
+        BXIFREE(name);
         break;
     }
     }

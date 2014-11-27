@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 
 #include <pthread.h>
 
@@ -247,12 +248,9 @@ static void _log_single_line(const struct log_header_s * header,
                              size_t line_len);
 static bxierr_p _process_data(void *);
 static bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel);
-static bxierr_p _process_signal(int sfd);
 static const char * _basename(const char *, size_t);
 static bxierr_p _flush_iht(void * data_channel);
-static bxierr_p _get_iht_signals_fd(int * fd);
 static bxierr_p _get_file_fd(int * fd);
-static bxierr_p _iht_log(bxilog_level_e log, char * const str);
 static ssize_t _mkmsg(size_t n, char buf[n],
                       char level,
                       const struct timespec * detail_time,
@@ -363,6 +361,10 @@ static pthread_once_t ATFORK_ONCE = PTHREAD_ONCE_INIT;
 
 static pthread_mutex_t register_lock = PTHREAD_MUTEX_INITIALIZER;
 
+// Used by bxilog_install_sighandler()
+static bxierr_p (*SIGFN)(siginfo_t *, void *) = NULL;
+static void * SIGFN_DATA = NULL;
+
 bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -402,7 +404,7 @@ void bxilog_unregister(bxilog_p logger) {
             found = true;
         }
     }
-    if (!found) fprintf(stderr, "[W] Can't find registered logger: %s", logger->name);
+    if (!found) fprintf(stderr, "[W] Can't find registered logger: %s\n", logger->name);
     else REGISTERED_LOGGERS_NB--;
 
     if (0 == REGISTERED_LOGGERS_NB) {
@@ -806,10 +808,10 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
         BXIFREE(err_str);
         bxierr_destroy(&err);
         if (bxierr_isko(logerr)) {
-            char * str = bxierr_str(logerr);\
-            fprintf(stderr, "Can't produce a log: %s", str);\
-            BXIFREE(str);\
-            bxierr_destroy(&logerr);\
+            char * str = bxierr_str(logerr);
+            fprintf(stderr, "Can't produce a log: %s", str);
+            BXIFREE(str);
+            bxierr_destroy(&logerr);
         }
     }
 }
@@ -819,31 +821,45 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
 // Asynchronous signals should be handled by the initializer thread
 // and this thread is the only one allowed to call bxilog_finalize()
 bxierr_p bxilog_install_sighandler(void) {
-    struct sigaction setup_action;
-    memset(&setup_action, 0, sizeof(struct sigaction));
+    // Allocate a special signa stack for SIGSEGV and the like
+    stack_t sigstack;
+    sigstack.ss_sp = bximem_calloc(SIGSTKSZ);
+    sigstack.ss_size = SIGSTKSZ;
+    sigstack.ss_flags = 0;
+    errno = 0;
+    int rc = sigaltstack(&sigstack, NULL);
+    if (-1 == rc) return bxierr_errno("Calling sigaltstack() failed");
+    FINE(BXILOG_INTERNAL_LOGGER,
+         "Alternate signal stack set at %p (%zu B)",
+         sigstack.ss_sp,
+         sigstack.ss_size);
+
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
 
     DEBUG(BXILOG_INTERNAL_LOGGER, "Setting signal handler process wide");
     // Keep default action for SIGQUIT so we can bypass bxilog specific
     // signal handling
     int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM};
-
-    setup_action.sa_sigaction = _sig_handler;
     // Mask all signals during the execution of a signal handler.
     sigset_t allsig_blocked;
     bxilog_sigset_new(&allsig_blocked, allsig_num, ARRAYLEN(allsig_num));
-    setup_action.sa_mask = allsig_blocked;
-    setup_action.sa_flags = SA_SIGINFO;
+
+    sa.sa_sigaction = _sig_handler;
+    sa.sa_mask = allsig_blocked;
+    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
 
     // Install signal handlers
     for (size_t i = 0; i < ARRAYLEN(allsig_num); i++) {
         errno = 0;
-        int rc = sigaction(allsig_num[i], &setup_action, NULL);
+        int rc = sigaction(allsig_num[i], &sa, NULL);
         if (0 != rc) return bxierr_errno("Calling sigaction() failed for signum %d",
                                          allsig_num[i]);
         char * str = strsignal(allsig_num[i]);
-        DEBUG(BXILOG_INTERNAL_LOGGER, "Signal handler set for %d: %s", allsig_num[i], str);
+        DEBUG(BXILOG_INTERNAL_LOGGER,
+              "Signal handler set for %d: %s", allsig_num[i], str);
         // Do not BXIFREE(str) since it is statically allocated as specified in the manual.
-//        FREE(str);
+        // BXIFREE(str);
     }
     INFO(BXILOG_INTERNAL_LOGGER, "Signal handlers set");
     return BXIERR_OK;
@@ -1014,12 +1030,39 @@ void * _iht_main(void * param) {
     // Maybe, define already the related string instead of
     // a rank number?
     IHT_DATA.rank = (uint16_t) pthread_self();
-     err2 = _get_file_fd(&IHT_DATA.fd);
-     BXIERR_CHAIN(err, err2);
-    // ***************** Signal handling **********************
-    int SFD;
-    err2 = _get_iht_signals_fd(&SFD);
+
+
+    err2 = _get_file_fd(&IHT_DATA.fd);
     BXIERR_CHAIN(err, err2);
+
+    /******************** Signal handling *******************/
+    // All signals are blocked in this thread, they must be dealt with
+    // by other threads. Note: this is only true for asynchronous signals
+    // such as SIGINT, SIGQUIT and so on...
+    // In particular synchronous signals such as SIGSEGV, SIGBUS, and the like
+    // are always sent to the thread that generated them. Therefore,
+    // there is no real thing to do unless implementing a complex sigsetjmp/siglongjmp
+    // in order to produce a log, flush the log and close the file.
+    // However, this is complex too, since signal handlers is per process, not per-thread
+    // Therefore, all threads will share same signal handler. Obviously, flushing and
+    // closing the file is only relevant for the internal thread...
+    // In the signal handler we therefore will have to distinguish between two cases:
+    //     1. is it a business-code thread? -> use the normal signal handler
+    //     2. is it an internal thread? -> use a specific signal handler
+    // This is quite hard to do right. We currently prefer to avoid this complexities
+    // and to ensure as far as possible that no SIGSEGV nor SIGBUS will be raised
+    // in this thread. Careful programming is required therefore. ;-)
+    sigset_t mask;
+    int rc = sigfillset(&mask);
+    assert(0 == rc);
+    // block all signals.
+    // Note: undefined behaviour for SIGBUS, SIGFPE, SIGILL and SIGSEGV
+    // See sigprocmask(2)
+    rc = pthread_sigmask(SIG_BLOCK, &mask, NULL);
+    if (-1 == rc) {
+        err2 = bxierr_errno("Calling pthread_sigmask() failed");
+        BXIERR_CHAIN(err, err2);
+    }
 
     tzset(); // Should be called before invocation to localtime.
     int hwm = IH_RCVHWM;
@@ -1040,11 +1083,10 @@ void * _iht_main(void * param) {
     if (bxierr_isko(err)) goto QUIT;
     zmq_pollitem_t items[] = { { DATA_CHANNEL, 0, ZMQ_POLLIN, 0 },
                                { CONTROL_CHANNEL, 0, ZMQ_POLLIN, 0 },
-                               { NULL, SFD, ZMQ_POLLIN | ZMQ_POLLERR, 0 },
     };
     while (true) {
         errno = 0;
-        int rc = zmq_poll(items, 3, DEFAULT_POLL_TIMEOUT); // -1 -> wait infinitely
+        rc = zmq_poll(items, 2, DEFAULT_POLL_TIMEOUT); // -1 -> wait infinitely
         if (-1 == rc) {
             if (EINTR == errno) continue; // One interruption happens
                                           //(e.g. with profiling)
@@ -1079,28 +1121,13 @@ void * _iht_main(void * param) {
            }
            if(_should_quit(&err)) goto QUIT;
         }
-        if (items[2].revents & ZMQ_POLLIN) {
-            // Signal received, start flushing
-            err2 = _flush_iht(DATA_CHANNEL);
-            BXIERR_CHAIN(err, err2);
-            // Then process the signal itself
-            err2 = _process_signal(SFD);
-            BXIERR_CHAIN(err, err2);
-            if (_should_quit(&err)) goto QUIT;
-        }
-        if (items[2].revents & ZMQ_POLLERR) {
-            // Process error on signalfd
-            err2 = _flush_iht(DATA_CHANNEL);
-            BXIERR_CHAIN(err, err2);
-            if (_should_quit(&err)) goto QUIT;
-        }
     }
     QUIT:
     err2 =  bxizmq_zocket_destroy(DATA_CHANNEL); BXIERR_CHAIN(err, err2);
     err2 = bxizmq_zocket_destroy(CONTROL_CHANNEL); BXIERR_CHAIN(err, err2);
     err2 = _sync(); BXIERR_CHAIN(err, err2);
     errno = 0;
-    int rc = close(IHT_DATA.fd);
+    rc = close(IHT_DATA.fd);
     if (-1 == rc) {
         err2 = bxierr_errno("Closing logging file '%s' failed", FILENAME);
         BXIERR_CHAIN(err, err2);
@@ -1303,43 +1330,6 @@ bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel) {
     return bxierr_gen("bxilog.iht: Unknown control command: %s", cmd);
 }
 
-// TODO: change the signature so the tid and the
-// iht rank becomes global variables initialized during the iht_main()
-bxierr_p _process_signal(const int sfd) {
-    // Then deal with the signal
-    struct signalfd_siginfo sfdinfo;
-    errno = 0;
-    const ssize_t n = read(sfd, &sfdinfo, sizeof(sfdinfo));
-    assert(n == sizeof(sfdinfo));
-
-    char * str = bxilog_signal_str((int) sfdinfo.ssi_signo, NULL, &sfdinfo);
-    bxierr_p err = _iht_log(BXILOG_CRITICAL, str);
-    BXIFREE(str);
-
-    // Back to default signal handling
-    sigset_t default_set;
-    int rc = sigemptyset(&default_set);
-    assert(rc == 0);
-    rc = pthread_sigmask(SIG_SETMASK, &default_set, NULL);
-    if (0 != rc) {
-        bxierr_p err2 = bxierr_errno("Calling pthread_sigmask() failed");
-        BXIERR_CHAIN(err, err2);
-    }
-    struct sigaction dft_action;
-    memset(&dft_action, 0, sizeof(struct sigaction));
-    dft_action.sa_handler = SIG_DFL;
-    rc = sigaction((int) sfdinfo.ssi_signo, &dft_action, NULL);
-    if (0 != rc) {
-        bxierr_p err2 = bxierr_errno("Calling sigaction() failed");
-        BXIERR_CHAIN(err, err2);
-    }
-    rc = pthread_kill(pthread_self(), (int) sfdinfo.ssi_signo);
-    assert(0 == rc);
-
-    return err;
-}
-
-
 ssize_t _mkmsg(const size_t n, char buf[n],
                const char level,
                const struct timespec * const detail_time,
@@ -1394,32 +1384,6 @@ ssize_t _mkmsg(const size_t n, char buf[n],
     return written;
 }
 
-bxierr_p _get_iht_signals_fd(int * fd) {
-    bxierr_p err = BXIERR_OK, err2;
-    sigset_t sigmask;
-    int signum[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGQUIT, SIGTERM, SIGINT};
-    err2 = bxilog_sigset_new(&sigmask, signum, ARRAYLEN(signum));
-    BXIERR_CHAIN(err, err2);
-    // Blocks those signals in this thread.
-    int rc = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
-    if (0 != rc) {
-        err2 = bxierr_errno("Calling pthread_sigmask() failed");
-        BXIERR_CHAIN(err, err2);
-    }
-
-    errno = 0;
-    int signumok[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL};
-    sigset_t sigok;
-    err2  = bxilog_sigset_new(&sigok, signumok, ARRAYLEN(signumok));
-    BXIERR_CHAIN(err, err2);
-    *fd = signalfd(-1, &sigok, 0);
-    if (-1 == *fd) {
-        err2 = bxierr_errno("Calling signalfd() failed");
-        BXIERR_CHAIN(err, err2);
-    }
-    return err;
-}
-
 bxierr_p _get_file_fd(int * fd) {
     errno = 0;
     if (0 == strcmp(FILENAME, "-")) {
@@ -1430,49 +1394,9 @@ bxierr_p _get_file_fd(int * fd) {
         errno = 0;
         *fd = open(FILENAME,
 //                   O_WRONLY | O_CREAT | O_APPEND | O_DSYNC,
-                   O_WRONLY | O_CREAT | O_APPEND,
+                   O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
         if (-1 == *fd) return bxierr_errno("Can't open %s", FILENAME);
-    }
-    return BXIERR_OK;
-}
-
-bxierr_p _iht_log(bxilog_level_e level,
-                  char * const str) {
-
-    struct timespec now;
-    bxierr_p err = bxitime_get(CLOCK_REALTIME, &now);
-    if (bxierr_isko(err)) {
-        char * str = bxierr_str(err);
-        fprintf(stderr, "Calling bxitime_get() failed: %s", str);
-        BXIFREE(str);
-        now.tv_sec = 0;
-        now.tv_nsec = 0;
-        bxierr_destroy(&err);
-    }
-    size_t size = FIXED_LOG_SIZE +\
-                  PROGNAME_LEN +\
-                  FILENAME_LEN +\
-                  ARRAYLEN(__FUNCTION__) +\
-                  ARRAYLEN(IHT_LOGGER_NAME) +\
-                  + strlen(str) + 1;
-    char msg[size];
-    ssize_t written = _mkmsg(size, msg,
-                             LOG_LEVEL_STR[level],
-                             &now,
-#ifdef __linux__
-                             IHT_DATA.tid,
-#endif
-                             IHT_DATA.rank,
-                             (char *) FILENAME,
-                             __LINE__,
-                             __FUNCTION__,
-                             IHT_LOGGER_NAME,
-                             str);
-    errno = 0;
-    written = write(IHT_DATA.fd, msg, (size_t) written);
-    if (0 >= written) {
-        return bxierr_errno("Can't log to %s", FILENAME);
     }
     return BXIERR_OK;
 }
@@ -1636,6 +1560,8 @@ bxierr_p _finalize(void) {
     }
     BXILOG_CONTEXT = NULL;
     TSD_KEY_ONCE = PTHREAD_ONCE_INIT;
+    SIGFN = NULL;
+    SIGFN_DATA = NULL;
 
     BXIFREE(data_url);
     BXIFREE(control_url);
@@ -1732,11 +1658,20 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     FATAL_ERROR_IN_PROGRESS = 1;
     char * trace = bxierr_backtrace_str();
     char * str = bxistr_new("%s - %s", sigstr, trace);
+    BXIFREE(sigstr);
+    BXIFREE(trace);
+
     ssize_t written = write(STDERR_FILENO, str, strlen(str)+1);
     assert(written > 0);
     CRITICAL(BXILOG_INTERNAL_LOGGER, "%s", str);
+    BXIFREE(str);
     // Flush all logs before terminating -> ask the iht to stop.
-    _end_iht();
+    bxierr_p err = _end_iht();
+    char buf[] = "Error while processing signal\n";
+    if (bxierr_isko(err)) {
+        ssize_t n = write(STDERR_FILENO, buf, ARRAYLEN(buf));
+        UNUSED(n);
+    }
     // Wait some time before exiting
     struct timespec rem;
     struct timespec delay = {.tv_sec = 1, .tv_nsec=0};
@@ -1749,9 +1684,6 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
         // Else we have been interrupted, start again
         delay = rem;
     }
-    BXIFREE(trace);
-    BXIFREE(sigstr);
-    BXIFREE(str);
 
     // Use default sighandler to end.
     struct sigaction dft_action;
@@ -1762,10 +1694,20 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     if (-1 == rc) {
         error(128 + signum, errno, "Calling sigaction(%d, ...) failed.", signum);
     }
-    errno = 0,
+    errno = 0;
+    // Unblock all signals
+    sigset_t mask;
+    rc = sigfillset(&mask);
+    assert(0 == rc);
+    rc = pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
+    char buf2[] = "Calling pthread_sigmask() failed\n";
+    if (-1 == rc) {
+        ssize_t n = write(STDERR_FILENO, buf2, ARRAYLEN(buf2));
+        UNUSED(n);
+    }
     rc = pthread_kill(pthread_self(), signum);
     if (0 != rc) {
         error(128 + signum, errno, "Calling pthread_kill(self, %d) failed.", signum);
     }
-
+    _exit(128 + signum);
 }

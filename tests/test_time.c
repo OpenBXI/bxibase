@@ -11,7 +11,11 @@
  ###############################################################################
  */
 
+#include <time.h>
 
+#include <CUnit/Basic.h>
+
+#include "bxi/base/time.h"
 
 void test_time(void) {
     struct timespec time;
@@ -23,5 +27,4 @@ void test_time(void) {
     char * time_char = bxitime_duration_str(1000.0);
     CU_ASSERT_PTR_NOT_NULL_FATAL(time_char);
     free(time_char);
-
 }

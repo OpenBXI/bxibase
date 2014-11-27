@@ -11,8 +11,12 @@
  ###############################################################################
  */
 
+#include <CUnit/Basic.h>
 
-void test_free(){
+#include "bxi/base/mem.h"
+
+
+void test_free() {
     int * double_free = bximem_calloc(sizeof(*double_free));
     *double_free = 1;
     CU_ASSERT_PTR_NOT_NULL_FATAL(double_free);

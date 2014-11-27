@@ -11,8 +11,10 @@ unit_t_LDFLAGS =\
 				@TST_LDFLAGS@\
 				$(ZMQ_LIBS)\
 				$(UUID_LIBS)
+				
+unit_t_LDADD=$(top_builddir)/packaged/lib/libbxibase.la\
+				   @TST_LIBS@
 
-unit_t_LDADD = @TST_LIBS@
 
 #TESTS_ENVIRONMENT=@VALGRIND@ @VALGRIND_ARGS@
 AUTOMAKE_OPTIONS = parallel-tests
@@ -29,4 +31,8 @@ force:${top_srcdir}/valgrind.supp
 	-[ -f $$(basename $^)  ] || cp $^ .
 
 unit_t_SOURCES=\
+			   test_mem.c\
+			   test_err.c\
+			   test_time.c\
+			   test_logger.c\
 			   unit_t.c

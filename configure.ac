@@ -103,7 +103,7 @@ if test x"$enable_valgrind" != "xno"; then
         fi
 
         run_valgrind="yes"
-        VALGRIND="valgrind"
+        VALGRIND="libtool --mode=execute valgrind --quiet"
         AC_SUBST(VALGRIND)
 
 fi
@@ -111,7 +111,7 @@ if test x"$enable_valgrind" == "xno"; then
     enable_valgrind=""
 fi
 
- VALGRIND_ARGS=" $enable_valgrind  --trace-children=yes --trace-children-skip=\"/depot*,/bin*,/usr/bin*,/usr/local/bin*,*/bxibb_server,*topo*,*python*,*bxibb_server*\" --track-origins=yes --leak-check=full --show-reachable=yes --undef-value-errors=yes --suppressions=valgrind.supp "
+ VALGRIND_ARGS=" $enable_valgrind  --trace-children=yes --child-silent-after-fork=no --track-origins=yes --leak-check=full --show-reachable=yes --undef-value-errors=yes --suppressions=valgrind.supp "
  AC_SUBST(VALGRIND_ARGS)
 
 

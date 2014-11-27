@@ -11,6 +11,16 @@
  ###############################################################################
  */
 
+#include <stdlib.h>
+#include <time.h>
+
+#include <CUnit/Basic.h>
+
+#include "bxi/base/str.h"
+#include "bxi/base/err.h"
+#include "bxi/base/log.h"
+
+SET_LOGGER(TEST_LOGGER, "test.bxibase.err");
 
 void test_bxierr() {
     srand((unsigned int)time(NULL));

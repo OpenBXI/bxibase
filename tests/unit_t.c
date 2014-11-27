@@ -20,33 +20,40 @@
 #include <stddef.h>
 #include <assert.h>
 #include <libgen.h>
-#include <time.h>
+
 #include <sched.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <fcntl.h>
+
 #include <linux/limits.h>
 
-// This is required to actually test the implementation
+#include <bxi/base/str.h>
+#include <bxi/base/log.h>
 
-#include "mem.c"
-#include "str.c"
-#include "err.c"
-#include "time.c"
-#include "zmq.c"
-#include "log.c"
 
-SET_LOGGER(TEST_LOGGER, "bxibase.test");
+SET_LOGGER(TEST_LOGGER, "test.bxibase");
+
+char * FULLPROGNAME = NULL;
+char * PROGNAME = NULL;
+char * FULLFILENAME = NULL;
 char ** ARGV = NULL;
 
 // Actual test functions are separated into their respective test file.
-// However they must be included here.
+// However, to prevent defining related .h, we define all functions here
 
-#include "test_mem.c"
-#include "test_err.c"
-#include "test_time.c"
-#include "test_logger.c"
+// From test_mem.c
+void test_free();
+
+// From test_err.c
+void test_bxierr();
+
+// From test_time.c
+void test_time(void);
+
+// From test_logger.c
+void test_logger_init(void);
+void test_logger_levels(void);
+void test_logger_fork(void);
+void test_logger_signal(void);
+
 
 /* The suite initialization function.
  * Opens the temporary file used by the tests.
@@ -92,22 +99,25 @@ int _handle_rc_code(){
 int main(int argc, char * argv[]) {
     UNUSED(argc);
     ARGV = argv;
-    char * fullprogname = strdup(argv[0]);
-    char * progname = basename(fullprogname);
-    char * filename = bxistr_new("%s%s", progname, ".bxilog");
+    FULLPROGNAME = strdup(argv[0]);
+    PROGNAME = basename(FULLPROGNAME);
+    char * filename = bxistr_new("%s%s", PROGNAME, ".bxilog");
     char cwd[PATH_MAX];
     char * res = getcwd(cwd, PATH_MAX);
     assert(NULL != res);
-    char * fullpathname = bxistr_new("%s/%s", cwd, filename);
-    bxierr_p err = bxilog_init(progname, fullpathname);
+    FULLFILENAME = bxistr_new("%s/%s", cwd, filename);
+    BXIFREE(filename);
+    // TODO: provides an option in bxilog for
+    // "Do not append into logfile, but overwrite it"
+    errno = 0;
+    int rc = unlink(FULLFILENAME);
+    // We just don't care if we encounter an error here!
+    //    if (0 != rc) perror("Calling unlink() failed");
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
     assert(BXIERR_OK == err);
 //    bxilog_install_sighandler();
 
-    fprintf(stderr, "Logging to file: %s\n", fullpathname);
-
-    BXIFREE(fullprogname);
-    BXIFREE(filename);
-    BXIFREE(fullpathname);
+    fprintf(stderr, "Logging to file: %s\n", FULLFILENAME);
 
     CU_pSuite pSuite = NULL;
 
@@ -126,9 +136,10 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(pSuite, "test free", test_free))
         // Do not change this order: since unit test uses logging,
         // it is better to check that logging works first.
-        || (NULL == CU_add_test(pSuite, "test logger", test_logger))
+        || (NULL == CU_add_test(pSuite, "test logger init", test_logger_init))
+        || (NULL == CU_add_test(pSuite, "test logger levels", test_logger_levels))
         || (NULL == CU_add_test(pSuite, "test logger fork", test_logger_fork))
-        || (NULL == CU_add_test(pSuite, "test logger signal", test_logger_signal))
+//        || (NULL == CU_add_test(pSuite, "test logger signal", test_logger_signal))
 
         || (NULL == CU_add_test(pSuite, "test bxierr", test_bxierr))
 
@@ -145,7 +156,7 @@ int main(int argc, char * argv[]) {
     CU_automated_run_tests();
     CU_list_tests_to_file();
 
-    int rc = _handle_rc_code();
+    rc = _handle_rc_code();
 
     /* Run all tests using the CUnit Basic interface */
     CU_basic_set_mode(CU_BRM_VERBOSE);
@@ -165,5 +176,9 @@ int main(int argc, char * argv[]) {
         BXIFREE(str);
         bxierr_destroy(&err);
     }
+
+    BXIFREE(FULLFILENAME);
+    BXIFREE(FULLPROGNAME);
+
     return rc;
 }
