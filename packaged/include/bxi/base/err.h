@@ -365,14 +365,14 @@ char * bxierr_str(bxierr_p self);
  * like format string.
  *
  * Most of the case, the errcode comes from errno itself, in this case, use the
- * simpler form `bxierr_perror()`.
+ * simpler form `bxierr_errno()`.
  *
  * @param erridx the error code
  * @param erridx2str an array of error message
  * @param fmt a printf like format string
  * @return a bxierr instance
  *
- * @see bxierr_perror
+ * @see bxierr_errno
  * @see bxierr_vstrerror
  */
 bxierr_p bxierr_fromidx(int erridx,
@@ -383,7 +383,6 @@ bxierr_p bxierr_fromidx(int erridx,
  * of an ellipse, useful for library wrapper.
  *
  * @see bxierr_strerror
- * @see bxierr_perror
  */
 #ifndef BXICFFI
 bxierr_p bxierr_vfromidx(int errcode,

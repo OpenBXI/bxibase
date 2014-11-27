@@ -91,8 +91,6 @@ copy: config
 		./bootstrap.sh; rm *.spec;
 
 
-
-
 # Create the ChangeLog file and add changelog entries to the RPM .spec file.
 # This step requires the 'svn2cl' tool.
 # It is available here: http://arthurdejong.org/svn2cl/downloads.html

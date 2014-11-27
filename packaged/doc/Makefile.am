@@ -1,16 +1,16 @@
 if HAVE_DOXYGEN
 
-doxyfile.stamp:
+doxygen.warn:
 	$(DOXYGEN) Doxyfile
-	touch $@
+	exit $$(wc -l $@)
 
 
 doc:
 	$(DOXYGEN) Doxyfile
 
-all-local: doxyfile.stamp
+all-local: doxygen.warn
 
 clean-local:
-	rm -rf html
+	rm -rf html doxygen.warn
 
 endif
