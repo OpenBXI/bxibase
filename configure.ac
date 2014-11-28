@@ -90,29 +90,29 @@ fi
 # valgrind
 ###########################
 run_valgrind="no"
-AC_ARG_ENABLE([valgrind], [AS_HELP_STRING([--enable-valgrind[=args]], [use Valgrind to test the test suite])])
+AC_ARG_ENABLE([valgrind], [AS_HELP_STRING([--enable-valgrind[=args]], 
+                                            [use Valgrind to test the test suite])])
 if test x"$enable_valgrind" != "xno"; then
     AC_CHECK_PROG(VALGRIND_CHECK,valgrind,yes)
     if test x"$VALGRIND_CHECK" == "xyes"; then
         if test x"$enable_valgrind" == "xyes"; then
             enable_valgrind=""
         fi
-
     else
         AC_MSG_ERROR([Please install valgrind before installing.])
-        fi
+    fi
 
-        run_valgrind="yes"
-        VALGRIND="libtool --mode=execute valgrind --quiet"
-        AC_SUBST(VALGRIND)
+    run_valgrind="yes"
+    VALGRIND="libtool --mode=execute valgrind --quiet"
+    AC_SUBST(VALGRIND)
 
 fi
 if test x"$enable_valgrind" == "xno"; then
     enable_valgrind=""
 fi
 
- VALGRIND_ARGS=" $enable_valgrind  --trace-children=yes --child-silent-after-fork=no --track-origins=yes --leak-check=full --show-reachable=yes --undef-value-errors=yes --suppressions=valgrind.supp "
- AC_SUBST(VALGRIND_ARGS)
+VALGRIND_ARGS=" $enable_valgrind  --trace-children=yes --track-origins=yes --leak-check=full --show-reachable=yes --undef-value-errors=yes --suppressions=valgrind.supp "
+AC_SUBST(VALGRIND_ARGS)
 
 
 ################################ Internal dependencies ###########################
