@@ -558,7 +558,7 @@ bxilog_p bxilog_new(const char * logger_name) {
     bxilog_p self = bximem_calloc(sizeof(*self));
     self->name = strdup(logger_name);
     self->name_length = strlen(logger_name) + 1;
-    self->level = BXILOG_TRACE;
+    self->level = BXILOG_LOWEST;
 
     return self;
 }
