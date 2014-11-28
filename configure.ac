@@ -111,7 +111,7 @@ if test x"$enable_valgrind" == "xno"; then
     enable_valgrind=""
 fi
 
-VALGRIND_ARGS=" $enable_valgrind  --trace-children=yes --track-origins=yes --leak-check=full --show-reachable=yes --undef-value-errors=yes --suppressions=valgrind.supp "
+VALGRIND_ARGS=" $enable_valgrind  --track-origins=yes --leak-check=full --show-reachable=yes --undef-value-errors=yes --suppressions=valgrind.supp "
 AC_SUBST(VALGRIND_ARGS)
 
 
