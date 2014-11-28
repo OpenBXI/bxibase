@@ -1,7 +1,5 @@
 lib_LTLIBRARIES=lib/libbxibase.la
 
-
-
 lib_libbxibase_la_SOURCES=\
 		  src/mem.c\
 		  src/str.c\
@@ -21,8 +19,6 @@ lib_libbxibase_la_CFLAGS=\
 					 $(LIB_CFLAGS)
 
 lib_libbxibase_la_LIBADD=$(LIB_LIBS)
-
-
 
 
 SUBDIRS=lib include doc
