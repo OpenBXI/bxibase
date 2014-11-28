@@ -362,8 +362,7 @@ static pthread_once_t ATFORK_ONCE = PTHREAD_ONCE_INIT;
 static pthread_mutex_t register_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // Used by bxilog_install_sighandler()
-static bxierr_p (*SIGFN)(siginfo_t *, void *) = NULL;
-static void * SIGFN_DATA = NULL;
+static char* _SIGSTACK_BUF[SIGSTKSZ];
 
 bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 //*********************************************************************************
@@ -823,7 +822,7 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
 bxierr_p bxilog_install_sighandler(void) {
     // Allocate a special signa stack for SIGSEGV and the like
     stack_t sigstack;
-    sigstack.ss_sp = bximem_calloc(SIGSTKSZ);
+    sigstack.ss_sp = _SIGSTACK_BUF;
     sigstack.ss_size = SIGSTKSZ;
     sigstack.ss_flags = 0;
     errno = 0;
@@ -1560,8 +1559,6 @@ bxierr_p _finalize(void) {
     }
     BXILOG_CONTEXT = NULL;
     TSD_KEY_ONCE = PTHREAD_ONCE_INIT;
-    SIGFN = NULL;
-    SIGFN_DATA = NULL;
 
     BXIFREE(data_url);
     BXIFREE(control_url);
