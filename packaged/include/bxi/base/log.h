@@ -884,7 +884,6 @@ bxierr_p bxilog_set_thread_rank(uint16_t rank);
  */
 bxierr_p bxilog_get_thread_rank(uint16_t * rank_p);
 
-#ifndef BXICFFI
 /**
  * Install a signal handler that call bxilog_finalize() automatically
  * on reception of the following signals:  SIGTERM, SIGINT, SIGSEGV, SIGBUS,
@@ -897,6 +896,7 @@ bxierr_p bxilog_get_thread_rank(uint16_t * rank_p);
  */
 bxierr_p bxilog_install_sighandler(void);
 
+#ifndef BXICFFI
 /**
  * Create a sigset structure according to the given array of signal numbers.
  *
