@@ -43,6 +43,31 @@ capi = ffi.dlopen('libbxibase.so')
 _INITIALIZED = False
 _CONFIG = None
 
+DEFAULT_CFG_ITEMS = [('', capi.BXILOG_LOWEST)]
+
+def basicConfig(**kwargs):
+    """
+    output: the file output name ('-': stdout, '+': stderr)
+    setsighandler: if True, set signal handlers
+    cfg_items: a list of tuples (prefix, level)
+    """
+    global _CONFIG
+    
+        
+    if 'output' not in kwargs:
+        kwargs['output'] = '-'
+
+    if 'cfg_items' not in kwargs:
+        kwargs['cfg_items'] = DEFAULT_CFG_ITEMS
+    else:
+        kwargs['cfg_items'] = sorted(kwargs['cfg_items'])
+
+    if 'setsighandler' not in kwargs:
+        kwargs['setsighandler'] = True
+
+    _CONFIG = kwargs
+
+
 def getLogger(name):
     """
     Return the logger instance with the given name.
@@ -55,7 +80,7 @@ def getLogger(name):
     if not _INITIALIZED:
         if _CONFIG is None:
             _CONFIG = {'output':'-',
-                       'cfg_items': [('', capi.BXILOG_LOWEST)],
+                       'cfg_items': DEFAULT_CFG_ITEMS,
                        'setsighandler': True}
 
         capi.bxilog_init(os.path.basename(sys.argv[0]), _CONFIG['output'])

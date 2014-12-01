@@ -7,6 +7,7 @@
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
+import tempfile
 
 """Unit tests of BXI Log Python library.
 """
@@ -72,6 +73,22 @@ class BXILogTest(unittest.TestCase):
         self.assertRaises(TypeError,
                           logger.output,
                            "Testing wrong types: %d %d %s", 'foo', 2.5, 3, 'toto')
+
+    def test_basic_config(self):
+        """Test loggers configuration"""
+        fd, name = tempfile.mkstemp(".bxilog", "test_")
+
+        # bxilog.output("One log on standard output")
+        print("File output: %s", name)
+        self.assertEquals(os.stat(name).st_size, 0)
+
+        bxilog.basicConfig(output=name)
+
+        bxilog.output("One log on file: %s", name)
+
+        self.assertNotEquals(os.stat(name).st_size, 0)
+
+        os.close(fd)
 
 
 
