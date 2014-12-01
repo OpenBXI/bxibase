@@ -233,14 +233,14 @@ void _fork_kill(int signum) {
 //         Redirect input/output to the file
         dup2(fd, STDOUT_FILENO);
         dup2(fd, STDERR_FILENO);
-        close(fd);
+        rc = close(fd);
+        assert(0 == rc);
         char * child_progname = bxistr_new("%s-sig-%d.child", PROGNAME, signum);
         snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
         bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
         BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         BXIFREE(child_progname);
         err = bxilog_install_sighandler();
-        BXILOG_REPORT(TEST_LOGGER, BXILOG_DEBUG, err, "Error?");
         BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         pthread_t thread;
         UNUSED(thread);
@@ -253,7 +253,7 @@ void _fork_kill(int signum) {
         }
         OUT(TEST_LOGGER, "Informing parent %d, we are ready to be killed!", getppid());
         errno = 0;
-        char * readystr = "Ready";
+        char readystr[] = "Ready";
         size_t count = ARRAYLEN(readystr);
         errno = 0;
         ssize_t n = write(pipefd[1], readystr, count);
