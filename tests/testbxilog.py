@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 ###############################################################################
 # Author: Sébastien Miquée <sebastien.miquee@bull.net>
@@ -82,7 +83,7 @@ class BXILogTest(unittest.TestCase):
         print("File output: %s", name)
         self.assertEquals(os.stat(name).st_size, 0)
 
-        bxilog.basicConfig(output=name)
+        bxilog.basicConfig(filename=name)
 
         bxilog.output("One log on file: %s", name)
 
