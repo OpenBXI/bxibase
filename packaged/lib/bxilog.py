@@ -38,24 +38,25 @@ ffi = FFI()
 
 ffi.cdef(LOG_DEF)
 
-capi = ffi.dlopen('libbxibase.so')
+clogapi = ffi.dlopen('libbxibase.so')
 
 _INITIALIZED = False
 _CONFIG = None
 
-DEFAULT_CFG_ITEMS = [('', capi.BXILOG_LOWEST)]
+DEFAULT_CFG_ITEMS = [('', clogapi.BXILOG_LOWEST)]
+
+_ROOT_LOGGER_NAME = 'root'
 
 def basicConfig(**kwargs):
     """
-    output: the file output name ('-': stdout, '+': stderr)
+    filename: the file output name ('-': stdout, '+': stderr)
     setsighandler: if True, set signal handlers
     cfg_items: a list of tuples (prefix, level)
     """
     global _CONFIG
-    
         
-    if 'output' not in kwargs:
-        kwargs['output'] = '-'
+    if 'filename' not in kwargs:
+        kwargs['filename'] = '-'
 
     if 'cfg_items' not in kwargs:
         kwargs['cfg_items'] = DEFAULT_CFG_ITEMS
@@ -66,7 +67,6 @@ def basicConfig(**kwargs):
         kwargs['setsighandler'] = True
 
     _CONFIG = kwargs
-
 
 def getLogger(name):
     """
@@ -79,21 +79,22 @@ def getLogger(name):
 
     if not _INITIALIZED:
         if _CONFIG is None:
-            _CONFIG = {'output':'-',
+            _CONFIG = {'filename':'-',
                        'cfg_items': DEFAULT_CFG_ITEMS,
-                       'setsighandler': True}
+                       'setsighandler': True,
+                       }
 
-        capi.bxilog_init(os.path.basename(sys.argv[0]), _CONFIG['output'])
-        atexit.register(capi.bxilog_finalize)
+        clogapi.bxilog_init(os.path.basename(sys.argv[0]), _CONFIG['filename'])
+        atexit.register(clogapi.bxilog_finalize)
         _INITIALIZED = True
         if _CONFIG['setsighandler']:
-            capi.bxilog_install_sighandler()
+            clogapi.bxilog_install_sighandler()
 
     for logger in getAllLoggers_iter():
-        if logger.clogger.name == name:
+        if ffi.string(logger.clogger.name) == name:
             return logger
-    logger = capi.bxilog_new(name)
-    capi.bxilog_register(logger)
+    logger = clogapi.bxilog_new(name)
+    clogapi.bxilog_register(logger)
 
     cfg_items = _CONFIG['cfg_items']
     cffi_items = ffi.new('bxilog_cfg_item_s[]', len(cfg_items))
@@ -101,25 +102,25 @@ def getLogger(name):
         cffi_items[i].prefix = ffi.new('char[]', cfg_items[i][0])
         cffi_items[i].level = cfg_items[i][1]
 
-    capi.bxilog_cfg_registered(len(cfg_items), cffi_items)
+    clogapi.bxilog_cfg_registered(len(cfg_items), cffi_items)
 
     return _BXILoggerWrapper(logger)
 
 
 def close_logs():
     """Function called for closing the BXI C log"""
-    capi.bxilog_finalize()
+    clogapi.bxilog_finalize()
 
 def getAllLevelNames_iter():
     names = ffi.new("char ***")
-    nb = capi.bxilog_get_all_level_names(names)
+    nb = clogapi.bxilog_get_all_level_names(names)
     print(nb)
     for i in xrange(nb):
         yield ffi.string(names[0][i])
 
 def getAllLoggers_iter():
     loggers = ffi.new("bxilog_p **")
-    nb = capi.bxilog_get_registered(loggers)
+    nb = clogapi.bxilog_get_registered(loggers)
     for i in xrange(nb):
         yield _BXILoggerWrapper(loggers[0][i])
 
@@ -144,40 +145,40 @@ def findCaller():
     return rv
 
 def panic(msg, *args, **kwargs):
-    getLogger('root').panic(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).panic(msg, *args, **kwargs)
 
 def alert(msg, *args, **kwargs):
-    getLogger('root').alert(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).alert(msg, *args, **kwargs)
 
 def critical(msg, *args, **kwargs):
-    getLogger('root').critical(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).critical(msg, *args, **kwargs)
 
 def error(msg, *args, **kwargs):
-    getLogger('root').error(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).error(msg, *args, **kwargs)
 
 def warning(msg, *args, **kwargs):
-    getLogger('root').warning(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).warning(msg, *args, **kwargs)
 
 def notice(msg, *args, **kwargs):
-    getLogger('root').notice(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).notice(msg, *args, **kwargs)
 
 def output(msg, *args, **kwargs):
-    getLogger('root').output(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).output(msg, *args, **kwargs)
 
 def info(msg, *args, **kwargs):
-    getLogger('root').info(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).info(msg, *args, **kwargs)
 
 def debug(msg, *args, **kwargs):
-    getLogger('root').debug(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).debug(msg, *args, **kwargs)
 
 def fine(msg, *args, **kwargs):
-    getLogger('root').fine(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).fine(msg, *args, **kwargs)
 
 def trace(msg, *args, **kwargs):
-    getLogger('root').trace(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).trace(msg, *args, **kwargs)
 
 def lowest(msg, *args, **kwargs):
-    getLogger('root').lowest(msg, *args, **kwargs)
+    getLogger(_ROOT_LOGGER_NAME).lowest(msg, *args, **kwargs)
 
 
 
@@ -187,10 +188,10 @@ class _BXILoggerWrapper(object):
         self.clogger = clogger
 
     def _log(self, level, msg, *args, **kwargs):
-        if capi.bxilog_is_enabled_for(self.clogger, level):
+        if clogapi.bxilog_is_enabled_for(self.clogger, level):
             s = msg % args
             filename, lineno, funcname = findCaller()
-            capi.bxilog_log_nolevelcheck(self.clogger,
+            clogapi.bxilog_log_nolevelcheck(self.clogger,
                                          level,
                                          filename,
                                          len(filename) + 1,
@@ -201,40 +202,40 @@ class _BXILoggerWrapper(object):
 
 
     def panic(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_PANIC, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_PANIC, msg, *args, **kwargs)
 
     def alert(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_ALERT, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_ALERT, msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_CRITICAL, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_CRITICAL, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_ERROR, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_ERROR, msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_WARNING, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_WARNING, msg, *args, **kwargs)
 
     def notice(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_NOTICE, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_NOTICE, msg, *args, **kwargs)
 
     def output(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_OUTPUT, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_OUTPUT, msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_INFO, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_INFO, msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_DEBUG, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_DEBUG, msg, *args, **kwargs)
 
     def fine(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_FINE, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_FINE, msg, *args, **kwargs)
 
     def trace(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_TRACE, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_TRACE, msg, *args, **kwargs)
 
     def lowest(self, msg, *args, **kwargs):
-        self._log(capi.BXILOG_LOWEST, msg, *args, **kwargs)
+        self._log(clogapi.BXILOG_LOWEST, msg, *args, **kwargs)
 
 
 
