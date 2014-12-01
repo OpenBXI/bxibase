@@ -1,6 +1,8 @@
 eclipse.preferences.version=1
 encoding//misc/bench/bxilog/bench_bxilog_mp.py=utf-8
 encoding//misc/bench/bxilog/bench_bxilog_thr.py=utf-8
+encoding//misc/bench/bxilog/bench_clmtrace_mp.py=utf-8
+encoding//misc/bench/bxilog/bench_clmtrace_thr.py=utf-8
 encoding//misc/bench/bxilog/bench_logging_mp.py=utf-8
 encoding//misc/bench/bxilog/bench_logging_thr.py=utf-8
 encoding//packaged/lib/bxilog.py=utf-8
