@@ -10,7 +10,8 @@ bxilog_h.py: $(top_srcdir)/packaged/include/bxi/base/log.h
 
 # For installation
 nobase_python_PYTHON=\
-                  bxilog_h.py
+                  bxilog_h.py \
+                  bxilog.py
 
 
 # For generation

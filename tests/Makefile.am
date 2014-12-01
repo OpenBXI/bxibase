@@ -1,3 +1,11 @@
+all-local:
+	mkdir -p report
+
+check-local: 
+	PYTHONPATH=${top_builddir}/packaged/lib/:$${PYTHONPATH} \
+		LD_LIBRARY_PATH=${top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
+		nosetests ${top_srcdir} ${NOSETESTS_ARGS}
+
 TESTS = unit_t
 check_PROGRAMS= unit_t
 unit_t_CFLAGS =\

@@ -69,11 +69,11 @@ Provides: %{name}
 #TODO: What do you require
 Requires: zeromq3
 Requires: czmq
-
+Requires: python-cffi >= 0.7.2
 
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
-Implementation of basical functionnality in c required by bxifm tools
+Basic C modules including the high performance BXI logging library. 
 
 ###############################################################################
 # Prepare the files to be compiled

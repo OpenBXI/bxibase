@@ -44,7 +44,7 @@ AC_EGREP_CPP(posix_200809L_supported,
 
 AC_CHECK_HEADER([stdbool.h],
                 [],
-                [AC_MSG_ERROR([The bxi divio header has not been found, the bxi header package should be installed])]
+                [AC_MSG_ERROR([stdbool.h cannot be found])],
                 )
 
 
@@ -220,11 +220,14 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_STRERROR_R
 AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 
-AM_PATH_PYTHON
-
+#PC_INIT([2.7], [2.99])
+#PC_PYTHON_CHECK_MODULE([cffi], [], [AC_MSG_ERROR(Module not found)])
 
 #TODO add the pc.in file
 AC_CONFIG_FILES([Makefile packaged/Makefile packaged/lib/Makefile packaged/include/Makefile packaged/doc/Makefile tests/Makefile])
+
+AM_PATH_PYTHON
+
 AC_OUTPUT
 
 echo "summary   :"
