@@ -169,6 +169,7 @@ void test_logger_existing_file(void) {
     OUT(TEST_LOGGER, "Starting test");
     char * template = strdup("test_logger_XXXXXX");
     int fd = mkstemp(template);
+    assert(-1 != fd);
     char * name = _get_filename(fd);
     OUT(TEST_LOGGER, "Filename: %s", name);
     err = bxilog_finalize();
@@ -194,6 +195,7 @@ void test_logger_non_existing_file(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
     int fd = mkstemp(template);
+    assert(-1 != fd);
     char * name = _get_filename(fd);
     OUT(TEST_LOGGER, "Filename: %s", name);
     err = bxilog_finalize();
@@ -222,6 +224,7 @@ void test_logger_non_existing_dir(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
     char * dirname = mkdtemp(template);
+    assert(NULL != dirname);
     char * name = bxistr_new(" %s/test_logger_non_existing_dir.bxilog", dirname);
     OUT(TEST_LOGGER, "Filename: %s", name);
     err = bxilog_finalize();
