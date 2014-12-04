@@ -103,6 +103,18 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
     return result;
 }
 
+void bxierr_report(bxierr_p self, int fd) {
+    if (bxierr_isok(self)) return;
+
+    char * errstr = bxierr_str(self);
+    char * msg = bxistr_new("Reporting error: %s\n", errstr);
+    ssize_t count = write(fd, msg, strlen(msg) + 1);
+    assert(0 < count);
+    BXIFREE(msg);
+    BXIFREE(errstr);
+    bxierr_destroy(&self);
+}
+
 // Inline functions defined in the .h
 extern bool bxierr_isok(bxierr_p self);
 extern bool bxierr_isko(bxierr_p self);
@@ -203,4 +215,3 @@ char * bxierr_backtrace_str(void) {
     BXIFREE(strings);
     return buf;
 }
-
