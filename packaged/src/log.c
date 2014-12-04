@@ -208,6 +208,7 @@ struct log_header_s {
  *
  * Normal path:
  * UNSET --> _init() -> INITIALIZING -> INITIALIZED - _finalize() -> FINALIZING -> FINALIZED
+ * FINALIZED -> _finalize() -> FINALIZED
  * Support for fork() makes special transitions:
  * (UNSET, FINALIZED) --> fork() --> (UNSET, FINALIZED) // No change
  * (INITIALIZING, FINALIZING) --> fork() --> ILLEGAL    // Can't fork while initializing
@@ -235,7 +236,8 @@ static bxierr_p _get_tsd(tsd_p * tsd_p);
 static bxierr_p _init(void);
 static bxierr_p _finalize(void);
 static bxierr_p _end_iht(void);
-
+static bxierr_p _join_iht(bxierr_p * iht_err_p);
+static bxierr_p _cleanup(void);
 //--------------------------------- IHT Helpers ------------------------------------
 static void * _iht_main(void * param);
 static bool _should_quit(bxierr_p * err);
@@ -539,13 +541,20 @@ bxierr_p bxilog_init(const char * const progname, const char * const fn) {
 
 bxierr_p bxilog_finalize(void) {
     // WARNING: If you change the FSM transition,
-    // comment you changes in bxilog_state_e above.
-    if (INITIALIZED != STATE) return bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
-                                                NULL, NULL, NULL,
-                                                "Illegal state: %d", STATE);
-    DEBUG(BXILOG_INTERNAL_LOGGER, "Exiting bxilog");
+    // comment your changes in bxilog_state_e above.
+    if (FINALIZED == STATE) return BXIERR_OK;
+    if (STATE != INITIALIZED) {
+        return bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
+                          NULL, NULL, NULL,
+                          "Illegal state: %d", STATE);
+    }
+    bxierr_p err = BXIERR_OK, err2;
+    err2 = bxilog_flush();
+    BXIERR_CHAIN(err, err2);
 
-    bxierr_p err = _finalize();
+    DEBUG(BXILOG_INTERNAL_LOGGER, "Exiting bxilog");
+    err2 = _finalize();
+    BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) return err;
     assert(FINALIZING == STATE);
     BXIFREE(FILENAME);
@@ -1030,10 +1039,6 @@ void * _iht_main(void * param) {
     // a rank number?
     IHT_DATA.rank = (uint16_t) pthread_self();
 
-
-    err2 = _get_file_fd(&IHT_DATA.fd);
-    BXIERR_CHAIN(err, err2);
-
     /******************** Signal handling *******************/
     // All signals are blocked in this thread, they must be dealt with
     // by other threads. Note: this is only true for asynchronous signals
@@ -1065,6 +1070,42 @@ void * _iht_main(void * param) {
 
     tzset(); // Should be called before invocation to localtime.
     int hwm = IH_RCVHWM;
+    void * CONTROL_CHANNEL;
+    bxierr_p fatal_err = bxizmq_zocket_new(BXILOG_CONTEXT,
+                                           ZMQ_REP, control_url,
+                                           true, false, 0, 0, 0,
+                                           &CONTROL_CHANNEL);
+    if (bxierr_isko(fatal_err)) {
+        // We can't communicate with main thread, there is nothing else to do
+        // than exiting
+        char * fatal_err_str = bxierr_str(fatal_err);
+        error(EX_SOFTWARE, 0,
+              "Can't create control socket - exiting. Reason: %s", fatal_err_str);
+        BXIFREE(fatal_err_str);
+        bxierr_destroy(&fatal_err);
+        assert(false); // Unreachable statement!
+    }
+
+    err2 = _get_file_fd(&IHT_DATA.fd);
+    BXIERR_CHAIN(err, err2);
+
+    if (bxierr_isko(err)) {
+        // Wait for the READY message and inform back
+        // that we have an error on the given output file
+        char * cmd;
+        bxierr_p last_err = bxizmq_rcv_str(CONTROL_CHANNEL, 0, false, &cmd);
+        assert(bxierr_isok(last_err) && NULL != cmd);
+        assert(0 == strcmp(READY_CTRL_MSG_REQ, cmd));
+        BXIFREE(cmd);
+        // Send the error message
+        char * err_str = bxierr_str(err);
+        last_err = bxizmq_snd_str(err_str, CONTROL_CHANNEL, 0, 0, 0);
+        BXIFREE(err_str);
+        assert(bxierr_isok(last_err));
+        bxierr_destroy(&last_err);
+        goto QUIT;
+    }
+
     void * DATA_CHANNEL;
     errno = 0;
     err2 = bxizmq_zocket_new(BXILOG_CONTEXT,
@@ -1073,13 +1114,7 @@ void * _iht_main(void * param) {
                              &hwm, sizeof(hwm),
                              &DATA_CHANNEL);
     BXIERR_CHAIN(err, err2);
-    void * CONTROL_CHANNEL;
-    err2 = bxizmq_zocket_new(BXILOG_CONTEXT,
-                             ZMQ_REP, control_url,
-                             true, false, 0, 0, 0,
-                             &CONTROL_CHANNEL);
-    BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) goto QUIT;
+
     zmq_pollitem_t items[] = { { DATA_CHANNEL, 0, ZMQ_POLLIN, 0 },
                                { CONTROL_CHANNEL, 0, ZMQ_POLLIN, 0 },
     };
@@ -1126,10 +1161,12 @@ void * _iht_main(void * param) {
     err2 = bxizmq_zocket_destroy(CONTROL_CHANNEL); BXIERR_CHAIN(err, err2);
     err2 = _sync(); BXIERR_CHAIN(err, err2);
     errno = 0;
-    rc = close(IHT_DATA.fd);
-    if (-1 == rc) {
-        err2 = bxierr_errno("Closing logging file '%s' failed", FILENAME);
-        BXIERR_CHAIN(err, err2);
+    if (STDOUT_FILENO != IHT_DATA.fd && STDERR_FILENO != IHT_DATA.fd) {
+        rc = close(IHT_DATA.fd);
+        if (-1 == rc) {
+            err2 = bxierr_errno("Closing logging file '%s' failed", FILENAME);
+            BXIERR_CHAIN(err, err2);
+        }
     }
 
     return err;
@@ -1205,12 +1242,17 @@ void _log_single_line(const struct log_header_s * const header,
                             funcname,
                             loggername,
                             line);
-
+    errno = 0;
     ssize_t written = write(IHT_DATA.fd, msg, (size_t) loglen);
 
     if (0 >= written) {
-        char * str = bxistr_new("[W] Can't write to %s, writing to stderr instead.\n",
-                                FILENAME);
+        bxierr_p bxierr = bxierr_errno("Calling write(fd=%d,name=%s) failed (written=%d)",
+                                       IHT_DATA.fd, FILENAME, written);
+        char * err_str = bxierr_str(bxierr);
+        char * str = bxistr_new("%s\n[W] Can't write to %s, redirecting log to stderr.\n",
+                                err_str, FILENAME);
+        BXIFREE(err_str);
+        bxierr_destroy(&bxierr);
         ssize_t n = write(STDERR_FILENO, str, strlen(str) + 1);
         assert(n >= 0);
         n = write(STDERR_FILENO, msg, (size_t) loglen);
@@ -1497,10 +1539,17 @@ bxierr_p _init(void) {
     assert(NULL != ready);
 
     if (0 != strcmp(ready, READY_CTRL_MSG_REP)) {
-        error(EX_SOFTWARE, 0, "Unexpected control message: %s", ready);
+        // Ok, the IHT sends us an error msg.
+        // We expect it to die and the actual error will be returned
+        bxierr_p iht_err;
+        bxierr_p err = _join_iht(&iht_err);
+        assert(bxierr_isok(err));
         BXIFREE(ready);
+        err = _cleanup();
+        assert(bxierr_isok(err));
+        STATE = FINALIZED;
+        return iht_err;
     }
-
     BXIFREE(ready);
     return err;
 }
@@ -1509,7 +1558,7 @@ bxierr_p _end_iht(void) {
     errno = 0;
     tsd_p tsd;
     bxierr_p err = _get_tsd(&tsd);
-    if (bxierr_isko(err)) goto EXIT;
+    if (bxierr_isko(err)) return err;
     err = bxizmq_snd_str(EXIT_CTRL_MSG_REQ, tsd->ctl_channel,
                          0, RETRIES_MAX, RETRY_DELAY);
     if (BXIZMQ_RETRIES_MAX_ERR == err->code) {
@@ -1519,8 +1568,40 @@ bxierr_p _end_iht(void) {
         bxierr_destroy(&err);
         err = BXIERR_OK;
     }
-EXIT:
+    return err;
+}
+
+bxierr_p _join_iht(bxierr_p * iht_err_p) {
+    int rc = pthread_join(INTERNAL_HANDLER_THREAD, (void**) iht_err_p);
+    if (0 != rc) return bxierr_fromidx(rc, NULL,
+                                       "Can't join the internal handler thread."
+                                       " Calling pthread_join() failed (rc=%d)", rc);
+    return BXIERR_OK;
+}
+
+bxierr_p _cleanup(void) {
+    tsd_p tsd;
+    bxierr_p err = _get_tsd(&tsd);
+    if (bxierr_isko(err)) return err;
     _tsd_free(tsd);
+    int rc = zmq_ctx_destroy(BXILOG_CONTEXT);
+    if (-1 == rc) {
+        while (-1 == rc && EINTR == errno) {
+            rc = zmq_ctx_destroy(BXILOG_CONTEXT);
+        }
+        if (-1 == rc) {
+            bxierr_p err2 = bxierr_fromidx(rc, NULL,
+                                           "Can't destroy context (rc=%d)", rc);
+            BXIERR_CHAIN(err, err2);
+        }
+    }
+    BXILOG_CONTEXT = NULL;
+    rc = pthread_key_delete(TSD_KEY);
+    assert(0 == rc); // Nothing to do on pthread_key_delete() see man page
+    TSD_KEY_ONCE = PTHREAD_ONCE_INIT;
+
+    BXIFREE(data_url);
+    BXIFREE(control_url);
     return err;
 }
 
@@ -1534,34 +1615,16 @@ bxierr_p _finalize(void) {
         return err;
     }
     STATE = FINALIZING;
-    bxierr_p err = _end_iht();
+    bxierr_p err = BXIERR_OK, err2;
+    err2 = _end_iht();
+    BXIERR_CHAIN(err, err2);
+
     bxierr_p iht_err;
-    int rc = pthread_join(INTERNAL_HANDLER_THREAD, (void**) &iht_err);
-    if (0 != rc) {
-        bxierr_p err2 = bxierr_fromidx(rc, NULL,
-                                       "Can't join the internal handler thread."
-                                       " Calling pthread_join() failed (rc=%d)", rc);
-        BXIERR_CHAIN(err, err2);
-    } else {
-        BXIERR_CHAIN(err, iht_err);
-    }
+    err2 = _join_iht(&iht_err);
+    BXIERR_CHAIN(err, err2);
+    BXIERR_CHAIN(err, iht_err);
 
-    rc = zmq_ctx_destroy(BXILOG_CONTEXT);
-    if (-1 == rc) {
-        while (-1 == rc && EINTR == errno) {
-            rc = zmq_ctx_destroy(BXILOG_CONTEXT);
-        }
-        if (-1 == rc) {
-            bxierr_p err2 = bxierr_fromidx(rc, NULL,
-                                           "Can't destroy context (rc=%d)", rc);
-            BXIERR_CHAIN(err, err2);
-        }
-    }
-    BXILOG_CONTEXT = NULL;
-    TSD_KEY_ONCE = PTHREAD_ONCE_INIT;
-
-    BXIFREE(data_url);
-    BXIFREE(control_url);
+    err2 = _cleanup();
     return err;
 }
 
