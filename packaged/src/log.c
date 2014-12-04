@@ -1070,7 +1070,8 @@ void * _iht_main(void * param) {
 
     tzset(); // Should be called before invocation to localtime.
     int hwm = IH_RCVHWM;
-    void * CONTROL_CHANNEL;
+    void * CONTROL_CHANNEL = NULL;
+    void * DATA_CHANNEL = NULL;
     bxierr_p fatal_err = bxizmq_zocket_new(BXILOG_CONTEXT,
                                            ZMQ_REP, control_url,
                                            true, false, 0, 0, 0,
@@ -1106,7 +1107,7 @@ void * _iht_main(void * param) {
         goto QUIT;
     }
 
-    void * DATA_CHANNEL;
+
     errno = 0;
     err2 = bxizmq_zocket_new(BXILOG_CONTEXT,
                              ZMQ_PULL, data_url, true,
