@@ -115,6 +115,8 @@ void test_logger_levels(void) {
 
 void test_logger_init() {
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
     char * fullprogname = bxistr_new("fakeprogram");
@@ -162,6 +164,7 @@ static long _get_filesize(char* name) {
 void test_logger_existing_file(void) {
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
     bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
     char * template = strdup("test_logger_XXXXXX");
@@ -187,6 +190,7 @@ void test_logger_existing_file(void) {
 void test_logger_non_existing_file(void) {
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
     bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
     int fd = mkstemp(template);
@@ -214,6 +218,7 @@ void test_logger_non_existing_file(void) {
 void test_logger_non_existing_dir(void) {
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
     bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
     char * dirname = mkdtemp(template);
@@ -300,6 +305,8 @@ void _fork_childs(size_t n) {
 
 void test_logger_fork(void) {
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     DEBUG(TEST_LOGGER, "Starting test");
     _fork_childs((size_t)(rand()%5 + 5));
@@ -447,6 +454,9 @@ void _fork_kill(int signum) {
 
 void test_logger_signal(void) {
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM, SIGQUIT};
     for (size_t i = 0; i < ARRAYLEN(allsig_num); i++) {
