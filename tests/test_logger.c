@@ -45,6 +45,8 @@ extern char ** ARGV;
  *  Check logger initialization
  */
 void test_logger_levels(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
     // Log at all level, we use a loop here to generate many messages
     // and watch how post processing deal with them.
@@ -106,24 +108,127 @@ void test_logger_levels(void) {
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
                   bxierr_gen("An error to report"),
                   "Don't worry, this is just a test for error reporting");
+    OUT(TEST_LOGGER, "Ending test");
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 
 void test_logger_init() {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    OUT(TEST_LOGGER, "Starting test");
     char * fullprogname = bxistr_new("fakeprogram");
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("%s%s", progname, ".log");
-    bxierr_p err = bxilog_init(progname, filename);
+    err = bxilog_init(progname, filename);
     CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
     bxierr_destroy(&err);
+    OUT(TEST_LOGGER, "Finalizing");
     err = bxilog_finalize();
     CU_ASSERT_TRUE(bxierr_isok(err));
     err = bxilog_finalize();
-    CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
+    CU_ASSERT_TRUE(bxierr_isok(err));
     bxierr_destroy(&err);
     BXIFREE(fullprogname);
     BXIFREE(filename);
-    err = bxilog_init(PROGNAME, FULLFILENAME);
-    CU_ASSERT_TRUE(bxierr_isok(err));
+}
+
+static char * _get_filename(int fd) {
+    char path[512];
+    const size_t n = 512 * sizeof(*path);
+    char * const result = malloc(n);
+    assert(result != NULL);
+    sprintf(path, "/proc/self/fd/%d", fd);
+    memset(result, 0, n);
+    errno = 0;
+    /* Read out the link to our file descriptor. */
+    const ssize_t rc = readlink(path, result, n - 1);
+    assert(-1 != rc);
+    return result;
+}
+
+static long _get_filesize(char* name) {
+    struct stat info;
+    errno = 0;
+    int rc = stat(name, &info);
+    if (-1 == rc) {
+        bxierr_report(bxierr_errno("Calling stat(%s) failed", name),
+                      STDERR_FILENO);
+        return -1;
+    }
+    return info.st_size;
+}
+
+void test_logger_existing_file(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    OUT(TEST_LOGGER, "Starting test");
+    char * template = strdup("test_logger_XXXXXX");
+    int fd = mkstemp(template);
+    char * name = _get_filename(fd);
+    OUT(TEST_LOGGER, "Filename: %s", name);
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
+    close(fd);
+
+    err = bxilog_init(PROGNAME, name);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    OUT(TEST_LOGGER, "One log on file: %s", name);
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(0 < _get_filesize(name));
+    int rc = unlink(name);
+    assert(0 == rc);
+    BXIFREE(template);
+}
+
+void test_logger_non_existing_file(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    char * template = strdup("test_logger_XXXXXX");
+    int fd = mkstemp(template);
+    char * name = _get_filename(fd);
+    OUT(TEST_LOGGER, "Filename: %s", name);
+    err = bxilog_finalize();
+
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
+    close(fd);
+    int rc = unlink(name);
+    assert(0 == rc);
+
+    err = bxilog_init(PROGNAME, name);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    OUT(TEST_LOGGER, "One log on file: %s", name);
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(0 < _get_filesize(name));
+    rc = unlink(name);
+    assert(0 == rc);
+    BXIFREE(template);
+}
+
+void test_logger_non_existing_dir(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    char * template = strdup("test_logger_XXXXXX");
+    char * dirname = mkdtemp(template);
+    char * name = bxistr_new(" %s/test_logger_non_existing_dir.bxilog", dirname);
+    OUT(TEST_LOGGER, "Filename: %s", name);
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+    int rc = rmdir(dirname);
+    assert(0 == rc);
+
+    err = bxilog_init(PROGNAME, name);
+    CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    BXIFREE(name);
+    BXIFREE(template);
 }
 
 void _fork_childs(size_t n) {
@@ -191,8 +296,13 @@ void _fork_childs(size_t n) {
 }
 
 void test_logger_fork(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     DEBUG(TEST_LOGGER, "Starting test");
     _fork_childs((size_t)(rand()%5 + 5));
+    OUT(TEST_LOGGER, "Ending test");
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 
 static volatile bool _DUMMY_LOGGING = false;
@@ -333,10 +443,14 @@ void _fork_kill(int signum) {
 }
 
 void test_logger_signal(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM, SIGQUIT};
     for (size_t i = 0; i < ARRAYLEN(allsig_num); i++) {
         _fork_kill(allsig_num[i]);
     }
-//    _fork_kill(SIGSEGV);
+    OUT(TEST_LOGGER, "Ending test");
+    err = bxilog_finalize();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 

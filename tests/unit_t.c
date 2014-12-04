@@ -51,6 +51,9 @@ void test_time(void);
 // From test_logger.c
 void test_logger_init(void);
 void test_logger_levels(void);
+void test_logger_existing_file(void);
+void test_logger_non_existing_file(void);
+void test_logger_non_existing_dir(void);
 void test_logger_fork(void);
 void test_logger_signal(void);
 
@@ -59,8 +62,16 @@ void test_logger_signal(void);
  * Opens the temporary file used by the tests.
  * Returns zero on success, non-zero otherwise.
  */
-int init_bxitp_suite(void) {
-    errno = 0;
+int init_suite_logger(void) {
+    bxierr_p err = BXIERR_OK, err2;
+    err2 = bxilog_init(PROGNAME, FULLFILENAME);
+    BXIERR_CHAIN(err, err2);
+    err2 = bxilog_install_sighandler();
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) {
+        bxierr_report(err, STDERR_FILENO);
+        exit(1);
+    }
     return 0;
 }
 
@@ -68,7 +79,12 @@ int init_bxitp_suite(void) {
  * Closes the temporary file used by the tests.
  * Returns zero on success, non-zero otherwise.
  */
-int clean_bxitp_suite(void) {
+int clean_suite_logger(void) {
+    bxierr_p err = bxilog_finalize();
+    if (bxierr_isko(err)) {
+        bxierr_report(err, STDERR_FILENO);
+        exit(1);
+    }
     return 0;
 }
 
@@ -113,40 +129,78 @@ int main(int argc, char * argv[]) {
     int rc = unlink(FULLFILENAME);
     // We just don't care if we encounter an error here!
     //    if (0 != rc) perror("Calling unlink() failed");
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
-    assert(BXIERR_OK == err);
-//    bxilog_install_sighandler();
+
 
     fprintf(stderr, "Logging to file: %s\n", FULLFILENAME);
 
-    CU_pSuite pSuite = NULL;
+
 
     /* initialize the CUnit test registry */
     if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
-    /* add a suite to the registry */
-    pSuite = CU_add_suite("BXI_TP_TestSuite", init_bxitp_suite, clean_bxitp_suite);
-    if (NULL == pSuite) {
+
+    /* add suites to the registry */
+    CU_pSuite bximem_suite = CU_add_suite("bximem_suite", NULL, NULL);
+    if (NULL == bximem_suite) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+    /* add the tests to the suite */
+    if (false
+            || (NULL == CU_add_test(bximem_suite, "test free", test_free))
+            || false) {
+
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
+
+    CU_pSuite bxilog_suite = CU_add_suite("bxilog_suite", NULL, NULL);
+    if (NULL == bxilog_suite) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+    /* add the tests to the suite */
+    if (false
+        || (NULL == CU_add_test(bxilog_suite, "test logger init", test_logger_init))
+        || (NULL == CU_add_test(bxilog_suite, "test logger existing file", test_logger_existing_file))
+        || (NULL == CU_add_test(bxilog_suite, "test logger non existing file", test_logger_non_existing_file))
+        || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
+        || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
+        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
+//        || (NULL == CU_add_test(pSuite, "test logger signal", test_logger_signal))
+
+        || false) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+
+    /* add suites to the registry */
+    CU_pSuite bxierr_suite = CU_add_suite("bxierr_suite",
+                                          init_suite_logger, clean_suite_logger);
+    if (NULL == bxierr_suite) {
         CU_cleanup_registry();
         return (CU_get_error());
     }
 
     /* add the tests to the suite */
     if (false
-        || (NULL == CU_add_test(pSuite, "test free", test_free))
-        // Do not change this order: since unit test uses logging,
-        // it is better to check that logging works first.
-        || (NULL == CU_add_test(pSuite, "test logger init", test_logger_init))
-        || (NULL == CU_add_test(pSuite, "test logger levels", test_logger_levels))
-        || (NULL == CU_add_test(pSuite, "test logger fork", test_logger_fork))
-//        || (NULL == CU_add_test(pSuite, "test logger signal", test_logger_signal))
-
-        || (NULL == CU_add_test(pSuite, "test bxierr", test_bxierr))
-
-        || (NULL == CU_add_test(pSuite, "test time", test_time))
-
-
+        || (NULL == CU_add_test(bxierr_suite, "test bxierr", test_bxierr))
         || false) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+
+
+    CU_pSuite bxitime_suite = CU_add_suite("bxitime_suite", init_suite_logger, clean_suite_logger);
+    if (NULL == bxitime_suite) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+
+    /* add the tests to the suite */
+    if (false
+            || (NULL == CU_add_test(bxitime_suite, "test time", test_time))
+            || false) {
         CU_cleanup_registry();
         return (CU_get_error());
     }
@@ -169,13 +223,8 @@ int main(int argc, char * argv[]) {
     rc = rc > rc2 ? rc : rc2;
 
     CU_cleanup_registry();
-    err = bxilog_finalize();
-    if (BXIERR_OK != err) {
-        char * str = bxierr_str(err);
-        fprintf(stderr, "WARNING: bxilog finalization returned: %s", str);
-        BXIFREE(str);
-        bxierr_destroy(&err);
-    }
+    bxierr_p err = bxilog_finalize();
+    bxierr_report(err, STDERR_FILENO);
 
     BXIFREE(FULLFILENAME);
     BXIFREE(FULLPROGNAME);
