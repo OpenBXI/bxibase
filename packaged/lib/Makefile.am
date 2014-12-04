@@ -15,10 +15,10 @@ bxi/base/err_h.py: $(top_srcdir)/packaged/include/bxi/base/err.h
 
 # For installation
 nobase_python_PYTHON=\
-                  $(top_srcdir)/bxi/__init__.py \
+                  $(srcdir)/bxi/__init__.py \
                   bxi/base/err_h.py \
                   bxi/base/log_h.py \
-                  $(top_srcdir)/bxi/base/__init__.py \
+                  $(srcdir)/bxi/base/__init__.py \
                   bxi/base/err.py \
                   bxi/base/log.py
                   
