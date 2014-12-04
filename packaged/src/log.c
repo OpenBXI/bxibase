@@ -1547,6 +1547,8 @@ bxierr_p _init(void) {
         BXIFREE(ready);
         err = _cleanup();
         assert(bxierr_isok(err));
+        BXIFREE(FILENAME);
+        BXIFREE(PROGNAME);
         STATE = FINALIZED;
         return iht_err;
     }

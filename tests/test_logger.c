@@ -181,6 +181,7 @@ void test_logger_existing_file(void) {
     int rc = unlink(name);
     assert(0 == rc);
     BXIFREE(template);
+    BXIFREE(name);
 }
 
 void test_logger_non_existing_file(void) {
@@ -207,6 +208,7 @@ void test_logger_non_existing_file(void) {
     rc = unlink(name);
     assert(0 == rc);
     BXIFREE(template);
+    BXIFREE(name);
 }
 
 void test_logger_non_existing_dir(void) {
@@ -225,6 +227,7 @@ void test_logger_non_existing_dir(void) {
 
     err = bxilog_init(PROGNAME, name);
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
+    bxierr_destroy(&err);
     err = bxilog_finalize();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     BXIFREE(name);
