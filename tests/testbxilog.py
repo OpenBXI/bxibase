@@ -13,7 +13,8 @@ import tempfile
 """Unit tests of BXI Log Python library.
 """
 
-import bxilog
+import bxi.base.log as bxilog
+from bxi.base.err import BXICError
 
 import sys
 import os
@@ -34,6 +35,7 @@ class BXILogTest(unittest.TestCase):
     def tearDown(self):
         """Cleaning up for each test.
         """
+        bxilog.cleanup()
         pass
 
 
@@ -75,13 +77,14 @@ class BXILogTest(unittest.TestCase):
                           logger.output,
                            "Testing wrong types: %d %d %s", 'foo', 2.5, 3, 'toto')
 
-    def test_basic_config(self):
-        """Test loggers configuration"""
+    def test_existing_file(self):
+        """Test logging into an existing file"""
         fd, name = tempfile.mkstemp(".bxilog", "test_")
 
         # bxilog.output("One log on standard output")
-        print("File output: %s", name)
+        print("File output: %s" % name)
         self.assertEquals(os.stat(name).st_size, 0)
+        os.close(fd)
 
         bxilog.basicConfig(filename=name)
 
@@ -89,7 +92,37 @@ class BXILogTest(unittest.TestCase):
 
         self.assertNotEquals(os.stat(name).st_size, 0)
 
+        os.remove(name)
+
+    def test_non_existing_file(self):
+        """Test logging into a non existing file"""
+        fd, name = tempfile.mkstemp(".bxilog", "test_")
+        print("Using file %s" % name)
         os.close(fd)
+        os.remove(name)
+
+        bxilog.basicConfig(filename=name)
+
+        bxilog.output("One log on non-existent (deleted) file: %s", name)
+
+        bxilog.cleanup()
+
+        self.assertNotEquals(os.stat(name).st_size, 0)
+
+    def test_non_existing_dir(self):
+        """Test logging into a non existing tmpdir - this should raise an error"""
+        tmpdir = tempfile.mkdtemp(".bxilog", "test_")
+        os.rmdir(tmpdir)
+        name = os.path.join(tmpdir, 'dummy.bxilog')
+        bxilog.basicConfig(filename=name)
+
+        self.assertRaises(BXICError, bxilog.output,
+                          "One log on non-existent (deleted) directory: %s", name)
+
+        bxilog.cleanup()
+
+        self.assertFalse(os.path.exists(name))
+
 
 
 
