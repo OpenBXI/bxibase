@@ -267,10 +267,10 @@
  *      bxierr_p err = function_call(...);
  *      if (BXIERR_OK != err) BXIEXIT(EXIT_FAILURE, err, MYLOGGER, BXILOG_ERROR);
  *
- * @param exit_code the exit code to exit the program with (see `sysexits.h`)
- * @param bxierr the `bxierr` to log before exiting
- * @param logger the `logger` to produce a log with
- * @param level the `bxilevel_e` for the log (should be `BXILOG_CRITICAL` at least)
+ * @param[in] exit_code the exit code to exit the program with (see `sysexits.h`)
+ * @param[in] bxierr the `bxierr` to log before exiting
+ * @param[in] logger the `logger` to produce a log with
+ * @param[in] level the `bxilevel_e` for the log (should be `BXILOG_CRITICAL` at least)
  */
 #define BXIEXIT(exit_code, bxierr, logger, level) do {                              \
     bxilog_exit((exit_code), (bxierr), (logger), (level),                           \
@@ -282,8 +282,8 @@
 /**
  * Equivalent to assert() but ensure logs are flushed before exiting.
  *
- * @param logger the logger to use for logging before exiting
- * @param expr the boolean expression to check
+ * @param[in] logger the logger to use for logging before exiting
+ * @param[in] expr the boolean expression to check
  * @see BXIEXIT()
  */
 #define BXIASSERT(logger, expr) do {                                                \
@@ -299,7 +299,7 @@
  *
  * Call `BXIEXIT()` internally.
  *
- * @param logger the logger to use in the case the statement is reached
+ * @param[in] logger the logger to use in the case the statement is reached
  *
  * @see BXIEXIT()
  */
@@ -510,7 +510,7 @@ typedef bxilog_cfg_item_s * bxilog_cfg_item_p;
  *
  * This is used by macro `SET_LOGGER()`. Use `SET_LOGGER()` instead.
  *
- * @param logger the logger to register with.
+ * @param[in] logger the logger to register with.
  */
 void bxilog_register(bxilog_p logger);
 
@@ -519,14 +519,15 @@ void bxilog_register(bxilog_p logger);
  *
  * This is used by macro `SET_LOGGER()`. Use `SET_LOGGER()` instead.
  *
- * @param logger the logger to unregister with.
+ * @param[in] logger the logger to unregister with.
  */
 void bxilog_unregister(bxilog_p logger);
 
 /**
  * Return all registered loggers.
  *
- * @param loggers a pointer on an array of loggers where the result should be returned.
+ * @param[out] loggers a pointer on an array of loggers where the result
+ *             should be returned.
  *
  * @return the number of loggers in the returned array
  *
@@ -619,8 +620,8 @@ size_t bxilog_get_registered(bxilog_p *loggers[]);
  *     }
  *
  *
- * @param n the number of configuration items in the `cfg` array
- * @param cfg an array of configuration items
+ * @param[in] n the number of configuration items in the `cfg` array
+ * @param[in] cfg an array of configuration items
  *
  * @return BXIERR_OK on success, anything else on error.
  */
@@ -629,8 +630,8 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[]);
 /**
  * Returns the level corresponding to the given string representation.
  *
- * @param level_str the log level name
- * @param level a pointer where the result should be returned.
+ * @param[in] level_str the log level name
+ * @param[out] level a pointer where the result should be returned.
  *
  * @result BXIERR_OK on success, anything else on error.
  *
@@ -642,7 +643,7 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
  * Return an array of (statically allocated) strings representing all known
  * level names.
  *
- * @param names a pointer on an array of strings that will be set by this function.
+ * @param[out] names a pointer on an array of strings that will be set by this function.
  *
  * @return the size of the array
  */
@@ -663,8 +664,8 @@ size_t bxilog_get_all_level_names(char *** names);
  * This library provides `bxilog_install_sighandler()` that can be used for this
  * specific purpose. It should be called just after `bxilog_init()`.
  *
- * @param progname the progname, as given by argv[0]
- * @param filename the filename to write into ('-' means standard output,
+ * @param[in] progname the progname, as given by argv[0]
+ * @param[in] filename the filename to write into ('-' means standard output,
  *         '+': means stdandard error )
  * @return BXIERR_OK on success, anything else on error.
  *
@@ -690,7 +691,7 @@ bxierr_p bxilog_finalize(void);
  * Note: this function is mainly for language bindings (such as Python).
  * In C, use `SET_LOGGER` macro instead.
  *
- * @param logger_name a logger name
+ * @param[in] logger_name a logger name
  *
  * @return a new logger instance
  *
@@ -701,7 +702,7 @@ bxilog_p bxilog_new(const char * logger_name);
 /**
  * Destroy the given logger.
  *
- * @param self_p a pointer on a logger instance
+ * @param[in] self_p a pointer on a logger instance
  */
 void bxilog_destroy(bxilog_p * self_p);
 
@@ -726,14 +727,15 @@ bxierr_p bxilog_flush(void);
  * terminated string. Use strlen(s) + 1 for dynamic strings,
  * or ARRAYLEN(a) for static strings.
  *
- * @param logger the logger to perform the log with
- * @param level the level at which the log must be emitted
- * @param filename the name of the source file the log comes from
- * @param filename_len the length of 'filename' including the NULL terminating byte
- * @param funcname the name of the function the log comes from
- * @param funcname_len the length of 'funcname' including the NULL terminating byte
- * @param line the line number in file 'filename' the log comes from
- * @param fmt the printf like format of the message
+ * @param[in] logger the logger to perform the log with
+ * @param[in] level the level at which the log must be emitted
+ * @param[in] filename the name of the source file the log comes from
+ * @param[in] filename_len the length of 'filename' including the NULL terminating byte
+ * @param[in] funcname the name of the function the log comes from
+ * @param[in] funcname_len the length of 'funcname' including the NULL terminating byte
+ * @param[in] line the line number in file 'filename' the log comes from
+ * @param[in] fmt the printf like format of the message
+ *
  * @return BXIERR_OK on success, any other value is an error
  *
  * @see bxilog_log()
@@ -755,6 +757,17 @@ bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e lev
  * Equivalent to `bxilog_log_nolevelcheck()` but with a va_list instead of
  * a variable number of arguments.
  *
+ * @param[in] logger the logger to perform the log with
+ * @param[in] level the level at which the log must be emitted
+ * @param[in] filename the name of the source file the log comes from
+ * @param[in] filename_len the length of 'filename' including the NULL terminating byte
+ * @param[in] funcname the name of the function the log comes from
+ * @param[in] funcname_len the length of 'funcname' including the NULL terminating byte
+ * @param[in] line the line number in file 'filename' the log comes from
+ * @param[in] fmt the printf like format of the message
+ * @param[in] arglist the va_list of all parameters for the given format string 'fmt'
+ *
+ * @return BXIERR_OK on success, any other value is an error
  * @see bxilog_log_nolevelcheck
  */
 bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
@@ -767,7 +780,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
 /**
  * Get the log level of the given logger
  *
- * @param logger the logger instance
+ * @param[in] logger the logger instance
  *
  * @return the given logger log level
  */
@@ -776,16 +789,16 @@ bxilog_level_e bxilog_get_level(const bxilog_p logger);
 /**
  * Set the log level for the given logger.
  *
- * @param logger the logger instance
- * @param level the log level
+ * @param[in] logger the logger instance
+ * @param[in] level the log level
  */
 void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level);
 
 /**
  * Return true if the given logger is enabled at the given log level.
  *
- * @param logger the logger instance
- * @param level the log level
+ * @param[in] logger the logger instance
+ * @param[in] level the log level
  *
  * @return true if the given logger is enabled at the given log level.
  */
@@ -805,15 +818,15 @@ bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level);
  * This function sole purpose is to make the macro BXIEXIT() cleaner.
  * Use BXIEXIT() instead.
  *
- * @param exit_code the exit code to exit the program with (see sysexits.h)
- * @param err the bxierr to log
- * @param logger the logger to produce a log with
- * @param level the level for the log (should be BXILOG_CRITICAL at least)
- * @param file the filename from which the exit should appear to come from
- * @param filelen the length of the filename
- * @param func the function name which the exit should appear to come from
- * @param funclen the function name length
- * @param line the line number in the function from which the exit should appear
+ * @param[in] exit_code the exit code to exit the program with (see sysexits.h)
+ * @param[in] err the bxierr to log
+ * @param[in] logger the logger to produce a log with
+ * @param[in] level the level for the log (should be BXILOG_CRITICAL at least)
+ * @param[in] file the filename from which the exit should appear to come from
+ * @param[in] filelen the length of the filename
+ * @param[in] func the function name which the exit should appear to come from
+ * @param[in] funclen the function name length
+ * @param[in] line the line number in the function from which the exit should appear
  *        to come from
  * @see BXIEXIT
  */
@@ -834,6 +847,15 @@ void bxilog_exit(int exit_code,
  * This function sole purpose is to make the macro BXIASSERT() cleaner.
  * Use BXIASSERT() instead.
  *
+ * @param[in] logger a logger instance
+ * @param[in] result a boolean value (usually a check)
+ * @param[in] file the file name
+ * @param[in] filelen the file name length (including the terminal NULL byte)
+ * @param[in] func the function name
+ * @param[in] funclen the function name length (including the terminal NULL byte)
+ * @param[in] line the line number
+ * @param[in] expr a string representing the expression that returned the given result
+ *
  * @see BXIASSERT
  */
 void bxilog_assert(bxilog_p logger, bool result,
@@ -846,6 +868,16 @@ void bxilog_assert(bxilog_p logger, bool result,
  *
  * This function sole purpose is to make the macro BXILOG_REPORT() cleaner.
  * Use BXILOG_REPORT() instead.
+ *
+ * @param[in] logger a logger instance
+ * @param[in] level the logger level to use while reporting the given error
+ * @param[in] err the error to report
+ * @param[in] file the file name
+ * @param[in] filelen the file name length (including the terminal NULL byte)
+ * @param[in] func the function name
+ * @param[in] funclen the function name length (including the terminal NULL byte)
+ * @param[in] line the line number
+ * @param[in] fmt a printf-like format string
  *
  * @see BXILOG_REPORT
  */
@@ -864,7 +896,7 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
  * This is used when displaying a log to differentiate logical threads
  * from kernel threads.
  *
- * @param rank the logical rank of the current thread
+ * @param[in] rank the logical rank of the current thread
  *
  * @see bxilog_get_thread_rank
  * @return BXIERR_OK on success, any other values is an error
@@ -878,7 +910,7 @@ bxierr_p bxilog_set_thread_rank(uint16_t rank);
  * a generated logical rank will be returned
  * (uniqueness is not guaranteed).
  *
- * @param rank_p a pointer on the result
+ * @param[out] rank_p a pointer on the result
  *
  * @return BXIERR_OK on success, any other values is an error
  */
@@ -900,9 +932,9 @@ bxierr_p bxilog_install_sighandler(void);
 /**
  * Create a sigset structure according to the given array of signal numbers.
  *
- * @param sigset
- * @param signum
- * @param n
+ * @param[out] sigset
+ * @param[in] signum
+ * @param[in] n
  * @return BXIERR_OK on success, anything else on error.
  */
 bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n);
@@ -911,7 +943,14 @@ bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n);
  * Return a string representation of the given signal number using the
  * given siginfo or sfdinfo (only one must be NULL).
  *
- * The returned string will have to be released using FREE().
+ * Note: the returned string will have to be released using FREE().
+ *
+ * @param[in] signum the signal number
+ * @param[in] siginfo the signal information
+ * @param[in] sfdinfo the signal information
+ *
+ * @return a string representation of the given signal number
+ *
  */
 char * bxilog_signal_str(const int signum,
                          const siginfo_t * siginfo,
