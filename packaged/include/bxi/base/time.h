@@ -80,8 +80,8 @@
  *      72388694 ns   1.38143e+07 calls/s     72.3887 ns/call  1000000 CLOCK_MONOTONIC_RAW
  *
  *
- * @param clk_id a clock (see clock_gettime(2) for details)
- * @param time the timespec data structure to fill with the result
+ * @param[in] clk_id a clock (see clock_gettime(2) for details)
+ * @param[out] time the timespec data structure to fill with the result
  *
  * @return BXIERR_OK on success
  */
@@ -93,9 +93,9 @@ bxierr_p bxitime_get(clockid_t clk_id, struct timespec * const time);
  * Note, if the process is interrupted while sleeping, it goes back to sleep
  * until the given amount of remaining time has passed.
  *
- * @param clk_id the clock (see clock_gettime(2) for details)
- * @param tv_sec the number of seconds to sleep
- * @param tv_nsec the number of nanoseconds to sleep
+ * @param[in] clk_id the clock (see clock_gettime(2) for details)
+ * @param[in] tv_sec the number of seconds to sleep
+ * @param[in] tv_nsec the number of nanoseconds to sleep
  *
  * @return BXIERR_OK on success.
  */
@@ -105,9 +105,9 @@ bxierr_p bxitime_sleep(clockid_t clk_id, const time_t tv_sec, const long tv_nsec
  * Return a duration in seconds from the given timestamp (filled by bxitime_get()).
  * (see clock_gettime(2) for clk_id options, use BXITIME_DEFAULT_CLOCK if unsure).
  *
- * @param clk_id a clock (see clock_gettime(2) for details)
- * @param timestamp the timestamp to count the duration from
- * @param duration a pointer on the result
+ * @param[in] clk_id a clock (see clock_gettime(2) for details)
+ * @param[in] timestamp the timestamp to count the duration from
+ * @param[out] duration a pointer on the result
  *
  * @return BXIERR_OK on success
  */
@@ -123,8 +123,8 @@ bxierr_p bxitime_duration(clockid_t clk_id,
  * Note: the returned string has been allocated on the heap.
  * It should be freed using BXIFREE().
  *
- * @param time the time to get the string representation of
- * @param result a pointer on a string for storing the result
+ * @param[in] time the time to get the string representation of
+ * @param[out] result a pointer on a string for storing the result
  *
  * @return BXIERR_OK on success
  */
@@ -133,6 +133,10 @@ bxierr_p bxitime_str(struct timespec * time, char ** result);
 
 /**
  * Return an ISO8601 string for representing the given duration.
+ *
+ * @param[in] duration the duration to get the human string representation of
+ *
+ * @return an ISO8601 string for representing the given duration.
  */
 char * bxitime_duration_str(double duration);
 
