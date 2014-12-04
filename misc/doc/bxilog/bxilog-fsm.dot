@@ -21,9 +21,10 @@ digraph bxilog_fsm {
     INITIALIZING -> ILLEGAL [label="fork()"];
     FINALIZING -> ILLEGAL [label="fork()"];
 
-	INITIALIZED -> FINALIZING [label="fork()", style="dashed"];
+    INITIALIZED -> FINALIZING [label="fork()", style="dashed"];
     FINALIZING -> FINALIZED [label="_parent_before_fork()", style="dashed"];
     FINALIZED -> FORKED [label="_parent_before_fork()", style="dashed"];
+    FINALIZED -> FINALIZED [label="_finalize()"]
     FORKED -> INITIALIZING [label="_parent_after_fork()", style="dashed"];
     INITIALIZING -> INITIALIZED [label="_parent_after_fork()", style="dashed"];
     
