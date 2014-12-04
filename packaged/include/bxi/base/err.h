@@ -333,6 +333,10 @@ bxierr_p bxierr_get_ok();
 #ifndef BXICFFI
 /**
  * Return true if the given `bxierr` is ok. False otherwise.
+ *
+ * @param[in] self the error to check
+ *
+ * @return true if the given `bxierr` is ok. False otherwise.
  */
 inline bool bxierr_isok(bxierr_p self) {
     return self == BXIERR_OK;
@@ -340,6 +344,10 @@ inline bool bxierr_isok(bxierr_p self) {
 
 /**
  * Return true if the given `bxierr` is not ok. False otherwise.
+ *
+ * @param[in] self the error to check
+ *
+ * @return true if the given `bxierr` is not ok. False otherwise.
  */
 inline bool bxierr_isko(bxierr_p self) {
     return self != BXIERR_OK;
@@ -347,6 +355,10 @@ inline bool bxierr_isko(bxierr_p self) {
 
 /**
  * Return a human string representation of the given `bxierr`.
+ *
+ * @param[in] self the error to get the human string representation of
+ *
+ * @return a human string representation of the given `bxierr`.
  */
 inline char * bxierr_str(bxierr_p self) {
     return bxierr_str_limit(self, BXIERR_ALL_CAUSES);
@@ -358,6 +370,21 @@ char * bxierr_str(bxierr_p self);
 #endif
 
 /**
+ * Report the given error on the given file descriptor.
+ *
+ * Use only when you do not have the bxilog library initialized. Otherwise,
+ * use BXILOG_REPORT().
+ *
+ * @note the given error will be destroyed.
+ *
+ * @param self the error to report
+ * @param fd a file descriptor where the error will be reported
+ *
+ * @see BXILOG_REPORT()
+ */
+void bxierr_report(bxierr_p self, int fd);
+
+/**
  * Return a bxierr from the given errcode error code.
  *
  * The instance returned has the given `errcode` as the code,
@@ -367,9 +394,10 @@ char * bxierr_str(bxierr_p self);
  * Most of the case, the errcode comes from errno itself, in this case, use the
  * simpler form `bxierr_errno()`.
  *
- * @param erridx the error code
- * @param erridx2str an array of error message
- * @param fmt a printf like format string
+ * @param[in] erridx the error code
+ * @param[in] erridx2str an array of error message
+ * @param[in] fmt a printf like format string
+ *
  * @return a bxierr instance
  *
  * @see bxierr_errno
@@ -381,6 +409,13 @@ bxierr_p bxierr_fromidx(int erridx,
 /**
  * Equivalent to `bxierr_strerror()` but with a variable argument list instead
  * of an ellipse, useful for library wrapper.
+ *
+ * @param[in] errcode the error code
+ * @param[in] erridx2str an array of error message
+ * @param[in] fmt a printf-like format string
+ * @param[in] ap a va_list representing the parameter for the given format
+ *
+ * @return BXIERR_OK on success, any other value on error
  *
  * @see bxierr_strerror
  */
@@ -396,5 +431,6 @@ bxierr_p bxierr_vfromidx(int errcode,
  * @return a string representing the backtrace
  */
 char * bxierr_backtrace_str(void);
+
 
 #endif /* BXIERR_H_ */
