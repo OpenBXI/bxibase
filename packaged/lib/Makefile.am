@@ -2,21 +2,25 @@
 ##
 #
 
-$(builddir)/bxi/base:
+$(abs_top_builddir)/packaged/lib/bxi/base:
 	mkdir -p $@
 
-$(builddir)/bxi/__init__.py: $(builddir)/bxi/base
+$(abs_top_builddir)/packaged/lib/bxi/__init__.py: $(abs_top_builddir)/packaged/lib/bxi/base
 	touch $@
 	
-$(builddir)/bxi/base/__init__.py:$(builddir)/bxi/base
+$(abs_top_builddir)/packaged/lib/bxi/base/__init__.py:$(abs_top_builddir)/packaged/lib/bxi/base
 	touch $@
 	
 # Generated files for CFFI
-bxi/base/log_h.py: $(top_srcdir)/packaged/include/bxi/base/log.h $(builddir)/bxi/base/__init__.py $(builddir)/bxi/__init__.py 
-	$(top_srcdir)/h2py.sh $< -o $@
+bxi/base/log_h.py: $(top_srcdir)/packaged/include/bxi/base/log.h\
+				   $(abs_top_builddir)/packaged/lib/bxi/base/__init__.py\
+				   $(abs_top_builddir)/packaged/lib/bxi/__init__.py 
+	C_INCLUDE_PATH=$(top_srcdir)/packaged/include $(top_srcdir)/h2py.sh $< -o $@
 
-bxi/base/err_h.py: $(top_srcdir)/packaged/include/bxi/base/err.h $(builddir)/bxi/base/__init__.py $(builddir)/bxi/__init__.py
-	$(top_srcdir)/h2py.sh $< -o $@
+bxi/base/err_h.py: $(top_srcdir)/packaged/include/bxi/base/err.h\
+				   $(abs_top_builddir)/packaged/lib/bxi/base/__init__.py\
+				   $(abs_top_builddir)/packaged/lib/bxi/__init__.py
+	C_INCLUDE_PATH=$(top_srcdir)/packaged/include $(top_srcdir)/h2py.sh $< -o $@
 
 
 # For installation
