@@ -25,6 +25,20 @@ from bxi.base.err import BXICError
 # Find the C library
 _bxibase_ffi = get_bxibase_ffi()
 _bxibase_api = get_bxibase_api()
+
+PANIC = _bxibase_api.BXILOG_PANIC
+ALERT = _bxibase_api.BXILOG_ALERT
+CRITICAL = _bxibase_api.BXILOG_CRITICAL
+ERROR = _bxibase_api.BXILOG_ERROR
+WARNING = _bxibase_api.BXILOG_WARNING
+NOTICE = _bxibase_api.BXILOG_NOTICE
+OUTPUT = _bxibase_api.BXILOG_OUTPUT
+INFO = _bxibase_api.BXILOG_INFO
+DEBUG = _bxibase_api.BXILOG_DEBUG
+FINE = _bxibase_api.BXILOG_FINE
+TRACE = _bxibase_api.BXILOG_TRACE
+LOWEST = _bxibase_api.BXILOG_LOWEST
+
 #
 # _SRCFILE is used when walking the stack to check when we've got the first
 # caller stack frame.
@@ -151,7 +165,6 @@ def _init():
         if _CONFIG['setsighandler']:
             bxierr_p = _bxibase_api.bxilog_install_sighandler()
             BXICError.raise_if_ko(bxierr_p)
-
 
 def get_logger(name):
     """
@@ -293,15 +306,20 @@ class BXILogger(object):
             s = msg % args
             filename, lineno, funcname = _findCaller()
             bxierr_p = _bxibase_api.bxilog_log_nolevelcheck(self.clogger,
-                                                       level,
-                                                       filename,
-                                                       len(filename) + 1,
-                                                       funcname,
-                                                       len(funcname) + 1,
-                                                       lineno,
-                                                       s)
+                                                            level,
+                                                            filename,
+                                                            len(filename) + 1,
+                                                            funcname,
+                                                            len(funcname) + 1,
+                                                            lineno,
+                                                            s)
             BXICError.raise_if_ko(bxierr_p)
 
+    def set_level(self, level):
+        _bxibase_api.bxilog_set_level(self.clogger, level)
+
+    def is_enabled_for(self, level):
+        return _bxibase_api.bxilog_is_enabled_for(self.clogger, level)
 
     def panic(self, msg, *args, **kwargs):
         """Documentation for a function.
@@ -313,41 +331,44 @@ class BXILogger(object):
 
         """
 
-        self._log(_bxibase_api.BXILOG_PANIC, msg, *args, **kwargs)
+        self._log(PANIC, msg, *args, **kwargs)
 
     def alert(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_ALERT, msg, *args, **kwargs)
+        self._log(ALERT, msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_CRITICAL, msg, *args, **kwargs)
+        self._log(CRITICAL, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_ERROR, msg, *args, **kwargs)
+        self._log(ERROR, msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_WARNING, msg, *args, **kwargs)
+        self._log(WARNING, msg, *args, **kwargs)
 
     def notice(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_NOTICE, msg, *args, **kwargs)
+        self._log(NOTICE, msg, *args, **kwargs)
 
     def output(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_OUTPUT, msg, *args, **kwargs)
+        self._log(OUTPUT, msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_INFO, msg, *args, **kwargs)
+        self._log(INFO, msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_DEBUG, msg, *args, **kwargs)
+        self._log(DEBUG, msg, *args, **kwargs)
 
     def fine(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_FINE, msg, *args, **kwargs)
+        self._log(FINE, msg, *args, **kwargs)
 
     def trace(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_TRACE, msg, *args, **kwargs)
+        self._log(TRACE, msg, *args, **kwargs)
 
     def lowest(self, msg, *args, **kwargs):
-        self._log(_bxibase_api.BXILOG_LOWEST, msg, *args, **kwargs)
+        self._log(LOWEST, msg, *args, **kwargs)
 
+    # Provide a compatible API with python logging.
+    setLevel = set_level
+    isEnabledFor = is_enabled_for
 
 # Provide a compatible API with python logging.
 getLogger = get_logger
