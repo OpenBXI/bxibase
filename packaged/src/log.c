@@ -757,7 +757,8 @@ bxilog_level_e bxilog_get_level(const bxilog_p logger) {
 }
 
 void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level) {
-    assert(NULL != logger && BXILOG_CRITICAL >= level);
+    assert(NULL != logger);
+    assert(BXILOG_LOWEST >= level);
     logger->level = level;
 }
 
