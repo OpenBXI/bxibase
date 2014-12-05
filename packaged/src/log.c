@@ -226,6 +226,7 @@ typedef enum {
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 //--------------------------------- Generic Helpers --------------------------------
+void _display_err_msg(char* msg);
 
 //--------------------------------- Thread Specific Data helpers -------------------
 static void _tsd_free(void * const data);
@@ -341,6 +342,9 @@ static struct {
     pid_t tid;                      // the IHT pid
 #endif
     uint16_t rank;                  // the IHT rank
+    size_t lost_logs;               // Number of lost logs
+    size_t reported_errors_len;     // Number of errors reported
+    bxierr_p * reported_errors;     // The list of reported errors
 } IHT_DATA;
 
 
@@ -384,9 +388,9 @@ void bxilog_register(bxilog_p logger) {
         REGISTERED_LOGGERS_ARRAY_SIZE += 10;
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
         REGISTERED_LOGGERS = bximem_realloc(REGISTERED_LOGGERS, bytes);
-        fprintf(stderr, "[I] Reallocation of %zu slots for (currently) "
-                "%zu registered loggers\n", REGISTERED_LOGGERS_ARRAY_SIZE,
-                REGISTERED_LOGGERS_NB);
+//        fprintf(stderr, "[I] Reallocation of %zu slots for (currently) "
+//                "%zu registered loggers\n", REGISTERED_LOGGERS_ARRAY_SIZE,
+//                REGISTERED_LOGGERS_NB);
     }
     REGISTERED_LOGGERS[REGISTERED_LOGGERS_NB] = logger;
     REGISTERED_LOGGERS_NB++;
@@ -405,7 +409,11 @@ void bxilog_unregister(bxilog_p logger) {
             found = true;
         }
     }
-    if (!found) fprintf(stderr, "[W] Can't find registered logger: %s\n", logger->name);
+    if (!found) {
+        char * str = bxistr_new("[W] Can't find registered logger: %s\n", logger->name);
+        _display_err_msg(str);
+        BXIFREE(str);
+    }
     else REGISTERED_LOGGERS_NB--;
 
     if (0 == REGISTERED_LOGGERS_NB) {
@@ -819,12 +827,7 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
         BXIFREE(msg);
         BXIFREE(err_str);
         bxierr_destroy(&err);
-        if (bxierr_isko(logerr)) {
-            char * str = bxierr_str(logerr);
-            fprintf(stderr, "Can't produce a log: %s", str);
-            BXIFREE(str);
-            bxierr_destroy(&logerr);
-        }
+        bxierr_report(logerr, STDERR_FILENO);
     }
 }
 
@@ -965,12 +968,7 @@ void _tsd_free(void * const data) {
         BXIERR_CHAIN(err, err2);
         err2 = bxizmq_zocket_destroy(tsd->ctl_channel);
         BXIERR_CHAIN(err, err2);
-        if (bxierr_isko(err)) {
-            char * str = bxierr_str(err);
-            fprintf(stderr, "Error during zeromq cleanup: %s", str);
-            BXIFREE(str);
-            bxierr_destroy(&err);
-        }
+        if (bxierr_isko(err)) bxierr_report(err, STDERR_FILENO);
     }
     BXIFREE(tsd->log_buf);
     BXIFREE(tsd);
@@ -1042,6 +1040,9 @@ void * _iht_main(void * param) {
     // Maybe, define already the related string instead of
     // a rank number?
     IHT_DATA.rank = (uint16_t) pthread_self();
+    IHT_DATA.lost_logs = 0;
+    IHT_DATA.reported_errors_len = 4; // Maximum 4 different reported errors
+    IHT_DATA.reported_errors = bximem_calloc(IHT_DATA.reported_errors_len * sizeof(*IHT_DATA.reported_errors));
 
     /******************** Signal handling *******************/
     // All signals are blocked in this thread, they must be dealt with
@@ -1173,6 +1174,23 @@ void * _iht_main(void * param) {
             BXIERR_CHAIN(err, err2);
         }
     }
+    if (IHT_DATA.lost_logs != 0) {
+        size_t reported_error_numbers = 0;
+        for (size_t i = 0; i < IHT_DATA.reported_errors_len; i++) {
+            if (NULL == IHT_DATA.reported_errors[i]) continue;
+            bxierr_p err = IHT_DATA.reported_errors[i];
+            bxierr_destroy(&err);
+            reported_error_numbers++;
+        }
+        char * str = bxistr_new("BXI Logging Error Summary:\n"
+                                "\tNumber of lost log lines: %zu\n"
+                                "\tNumber of reported distinct errors: %zu\n",
+                                IHT_DATA.lost_logs,
+                                reported_error_numbers);
+        _display_err_msg(str);
+        BXIFREE(str);
+    }
+    BXIFREE(IHT_DATA.reported_errors);
 
     return err;
 }
@@ -1251,17 +1269,40 @@ void _log_single_line(const struct log_header_s * const header,
     ssize_t written = write(IHT_DATA.fd, msg, (size_t) loglen);
 
     if (0 >= written) {
+        IHT_DATA.lost_logs++;
         bxierr_p bxierr = bxierr_errno("Calling write(fd=%d,name=%s) failed (written=%d)",
                                        IHT_DATA.fd, FILENAME, written);
-        char * err_str = bxierr_str(bxierr);
-        char * str = bxistr_new("%s\n[W] Can't write to %s, redirecting log to stderr.\n",
-                                err_str, FILENAME);
-        BXIFREE(err_str);
-        bxierr_destroy(&bxierr);
-        ssize_t n = write(STDERR_FILENO, str, strlen(str) + 1);
-        assert(n >= 0);
-        n = write(STDERR_FILENO, msg, (size_t) loglen);
-        assert(n >= 0);
+        // Only report newly detected errors
+        size_t i = 0;
+        bxierr_p reported_error = NULL;
+        for (; i < IHT_DATA.reported_errors_len; i++) {
+            reported_error = IHT_DATA.reported_errors[i];
+            if (NULL == reported_error) break;
+            if (reported_error->code == bxierr->code) break;
+        }
+        if (i >= IHT_DATA.reported_errors_len) {
+            size_t new_len = IHT_DATA.reported_errors_len * 2;
+            IHT_DATA.reported_errors = bximem_realloc(IHT_DATA.reported_errors,
+                                                      new_len*sizeof(*IHT_DATA.reported_errors));
+            IHT_DATA.reported_errors_len = new_len;
+        }
+        if (reported_error == NULL) {
+            char * err_str = bxierr_str(bxierr);
+            char * str = bxistr_new("[W] Can't write to '%s' - cause is %s\n"
+                    "This means "
+                    "at least one log line has been lost\n"
+                    "[W]This error might be caused by other errors.\n"
+                    "[W]This is the first time this cause has been"
+                    " reported however, and it will be the last time.\n"
+                    "[W]An error reporting summary should be "
+                    "available in your program if it uses the full bxi "
+                    "high performance logging library.\n",
+                    FILENAME, err_str);
+            _display_err_msg(str);
+            IHT_DATA.reported_errors[i] = bxierr;
+            BXIFREE(err_str);
+            BXIFREE(str);
+        }
     }
 }
 
@@ -1329,11 +1370,8 @@ bxierr_p _process_data(void * const data_channel) {
 
     /* Release */
     bxierr_p err = bxizmq_msg_close(&zmsg);
-    if (bxierr_isko(err)) {
-        char * str = "[W] Can't close zmg msg";
-        ssize_t n = write(STDERR_FILENO, str, ARRAYLEN(str));
-        assert(n >= 0);
-    }
+    if (bxierr_isko(err)) _display_err_msg("[W] Can't close zmg msg");
+
     return BXIERR_OK;
 }
 
@@ -1472,8 +1510,10 @@ bool _should_quit(bxierr_p * err) {
             return true;
         }
         char * str = bxierr_str(*err);
-        fprintf(stderr, "Warning: errors encountered: %s", str);
+        char * msg = bxistr_new("Warning: errors encountered: %s\n", str);
+        _display_err_msg(msg);
         BXIFREE(str);
+        BXIFREE(msg);
         return false;
     }
     return false;
@@ -1569,9 +1609,10 @@ bxierr_p _end_iht(void) {
     err = bxizmq_snd_str(EXIT_CTRL_MSG_REQ, tsd->ctl_channel,
                          0, RETRIES_MAX, RETRY_DELAY);
     if (BXIZMQ_RETRIES_MAX_ERR == err->code) {
-        // We don't care in this case
-        fprintf(stderr,
-                "Sending %s required %zu retries", EXIT_CTRL_MSG_REQ, (size_t) err->data);
+        char * str = bxistr_new("Sending %s required %zu retries",
+                                EXIT_CTRL_MSG_REQ, (size_t) err->data);
+        _display_err_msg(str);
+        BXIFREE(str);
         bxierr_destroy(&err);
         err = BXIERR_OK;
     }
@@ -1706,6 +1747,16 @@ inline const char * _basename(const char * const path, const size_t path_len) {
     return path + c;
 }
 
+void _display_err_msg(char* msg) {
+    // TODO: use a better format?
+    ssize_t n = write(STDERR_FILENO, msg, strlen(msg) + 1);
+    // Just don't care on error, the end-user might have redirected
+    // the stderr stream to a non-writable place (such as a broken pipe after a
+    // command such as 'cmd 2>&1 |head')...
+    // assert(n > 0);
+    UNUSED(n);
+}
+
 // Handler of Signals (such as SIGSEGV, ...)
 void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     (void) (dummy); // Unused, prevent warning == error at compilation time
@@ -1728,17 +1779,14 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     BXIFREE(sigstr);
     BXIFREE(trace);
 
-    ssize_t written = write(STDERR_FILENO, str, strlen(str)+1);
-    assert(written > 0);
+    _display_err_msg(str);
+
     CRITICAL(BXILOG_INTERNAL_LOGGER, "%s", str);
     BXIFREE(str);
     // Flush all logs before terminating -> ask the iht to stop.
     bxierr_p err = _end_iht();
-    char buf[] = "Error while processing signal\n";
-    if (bxierr_isko(err)) {
-        ssize_t n = write(STDERR_FILENO, buf, ARRAYLEN(buf));
-        UNUSED(n);
-    }
+    if (bxierr_isko(err)) _display_err_msg("Error while processing signal.\n");
+
     // Wait some time before exiting
     struct timespec rem;
     struct timespec delay = {.tv_sec = 1, .tv_nsec=0};
@@ -1767,11 +1815,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     rc = sigfillset(&mask);
     assert(0 == rc);
     rc = pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
-    char buf2[] = "Calling pthread_sigmask() failed\n";
-    if (-1 == rc) {
-        ssize_t n = write(STDERR_FILENO, buf2, ARRAYLEN(buf2));
-        UNUSED(n);
-    }
+    if (-1 == rc) _display_err_msg("Calling pthread_sigmask() failed\n");
     rc = pthread_kill(pthread_self(), signum);
     if (0 != rc) {
         error(128 + signum, errno, "Calling pthread_kill(self, %d) failed.", signum);
