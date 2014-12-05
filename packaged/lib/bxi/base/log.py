@@ -16,9 +16,11 @@ This module exposes a simple Python binding over the BXI High Performance librar
 import atexit
 import os
 import sys
-from bxi.base import get_bxibase_ffi
+
 from bxi.base import get_bxibase_api
+from bxi.base import get_bxibase_ffi
 from bxi.base.err import BXICError
+
 
 # Find the C library
 _bxibase_ffi = get_bxibase_ffi()
@@ -54,6 +56,27 @@ Default configuration items.
 """
 DEFAULT_CFG_ITEMS = [('', _bxibase_api.BXILOG_LOWEST)]
 
+
+def _findCaller():
+    """Find caller filename, linenumber and function name.
+
+    @return a triplet (file name, line number, function name)
+    """
+    f = sys._getframe(0)
+    if f is not None:
+        f = f.f_back
+    rv = "(unknown file)", 0, "(unknown function)"
+    while hasattr(f, "f_code"):
+        co = f.f_code
+        filename = os.path.normcase(co.co_filename)
+        if filename == _SRCFILE:
+            f = f.f_back
+            continue
+        rv = (co.co_filename, f.f_lineno, co.co_name)
+        break
+    return rv
+
+
 def basicConfig(**kwargs):
     """
     Configure the whole bxilog module.
@@ -72,7 +95,7 @@ def basicConfig(**kwargs):
                            "Its configuration cannot be changed yet. "
                            "Call cleanup() before.")
     global _CONFIG
-        
+
     if 'filename' not in kwargs:
         kwargs['filename'] = '-'
 
@@ -86,7 +109,51 @@ def basicConfig(**kwargs):
 
     _CONFIG = kwargs
 
-def getLogger(name):
+
+def _configure_loggers(cfg_items):
+    cffi_items = _bxibase_ffi.new('bxilog_cfg_item_s[%d]' % len(cfg_items))
+    prefixes = [None] * len(cfg_items)
+    for i in xrange(len(cfg_items)):
+        # cffi_items[i].prefix = _bxibase_ffi.new('char[]', cfg_items[i][0])
+        prefixes[i] = _bxibase_ffi.new('char[]', cfg_items[i][0])
+        cffi_items[i].prefix = prefixes[i]
+        try:
+            cffi_items[i].level = int(cfg_items[i][1])
+        except (TypeError, ValueError):
+            level_p = _bxibase_ffi.new('bxilog_level_e[1]')
+            bxierr_p = _bxibase_api.bxilog_get_level_from_str(cfg_items[i][1], level_p)
+            BXICError.raise_if_ko(bxierr_p)
+            cffi_items[i].level = level_p[0]
+
+    bxierr_p = _bxibase_api.bxilog_cfg_registered(len(cfg_items), cffi_items)
+    BXICError.raise_if_ko(bxierr_p)
+    prefixes = None
+
+
+def _init():
+    global _INITIALIZED
+    global _CONFIG
+
+    if not _INITIALIZED:
+        if _CONFIG is None:
+            _CONFIG = {'filename':'-',
+                       'cfg_items': DEFAULT_CFG_ITEMS,
+                       'setsighandler': True,
+                       }
+        # Configure loggers first, since init() produces logs that the user
+        # might not want to see
+        _configure_loggers(_CONFIG['cfg_items'])
+        bxierr_p = _bxibase_api.bxilog_init(os.path.basename(sys.argv[0]),
+                                            _CONFIG['filename'])
+        BXICError.raise_if_ko(bxierr_p)
+        atexit.register(_bxibase_api.bxilog_finalize)
+        _INITIALIZED = True
+        if _CONFIG['setsighandler']:
+            bxierr_p = _bxibase_api.bxilog_install_sighandler()
+            BXICError.raise_if_ko(bxierr_p)
+
+
+def get_logger(name):
     """
     Return the BXILogger instance with the given name.
 
@@ -97,39 +164,11 @@ def getLogger(name):
 
     @return the BXILogger instance with the given name
     """
-    global _INITIALIZED
-    global _CONFIG
-
-    if not _INITIALIZED:
-        if _CONFIG is None:
-            _CONFIG = {'filename':'-',
-                       'cfg_items': DEFAULT_CFG_ITEMS,
-                       'setsighandler': True,
-                       }
-
-        bxierr_p = _bxibase_api.bxilog_init(os.path.basename(sys.argv[0]),
-                                       _CONFIG['filename'])
-        BXICError.raise_if_ko(bxierr_p)
-        atexit.register(_bxibase_api.bxilog_finalize)
-        _INITIALIZED = True
-        if _CONFIG['setsighandler']:
-            bxierr_p = _bxibase_api.bxilog_install_sighandler()
-            BXICError.raise_if_ko(bxierr_p)
-
-    for logger in getAllLoggers_iter():
+    for logger in get_all_loggers_iter():
         if _bxibase_ffi.string(logger.clogger.name) == name:
             return logger
     logger = _bxibase_api.bxilog_new(name)
     _bxibase_api.bxilog_register(logger)
-
-    cfg_items = _CONFIG['cfg_items']
-    cffi_items = _bxibase_ffi.new('bxilog_cfg_item_s[]', len(cfg_items))
-    for i in xrange(len(cfg_items)):
-        cffi_items[i].prefix = _bxibase_ffi.new('char[]', cfg_items[i][0])
-        cffi_items[i].level = cfg_items[i][1]
-
-    bxierr_p = _bxibase_api.bxilog_cfg_registered(len(cfg_items), cffi_items)
-    BXICError.raise_if_ko(bxierr_p)
 
     return BXILogger(logger)
 
@@ -149,41 +188,25 @@ def cleanup():
     _ROOT_LOGGER = None
     _CONFIG = None
 
+
 def flush():
     bxierr_p = _bxibase_api.bxilog_flush()
     BXICError.raise_if_ko(bxierr_p)
 
-def getAllLevelNames_iter():
+
+def get_all_level_names_iter():
     names = _bxibase_ffi.new("char ***")
     nb = _bxibase_api.bxilog_get_all_level_names(names)
     for i in xrange(nb):
         yield _bxibase_ffi.string(names[0][i])
 
-def getAllLoggers_iter():
+
+def get_all_loggers_iter():
     loggers = _bxibase_ffi.new("bxilog_p **")
     nb = _bxibase_api.bxilog_get_registered(loggers)
     for i in xrange(nb):
         yield BXILogger(loggers[0][i])
 
-
-def findCaller():
-    """Find caller filename, linenumber and function name.
-
-    @return a triplet (file name, line number, function name)
-    """
-    f = sys._getframe(0)
-    if f is not None:
-        f = f.f_back
-    rv = "(unknown file)", 0, "(unknown function)"
-    while hasattr(f, "f_code"):
-        co = f.f_code
-        filename = os.path.normcase(co.co_filename)
-        if filename == _SRCFILE:
-            f = f.f_back
-            continue
-        rv = (co.co_filename, f.f_lineno, co.co_name)
-        break
-    return rv
 
 def _get_root_logger():
     global _ROOT_LOGGER
@@ -191,42 +214,53 @@ def _get_root_logger():
         _ROOT_LOGGER = getLogger(_ROOT_LOGGER_NAME)
     return _ROOT_LOGGER
 
+
 def panic(msg, *args, **kwargs):
     _get_root_logger().panic(msg, *args, **kwargs)
+
 
 def alert(msg, *args, **kwargs):
     _get_root_logger().alert(msg, *args, **kwargs)
 
+
 def critical(msg, *args, **kwargs):
     _get_root_logger().critical(msg, *args, **kwargs)
+
 
 def error(msg, *args, **kwargs):
     _get_root_logger().error(msg, *args, **kwargs)
 
+
 def warning(msg, *args, **kwargs):
     _get_root_logger().warning(msg, *args, **kwargs)
+
 
 def notice(msg, *args, **kwargs):
     _get_root_logger().notice(msg, *args, **kwargs)
 
+
 def output(msg, *args, **kwargs):
     _get_root_logger().output(msg, *args, **kwargs)
+
 
 def info(msg, *args, **kwargs):
     _get_root_logger().info(msg, *args, **kwargs)
 
+
 def debug(msg, *args, **kwargs):
     _get_root_logger().debug(msg, *args, **kwargs)
+
 
 def fine(msg, *args, **kwargs):
     _get_root_logger().fine(msg, *args, **kwargs)
 
+
 def trace(msg, *args, **kwargs):
     _get_root_logger().trace(msg, *args, **kwargs)
 
+
 def lowest(msg, *args, **kwargs):
     _get_root_logger().lowest(msg, *args, **kwargs)
-
 
 
 class BXILogger(object):
@@ -254,9 +288,10 @@ class BXILogger(object):
 
         @raise
         """
+        _init()
         if _bxibase_api.bxilog_is_enabled_for(self.clogger, level):
             s = msg % args
-            filename, lineno, funcname = findCaller()
+            filename, lineno, funcname = _findCaller()
             bxierr_p = _bxibase_api.bxilog_log_nolevelcheck(self.clogger,
                                                        level,
                                                        filename,
@@ -314,4 +349,5 @@ class BXILogger(object):
         self._log(_bxibase_api.BXILOG_LOWEST, msg, *args, **kwargs)
 
 
-
+# Provide a compatible API with python logging.
+getLogger = get_logger

@@ -425,6 +425,7 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
     int rc = pthread_mutex_unlock(&register_lock);
     assert(0 == rc);
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
+//    fprintf(stderr, "Number of cfg items: %zd\n", n);
     for (size_t i = 0; i < n; i++) {
         assert(NULL != cfg[i].prefix);
         size_t len = strlen(cfg[i].prefix);
@@ -432,6 +433,9 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
             bxilog_p logger = REGISTERED_LOGGERS[l];
             if (0 == strncmp(cfg[i].prefix, logger->name, len)) {
                 // We have a prefix, configure it
+//                fprintf(stderr, "Prefix: '%s' match logger '%s': level: %d -> %d\n",
+//                        cfg[i].prefix, logger->name,
+//                        logger->level, cfg[i].level);
                 logger->level = cfg[i].level;
             }
         }
