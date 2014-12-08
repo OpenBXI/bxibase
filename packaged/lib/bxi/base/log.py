@@ -14,12 +14,15 @@ This module exposes a simple Python binding over the BXI High Performance librar
 """
 
 import atexit
+from cStringIO import StringIO
 import os
 import sys
+import traceback
+import warnings
 
 from bxi.base import get_bxibase_api
 from bxi.base import get_bxibase_ffi
-from bxi.base.err import BXICError
+from bxi.base.err import BXICError, BXILogConfigError
 
 
 # Find the C library
@@ -56,6 +59,7 @@ _INITIALIZED = False
 
 # Can be set by basicConfig()
 _CONFIG = None
+_INIT_CALLER = None
 
 # The root logger name
 _ROOT_LOGGER_NAME = 'root'
@@ -105,9 +109,12 @@ def basicConfig(**kwargs):
     @return None
     """
     if _INITIALIZED:
-        raise RuntimeError("The bxilog has already been initialized! "
-                           "Its configuration cannot be changed yet. "
-                           "Call cleanup() before.")
+        raise BXILogConfigError("The bxilog has already been initialized. "
+                                "Its configuration cannot be changed. "
+                                "Call cleanup() before. For your convenience, "
+                                "the following stacktrace might help finding out where "
+                                "the first _init() call  was made: %s" % _INIT_CALLER,
+                                kwargs)
     global _CONFIG
 
     if 'filename' not in kwargs:
@@ -147,6 +154,7 @@ def _configure_loggers(cfg_items):
 def _init():
     global _INITIALIZED
     global _CONFIG
+    global _INIT_CALLER
 
     if not _INITIALIZED:
         if _CONFIG is None:
@@ -165,6 +173,12 @@ def _init():
         if _CONFIG['setsighandler']:
             bxierr_p = _bxibase_api.bxilog_install_sighandler()
             BXICError.raise_if_ko(bxierr_p)
+
+        sio = StringIO()
+        traceback.print_stack(file=sio)
+        _INIT_CALLER = sio.getvalue()
+        sio.close()
+
 
 def get_logger(name):
     """
@@ -276,6 +290,10 @@ def lowest(msg, *args, **kwargs):
     _get_root_logger().lowest(msg, *args, **kwargs)
 
 
+def exception(*args, **kwargs):
+    _get_root_logger().exception(*args, **kwargs)
+
+
 class BXILogger(object):
     """A BXILogger instance provides various methods for logging.
 
@@ -303,7 +321,7 @@ class BXILogger(object):
         """
         _init()
         if _bxibase_api.bxilog_is_enabled_for(self.clogger, level):
-            s = msg % args
+            s = msg % args if len(args) > 0 else str(msg)
             filename, lineno, funcname = _findCaller()
             bxierr_p = _bxibase_api.bxilog_log_nolevelcheck(self.clogger,
                                                             level,
@@ -366,9 +384,50 @@ class BXILogger(object):
     def lowest(self, msg, *args, **kwargs):
         self._log(LOWEST, msg, *args, **kwargs)
 
+    def exception(self, exc):
+        self._log(ERROR, str(exc))
+
     # Provide a compatible API with python logging.
     setLevel = set_level
     isEnabledFor = is_enabled_for
+    warn = warning
 
 # Provide a compatible API with python logging.
 getLogger = get_logger
+warn = warning
+# Warnings integration - taken from the standard Python logging module
+
+_warnings_showwarning = None
+
+
+def _showwarning(message, category, filename, lineno, file=None, line=None):
+    """
+    Implementation of showwarnings which redirects to logging, which will first
+    check to see if the file parameter is None. If a file is specified, it will
+    delegate to the original warnings implementation of showwarning. Otherwise,
+    it will call warnings.formatwarning and will log the resulting string to a
+    warnings logger named "py.warnings" with level logging.WARNING.
+    """
+    if file is not None:
+        if _warnings_showwarning is not None:
+            _warnings_showwarning(message, category, filename, lineno, file, line)
+    else:
+        s = warnings.formatwarning(message, category, filename, lineno, line)
+        getLogger("py.warnings").warning("%s", s)
+
+
+def captureWarnings(capture):
+    """
+    If capture is true, redirect all warnings to the logging package.
+    If capture is False, ensure that warnings are not redirected to logging
+    but to their original destinations.
+    """
+    global _warnings_showwarning
+    if capture:
+        if _warnings_showwarning is None:
+            _warnings_showwarning = warnings.showwarning
+            warnings.showwarning = _showwarning
+    else:
+        if _warnings_showwarning is not None:
+            warnings.showwarning = _warnings_showwarning
+            _warnings_showwarning = None

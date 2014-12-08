@@ -67,3 +67,21 @@ class BXICError(BXIError):
         """
         if _bxibase_api.bxierr_isko(bxierr_p):
             raise BXICError(bxierr_p)
+
+
+class BXILogConfigError(BXIError):
+    """
+    Raised on error during bxilog configuration.
+    """
+    def __init__(self, msg, config):
+        """
+        Create a new instance with the given message.
+
+        @param msg the exception message
+        @param cfg the bxi log configuration as a dictionnary.
+        """
+        super(BXILogConfigError, self).__init__(msg)
+        self.config = config
+
+    def get_config(self):
+        return self.config
