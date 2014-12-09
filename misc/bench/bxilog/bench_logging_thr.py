@@ -34,7 +34,7 @@ if __name__ == "__main__":
     filename = "/tmp/%s.log" % sys.argv[0]
     logging.basicConfig(level=logging.DEBUG,
                         filename=filename)
-    print("Output file is %s" % filename)
+#    print("Output file is %s" % filename)
 
     threads_nb = int(sys.argv[1])
     timeout = int(sys.argv[2])

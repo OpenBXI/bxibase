@@ -20,7 +20,7 @@ import tempfile
 import time
 import ctypes
 
-import bxilog
+import bxi.base.log as bxilog
 
 
 AGAIN = multiprocessing.Value('b', True, lock=False)
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         exit(1)
 
     FILENAME.value = "/tmp/%s.log" % sys.argv[0]
-    print("Output file is %s" % FILENAME.value)
+#    print("Output file is %s" % FILENAME.value)
 
     bxilog.basicConfig(filename=FILENAME.value)
 

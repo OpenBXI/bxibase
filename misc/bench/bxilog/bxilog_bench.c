@@ -22,8 +22,8 @@
 #include <error.h>
 #include <errno.h>
 
-#include "bxi/bximisc.h"
-#include "bxi/bxilog.h"
+#include "bxi/base/str.h"
+#include "bxi/base/log.h"
 
 static volatile bool AGAIN = true;
 SET_LOGGER(logger, "bench");
@@ -40,11 +40,11 @@ int main(int argc, char * argv[]) {
     UNUSED(argc);
     char * fullprogname = strdup(argv[0]);
     char * progname = basename(fullprogname);
-    char * filename = bximisc_make_message("/tmp/%s%s", progname, ".log");
+    char * filename = bxistr_new("/tmp/%s%s", progname, ".log");
     bxierr_p bxierr = bxilog_init(progname, filename);
     assert(bxierr_isok(bxierr));
     logger->level = BXILOG_DEBUG;
-    fprintf(stderr, "Logging to file: %s\n", filename);
+    //fprintf(stderr, "Logging to file: %s\n", filename);
 
     int n = atoi(argv[1]);
     pthread_t threads[n];

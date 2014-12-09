@@ -19,7 +19,7 @@ import tempfile
 import threading
 import time
 
-import bxilog
+import bxi.base.log as bxilog
 
 AGAIN = True
 
@@ -35,11 +35,12 @@ if __name__ == "__main__":
 
     filename = "/tmp/%s.log" % sys.argv[0]
     bxilog.basicConfig(filename=filename)
-    print("Output file is %s" % filename)
+    #print("Output file is %s" % filename)
 
     threads_nb = int(sys.argv[1])
     timeout = int(sys.argv[2])
 
+    bxilog.output("Launching %d threads", threads_nb)
     threads = []
     for i in xrange(threads_nb):
         thread = threading.Thread(target=logging_thread)
