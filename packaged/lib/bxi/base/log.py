@@ -168,7 +168,7 @@ def _init():
         bxierr_p = _bxibase_api.bxilog_init(os.path.basename(sys.argv[0]),
                                             _CONFIG['filename'])
         BXICError.raise_if_ko(bxierr_p)
-        atexit.register(_bxibase_api.bxilog_finalize)
+        atexit.register(cleanup)
         _INITIALIZED = True
         if _CONFIG['setsighandler']:
             bxierr_p = _bxibase_api.bxilog_install_sighandler()
@@ -200,7 +200,7 @@ def get_logger(name):
     return BXILogger(logger)
 
 
-def cleanup():
+def cleanup(flush=True):
     """Called at exit time to cleanup the underlying BXI C library.
 
     @return
@@ -209,7 +209,7 @@ def cleanup():
     global _CONFIG
     global _ROOT_LOGGER
     if _INITIALIZED:
-        bxierr_p = _bxibase_api.bxilog_finalize()
+        bxierr_p = _bxibase_api.bxilog_finalize(flush)
         BXICError.raise_if_ko(bxierr_p)
     _INITIALIZED = False
     _ROOT_LOGGER = None

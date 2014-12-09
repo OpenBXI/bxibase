@@ -93,7 +93,7 @@
  *      - Outside the IHT: We want a backtrace
  *      to be in the log, therefore we set a signal handler that
  *      performs such a log. However, since after a SIGSEGV the best thing to do is
- *      to quit, and since exiting without calling bxilog_finalize() will lost messages,
+ *      to quit, and since exiting without calling bxilog_finalize(true) will lost messages,
  *      the end result will be that the log produced by the SIGSEGV handling won't be
  *      seen at all in the log. The issue is to make sure the IHT flushes all logs before
  *      it exits. Therefore, the sighandler, ask for the termination of the IHT
@@ -551,7 +551,7 @@ bxierr_p bxilog_init(const char * const progname, const char * const fn) {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog_finalize(void) {
+bxierr_p bxilog_finalize(bool flush) {
     // WARNING: If you change the FSM transition,
     // comment your changes in bxilog_state_e above.
     if (FINALIZED == STATE) return BXIERR_OK;
@@ -561,8 +561,10 @@ bxierr_p bxilog_finalize(void) {
                           "Illegal state: %d", STATE);
     }
     bxierr_p err = BXIERR_OK, err2;
-    err2 = bxilog_flush();
-    BXIERR_CHAIN(err, err2);
+    if (flush) {
+        err2 = bxilog_flush();
+        BXIERR_CHAIN(err, err2);
+    }
 
     DEBUG(BXILOG_INTERNAL_LOGGER, "Exiting bxilog");
     err2 = _finalize();
@@ -835,7 +837,7 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
 // ----------------------------------- Signals -----------------------------------------
 // Synchronous signals produces a log and kill the initializer thread
 // Asynchronous signals should be handled by the initializer thread
-// and this thread is the only one allowed to call bxilog_finalize()
+// and this thread is the only one allowed to call bxilog_finalize(true)
 bxierr_p bxilog_install_sighandler(void) {
     // Allocate a special signa stack for SIGSEGV and the like
     stack_t sigstack;

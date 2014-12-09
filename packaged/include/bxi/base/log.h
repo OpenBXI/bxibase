@@ -683,7 +683,7 @@ bxierr_p bxilog_init(const char * progname, const char * filename);
  * @return BXIERR_OK on success, anything else on error.
  *
  */
-bxierr_p bxilog_finalize(void);
+bxierr_p bxilog_finalize(bool flush);
 
 /**
  * Create a new logger instance.

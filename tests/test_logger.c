@@ -109,7 +109,7 @@ void test_logger_levels(void) {
                   bxierr_gen("An error to report"),
                   "Don't worry, this is just a test for error reporting");
     OUT(TEST_LOGGER, "Ending test");
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 
@@ -126,9 +126,9 @@ void test_logger_init() {
     CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
     bxierr_destroy(&err);
     OUT(TEST_LOGGER, "Finalizing");
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE(bxierr_isok(err));
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE(bxierr_isok(err));
     bxierr_destroy(&err);
     BXIFREE(fullprogname);
@@ -172,7 +172,7 @@ void test_logger_existing_file(void) {
     assert(-1 != fd);
     char * name = _get_filename(fd);
     OUT(TEST_LOGGER, "Filename: %s", name);
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
     close(fd);
@@ -180,7 +180,7 @@ void test_logger_existing_file(void) {
     err = bxilog_init(PROGNAME, name);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "One log on file: %s", name);
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(0 < _get_filesize(name));
     int rc = unlink(name);
     assert(0 == rc);
@@ -198,7 +198,7 @@ void test_logger_non_existing_file(void) {
     assert(-1 != fd);
     char * name = _get_filename(fd);
     OUT(TEST_LOGGER, "Filename: %s", name);
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
 
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
@@ -209,7 +209,7 @@ void test_logger_non_existing_file(void) {
     err = bxilog_init(PROGNAME, name);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "One log on file: %s", name);
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(0 < _get_filesize(name));
     rc = unlink(name);
     assert(0 == rc);
@@ -227,7 +227,7 @@ void test_logger_non_existing_dir(void) {
     assert(NULL != dirname);
     char * name = bxistr_new(" %s/test_logger_non_existing_dir.bxilog", dirname);
     OUT(TEST_LOGGER, "Filename: %s", name);
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 
     int rc = rmdir(dirname);
@@ -236,7 +236,7 @@ void test_logger_non_existing_dir(void) {
     err = bxilog_init(PROGNAME, name);
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
     bxierr_destroy(&err);
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     BXIFREE(name);
     BXIFREE(template);
@@ -270,10 +270,10 @@ void _fork_childs(size_t n) {
         DEBUG(TEST_LOGGER, "Child #%zu: One log line", n);
         TRACE(TEST_LOGGER, "Child #%zu: One log line", n);
         _fork_childs(n);
-        err = bxilog_finalize();
+        err = bxilog_finalize(true);
         if (bxierr_isko(err)) {
             error(EXIT_FAILURE, 0,
-                  "Calling bxilog_finalize() failed in child #%zu: %s",
+                  "Calling bxilog_finalize(true) failed in child #%zu: %s",
                   n, bxierr_str(err));
         }
         BXIFREE(FULLFILENAME);
@@ -314,7 +314,7 @@ void test_logger_fork(void) {
     DEBUG(TEST_LOGGER, "Starting test");
     _fork_childs((size_t)(rand()%5 + 5));
     OUT(TEST_LOGGER, "Ending test");
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 
@@ -466,7 +466,7 @@ void test_logger_signal(void) {
         _fork_kill(allsig_num[i]);
     }
     OUT(TEST_LOGGER, "Ending test");
-    err = bxilog_finalize();
+    err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 

@@ -80,7 +80,7 @@ int init_suite_logger(void) {
  * Returns zero on success, non-zero otherwise.
  */
 int clean_suite_logger(void) {
-    bxierr_p err = bxilog_finalize();
+    bxierr_p err = bxilog_finalize(true);
     if (bxierr_isko(err)) {
         bxierr_report(err, STDERR_FILENO);
         exit(1);
@@ -223,7 +223,7 @@ int main(int argc, char * argv[]) {
     rc = rc > rc2 ? rc : rc2;
 
     CU_cleanup_registry();
-    bxierr_p err = bxilog_finalize();
+    bxierr_p err = bxilog_finalize(true);
     bxierr_report(err, STDERR_FILENO);
 
     BXIFREE(FULLFILENAME);
