@@ -58,7 +58,7 @@ int main(int argc, char * argv[]) {
         pthread_join(threads[i], NULL);
     }
 
-    bxierr = bxilog_finalize();
+    bxierr = bxilog_finalize(false);
     if (!bxierr_isok(bxierr)) {
         char * str = bxierr_str(bxierr);
         fprintf(stderr, "WARNING: bxilog finalization returned: %s", str);

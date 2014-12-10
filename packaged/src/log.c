@@ -546,7 +546,7 @@ bxierr_p bxilog_init(const char * const progname, const char * const fn) {
     /* now the log library is initialized */
     STATE = INITIALIZED;
 
-    DEBUG(BXILOG_INTERNAL_LOGGER, "Initialization done.");
+    DEBUG(BXILOG_INTERNAL_LOGGER, "Initialization done");
 
     return BXIERR_OK;
 }
@@ -560,13 +560,13 @@ bxierr_p bxilog_finalize(bool flush) {
                           NULL, NULL, NULL,
                           "Illegal state: %d", STATE);
     }
+    DEBUG(BXILOG_INTERNAL_LOGGER, "Exiting bxilog");
     bxierr_p err = BXIERR_OK, err2;
     if (flush) {
         err2 = bxilog_flush();
         BXIERR_CHAIN(err, err2);
     }
 
-    DEBUG(BXILOG_INTERNAL_LOGGER, "Exiting bxilog");
     err2 = _finalize();
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) return err;
@@ -594,7 +594,7 @@ void bxilog_destroy(bxilog_p * self_p) {
 
 bxierr_p bxilog_flush(void) {
     if (INITIALIZED != STATE) return BXIERR_OK;
-    DEBUG(BXILOG_INTERNAL_LOGGER, "Requesting a flush().");
+    DEBUG(BXILOG_INTERNAL_LOGGER, "Requesting a flush()");
     tsd_p tsd = NULL;
     bxierr_p err = _get_tsd(&tsd);
     if (bxierr_isko(err)) return err;
@@ -614,7 +614,7 @@ bxierr_p bxilog_flush(void) {
     // This last trace is useless since on exit, the internal thread might have
     // already flushed already and exited, therefore this last message won't
     // be send or receive, leading to error probably.
-    //    DEBUG(BXILOG_INTERNAL_LOGGER, "flush() done.");
+    //    DEBUG(BXILOG_INTERNAL_LOGGER, "flush() done");
     BXIFREE(reply);
     return BXIERR_OK;
 }
@@ -722,7 +722,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
         if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
         // Recursive call!
         WARNING(BXILOG_INTERNAL_LOGGER,
-                "Sending last log required %lu retries.", (long) err->data);
+                "Sending last log required %lu retries", (long) err->data);
         bxierr_destroy(&err);
     }
 
@@ -801,7 +801,7 @@ void bxilog_assert(bxilog_p logger, bool result,
                                   NULL,
                                   NULL,
                                   NULL,
-                                  "From file %s:%d: assertion %s is false."\
+                                  "From file %s:%d: assertion %s is false"\
                                   BXIBUG_STD_MSG,
                                   file, line, expr);
         bxilog_exit(EX_SOFTWARE, err, logger, BXILOG_CRITICAL,
@@ -1124,8 +1124,8 @@ void * _iht_main(void * param) {
                              &DATA_CHANNEL);
     BXIERR_CHAIN(err, err2);
 
-    zmq_pollitem_t items[] = { { DATA_CHANNEL, 0, ZMQ_POLLIN, 0 },
-                               { CONTROL_CHANNEL, 0, ZMQ_POLLIN, 0 },
+    zmq_pollitem_t items[] = { { CONTROL_CHANNEL, 0, ZMQ_POLLIN, 0 },
+                               { DATA_CHANNEL, 0, ZMQ_POLLIN, 0 },
     };
     while (true) {
         errno = 0;
@@ -1149,12 +1149,6 @@ void * _iht_main(void * param) {
             continue;
         }
         if (items[0].revents & ZMQ_POLLIN) {
-            // Process data, this is the normal case
-            err2 = _process_data(DATA_CHANNEL);
-            BXIERR_CHAIN(err, err2);
-            if (_should_quit(&err)) goto QUIT;
-        }
-        if (items[1].revents & ZMQ_POLLIN) {
             // Process control message
            err2 = _process_ctrl_msg(CONTROL_CHANNEL, DATA_CHANNEL);
            BXIERR_CHAIN(err, err2);
@@ -1163,6 +1157,12 @@ void * _iht_main(void * param) {
                goto QUIT;
            }
            if(_should_quit(&err)) goto QUIT;
+        }
+        if (items[1].revents & ZMQ_POLLIN) {
+            // Process data, this is the normal case
+            err2 = _process_data(DATA_CHANNEL);
+            BXIERR_CHAIN(err, err2);
+            if (_should_quit(&err)) goto QUIT;
         }
     }
     QUIT:
@@ -1209,7 +1209,7 @@ bxierr_p _flush_iht(void * data_channel) {
         if (-1 == rc) {
             if(EINTR == errno) continue; // One interruption happens
                                          // (e.g. when profiling)
-            err2 = bxierr_errno("Calling zmq_poll() failed.");
+            err2 = bxierr_errno("Calling zmq_poll() failed");
             BXIERR_CHAIN(err, err2);
             break;
         }
@@ -1320,7 +1320,10 @@ bxierr_p _process_data(void * const data_channel) {
     errno = 0;
     rc = zmq_msg_recv(&zmsg, data_channel, ZMQ_DONTWAIT);
     if (-1 == rc) {
-        while (-1 == rc && EINTR == zmq_errno()){
+        // Nothing to process, this might happened if a flush has been asked
+        // and processed before this function call
+        if (EAGAIN == errno) return BXIERR_OK;
+        while (-1 == rc && EINTR == errno){
             errno = 0;
             rc = zmq_msg_recv(&zmsg, data_channel, ZMQ_DONTWAIT);
         }
@@ -1386,7 +1389,6 @@ bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel) {
     err2 = bxizmq_rcv_str(ctrl_channel, ZMQ_DONTWAIT, false, &cmd);
     BXIERR_CHAIN(err, err2);
     assert(bxierr_isok(err) && NULL != cmd);
-
     if (0 == strcmp(FLUSH_CTRL_MSG_REQ, cmd)) {
         err2 = _flush_iht(data_channel);
         BXIERR_CHAIN(err, err2);
@@ -1404,8 +1406,11 @@ bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel) {
         return err;
     }
     if (0 == strcmp(EXIT_CTRL_MSG_REQ, cmd)) {
-        err2 = _flush_iht(data_channel);
-        BXIERR_CHAIN(err, err2);
+        // Flushing must be asked explicitely by the BC.
+        // Therefore, there is nothing to flush on exit.
+        // Exit must exit as fast as possible.
+//        err2 = _flush_iht(data_channel);
+//        BXIERR_CHAIN(err, err2);
         //                size_t retries = bxizmq_snd_str(EXIT_CTRL_MSG_REP, control_channel,
         //                                                0, RETRIES_MAX, RETRY_DELAY);
         //                assert(0 == retries);
@@ -1508,7 +1513,7 @@ bool _should_quit(bxierr_p * err) {
     if (bxierr_isko(*err)) {
         size_t depth = bxierr_get_depth(*err);
         if (MAX_DEPTH_ERR < depth) {
-            bxierr_p err2 = bxierr_gen("Too many errors (%zu), aborting.", depth);
+            bxierr_p err2 = bxierr_gen("Too many errors (%zu), aborting", depth);
             BXIERR_CHAIN(*err, err2);
             return true;
         }
@@ -1625,7 +1630,7 @@ bxierr_p _end_iht(void) {
 bxierr_p _join_iht(bxierr_p * iht_err_p) {
     int rc = pthread_join(INTERNAL_HANDLER_THREAD, (void**) iht_err_p);
     if (0 != rc) return bxierr_fromidx(rc, NULL,
-                                       "Can't join the internal handler thread."
+                                       "Can't join the internal handler thread"
                                        " Calling pthread_join() failed (rc=%d)", rc);
     return BXIERR_OK;
 }
@@ -1692,7 +1697,7 @@ void _parent_before_fork(void) {
     // WARNING: If you change the FSM transition,
     // comment you changes in bxilog_state_e above.
     if (INITIALIZING == STATE || FINALIZING == STATE) {
-        error(EX_SOFTWARE, 0, "Forking while bxilog is in state %d! Aborting.", STATE);
+        error(EX_SOFTWARE, 0, "Forking while bxilog is in state %d! Aborting", STATE);
     }
     if(INITIALIZED != STATE) return;
     DEBUG(BXILOG_INTERNAL_LOGGER, "Preparing for a fork() (state == %d)", STATE);
@@ -1773,7 +1778,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
        it might still get invoked recursively by delivery of some other kind
        of signal.  Use a static variable to keep track of that. */
     if (FATAL_ERROR_IN_PROGRESS) {
-        error(signum, 0, "(%s#tid-%u) %s. Already handling a signal... Exiting.",
+        error(signum, 0, "(%s#tid-%u) %s. Already handling a signal... Exiting",
               PROGNAME, tid, sigstr);
     }
     FATAL_ERROR_IN_PROGRESS = 1;
@@ -1810,7 +1815,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     errno = 0;
     int rc = sigaction(signum, &dft_action, NULL);
     if (-1 == rc) {
-        error(128 + signum, errno, "Calling sigaction(%d, ...) failed.", signum);
+        error(128 + signum, errno, "Calling sigaction(%d, ...) failed", signum);
     }
     errno = 0;
     // Unblock all signals
@@ -1821,7 +1826,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     if (-1 == rc) _display_err_msg("Calling pthread_sigmask() failed\n");
     rc = pthread_kill(pthread_self(), signum);
     if (0 != rc) {
-        error(128 + signum, errno, "Calling pthread_kill(self, %d) failed.", signum);
+        error(128 + signum, errno, "Calling pthread_kill(self, %d) failed", signum);
     }
     _exit(128 + signum);
 }
