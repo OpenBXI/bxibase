@@ -680,6 +680,7 @@ bxierr_p bxilog_init(const char * progname, const char * filename);
  * related to a bad state such as when
  * `bxilog_init()` has not been called.
  *
+ * @param[in] flush flush before exiting if true
  * @return BXIERR_OK on success, anything else on error.
  *
  */

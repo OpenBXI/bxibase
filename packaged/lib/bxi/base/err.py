@@ -44,7 +44,7 @@ class BXICError(BXIError):
         """
         Create a new instance for the given ::bxierr_p
 
-        @param bxierr_p a ::bxierr_p C pointer
+        @param[in] bxierr_p a ::bxierr_p C pointer
         """
         errstr = _bxibase_ffi.string(_bxibase_api.bxierr_str(bxierr_p))
         super(BXICError, self).__init__(errstr)
@@ -61,7 +61,7 @@ class BXICError(BXIError):
         """
         Raise a BXICError if the given ::bxierr_p is ko.
 
-        @param bxierr_p the ::bxierr_p
+        @param[in] bxierr_p the ::bxierr_p
         @return
         @exception BXICError the corresponding BXICError if the given ::bxierr_p is ko.
         """
@@ -73,15 +73,20 @@ class BXILogConfigError(BXIError):
     """
     Raised on error during bxilog configuration.
     """
-    def __init__(self, msg, config):
+    def __init__(self, msg, cfg):
         """
         Create a new instance with the given message.
 
-        @param msg the exception message
-        @param cfg the bxi log configuration as a dictionnary.
+        @param[in] msg the exception message
+        @param[in] cfg the bxi log configuration as a dictionnary.
         """
         super(BXILogConfigError, self).__init__(msg)
-        self.config = config
+        self.config = cfg
 
     def get_config(self):
+        """
+        Return the configuration
+
+        @return the configuration
+        """
         return self.config
