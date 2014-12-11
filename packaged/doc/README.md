@@ -29,7 +29,7 @@ It provides the following plain C modules:
 - Structures have the following format: `bxi<module>_name_s` and are mostly unused 
     as such. Pointers on them are prefered, using 
     `typedef struct bxi<module>_name_s bxi_<module>_name_p;` 
-    (see [Object like API](#OO_c.
+    (see [Object like API](#OO_c)).
 
 ### Memory allocation ###                                       {#Allocation_c}
 Use bximem_calloc() for memory allocation: this provides various guarantees:
