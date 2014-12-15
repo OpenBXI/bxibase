@@ -186,6 +186,8 @@ struct tsd_s {
 typedef struct tsd_s * tsd_p;
 
 // The header of the log msg
+// TODO: reorganize with most-often used data first
+// see cachegrind results.
 struct log_header_s {
     bxilog_level_e level;           // log level
     struct timespec detail_time;    // log timestamp
