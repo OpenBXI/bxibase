@@ -77,8 +77,8 @@ Log levels
 ------------
 
 This API provides a much richer set of logging levels, inspired by the standard POSIX
-syslog facility (from PANIC to NOTICE), and enhanced with
-lower detailed levels (from OUTPUT to LOWEST).
+syslog facility (from ::PANIC to ::NOTICE), and enhanced with
+lower detailed levels (from ::OUTPUT to ::LOWEST).
 See the ::bxilog_level_e documentation of the underlying C API log.h
 for details on those levels.
 
@@ -587,6 +587,14 @@ def exception(exception, msg="", *args, **kwargs):
     _get_default_logger().exception(exception, msg, *args, **kwargs)
 
 
+## Provide a compatible API with the standard Python logging module
+getLogger = get_logger
+
+
+## Provide a compatible API with the standard Python logging module
+warn = warning
+
+
 class BXILogger(object):
     """
     A BXILogger instance provides various methods for logging.
@@ -661,65 +669,175 @@ class BXILogger(object):
         return _bxibase_api.bxilog_is_enabled_for(self.clogger, level)
 
     def panic(self, msg, *args, **kwargs):
-        """Documentation for a function.
+        """
+        Log at the ::PANIC level the given msg.
 
-        @param[in] msg the message to log at the panic level
+        @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
         @return Nothing
 
         """
-
         self.log(PANIC, msg, *args, **kwargs)
 
     def alert(self, msg, *args, **kwargs):
+        """
+        Log at the ::ALERT level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(ALERT, msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
+        """
+        Log at the ::CRITICAL level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(CRITICAL, msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
+        """
+        Log at the ::ERROR level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(ERROR, msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
+        """
+        Log at the ::WARNING level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(WARNING, msg, *args, **kwargs)
 
     def notice(self, msg, *args, **kwargs):
+        """
+        Log at the ::NOTICE level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(NOTICE, msg, *args, **kwargs)
 
     def output(self, msg, *args, **kwargs):
+        """
+        Log at the ::OUTPUT level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(OUTPUT, msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
+        """
+        Log at the ::INFO level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(INFO, msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
+        """
+        Log at the ::DEBUG level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(DEBUG, msg, *args, **kwargs)
 
     def fine(self, msg, *args, **kwargs):
+        """
+        Log at the ::FINE level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(FINE, msg, *args, **kwargs)
 
     def trace(self, msg, *args, **kwargs):
+        """
+        Log at the ::TRACE level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(TRACE, msg, *args, **kwargs)
 
     def lowest(self, msg, *args, **kwargs):
+        """
+        Log at the ::LOWEST level the given msg.
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
         self.log(LOWEST, msg, *args, **kwargs)
 
-    def exception(self, exc):
+    def exception(self, exc, msg=None, *args, **kwargs):
+        """
+        Log the given exception with the given message.
+
+        @param[in] exc the exeption to log
+        @param[in] msg the message to log with the given exception
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return Nothing
+
+        """
+        s = str(exc) if msg is None else "%s - %s" % (msg % args, str(exc))
         self.log(ERROR, str(exc))
 
-    # Provide a compatible API with python logging.
+    ## Provide a compatible API with the standard Python logging module
     setLevel = set_level
+
+    ## Provide a compatible API with the standard Python logging module
     isEnabledFor = is_enabled_for
+
+    ## Provide a compatible API with the standard Python logging module
     warn = warning
 
-# Provide a compatible API with python logging.
-getLogger = get_logger
-warn = warning
+
 # Warnings integration - taken from the standard Python logging module
-
 _warnings_showwarning = None
-
 
 def _showwarning(message, category, filename, lineno, file=None, line=None):
     """
