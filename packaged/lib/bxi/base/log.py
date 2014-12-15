@@ -86,6 +86,7 @@ for details on those levels.
 
 import atexit
 from cStringIO import StringIO
+import cStringIO
 import os
 import sys
 import traceback
@@ -626,7 +627,17 @@ class BXILogger(object):
         """
         _init()
         if _bxibase_api.bxilog_is_enabled_for(self.clogger, level):
-            s = msg % args if len(args) > 0 else str(msg)
+            exc_str = ''
+            if 'exc_info' in kwargs:
+                ei = sys.exc_info()
+                sio = cStringIO.StringIO()
+                traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
+                exc_s = sio.getvalue()
+                sio.close()
+                if exc_s[-1:] == "\n":
+                    exc_s = exc_s[:-1]
+                exc_str = '- Exception: %s' % exc_s
+            msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
             filename, lineno, funcname = _findCaller()
             bxierr_p = _bxibase_api.bxilog_log_nolevelcheck(self.clogger,
                                                             level,
@@ -635,7 +646,7 @@ class BXILogger(object):
                                                             funcname,
                                                             len(funcname) + 1,
                                                             lineno,
-                                                            s)
+                                                            msg_str)
             BXICError.raise_if_ko(bxierr_p)
 
     def set_level(self, level):
@@ -812,19 +823,18 @@ class BXILogger(object):
         """
         self.log(LOWEST, msg, *args, **kwargs)
 
-    def exception(self, exc, msg=None, *args, **kwargs):
+    def exception(self, msg, *args, **kwargs):
         """
-        Log the given exception with the given message.
+        Log the current exception with the given message at the ERROR level.
 
-        @param[in] exc the exeption to log
         @param[in] msg the message to log with the given exception
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
         @return Nothing
 
         """
-        s = str(exc) if msg is None else "%s - %s" % (msg % args, str(exc))
-        self.log(ERROR, str(exc))
+        kwargs['exc_info'] = True
+        self.log(ERROR, msg, *args, **kwargs)
 
     ## Provide a compatible API with the standard Python logging module
     setLevel = set_level
