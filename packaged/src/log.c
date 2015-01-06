@@ -957,6 +957,78 @@ bxierr_p bxilog_get_thread_rank(uint16_t * rank_p) {
     return BXIERR_OK;
 }
 
+void bxilog_display_loggers() {
+    char ** level_names;
+    size_t n = bxilog_get_all_level_names(&level_names);
+    fprintf(stderr, "Log level names:\n");
+    while(n-- > 0) {
+        fprintf(stderr, "\t%zu\t = %s\n", n, level_names[n]);
+    }
+    bxilog_p * loggers;
+    n = bxilog_get_registered(&loggers);
+    fprintf(stderr, "Loggers name:\n");
+    while(n-- > 0) {
+        fprintf(stderr, "\t%s\n", loggers[n]->name);
+    }
+}
+
+bxierr_p bxilog_parse_levels(char * str) {
+    BXIASSERT(BXILOG_INTERNAL_LOGGER, NULL != str);
+    str = strdup(str); // Required because str might not be allocated on the heap
+    char *saveptr1 = NULL;
+    char *str1 = str;
+    size_t cfg_items_nb = 20;
+    bxilog_cfg_item_s * cfg_items = bximem_calloc(cfg_items_nb * sizeof(*cfg_items));
+    size_t next_idx = 0;
+    for (size_t j = 0; ; j++, str1 = NULL) {
+        char * token = strtok_r(str1, ",", &saveptr1);
+        if (NULL == token) break;
+        char * sep = strchr(token, ':');
+        if (sep == NULL) {
+            return bxierr_errno("Expected ':' in log level configuration: %s", token);
+        }
+
+        *sep = '\0';
+        char * prefix = token;
+        char * level_str = sep + 1;
+        bxilog_level_e level;
+        unsigned long tmp;
+        errno = 0;
+
+        char * endptr;
+        tmp = strtoul(str, &endptr, 10);
+        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", str);
+        if (endptr == str) {
+            bxierr_p err = bxilog_get_level_from_str(level_str, &level);
+            if (bxierr_isko(err)) return err;
+        } else if (*endptr != '\0') {
+            return bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", str);
+        } else {
+            if (tmp > BXILOG_LOWEST) {
+                DEBUG(BXILOG_INTERNAL_LOGGER,
+                      "Bad log level specified: %lu, using %d instead",
+                      tmp, BXILOG_LOWEST);
+                tmp = BXILOG_LOWEST;
+            }
+            level = (bxilog_level_e) tmp;
+        }
+        cfg_items[next_idx].prefix = strdup(prefix);
+        cfg_items[next_idx].level = level;
+        next_idx++;
+        if (next_idx >= cfg_items_nb) {
+            cfg_items_nb *= 2;
+            cfg_items = bximem_realloc(cfg_items, cfg_items_nb);
+        }
+    }
+
+    bxierr_p err = bxilog_cfg_registered(next_idx, cfg_items);
+    BXIASSERT(BXILOG_INTERNAL_LOGGER, bxierr_isok(err));
+    for (size_t i = 0; i < next_idx; i++) BXIFREE(cfg_items[i].prefix);
+    BXIFREE(cfg_items);
+    BXIFREE(str);
+    return BXIERR_OK;
+}
+
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************

@@ -958,6 +958,28 @@ char * bxilog_signal_str(const int signum,
                          const struct signalfd_siginfo * sfdinfo);
 #endif
 
+/* --------------------------------------------------------------------------*/
+/**
+ * Configure the loggers by using the provided string.
+ * The string should be following the format:
+ *      lvl_str     <-  [emergency, alert, critical, crit, error, err, warning, warn,
+ *                       notice, output, info, debug, fine, trace, lowest]
+ *      lvl_num     <-  [0-9]*
+ *      lvl         <-  [lvl_num, level_str]
+ *      prefix      <-  [A-z]+
+ *      format      <-  (lvl:prefix,)*lvl:prefix
+ *
+ *  Each logger sharing the same prefix as the one parsed will be set to the define level.
+ *
+ * @param str is a string containing the configuration for the loggers.
+ */
+/* ----------------------------------------------------------------------------*/
+bxierr_p bxilog_parse_levels(char * str);
+
+/**
+ * Display on stderr the loggers which can be configured.
+ */
+void bxilog_display_loggers();
 
 
 #endif /* BXILOG_H_ */
