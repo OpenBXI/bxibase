@@ -996,13 +996,13 @@ bxierr_p bxilog_parse_levels(char * str) {
         errno = 0;
 
         char * endptr;
-        tmp = strtoul(str, &endptr, 10);
-        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", str);
-        if (endptr == str) {
+        tmp = strtoul(level_str, &endptr, 10);
+        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
+        if (endptr == level_str) {
             bxierr_p err = bxilog_get_level_from_str(level_str, &level);
             if (bxierr_isko(err)) return err;
         } else if (*endptr != '\0') {
-            return bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", str);
+            return bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
         } else {
             if (tmp > BXILOG_LOWEST) {
                 DEBUG(BXILOG_INTERNAL_LOGGER,
