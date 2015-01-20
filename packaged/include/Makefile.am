@@ -1,5 +1,5 @@
 
-#file to be install
+#file to be installed
 nobase_include_HEADERS = \
 				  bxi/base/mem.h\
 				  bxi/base/str.h\
