@@ -3,6 +3,7 @@
 	<name>bxiclib</name>
 	<comment></comment>
 	<projects>
+		<project>backtrace</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
