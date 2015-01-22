@@ -233,7 +233,7 @@ char * bxierr_backtrace_str(void) {
     for(int i = 0; i < c; i++) {
         fprintf(faked_file, "#### [%2d] %s\n", i,
                 NULL == strings[i] ? symbols[i] : strings[i]);
-        if (NULL != strings[i]) BXIFREE(strings[i]);
+        BXIFREE(strings[i]);
     }
     fprintf(faked_file,"#### Backtrace end ####\n");
     fclose(faked_file);
