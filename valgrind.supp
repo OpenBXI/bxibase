@@ -49,17 +49,19 @@
    fun:send
    ...
 }
-
 {
-   <bxierr_from_idx_false_positive>
+   <false_positive_backtrace>
    Memcheck:Leak
+   fun:malloc
    fun:bxistr_vnew
    fun:bxistr_new
    fun:_bt_full_cb
-   ...
+   fun:report_inlined_functions
+   fun:dwarf_lookup_pc
+   fun:dwarf_fileline
+   fun:backtrace_pcinfo
    fun:bxierr_backtrace_str
    fun:bxierr_new
    fun:bxierr_vfromidx
-   fun:bxierr_fromidx 
-   ...
+   fun:bxierr_fromidx
 }
