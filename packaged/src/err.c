@@ -19,6 +19,11 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/syscall.h>
+//#include <sys/types.h>
+//#include <regex.h>
+//#include <dlfcn.h>
+#include <backtrace.h>
+#include <backtrace-supported.h>
 
 #include "bxi/base/mem.h"
 #include "bxi/base/str.h"
@@ -30,6 +35,7 @@
 #define OK_MSG "No problem found - everything is ok"
 
 #define BACKTRACE_MAX 1024
+
 // *********************************************************************************
 // ********************************** Types ****************************************
 // *********************************************************************************
@@ -37,17 +43,22 @@
 // *********************************************************************************
 // **************************** Static function declaration ************************
 // *********************************************************************************
-
+static int _bt_full_cb(void *data, uintptr_t pc,
+                       const char *filename, int lineno, const char *function);
+static void _bt_error_cb(void *data, const char *msg, int errnum);
+static char** _pretty_backtrace(void* addresses[], size_t array_size);
+static void __bt_init__(void);
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
 
 bxierr_define(BXIERR_OK, 0, OK_MSG);
 
+struct backtrace_state * BT_STATE = NULL;
+
 // *********************************************************************************
 // ********************************** Implementation   *****************************
 // *********************************************************************************
-
 
 bxierr_p bxierr_new(int code,
                     void * data,
@@ -181,6 +192,19 @@ bxierr_p bxierr_vfromidx(const int erridx,
     return result;
 }
 
+char** _pretty_backtrace(void* addresses[], size_t array_size) {
+    // Used to return the strings generated from the addresses
+    char** backtrace_strings = bximem_calloc(sizeof(*backtrace_strings) * array_size);
+    for(size_t i = 0; i < array_size; i++) {
+        int rc = backtrace_pcinfo(BT_STATE,
+                                  (uintptr_t) addresses[i],
+                                  _bt_full_cb,
+                                  _bt_error_cb,
+                                  backtrace_strings + i);
+        assert(0 == rc);
+    }
+    return backtrace_strings;
+}
 
 char * bxierr_backtrace_str(void) {
     char * buf = NULL;
@@ -193,12 +217,11 @@ char * bxierr_backtrace_str(void) {
     }
     void *addresses[BACKTRACE_MAX];
     int c = backtrace(addresses, BACKTRACE_MAX);
+
     errno = 0;
-    char **strings = backtrace_symbols(addresses,c);
-    if (NULL == strings) {
-        error(0, errno, "Calling backtrace_symbols() failed");
-        return strdup("Unavailable backtrace (backtrace_symbols() failed)");
-    }
+    char **symbols = backtrace_symbols(addresses,c);
+    char **strings = _pretty_backtrace(addresses, (unsigned long) c);
+
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
 #else
@@ -208,10 +231,36 @@ char * bxierr_backtrace_str(void) {
 #endif
     fprintf(faked_file, "#### Backtrace of tid %u: %d function calls ####\n", tid, c);
     for(int i = 0; i < c; i++) {
-        fprintf(faked_file, "#### [%2d] %s\n", i, strings[i]);
+        fprintf(faked_file, "#### [%2d] %s\n", i,
+                NULL == strings[i] ? symbols[i] : strings[i]);
+        if (NULL != strings[i]) BXIFREE(strings[i]);
     }
     fprintf(faked_file,"#### Backtrace end ####\n");
     fclose(faked_file);
     BXIFREE(strings);
     return buf;
+}
+
+__attribute__((constructor)) void __bt_init__(void) {
+    BT_STATE = backtrace_create_state(NULL,
+                                      BACKTRACE_SUPPORTS_THREADS,
+                                      _bt_error_cb, NULL);
+    assert(NULL != BT_STATE);
+}
+
+void _bt_error_cb(void *data, const char *msg, int errnum) {
+    UNUSED(data);
+    UNUSED(errnum);
+    error(EXIT_FAILURE, 0, "%s", msg);
+}
+
+int _bt_full_cb(void *data, uintptr_t pc,
+                const char *filename, int lineno, const char *function) {
+    UNUSED(pc);
+    if (NULL != filename && 0 != lineno && NULL != function) {
+        char * str = bxistr_new("%s:%d(%s)",
+                                filename, lineno, function);
+        (* (char **) data) = str;
+    }
+    return 0;
 }
