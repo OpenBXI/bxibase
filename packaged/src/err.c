@@ -237,6 +237,7 @@ char * bxierr_backtrace_str(void) {
     }
     fprintf(faked_file,"#### Backtrace end ####\n");
     fclose(faked_file);
+    BXIFREE(symbols);
     BXIFREE(strings);
     return buf;
 }
@@ -251,14 +252,19 @@ __attribute__((constructor)) void __bt_init__(void) {
 void _bt_error_cb(void *data, const char *msg, int errnum) {
     UNUSED(data);
     UNUSED(errnum);
-    error(EXIT_FAILURE, 0, "%s", msg);
+    // errnum == -1 means debug info are not available, so we don't care,
+    // we will just display the classical information
+    if (-1 != errnum) {
+        // Otherwise, display what the problem is
+        fprintf(stderr, "Warning: %s\n", msg);
+    }
 }
 
 int _bt_full_cb(void *data, uintptr_t pc,
                 const char *filename, int lineno, const char *function) {
     UNUSED(pc);
     if (NULL != filename && 0 != lineno && NULL != function) {
-        char * str = bxistr_new("%s:%d(%s)",
+        char * str = bxistr_new("%s:%d - %s()",
                                 filename, lineno, function);
         (* (char **) data) = str;
     }
