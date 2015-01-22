@@ -460,7 +460,6 @@ void test_logger_signal(void) {
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM, SIGQUIT};
     for (size_t i = 0; i < ARRAYLEN(allsig_num); i++) {
         _fork_kill(allsig_num[i]);

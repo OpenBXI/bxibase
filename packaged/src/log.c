@@ -456,8 +456,7 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
 }
 
 bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
-    if (0 == strcasecmp("panic", level_str)
-            || 0 == strcasecmp("emergency", level_str)) {
+    if (0 == strcasecmp("panic", level_str) || 0 == strcasecmp("emergency", level_str)) {
         *level = BXILOG_PANIC;
         return BXIERR_OK;
     }
@@ -465,18 +464,15 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
         *level = BXILOG_ALERT;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("critical", level_str)
-            || 0 == strcasecmp("crit", level_str)) {
+    if (0 == strcasecmp("critical", level_str) || 0 == strcasecmp("crit", level_str)) {
         *level = BXILOG_CRIT;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("error", level_str)
-            || 0 == strcasecmp("err", level_str)) {
+    if (0 == strcasecmp("error", level_str) || 0 == strcasecmp("err", level_str)) {
         *level = BXILOG_ERR;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("warning", level_str)
-            || 0 == strcasecmp("warn", level_str)) {
+    if (0 == strcasecmp("warning", level_str) || 0 == strcasecmp("warn", level_str)) {
         *level = BXILOG_WARN;
         return BXIERR_OK;
     }
@@ -484,8 +480,7 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
         *level = BXILOG_NOTICE;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("output", level_str)
-            || 0 == strcasecmp("out", level_str)) {
+    if (0 == strcasecmp("output", level_str) || 0 == strcasecmp("out", level_str)) {
         *level = BXILOG_OUTPUT;
         return BXIERR_OK;
     }
@@ -985,7 +980,10 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (NULL == token) break;
         char * sep = strchr(token, ':');
         if (sep == NULL) {
-            return bxierr_errno("Expected ':' in log level configuration: %s", token);
+            bxierr_p err = bxierr_errno("Expected ':' in log level configuration: %s",
+                                        token);
+            BXIFREE(str);
+            return err;
         }
 
         *sep = '\0';
@@ -1000,9 +998,13 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
         if (endptr == level_str) {
             bxierr_p err = bxilog_get_level_from_str(level_str, &level);
-            if (bxierr_isko(err)) return err;
+            if (bxierr_isko(err)) {
+                BXIFREE(cfg_items);
+                return err;
+            }
         } else if (*endptr != '\0') {
-            return bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
+            return bxierr_errno("Error while parsing number: '%s' "
+                                "doesn't contain only a number or a level", level_str);
         } else {
             if (tmp > BXILOG_LOWEST) {
                 DEBUG(BXILOG_INTERNAL_LOGGER,
@@ -1379,6 +1381,8 @@ void _log_single_line(const struct log_header_s * const header,
             IHT_DATA.reported_errors[i] = bxierr;
             BXIFREE(err_str);
             BXIFREE(str);
+        } else {
+            bxierr_destroy(&bxierr);
         }
     }
 }

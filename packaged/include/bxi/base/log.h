@@ -970,7 +970,10 @@ char * bxilog_signal_str(const int signum,
  *
  *  Each logger sharing same prefix as the parsed one will be set to the define level.
  *
- * @param str is a string containing the configuration for the loggers.
+ * @param[in] str is a string containing the configuration for the loggers.
+ *
+ * @return BXIERR_OK on success, anything else on error.
+ *
  */
 bxierr_p bxilog_parse_levels(char * str);
 
