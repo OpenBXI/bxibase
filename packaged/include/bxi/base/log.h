@@ -356,7 +356,6 @@
     } while(0);
 
 
-
 /**
  * Defines a new logger as a global variable
  * Should be set inside your .c file, in order to define a new logger structure.
@@ -958,10 +957,10 @@ char * bxilog_signal_str(const int signum,
                          const struct signalfd_siginfo * sfdinfo);
 #endif
 
-/* --------------------------------------------------------------------------*/
 /**
- * Configure the loggers by using the provided string.
- * The string should be following the format:
+ * Configure registered loggers using a string.
+ *
+ * The string must be in the following format:
  *      lvl_str     <-  [emergency, alert, critical, crit, error, err, warning, warn,
  *                       notice, output, info, debug, fine, trace, lowest]
  *      lvl_num     <-  [0-9]*
@@ -969,11 +968,10 @@ char * bxilog_signal_str(const int signum,
  *      prefix      <-  [A-z]+
  *      format      <-  (lvl:prefix,)*lvl:prefix
  *
- *  Each logger sharing the same prefix as the one parsed will be set to the define level.
+ *  Each logger sharing same prefix as the parsed one will be set to the define level.
  *
  * @param str is a string containing the configuration for the loggers.
  */
-/* ----------------------------------------------------------------------------*/
 bxierr_p bxilog_parse_levels(char * str);
 
 /**
