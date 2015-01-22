@@ -137,6 +137,9 @@ AC_CHECK_LIB([pthread], [pthread_create], [],
              [AC_MSG_ERROR([Could not find pthread library])])
 AC_CHECK_LIB([rt], [clock_gettime], [],
              [AC_MSG_ERROR([Could not find rt library])])
+AC_CHECK_LIB([backtrace], [backtrace_full], [], 
+             [AC_MSG_ERROR([Could not find backtrace library])])
+
 
 PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
                   [
@@ -154,7 +157,7 @@ PKG_CHECK_MODULES([CZMQ], [libczmq >= 1.0.0], [],
 
 
 
-LDFLAGS+=" $ZMQ_LIBS "
+LDFLAGS+=" $ZMQ_LIBS $BACKTRACE_LIBS "
 
 
 #
