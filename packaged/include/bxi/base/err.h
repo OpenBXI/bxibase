@@ -426,9 +426,9 @@ bxierr_p bxierr_vfromidx(int errcode,
 #endif
 
 /**
- * Return a human representation of the current backtrace
+ * Return a human representation of the current backtrace.
  *
- * @return a string representing the backtrace
+ * @return a string representing current backtrace.
  */
 char * bxierr_backtrace_str(void);
 
