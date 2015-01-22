@@ -49,3 +49,17 @@
    fun:send
    ...
 }
+
+{
+   <bxierr_from_idx_false_positive>
+   Memcheck:Leak
+   fun:bxistr_vnew
+   fun:bxistr_new
+   fun:_bt_full_cb
+   ...
+   fun:bxierr_backtrace_str
+   fun:bxierr_new
+   fun:bxierr_vfromidx
+   fun:bxierr_fromidx 
+   ...
+}
