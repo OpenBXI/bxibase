@@ -456,7 +456,8 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
 }
 
 bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
-    if (0 == strcasecmp("panic", level_str) || 0 == strcasecmp("emergency", level_str)) {
+    if (0 == strcasecmp("panic", level_str)
+            || 0 == strcasecmp("emergency", level_str)) {
         *level = BXILOG_PANIC;
         return BXIERR_OK;
     }
@@ -464,15 +465,18 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
         *level = BXILOG_ALERT;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("critical", level_str) || 0 == strcasecmp("crit", level_str)) {
+    if (0 == strcasecmp("critical", level_str)
+            || 0 == strcasecmp("crit", level_str)) {
         *level = BXILOG_CRIT;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("error", level_str) || 0 == strcasecmp("err", level_str)) {
+    if (0 == strcasecmp("error", level_str)
+            || 0 == strcasecmp("err", level_str)) {
         *level = BXILOG_ERR;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("warning", level_str) || 0 == strcasecmp("warn", level_str)) {
+    if (0 == strcasecmp("warning", level_str)
+            || 0 == strcasecmp("warn", level_str)) {
         *level = BXILOG_WARN;
         return BXIERR_OK;
     }
@@ -480,7 +484,8 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
         *level = BXILOG_NOTICE;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("output", level_str) || 0 == strcasecmp("out", level_str)) {
+    if (0 == strcasecmp("output", level_str)
+            || 0 == strcasecmp("out", level_str)) {
         *level = BXILOG_OUTPUT;
         return BXIERR_OK;
     }
@@ -898,11 +903,12 @@ bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n) {
     return err;
 }
 
-char * bxilog_signal_str(const int signum, const siginfo_t * siginfo,
+char * bxilog_signal_str(const siginfo_t * siginfo,
                          const struct signalfd_siginfo * sfdinfo) {
 
     assert(siginfo != NULL || sfdinfo != NULL);
 
+    int signum = (NULL == siginfo) ? sfdinfo->ssi_errno: siginfo->si_signo;
     char * sigstr = strsignal(signum);
     assert(NULL != sigstr);
     int code = (NULL == siginfo) ? (int) sfdinfo->ssi_code: siginfo->si_code;
@@ -980,10 +986,7 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (NULL == token) break;
         char * sep = strchr(token, ':');
         if (sep == NULL) {
-            bxierr_p err = bxierr_errno("Expected ':' in log level configuration: %s",
-                                        token);
-            BXIFREE(str);
-            return err;
+            return bxierr_errno("Expected ':' in log level configuration: %s", token);
         }
 
         *sep = '\0';
@@ -998,13 +1001,9 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
         if (endptr == level_str) {
             bxierr_p err = bxilog_get_level_from_str(level_str, &level);
-            if (bxierr_isko(err)) {
-                BXIFREE(cfg_items);
-                return err;
-            }
+            if (bxierr_isko(err)) return err;
         } else if (*endptr != '\0') {
-            return bxierr_errno("Error while parsing number: '%s' "
-                                "doesn't contain only a number or a level", level_str);
+            return bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
         } else {
             if (tmp > BXILOG_LOWEST) {
                 DEBUG(BXILOG_INTERNAL_LOGGER,
@@ -1257,8 +1256,8 @@ void * _iht_main(void * param) {
         size_t reported_error_numbers = 0;
         for (size_t i = 0; i < IHT_DATA.reported_errors_len; i++) {
             if (NULL == IHT_DATA.reported_errors[i]) continue;
-            bxierr_p err = IHT_DATA.reported_errors[i];
-            bxierr_destroy(&err);
+            bxierr_p err_iht = IHT_DATA.reported_errors[i];
+            bxierr_destroy(&err_iht);
             reported_error_numbers++;
         }
         char * str = bxistr_new("BXI Logging Error Summary:\n"
@@ -1381,8 +1380,6 @@ void _log_single_line(const struct log_header_s * const header,
             IHT_DATA.reported_errors[i] = bxierr;
             BXIFREE(err_str);
             BXIFREE(str);
-        } else {
-            bxierr_destroy(&bxierr);
         }
     }
 }
@@ -1753,7 +1750,7 @@ bxierr_p _finalize(void) {
     err2 = _end_iht();
     BXIERR_CHAIN(err, err2);
 
-    bxierr_p iht_err;
+    bxierr_p iht_err = BXIERR_OK;
     err2 = _join_iht(&iht_err);
     BXIERR_CHAIN(err, err2);
     BXIERR_CHAIN(err, iht_err);
@@ -1846,7 +1843,7 @@ void _display_err_msg(char* msg) {
 // Handler of Signals (such as SIGSEGV, ...)
 void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     (void) (dummy); // Unused, prevent warning == error at compilation time
-    char * sigstr = bxilog_signal_str(signum, siginfo, NULL);
+    char * sigstr = bxilog_signal_str(siginfo, NULL);
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
 #else
