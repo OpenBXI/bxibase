@@ -908,7 +908,7 @@ char * bxilog_signal_str(const siginfo_t * siginfo,
 
     assert(siginfo != NULL || sfdinfo != NULL);
 
-    int signum = (NULL == siginfo) ? sfdinfo->ssi_errno: siginfo->si_signo;
+    int signum = (NULL == siginfo) ? sfdinfo->ssi_signo: siginfo->si_signo;
     char * sigstr = strsignal(signum);
     assert(NULL != sigstr);
     int code = (NULL == siginfo) ? (int) sfdinfo->ssi_code: siginfo->si_code;
