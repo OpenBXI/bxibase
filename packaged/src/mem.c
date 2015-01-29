@@ -48,8 +48,8 @@ void * bximem_calloc(const size_t n) {
  */
 void * bximem_realloc(void* ptr, const size_t n) {
     void * new_ptr = realloc(ptr, n);
-    assert(ptr != NULL || n == 0);
-    return(new_ptr);
+    assert(new_ptr != NULL || n == 0);
+    return new_ptr;
 }
 
 
