@@ -601,10 +601,10 @@ bxierr_p bxilog_flush(void) {
     bxierr_p err = _get_tsd(&tsd);
     if (bxierr_isko(err)) return err;
     void * ctl_channel = tsd->ctl_channel;
-    err = bxizmq_snd_str(FLUSH_CTRL_MSG_REQ, ctl_channel, 0, 0, 0);
+    err = bxizmq_str_snd(FLUSH_CTRL_MSG_REQ, ctl_channel, 0, 0, 0);
     if (bxierr_isko(err)) return err;
     char * reply;
-    err = bxizmq_rcv_str(ctl_channel, 0, false, &reply);
+    err = bxizmq_str_rcv(ctl_channel, 0, false, &reply);
     if (bxierr_isko(err)) return err;
     // Warning, no not introduce recursive call here (using ERROR() for example
     // or any log message: we are currently flushing!
@@ -716,10 +716,10 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
     //                                      RETRIES_MAX, RETRY_DELAY);
 
     // Zero-copy version (if header has been mallocated).
-    err = bxizmq_snd_data_zc(header, data_len,
+    err = bxizmq_data_snd_zc(header, data_len,
                              tsd->log_channel, ZMQ_DONTWAIT,
                              RETRIES_MAX, RETRY_DELAY,
-                             bxizmq_simple_free, NULL);
+                             bxizmq_data_free, NULL);
     if (bxierr_isko(err)) {
         if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
         // Recursive call!
@@ -1072,14 +1072,12 @@ inline bxierr_p _get_tsd(tsd_p * result) {
     tsd = bximem_calloc(sizeof(*tsd));
     assert(NULL != data_url);
     tsd->log_buf = bximem_calloc(DEFAULT_LOG_BUF_SIZE);
-    bxierr_p err = bxizmq_zocket_new(BXILOG_CONTEXT, ZMQ_PUSH, data_url,
-                                     false, false, 0, 0 ,0, &tsd->log_channel);
+    bxierr_p err = bxizmq_zocket_connect(BXILOG_CONTEXT, ZMQ_PUSH, data_url, &tsd->log_channel);
     if (bxierr_isko(err)) {
         *result = tsd;
         return err;
     }
-    err = bxizmq_zocket_new(BXILOG_CONTEXT, ZMQ_REQ, control_url,
-                            false, false, 0, 0, 0, &tsd->ctl_channel);
+    err = bxizmq_zocket_connect(BXILOG_CONTEXT, ZMQ_REQ, control_url, &tsd->ctl_channel);
     if (bxierr_isko(err)) {
         *result = tsd;
         return err;
@@ -1155,10 +1153,10 @@ void * _iht_main(void * param) {
     int hwm = IH_RCVHWM;
     void * CONTROL_CHANNEL = NULL;
     void * DATA_CHANNEL = NULL;
-    bxierr_p fatal_err = bxizmq_zocket_new(BXILOG_CONTEXT,
-                                           ZMQ_REP, control_url,
-                                           true, false, 0, 0, 0,
-                                           &CONTROL_CHANNEL);
+    bxierr_p fatal_err = bxizmq_zocket_bind(BXILOG_CONTEXT,
+                                            ZMQ_REP, control_url,
+                                            NULL,
+                                            &CONTROL_CHANNEL);
     if (bxierr_isko(fatal_err)) {
         // We can't communicate with main thread, there is nothing else to do
         // than exiting
@@ -1177,13 +1175,13 @@ void * _iht_main(void * param) {
         // Wait for the READY message and inform back
         // that we have an error on the given output file
         char * cmd;
-        bxierr_p last_err = bxizmq_rcv_str(CONTROL_CHANNEL, 0, false, &cmd);
+        bxierr_p last_err = bxizmq_str_rcv(CONTROL_CHANNEL, 0, false, &cmd);
         assert(bxierr_isok(last_err) && NULL != cmd);
         assert(0 == strcmp(READY_CTRL_MSG_REQ, cmd));
         BXIFREE(cmd);
         // Send the error message
         char * err_str = bxierr_str(err);
-        last_err = bxizmq_snd_str(err_str, CONTROL_CHANNEL, 0, 0, 0);
+        last_err = bxizmq_str_snd(err_str, CONTROL_CHANNEL, 0, 0, 0);
         BXIFREE(err_str);
         assert(bxierr_isok(last_err));
         bxierr_destroy(&last_err);
@@ -1192,11 +1190,14 @@ void * _iht_main(void * param) {
 
 
     errno = 0;
-    err2 = bxizmq_zocket_new(BXILOG_CONTEXT,
-                             ZMQ_PULL, data_url, true,
-                             true, ZMQ_RCVHWM,
-                             &hwm, sizeof(hwm),
+    err2 = bxizmq_zocket_bind(BXILOG_CONTEXT,
+                             ZMQ_PULL, data_url,
+                             NULL,
                              &DATA_CHANNEL);
+    BXIERR_CHAIN(err, err2);
+    err2 = bxizmq_zocket_setopt(DATA_CHANNEL,
+                                ZMQ_RCVHWM,
+                                &hwm, sizeof(hwm));
     BXIERR_CHAIN(err, err2);
 
     zmq_pollitem_t items[] = { { CONTROL_CHANNEL, 0, ZMQ_POLLIN, 0 },
@@ -1461,20 +1462,20 @@ bxierr_p _process_data(void * const data_channel) {
 bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel) {
     char * cmd;
     bxierr_p err = BXIERR_OK, err2;
-    err2 = bxizmq_rcv_str(ctrl_channel, ZMQ_DONTWAIT, false, &cmd);
+    err2 = bxizmq_str_rcv(ctrl_channel, ZMQ_DONTWAIT, false, &cmd);
     BXIERR_CHAIN(err, err2);
     assert(bxierr_isok(err) && NULL != cmd);
     if (0 == strcmp(FLUSH_CTRL_MSG_REQ, cmd)) {
         err2 = _flush_iht(data_channel);
         BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_snd_str(FLUSH_CTRL_MSG_REP, ctrl_channel, 0, 0, 0);
+        err2 = bxizmq_str_snd(FLUSH_CTRL_MSG_REP, ctrl_channel, 0, 0, 0);
         BXIERR_CHAIN(err, err2);
         BXIFREE(cmd);
         return err;
     }
     if (0 == strcmp(READY_CTRL_MSG_REQ, cmd)) {
         // Reply "ready!"
-        err2 = bxizmq_snd_str(READY_CTRL_MSG_REP,
+        err2 = bxizmq_str_snd(READY_CTRL_MSG_REP,
                               ctrl_channel, 0, RETRIES_MAX, RETRY_DELAY);
         BXIERR_CHAIN(err, err2);
         BXIFREE(cmd);
@@ -1486,7 +1487,7 @@ bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel) {
         // Exit must exit as fast as possible.
 //        err2 = _flush_iht(data_channel);
 //        BXIERR_CHAIN(err, err2);
-        //                size_t retries = bxizmq_snd_str(EXIT_CTRL_MSG_REP, control_channel,
+        //                size_t retries = bxizmq_str_snd(EXIT_CTRL_MSG_REP, control_channel,
         //                                                0, RETRIES_MAX, RETRY_DELAY);
         //                assert(0 == retries);
         BXIFREE(cmd);
@@ -1658,11 +1659,11 @@ bxierr_p _init(void) {
     tsd_p tsd;
     err = _get_tsd(&tsd);
     if (bxierr_isko(err)) return err;
-    err = bxizmq_snd_str(READY_CTRL_MSG_REQ, tsd->ctl_channel, 0, 0, 0);
+    err = bxizmq_str_snd(READY_CTRL_MSG_REQ, tsd->ctl_channel, 0, 0, 0);
     if (bxierr_isko(err)) return err;
 
     char * ready;
-    err = bxizmq_rcv_str(tsd->ctl_channel, 0, false, &ready);
+    err = bxizmq_str_rcv(tsd->ctl_channel, 0, false, &ready);
     if (bxierr_isko(err)) return err;
     assert(NULL != ready);
 
@@ -1689,7 +1690,7 @@ bxierr_p _end_iht(void) {
     tsd_p tsd;
     bxierr_p err = _get_tsd(&tsd);
     if (bxierr_isko(err)) return err;
-    err = bxizmq_snd_str(EXIT_CTRL_MSG_REQ, tsd->ctl_channel,
+    err = bxizmq_str_snd(EXIT_CTRL_MSG_REQ, tsd->ctl_channel,
                          0, RETRIES_MAX, RETRY_DELAY);
     if (BXIZMQ_RETRIES_MAX_ERR == err->code) {
         char * str = bxistr_new("Sending %s required %zu retries",

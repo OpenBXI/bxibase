@@ -38,6 +38,8 @@
 // **************************** Static function declaration ************************
 // *********************************************************************************
 
+bxierr_p _zmq_context_creation(void * const ctx, const int type, void ** result);
+
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
@@ -48,92 +50,27 @@ static volatile int counter = 0;
 // ********************************** Implementation   *****************************
 // *********************************************************************************
 
-bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
-                           const char * const url, const bool bind,
-                           const bool set_option,
-                           const int option_name,
-                           const void * const option_value,
-                           const size_t option_len, void ** result) {
+/*************************************** Zocket ***********************************/
+bxierr_p bxizmq_zocket_bind(void * const ctx,
+                           const int type,
+                           const char * const url,
+                           int  * affected_port,
+                           void ** result) {
     assert(NULL != ctx);
     assert(NULL != url);
     assert(NULL != result);
     bxierr_p err = BXIERR_OK, err2;
-    errno = 0;
-    void * socket = zmq_socket(ctx, type);
-    if (socket == NULL) return bxierr_errno("Can't create a zmq socket of type %d", type);
-    if (set_option) {
-        errno = 0;
-        const int rc = zmq_setsockopt(socket, option_name, option_value, option_len);
-        if (rc != 0) {
-            err2 = bxierr_errno("Can't set option %d on zmq socket",
-                                option_name);
-            BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_zocket_destroy(socket);
-            BXIERR_CHAIN(err, err2);
-            return err;
-        }
+
+    void * socket = NULL;
+    err2 = _zmq_context_creation(ctx, type, &socket);
+    if (bxierr_isko(err2)) {
+        return err2;
     }
-    // Setting the HWM at 0 (unlimited) by default
-    int _hwm = 0 ;
-    if(!set_option || (set_option && option_name != ZMQ_RCVHWM)){
-        errno = 0;
-        int rc = zmq_setsockopt(socket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
-        if (rc != 0) {
-            err2 = bxierr_errno("Can't set option ZMQ_RCVHWM=%d "
-                                "on zmq socket", _hwm);
-            BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_zocket_destroy(socket);
-            BXIERR_CHAIN(err, err2);
-            return err;
-        }
-    }
-    if(!set_option || (set_option && option_name != ZMQ_SNDHWM)) {
-        errno = 0;
-        int rc = zmq_setsockopt(socket, ZMQ_SNDHWM, &_hwm, sizeof(_hwm));
-        if (rc != 0) {
-            err2 = bxierr_errno("Can't set option ZMQ_SNDHWM=%d "
-                                "on zmq socket", _hwm);
-            BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_zocket_destroy(socket);
-            BXIERR_CHAIN(err, err2);
-            return err;
-        }
-    }
-    if (bind) {
-        errno = 0;
-        int rc = zmq_bind(socket, url);
-        if (rc != 0) {
-            err2 = bxierr_errno("Can't bind zmq socket on %s", url);
-            BXIERR_CHAIN(err, err2);
-        }
-    } else {
-        long sleep = 128; // nanoseconds
-        struct timespec start;
-        err2 = bxitime_get(CLOCK_MONOTONIC, &start);
+
+    int rc = zmq_bind(socket, url);
+    if (rc == -1) {
+        err2 = bxierr_errno("Can't bind zmq socket on %s", url);
         BXIERR_CHAIN(err, err2);
-        double delay = 0.0;
-        int tries = 0;
-        while(delay < MAX_CONNECTION_TIMEOUT) {
-            errno = 0;
-            int rc = zmq_connect(socket, url);
-            if (rc == 0) break;
-            if (errno != ECONNREFUSED) {
-                err2 = bxierr_errno("Can't connect zmq socket on %s", url);
-                BXIERR_CHAIN(err, err2);
-                break;
-            }
-            err2 = bxitime_sleep(CLOCK_MONOTONIC, sleep / 1000000000,
-                                 sleep % 1000000000);
-            BXIERR_CHAIN(err, err2);
-            err2 = bxitime_duration(CLOCK_MONOTONIC, start, &delay);
-            BXIERR_CHAIN(err, err2);
-            sleep *= 2;
-            tries++;
-//            fprintf(stderr,
-//                  "%s:%d - [#%d] sleep: %ld, delay=%f < %f\n",
-//                  __FILE__, __LINE__,
-//                  tries, sleep, delay, MAX_CONNECTION_TIMEOUT);
-        }
     }
     if (bxierr_isko(err)) {
         err2 = bxizmq_zocket_destroy(socket);
@@ -141,7 +78,79 @@ bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
         return err;
     }
     counter++;
+    if (NULL != affected_port)  *affected_port = rc;
     *result = socket;
+    return err;
+}
+
+bxierr_p bxizmq_zocket_connect(void * const ctx,
+                               const int type,
+                               const char * const url,
+                               void ** result) {
+    assert(NULL != ctx);
+    assert(NULL != url);
+    assert(NULL != result);
+    bxierr_p err = BXIERR_OK, err2;
+
+    void * socket = NULL;
+    err2 = _zmq_context_creation(ctx, type, &socket);
+    if (bxierr_isko(err2)) {
+        return err2;
+    }
+
+    long sleep = 128; // nanoseconds
+    struct timespec start;
+    err2 = bxitime_get(CLOCK_MONOTONIC, &start);
+    BXIERR_CHAIN(err, err2);
+    double delay = 0.0;
+    int tries = 0;
+    while(delay < MAX_CONNECTION_TIMEOUT) {
+        errno = 0;
+        int rc = zmq_connect(socket, url);
+        if (rc == 0) break;
+        if (errno != ECONNREFUSED) {
+            err2 = bxierr_errno("Can't connect zmq socket on %s", url);
+            BXIERR_CHAIN(err, err2);
+            break;
+        }
+        err2 = bxitime_sleep(CLOCK_MONOTONIC, sleep / 1000000000,
+                             sleep % 1000000000);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxitime_duration(CLOCK_MONOTONIC, start, &delay);
+        BXIERR_CHAIN(err, err2);
+        sleep *= 2;
+        tries++;
+    }
+    if (bxierr_isko(err)) {
+        err2 = bxizmq_zocket_destroy(socket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    counter++;
+    *result = socket;
+    return err;
+}
+
+
+bxierr_p bxizmq_zocket_setopt(void * socket,
+                              const int option_name,
+                              const void * const option_value,
+                              const size_t option_len
+                             ) {
+    assert(NULL != socket);
+    assert(NULL != option_value);
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+    const int rc = zmq_setsockopt(socket, option_name, option_value, option_len);
+    if (rc != 0) {
+        err2 = bxierr_errno("Can't set option %d on zmq socket",
+                            option_name);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(socket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
     return err;
 }
 
@@ -164,6 +173,9 @@ bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     counter--;
     return BXIERR_OK;
 }
+/*********************************** END Zocket ***********************************/
+
+/************************************* Msg ****************************************/
 
 
 // Initialize a ZMQ message
@@ -176,7 +188,7 @@ bxierr_p bxizmq_msg_init(zmq_msg_t * zmsg) {
 
 
 // Receive a ZMQ message
-bxierr_p bxizmq_rcv_msg(void * const zocket,
+bxierr_p bxizmq_msg_rcv(void * const zocket,
                         zmq_msg_t * zmsg,
                         int const flags) {
     errno = 0;
@@ -197,14 +209,14 @@ bxierr_p bxizmq_rcv_msg(void * const zocket,
  * given -- so all has to be sent); thus it liberates the server to serve the other
  * clients.
  */
-bxierr_p bxizmq_recv_async(void * const zocket, zmq_msg_t * const msg,
+bxierr_p bxizmq_msg_rcv_async(void * const zocket, zmq_msg_t * const msg,
                            size_t retries_max, const long delay_ns) {
 
     bxierr_p current = BXIERR_OK;
 
     while(retries_max-- > 0) {
         errno = 0;
-        bxierr_p tmp = bxizmq_rcv_msg(zocket, msg, ZMQ_DONTWAIT);
+        bxierr_p tmp = bxizmq_msg_rcv(zocket, msg, ZMQ_DONTWAIT);
         if (BXIERR_OK == tmp) return BXIERR_OK;
         BXIERR_CHAIN(current, tmp);
         if (current->code != EAGAIN) return current;
@@ -227,15 +239,24 @@ bxierr_p bxizmq_msg_close(zmq_msg_t * const zmsg) {
 
 
 // Copy a ZMQ message
-bxierr_p bxizmq_copy_msg(zmq_msg_t * const zmsg_src, zmq_msg_t * const zmsg_dst){
+bxierr_p bxizmq_msg_copy(zmq_msg_t * const zmsg_src, zmq_msg_t * const zmsg_dst){
     int rc = zmq_msg_copy(zmsg_dst, zmsg_src);
     if (rc != 0) return bxierr_errno("Problem while copying a zmsg");
 
     return BXIERR_OK;
 }
 
+inline bxierr_p bxizmq_msg_has_more(void * const zsocket, bool * const result) {
+    int64_t more = 0;
+    size_t more_size = sizeof(more);
+    int rc = zmq_getsockopt(zsocket, ZMQ_RCVMORE, &more, &more_size);
+    if (-1 == rc) return bxierr_errno("Can't call zmq_getsockopt()");
+    *result = more;
+    return BXIERR_OK;
+}
 
-bxierr_p bxizmq_snd_msg(zmq_msg_t * const zmsg,
+
+bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
                         void * const zocket, int flags,
                         const size_t retries_max, long delay_ns) {
     assert(NULL != zmsg);
@@ -298,23 +319,11 @@ bxierr_p bxizmq_snd_msg(zmq_msg_t * const zmsg,
 }
 
 
-bxierr_p  bxizmq_snd_msg_cpy(zmq_msg_t * const zmsg,
-                             void * const zocket, int flags,
-                             const size_t retries_max, long delay_ns) {
-    assert(NULL != zmsg);
-    assert(NULL != zocket);
-
-    zmq_msg_t copy;
-    errno = 0;
-    int rc = zmq_msg_copy(&copy, zmsg);
-    if (rc == -1) return bxierr_errno("Calling zmq_msg_copy() failed");
-
-    return bxizmq_snd_msg(zmsg, zocket, flags, retries_max, delay_ns);
-
-}
+/********************************* END Msg ****************************************/
+/*********************************  DATA   ****************************************/
 
 
-bxierr_p bxizmq_snd_data(void * const data, const size_t size,
+bxierr_p bxizmq_data_snd(void * const data, const size_t size,
                          void * const zocket, const int flags,
                          const size_t retries_max, long delay_ns) {
     assert(NULL != data);
@@ -324,14 +333,14 @@ bxierr_p bxizmq_snd_data(void * const data, const size_t size,
     int rc = zmq_msg_init_size(&msg, size);
     if (rc != 0) return bxierr_errno("Calling zmq_msg_init_size() failed");
     memcpy(zmq_msg_data(&msg), data, size);
-    bxierr_p current = bxizmq_snd_msg(&msg, zocket, flags, retries_max, delay_ns);
+    bxierr_p current = bxizmq_msg_snd(&msg, zocket, flags, retries_max, delay_ns);
     bxierr_p new = bxizmq_msg_close(&msg);
     BXIERR_CHAIN(current, new);
     return current;
 }
 
 
-bxierr_p bxizmq_snd_data_zc(const void * const data, const size_t size,
+bxierr_p bxizmq_data_snd_zc(const void * const data, const size_t size,
                             void * const zocket, int flags,
                             const size_t retries_max, long delay_ns,
                             zmq_free_fn * const ffn, void * const hint) {
@@ -342,7 +351,7 @@ bxierr_p bxizmq_snd_data_zc(const void * const data, const size_t size,
     int rc = zmq_msg_init_data(&msg, (void *)data, size, ffn, hint);
     if (0 != rc) return bxierr_errno("Calling zmq_msg_init_data() failed");
 
-    bxierr_p current = bxizmq_snd_msg(&msg, zocket, flags, retries_max, delay_ns);
+    bxierr_p current = bxizmq_msg_snd(&msg, zocket, flags, retries_max, delay_ns);
     bxierr_p new = bxizmq_msg_close(&msg);
     BXIERR_CHAIN(current, new);
 
@@ -350,52 +359,13 @@ bxierr_p bxizmq_snd_data_zc(const void * const data, const size_t size,
 
 }
 
-inline bxierr_p bxizmq_snd_str(char * const str, void * zsocket, int flags,
-                               size_t retries_max, long delay_ns) {
-    // Since we use strlen() it means the last '\0' is not sent!
-    // Therefore the corresponding rcv() function cannot rely on the
-    // received size to allocate the memory, it should allocate one byte more.
-    // See bxizmq_rcv_str() for details.
-    return bxizmq_snd_data(str, strlen(str), zsocket, flags, retries_max, delay_ns);
-}
-
-
-// Used by bxizmq_snd_str_zc() for freeing a simple mallocated string
-void bxizmq_simple_free(void * const data, void * const hint) {
-    UNUSED(hint);
-    BXIFREE(data);
-}
-
-
-inline bxierr_p bxizmq_snd_str_zc(const char * const str, void * zsocket, int flags,
-                                  size_t retries_max, long delay_ns) {
-    // Since we use strlen() it means the last '\0' is not sent!
-    // Therefore the corresponding rcv() function cannot rely on the
-    // received size to allocate the memory, it should allocate one byte more.
-    // See bxizmq_rcv_str() for details.
-    return bxizmq_snd_data_zc(str, strlen(str), zsocket, flags,
-                              retries_max, delay_ns,
-                              bxizmq_simple_free, NULL);
-}
-
-
-inline bxierr_p bxizmq_has_more_msg(void * const zsocket, bool * const result) {
-    int64_t more = 0;
-    size_t more_size = sizeof(more);
-    int rc = zmq_getsockopt(zsocket, ZMQ_RCVMORE, &more, &more_size);
-    if (-1 == rc) return bxierr_errno("Can't call zmq_getsockopt()");
-    *result = more;
-    return BXIERR_OK;
-}
-
-
-bxierr_p bxizmq_rcv_data(void ** result, const size_t expected_size,
+bxierr_p bxizmq_data_rcv(void ** result, const size_t expected_size,
                          void * const zsocket, const int flags,
                          const bool check_more, size_t * received_size) {
     bxierr_p current = BXIERR_OK, new;
     if (check_more) {
         bool more = false;
-        new = bxizmq_has_more_msg(zsocket, &more);
+        new = bxizmq_msg_has_more(zsocket, &more);
         if (BXIERR_OK != new) return new;
         if (!more) return bxierr_new(BXIZMQ_MISSING_FRAME_ERR,
                                      NULL,
@@ -451,9 +421,38 @@ END:
     if (received_size != NULL) *received_size = rcv_size;
     return current;
 }
+/********************************* END DATA ****************************************/
+/*********************************   STR    ****************************************/
+
+inline bxierr_p bxizmq_str_snd(char * const str, void * zsocket, int flags,
+                               size_t retries_max, long delay_ns) {
+    // Since we use strlen() it means the last '\0' is not sent!
+    // Therefore the corresponding rcv() function cannot rely on the
+    // received size to allocate the memory, it should allocate one byte more.
+    // See bxizmq_rcv_str() for details.
+    return bxizmq_data_snd(str, strlen(str), zsocket, flags, retries_max, delay_ns);
+}
 
 
-bxierr_p bxizmq_rcv_str(void * const zsocket, const int flags, const bool check_more,
+
+
+inline bxierr_p bxizmq_str_snd_zc(const char * const str, void * zsocket, int flags,
+                                  size_t retries_max, long delay_ns) {
+    // Since we use strlen() it means the last '\0' is not sent!
+    // Therefore the corresponding rcv() function cannot rely on the
+    // received size to allocate the memory, it should allocate one byte more.
+    // See bxizmq_rcv_str() for details.
+    return bxizmq_data_snd_zc(str, strlen(str), zsocket, flags,
+                              retries_max, delay_ns,
+                              bxizmq_data_free, NULL);
+}
+
+
+
+
+
+
+bxierr_p bxizmq_str_rcv(void * const zsocket, const int flags, const bool check_more,
                         char ** result) {
     // This function cannot use the bximisc_rcv_msg() since the amount of data sent
     // for a string is strlen(): the last '\0' is not sent therefore!
@@ -462,7 +461,7 @@ bxierr_p bxizmq_rcv_str(void * const zsocket, const int flags, const bool check_
     bxierr_p current = BXIERR_OK;
     if (check_more) {
         bool more = false;
-        current = bxizmq_has_more_msg(zsocket, &more);
+        current = bxizmq_msg_has_more(zsocket, &more);
         if (BXIERR_OK != current) return current;
         if (!more) return bxierr_new(BXIZMQ_MISSING_FRAME_ERR,
                                      NULL,
@@ -505,4 +504,49 @@ bxierr_p bxizmq_rcv_str(void * const zsocket, const int flags, const bool check_
     BXIERR_CHAIN(current, new);
 
     return current;
+}
+/********************************* END STR  ****************************************/
+
+// *********************************************************************************
+// **************************** Static function ************************************
+// *********************************************************************************
+// 
+bxierr_p _zmq_context_creation(void * const ctx, const int type, void ** result) {
+    assert(NULL != ctx);
+    assert(NULL != result);
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+    void * socket = zmq_socket(ctx, type);
+    if (socket == NULL) return bxierr_errno("Can't create a zmq socket of type %d", type);
+    int _hwm = 0 ;
+    errno = 0;
+    int rc = zmq_setsockopt(socket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
+    if (rc != 0) {
+        err2 = bxierr_errno("Can't set option ZMQ_RCVHWM=%d "
+                            "on zmq socket", _hwm);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(socket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    errno = 0;
+    rc = zmq_setsockopt(socket, ZMQ_SNDHWM, &_hwm, sizeof(_hwm));
+    if (rc != 0) {
+        err2 = bxierr_errno("Can't set option ZMQ_SNDHWM=%d "
+                            "on zmq socket", _hwm);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(socket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+    *result = socket;
+    return BXIERR_OK;
+
+}
+
+// Used by bxizmq_snd_str_zc() for freeing a simple mallocated string
+void bxizmq_data_free(void * const data, void * const hint) {
+    UNUSED(hint);
+    BXIFREE(data);
 }

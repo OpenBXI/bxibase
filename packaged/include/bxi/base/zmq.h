@@ -57,20 +57,47 @@
  * @param ctx the zeromq context
  * @param type the type of zeromq socket to create
  * @param url the url to connect to or bind to
- * @param bind whether the socket should be bind or connect to the given url
- * @param set_option whether an option should be set on the created socket
+ * @param affected_port is the port selected by zmq for addresses like 'tcp://*:!'
+ * @param self the newly created socket (NULL on error)
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_bind(void * const ctx,
+                           const int type,
+                           const char * const url,
+                           int  * affected_port,
+                           void ** self);
+
+/**
+ * Create a zmq socket, connect to the given url and an hwm (high water mark) to 0.
+ *
+ * Any error encountered leads to a NULL pointer returned.
+ *
+ * @param ctx the zeromq context
+ * @param type the type of zeromq socket to create
+ * @param url the url to connect to or bind to
+ * @param self the newly created socket (NULL on error)
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_connect(void * const ctx,
+                               const int type,
+                               const char * const url,
+                               void ** self);
+/**
+ * set the specified option on the zmq socket
+ *
+ * @param self socket on which the option should be apply
  * @param option_name the name of the option
  * @param option_value the value of the option
  * @param option_len the length of the option value
- * @param result the newly created socket (NULL on error)
+ *
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_new(void * const ctx, const int type,
-                           const char * const url, const bool bind,
-                           const bool set_option,
-                           const int option_name,
-                           const void * const option_value,
-                           const size_t option_len, void ** result);
+bxierr_p bxizmq_zocket_setopt(void * self,
+                              const int option_name,
+                              const void * const option_value,
+                              const size_t option_len
+                             );
 
 
 /**
@@ -124,7 +151,7 @@ bxierr_p bxizmq_msg_close(zmq_msg_t * zmsg);
  *         `bxierr(code=BXIZMQ_RETRIES_MAX_ERR, data=(size_t) retries_nb)`
  *         among others.
  */
-bxierr_p bxizmq_snd_msg(zmq_msg_t * zmsg,
+bxierr_p bxizmq_msg_snd(zmq_msg_t * zmsg,
                         void * zocket, int flags,
                         const size_t retries_max, long delay_ns);
 
@@ -135,7 +162,7 @@ bxierr_p bxizmq_snd_msg(zmq_msg_t * zmsg,
  * @param zmsg_dst the zeromq message destination
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_copy_msg(zmq_msg_t * zmsg_src, zmq_msg_t * zmsg_dst);
+bxierr_p bxizmq_msg_copy(zmq_msg_t * zmsg_src, zmq_msg_t * zmsg_dst);
 
 
 /**
@@ -146,7 +173,7 @@ bxierr_p bxizmq_copy_msg(zmq_msg_t * zmsg_src, zmq_msg_t * zmsg_dst);
  * @param flags the zeromq flag
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_rcv_msg(void * zocket, zmq_msg_t * zmsg, int flags);
+bxierr_p bxizmq_msg_rcv(void * zocket, zmq_msg_t * zmsg, int flags);
 
 
 /**
@@ -168,25 +195,20 @@ bxierr_p bxizmq_rcv_msg(void * zocket, zmq_msg_t * zmsg, int flags);
  *         `bxierr(code=BXIZMQ_RETRIES_MAX_ERR, data=(size_t) retries_nb)`
  *         among others
  */
-bxierr_p bxizmq_recv_async(void *zocket, zmq_msg_t *msg,
+bxierr_p bxizmq_msg_rcv_async(void *zocket, zmq_msg_t *msg,
                            size_t retries_max, long delay_ns);
 
+
 /**
- * Send a copy of the given zmsg.
+ * Return true if the next frame the given zocket will received comes
+ * from a multipart message.
  *
- * See `bxizmq_snd_msg()` for other parameters description.
+ * @param zocket the zeromq socket
+ * @param result a pointer on the result
  *
- * @param zmsg
- * @param zocket
- * @param flags
- * @param retries_max
- * @param delay_ns
  * @return BXIERR_OK on success
- * @see bxizmq_snd_msg()
  */
-bxierr_p bxizmq_snd_msg_cpy(zmq_msg_t * zmsg,
-                            void * zocket, int flags,
-                            const size_t retries_max, long delay_ns);
+bxierr_p bxizmq_msg_has_more(void *zocket, bool* result);
 
 /*
  * Try asynchronous sending of the given *data through the given zocket.
@@ -205,16 +227,16 @@ bxierr_p bxizmq_snd_msg_cpy(zmq_msg_t * zmsg,
 /**
  * Send the given data through the given zeromq socket.
  *
- * See bxizmq_snd_msg() for details on parameters and returned code.
+ * See bxizmq_msg_snd() for details on parameters and returned code.
  *
  * Usage:
  *
  *      int i = 12345;
  *      // Synchronous send
- *      bxierr_p err = bxizmq_snd_msg(&i, sizeof(int), socket, 0, 0, 0);
+ *      bxierr_p err = bxizmq_msg_snd(&i, sizeof(int), socket, 0, 0, 0);
  *      assert(BXIERR_OK == retries);
  *      // Asynchronous send, 4 retries, sleep 1us
- *      err = bxizmq_snd_msg(&i, sizeof(int), socket, ZMQ_DONTWAIT, 4, 1000);
+ *      err = bxizmq_msg_snd(&i, sizeof(int), socket, ZMQ_DONTWAIT, 4, 1000);
  *      assert(BXIERR_OK || 4 >= (size_t) err.data);
  *
  * @param data the data to send
@@ -226,34 +248,25 @@ bxierr_p bxizmq_snd_msg_cpy(zmq_msg_t * zmsg,
  *
  * @return BXIERR_OK on success
  *
- * @see bxizmq_snd_msg()
+ * @see bxizmq_msg_snd()
  */
-bxierr_p bxizmq_snd_data(void * data, size_t size, void * zocket,
+bxierr_p bxizmq_data_snd(void * data, size_t size, void * zocket,
                          int flags, size_t retries_max,
                          long delay_ns);
 
 
 
 /**
- * Function utility to be used with bximisc_snd_data_zc()
- * and bxizmq_snd_str_zc() functions.
- *
- * @param data the data to free
- * @param hint unused
- */
-void bxizmq_simple_free(void * data, void * hint);
-
-/**
- * Equivalent to bxizmq_snd_msg() but with zero copy.
+ * Equivalent to bxizmq_msg_snd() but with zero copy.
  *
  * This means that the given *data pointer should not be used afterwards!
  *
  * The given data will be freed using the given 'ffn' function with the data
  * and the given hint in parameter. If you need a simple free(data)
- * without the hint, use bxizmq_simple_free() as in the following:
+ * without the hint, use bxizmq_data_free() as in the following:
  *
  *      bxizmq_snd_msg_zc(data, size, zocket, flags, retries_max, delay_ns,
- *                        bxizmq_simple_free, NULL);
+ *                        bxizmq_data_free, NULL);
  *
  * @param data the data to send
  * @param size the size of the data
@@ -265,48 +278,12 @@ void bxizmq_simple_free(void * data, void * hint);
  * @param hint any data usefull for the given function `ffn`
  *
  * @return BXIERR_OK on success
- * @see bxizmq_snd_msg()
+ * @see bxizmq_msg_snd()
  */
-bxierr_p bxizmq_snd_data_zc(const void * data, size_t size, void * zocket,
+bxierr_p bxizmq_data_snd_zc(const void * data, size_t size, void * zocket,
                             int flags, size_t retries_max,
                             long delay_ns,
                             zmq_free_fn *ffn, void *hint);
-
-
-/**
- * Send the given string through the given zocket with the given ZMQ flags.
- *
- *
- * @param str the NULL terminated string to send
- * @param zocket the zeromq socket to send the string with
- * @param flags some zeromq flags
- * @param retries_max the maximum number of retries
- * @param delay_ns the maximum number of nanoseconds to wait between two retries
- *
- * @return BXIERR_OK on success
- *
- * @see bxizmq_snd_msg()
- */
-bxierr_p bxizmq_snd_str(char * const str, void * zocket, int flags,
-                        size_t retries_max, long delay_ns);
-
-
-/**
- * Send the given string through the given zocket with the given ZMQ flags without
- * performing a copy. The given string should not be modified after this call.
- *
- * @param str the NULL terminated string to send
- * @param zocket the zeromq socket to send the string with
- * @param flags some zeromq flags
- * @param retries_max the maximum number of retries
- * @param delay_ns the maximum number of nanoseconds to wait between two retries
- *
- * @return BXIERR_OK on success
- *
- * @see bxizmq_snd_msg()
- */
-bxierr_p bxizmq_snd_str_zc(const char * const str, void * zocket, int flags,
-                           size_t retries_max, long delay_ns);
 
 /**
  * Receive a zmq message through the given zocket with the given ZMQ flags,
@@ -352,9 +329,47 @@ bxierr_p bxizmq_snd_str_zc(const char * const str, void * zocket, int flags,
  * @param received_size the actual size of the received data
  * @return BXIERR_OK on success, bxierr(code=BXIZMQ_MISSING_FRAME_ERR) among others.
  */
-bxierr_p bxizmq_rcv_data(void ** result, size_t expected_size,
+bxierr_p bxizmq_data_rcv(void ** result, size_t expected_size,
                          void * zocket, int flags,
                          bool check_more, size_t *received_size);
+
+
+
+/**
+ * Send the given string through the given zocket with the given ZMQ flags.
+ *
+ *
+ * @param str the NULL terminated string to send
+ * @param zocket the zeromq socket to send the string with
+ * @param flags some zeromq flags
+ * @param retries_max the maximum number of retries
+ * @param delay_ns the maximum number of nanoseconds to wait between two retries
+ *
+ * @return BXIERR_OK on success
+ *
+ * @see bxizmq_msg_snd()
+ */
+bxierr_p bxizmq_str_snd(char * const str, void * zocket, int flags,
+                        size_t retries_max, long delay_ns);
+
+
+/**
+ * Send the given string through the given zocket with the given ZMQ flags without
+ * performing a copy. The given string should not be modified after this call.
+ *
+ * @param str the NULL terminated string to send
+ * @param zocket the zeromq socket to send the string with
+ * @param flags some zeromq flags
+ * @param retries_max the maximum number of retries
+ * @param delay_ns the maximum number of nanoseconds to wait between two retries
+ *
+ * @return BXIERR_OK on success
+ *
+ * @see bxizmq_msg_snd()
+ */
+bxierr_p bxizmq_str_snd_zc(const char * const str, void * zocket, int flags,
+                           size_t retries_max, long delay_ns);
+
 
 /**
  * Receive a string through the given zocket with the given ZMQ flags.
@@ -374,9 +389,9 @@ bxierr_p bxizmq_rcv_data(void ** result, size_t expected_size,
  *
  *      char * frame0, frame1, frame2;
  *      bxierr_p err0, err1, err2;
- *      err0 = bxizmq_rcv_str(zocket, 0, false, &frame0);
- *      err1 = bxizmq_rcv_str(zocket, 0, true, &frame1);
- *      err2 = bxizmq_rcv_str(zocket, 0, true, &frame2);
+ *      err0 = bxizmq_str_rcv(zocket, 0, false, &frame0);
+ *      err1 = bxizmq_str_rcv(zocket, 0, true, &frame1);
+ *      err2 = bxizmq_str_rcv(zocket, 0, true, &frame2);
  *      ...
  *      BXIFREE(frame0);
  *      BXIFREE(frame1);
@@ -390,18 +405,15 @@ bxierr_p bxizmq_rcv_data(void ** result, size_t expected_size,
  *
  * @return BXIERR_OK on success, any other bxierr otherwise
  */
-bxierr_p bxizmq_rcv_str(void * zocket, int flags, bool check_more, char ** result);
-
+bxierr_p bxizmq_str_rcv(void * zocket, int flags, bool check_more, char ** result);
 
 /**
- * Return true if the next frame the given zocket will received comes
- * from a multipart message.
+ * Function utility to be used with bximisc_snd_data_zc()
+ * and bxizmq_snd_str_zc() functions.
  *
- * @param zocket the zeromq socket
- * @param result a pointer on the result
- *
- * @return BXIERR_OK on success
+ * @param data the data to free
+ * @param hint unused
  */
-bxierr_p bxizmq_has_more_msg(void *zocket, bool* result);
+void bxizmq_data_free(void * data, void * hint);
 
 #endif /* BXIZMQ_H_ */
