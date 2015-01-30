@@ -57,7 +57,7 @@
  * @param ctx the zeromq context
  * @param type the type of zeromq socket to create
  * @param url the url to connect to or bind to
- * @param affected_port is the port selected by zmq for addresses like 'tcp://*:!'
+ * @param affected_port is the port selected by zmq for addresses like 'tcp://localhost:!'
  * @param self the newly created socket (NULL on error)
  * @return BXIERR_OK on success, any other on failure.
  */
