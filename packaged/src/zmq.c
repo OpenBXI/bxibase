@@ -14,6 +14,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include <zmq.h>
 
@@ -23,12 +24,14 @@
 #include "bxi/base/time.h"
 #include "bxi/base/zmq.h"
 
+
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
 
 #define DEFAULT_CLOSING_LINGER 1000u
 #define MAX_CONNECTION_TIMEOUT 1.0     // seconds
+#define INPROC_PROTO "inproc"
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -59,7 +62,9 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     assert(NULL != ctx);
     assert(NULL != url);
     assert(NULL != result);
-    bxierr_p err = BXIERR_OK, err2;
+    bxierr_p err = BXIERR_OK, err2, err3;
+
+    unsigned long port = 0;
 
     void * socket = NULL;
     err2 = _zmq_context_creation(ctx, type, &socket);
@@ -77,8 +82,52 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         BXIERR_CHAIN(err, err2);
         return err;
     }
+
+    char endpoint[512];
+    endpoint[0] = '\0';
+
+    if (NULL != affected_port && strncmp(url, INPROC_PROTO, ARRAYLEN(INPROC_PROTO) - 1) != 0)
+    {
+        assert(NULL != socket);
+        size_t endpoint_len = 512;
+        errno = 0 ;
+
+        rc = zmq_getsockopt(socket, ZMQ_LAST_ENDPOINT, &endpoint, &endpoint_len);
+        if (rc == -1) {
+            if (errno == EINVAL || errno == ETERM || errno == ENOTSOCK || errno == EINTR)
+            {
+                err2 = bxierr_errno("Can't retrieve the zocket endpoint option");
+                BXIERR_CHAIN(err, err2);
+            }
+        }
+    }
+
+    if (NULL != endpoint && strlen(endpoint) > 0)
+    {
+        char * ptr = strrchr(endpoint, ':');
+        if (NULL == ptr)
+        {
+            err2 = bxierr_errno("Unable to retrieve the binded port number");
+            BXIERR_CHAIN(err, err2);
+        }
+        char * endptr = NULL;
+        errno = 0;
+        port = strtoul(ptr+1, &endptr, 10);
+        if (errno == ERANGE) {
+            err2 = bxizmq_zocket_destroy(socket);
+            err3 = bxierr_errno("Unable to parse integer in: '%s'", ptr+1);
+            BXIERR_CHAIN(err3, err2);
+            BXIERR_CHAIN(err, err2);
+            return err;
+        }
+    }
+
     counter++;
-    if (NULL != affected_port)  *affected_port = rc;
+    if (0 != port)
+    {
+        *affected_port = (int) port;
+    }
+    //if (NULL != affected_port)  *affected_port = rc;
     *result = socket;
     return err;
 }
