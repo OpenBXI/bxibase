@@ -72,6 +72,26 @@ class BXICError(BXIError):
         cause = cause_p[0]
 
     @staticmethod
+    def is_ko(bxierr_p):
+        """
+        Test if the given ::bxierr_p is ko.
+
+        @param[in] bxierr_p the ::bxierr_p
+        @return boolean
+        """
+        _bxibase_api.bxierr_isko(bxierr_p)
+
+    @staticmethod
+    def is_ok(bxierr_p):
+        """
+        Test if the given ::bxierr_p is ok.
+
+        @param[in] bxierr_p the ::bxierr_p
+        @return boolean
+        """
+        _bxibase_api.bxierr_isok(bxierr_p)
+
+    @staticmethod
     def raise_if_ko(bxierr_p):
         """
         Raise a BXICError if the given ::bxierr_p is ko.
