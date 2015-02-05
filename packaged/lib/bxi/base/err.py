@@ -79,7 +79,7 @@ class BXICError(BXIError):
         @param[in] bxierr_p the ::bxierr_p
         @return boolean
         """
-        _bxibase_api.bxierr_isko(bxierr_p)
+        return _bxibase_api.bxierr_isko(bxierr_p)
 
     @staticmethod
     def is_ok(bxierr_p):
@@ -89,7 +89,7 @@ class BXICError(BXIError):
         @param[in] bxierr_p the ::bxierr_p
         @return boolean
         """
-        _bxibase_api.bxierr_isok(bxierr_p)
+        return _bxibase_api.bxierr_isok(bxierr_p)
 
     @staticmethod
     def raise_if_ko(bxierr_p):
