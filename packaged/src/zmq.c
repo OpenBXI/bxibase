@@ -579,6 +579,7 @@ bxierr_p _zmq_context_creation(void * const ctx, const int type, void ** result)
         return err;
     }
 
+    _hwm = 0;
     errno = 0;
     rc = zmq_setsockopt(socket, ZMQ_SNDHWM, &_hwm, sizeof(_hwm));
     if (rc != 0) {

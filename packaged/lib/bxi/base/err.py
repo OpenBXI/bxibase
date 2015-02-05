@@ -57,6 +57,21 @@ class BXICError(BXIError):
                                                                       self.message)
 
     @staticmethod
+    def chain(cause, err):
+        """
+        Chain the err with the cause and change cause for the global err
+
+        @param[inout] cause the original error
+        @param[in]    err the last error generated
+        """
+        err_p = _bxibase_ffi.new('bxierr_p[1]')
+        err_p[0] = err
+        cause_p = _bxibase_ffi.new('bxierr_p[1]')
+        cause_p[0] = cause
+        _bxibase_api.bxierr_chain(cause_p, err_p)
+        cause = cause_p[0]
+
+    @staticmethod
     def raise_if_ko(bxierr_p):
         """
         Raise a BXICError if the given ::bxierr_p is ko.

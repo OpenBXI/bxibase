@@ -17,6 +17,7 @@
 #ifndef BXICFFI
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
 #endif
@@ -132,22 +133,9 @@
  *      // The err pointer points to the last error and is chained with all others.
  *      return err;
  */
-#define BXIERR_CHAIN(current, new) do {\
-            assert(NULL != (current));\
-            assert(NULL != (new));\
-            if (bxierr_isko((current)) && bxierr_isko((new))) {\
-                if (NULL != new->cause) {\
-                    char * __str__ = bxierr_str((new));\
-                    fprintf(stderr, \
-                            "WARNING: Cannot chain two chains of errors. "\
-                            "Making current the data of new. Current is: %s", __str__);\
-                    BXIFREE(__str__);\
-                    new->data = &(current);\
-                    new->free_fn = (void (*) (void*)) bxierr_destroy;\
-                } else (new)->cause = (current);\
-            }\
-            (current) = bxierr_isko((new)) ? (new) : (current);\
-        } while(0)
+#define BXIERR_CHAIN(current, new) do {     \
+        bxierr_chain(&current, &new);       \
+    } while(0)
 
 /**
  * Produce a backtrace in the given `file` (a FILE* object).
@@ -363,10 +351,35 @@ inline bool bxierr_isko(bxierr_p self) {
 inline char * bxierr_str(bxierr_p self) {
     return bxierr_str_limit(self, BXIERR_ALL_CAUSES);
 }
+
+/**
+ * Chain the new error (err) with the current one (cause) and adapt the current error accordingly.
+ *
+ * @param cause an error which is at the origin of err
+ * @param err the last generated error
+ *
+ */
+inline void bxierr_chain(bxierr_p *cause, const bxierr_p *err) {
+            assert(NULL != (err));
+            assert(NULL != (cause));
+            if (bxierr_isko((*cause)) && bxierr_isko((*err))) {
+                if (NULL != (*err)->cause) {
+                    char * __str__ = bxierr_str((*err));
+                    fprintf(stderr,
+                            "WARNING: Cannot chain two chains of errors. "
+                            "Making *cause the data of *err. Current is: %s", __str__);
+                    BXIFREE(__str__);
+                    (*err)->data = &(*cause);
+                    (*err)->free_fn = (void (*) (void*)) bxierr_destroy;
+                } else (*err)->cause = (*cause);
+            }
+            (*cause) = bxierr_isko((*err)) ? (*err) : (*cause);
+}
 #else
 bool bxierr_isok(bxierr_p self);
 bool bxierr_isko(bxierr_p self);
 char * bxierr_str(bxierr_p self);
+void bxierr_chain(bxierr_p *cause, const bxierr_p *err);
 #endif
 
 /**
