@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <assert.h>
 #endif
 #include <bxi/base/mem.h>
 
