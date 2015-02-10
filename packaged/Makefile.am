@@ -21,5 +21,5 @@ lib_libbxibase_la_CFLAGS=\
 lib_libbxibase_la_LIBADD=$(LIB_LIBS)
 
 
-SUBDIRS=lib include doc
+SUBDIRS=include lib doc
 
