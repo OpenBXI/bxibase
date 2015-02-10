@@ -18,7 +18,7 @@ nobase_include_HEADERS = \
 	for i in $^; do \
 		echo "#include <$$i>";\
 		done > cffi.h
-	C_INCLUDE_PATH=$(top_srcdir)/packaged/include $(top_srcdir)/h2py.sh cffi.h $@ 
+	C_INCLUDE_PATH=$(top_srcdir)/packaged/include $(top_srcdir)/h2py.sh -I. -I$(srcdir) cffi.h $@
 
 
 all-local: ../lib/bxi/base/cffi_h.py
