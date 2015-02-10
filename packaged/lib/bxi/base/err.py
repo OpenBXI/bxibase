@@ -13,7 +13,6 @@ This module exposes all BXI Exception classes.
 
 """
 
-from bxi.base.err_h import C_DEF as ERR_DEF
 from bxi.base import get_bxibase_ffi
 from bxi.base import get_bxibase_api
 

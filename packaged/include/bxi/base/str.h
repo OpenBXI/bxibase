@@ -14,8 +14,10 @@
 #ifndef BXISTR_H_
 #define BXISTR_H_
 
+#ifndef BXICFFI
 #include <stdlib.h>
 #include <stdarg.h>
+#endif
 
 /**
  * @file    str.h
@@ -63,6 +65,8 @@ char * bxistr_new(const char * fmt, ...)
     __attribute__ ((format (printf, 1, 2)))
 #endif
                              ;
+
+#ifndef BXICFFI
 /**
  * Create a message from the given printf style `fmt` parameter.
  *
@@ -79,6 +83,7 @@ char * bxistr_new(const char * fmt, ...)
  * @return
  */
 size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
+#endif
 
 
 #endif /* BXISTR_H_ */

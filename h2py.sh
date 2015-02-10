@@ -12,7 +12,7 @@
 #
 
 usage () {
-    echo "$(basename ${0}) header.h output.py"
+    echo "$(basename ${0}) [gcc-options] header1.h ... headerN.h output.py"
 }
 
 help() {
@@ -24,40 +24,30 @@ help() {
     echo -e ""
 }
 
-_HEADER=""
+_HEADERS=""
 _OUTPUT=""
 
 
 # Parsing arguments
-while [ ${#} -gt 0 ]
-do
-    case ${1} in
-        --help|-h)
-            usage
-            help
-            exit 0
-            ;;
-        *)
-            if [ -z "${_HEADER}" ]
-            then
-                _HEADER=${1}
-            else
-                _OUTPUT=${1}
-            fi
-    esac
-    shift
-done
+#while [ ${#} -gt 0 ]
+#do
+#    case ${1} in
+#        --help|-h)
+#            usage
+#            help
+#            exit 0
+#            ;;
+#done
 
-if [ -z "${_HEADER}" -o -z "${_OUTPUT}" ]
+N=$((${#}-1))
+_HEADERS=${*:1:$N}
+LAST=$(($N+1))
+_OUTPUT=${*:$LAST:$LAST}
+
+if [ -z "${_HEADERS}" -o -z "${_OUTPUT}" ]
 then
     usage >&2
     exit 1
-fi
-
-if [ ! -e "${_HEADER}" ]
-then
-    echo "The given file does not exist! File: '${_HEADER}'" >&2
-    exit 2
 fi
 
 # Converting the header
@@ -79,8 +69,10 @@ EOF
 
 sed "s/%%YEAR%%/$(date +%Y)/" -i "${_OUTPUT}"
 
-gcc -DBXICFFI -E -D__GNUC__=0 -w ${_HEADER} | grep -v '^#' | sed '/^$/d;N' >> "${_OUTPUT}"
-#gcc -DBXICFFI -E -D__GNUC__=0 -w ${_HEADER} | sed '/^$/d;N' >> "${_OUTPUT}"
+#gcc -DBXICFFI -E -D__GNUC__=0 -w ${_HEADERS} | grep -v '^#' | sed '/^$/d;N' >> "${_OUTPUT}"
+#gcc -DBXICFFI -E -D__GNUC__=0 -w ${_HEADERS} | grep -v '^#' | sed '/^$/d;N' >> "${_OUTPUT}"
+gcc -DBXICFFI -E -D__GNUC__=0 -w ${_HEADERS} | sed '/^$/d;N' >> "${_OUTPUT}"
+#gcc -DBXICFFI -E -D__GNUC__=0 -w ${_HEADERS} | sed '/^$/d;N' >> "${_OUTPUT}"
 rc=${?}
 
 cat >> "${_OUTPUT}" <<EOF

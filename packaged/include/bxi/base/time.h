@@ -15,7 +15,9 @@
 #define BXITIME_H_
 
 
+#ifndef BXICFFI
 #include <time.h>
+#endif
 
 #include "bxi/base/err.h"
 

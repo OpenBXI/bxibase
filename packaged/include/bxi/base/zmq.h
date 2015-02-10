@@ -15,10 +15,12 @@
 #ifndef BXIZMQ_H_
 #define BXIZMQ_H_
 
+#ifndef BXICFFI
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <zmq.h>
+#endif
 
 #include <bxi/base/err.h>
 

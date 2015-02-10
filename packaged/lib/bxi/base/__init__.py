@@ -15,7 +15,7 @@ from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
 from cffi import FFI
-from bxi.base.log_h import C_DEF as LOG_DEF
+from bxi.base.cffi_h import C_DEF as LOG_DEF
 
 __bxibase_ffi__ = FFI()
 __bxibase_ffi__.cdef(LOG_DEF)
