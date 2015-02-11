@@ -63,11 +63,11 @@ class BXICError(BXIError):
         @param[inout] cause the original error
         @param[in]    err the last error generated
         """
-        err_p = _bxibase_ffi.new('bxierr_p[1]')
+        err_p = _BXIBASE_FFI.new('bxierr_p[1]')
         err_p[0] = err
-        cause_p = _bxibase_ffi.new('bxierr_p[1]')
+        cause_p = _BXIBASE_FFI.new('bxierr_p[1]')
         cause_p[0] = cause
-        _bxibase_api.bxierr_chain(cause_p, err_p)
+        _BXIBASE_CAPI.bxierr_chain(cause_p, err_p)
         cause = cause_p[0]
 
     @staticmethod
@@ -78,7 +78,7 @@ class BXICError(BXIError):
         @param[in] bxierr_p the ::bxierr_p
         @return boolean
         """
-        return _bxibase_api.bxierr_isko(bxierr_p)
+        return _BXIBASE_CAPI.bxierr_isko(bxierr_p)
 
     @staticmethod
     def is_ok(bxierr_p):
@@ -88,7 +88,7 @@ class BXICError(BXIError):
         @param[in] bxierr_p the ::bxierr_p
         @return boolean
         """
-        return _bxibase_api.bxierr_isok(bxierr_p)
+        return _BXIBASE_CAPI.bxierr_isok(bxierr_p)
 
     @staticmethod
     def raise_if_ko(bxierr_p):
