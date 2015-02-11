@@ -14,16 +14,38 @@
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
+
 from cffi import FFI
-from bxi.base.cffi_h import C_DEF as LOG_DEF
+from cffi.api import CDefError
 
-__bxibase_ffi__ = FFI()
-__bxibase_ffi__.cdef(LOG_DEF)
-__bxibase_api__ = __bxibase_ffi__.dlopen('libbxibase.so')
+from bxi.base.cffi_h import C_DEF
 
-def get_bxibase_ffi():
-    return __bxibase_ffi__
+__FFI__ = FFI()
+__FFI__.cdef(C_DEF)
+__CAPI__ = __FFI__.dlopen('libbxibase.so')
 
-def get_bxibase_api():
-    return __bxibase_api__
+
+def include_if_required(other_ffi):
+    try:
+        other_ffi.getctype("bxilog_p")
+    except CDefError as ffi:
+        other_ffi.cdef(C_DEF)
+
+
+def get_ffi():
+    """
+    Return the ffi object used by this module to interact with the C backend.
+
+    @return the ffi object used by this module to interact with the C backend.
+    """
+    return __FFI__
+
+
+def get_capi():
+    """
+    Return the CFFI wrapped C library.
+
+    @return the CFFI wrapped C library.
+    """
+    return __CAPI__
 

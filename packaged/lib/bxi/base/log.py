@@ -92,14 +92,13 @@ import sys
 import traceback
 import warnings
 
-from bxi.base import get_bxibase_api
-from bxi.base import get_bxibase_ffi
+import bxi.base as bxibase
 from bxi.base.err import BXICError, BXILogConfigError
 
 
 # Find the C library
-_bxibase_ffi = get_bxibase_ffi()
-_bxibase_api = get_bxibase_api()
+_BXIBASE_FFI = bxibase.get_ffi()
+_BXIBASE_CAPI = bxibase.get_capi()
 
 # WARNING, in the following, the formatting of the documentation should remain as it is
 # in order to be correctly processed by doxygen. This is a doxygen bug.
@@ -108,40 +107,40 @@ _bxibase_api = get_bxibase_api()
 # documentation.
 
 ## @see ::BXILOG_PANIC
-PANIC = _bxibase_api.BXILOG_PANIC
+PANIC = _BXIBASE_CAPI.BXILOG_PANIC
 
 ## @see ::BXILOG_ALERT
-ALERT = _bxibase_api.BXILOG_ALERT  # #!< See foo.
+ALERT = _BXIBASE_CAPI.BXILOG_ALERT  # #!< See foo.
 
 ## @see ::BXILOG_CRITICAL
-CRITICAL = _bxibase_api.BXILOG_CRITICAL
+CRITICAL = _BXIBASE_CAPI.BXILOG_CRITICAL
 
 ## @see ::BXILOG_CRITICAL
-ERROR = _bxibase_api.BXILOG_ERROR
+ERROR = _BXIBASE_CAPI.BXILOG_ERROR
 
 ## @see ::BXILOG_WARNING
-WARNING = _bxibase_api.BXILOG_WARNING
+WARNING = _BXIBASE_CAPI.BXILOG_WARNING
 
 ## @see ::BXILOG_NOTICE
-NOTICE = _bxibase_api.BXILOG_NOTICE
+NOTICE = _BXIBASE_CAPI.BXILOG_NOTICE
 
 ## @see ::BXILOG_OUTPUT
-OUTPUT = _bxibase_api.BXILOG_OUTPUT
+OUTPUT = _BXIBASE_CAPI.BXILOG_OUTPUT
 
 ## @see ::BXILOG_INFO
-INFO = _bxibase_api.BXILOG_INFO
+INFO = _BXIBASE_CAPI.BXILOG_INFO
 
 ## @see ::BXILOG_DEBUG
-DEBUG = _bxibase_api.BXILOG_DEBUG
+DEBUG = _BXIBASE_CAPI.BXILOG_DEBUG
 
 ## @see ::BXILOG_FINE
-FINE = _bxibase_api.BXILOG_FINE
+FINE = _BXIBASE_CAPI.BXILOG_FINE
 
 ## @see ::BXILOG_TRACE
-TRACE = _bxibase_api.BXILOG_TRACE
+TRACE = _BXIBASE_CAPI.BXILOG_TRACE
 
 ## @see ::BXILOG_LOWEST
-LOWEST = _bxibase_api.BXILOG_LOWEST
+LOWEST = _BXIBASE_CAPI.BXILOG_LOWEST
 
 #
 # _SRCFILE is used when walking the stack to check when we've got the first
@@ -173,7 +172,7 @@ Default configuration items.
 
 @see ::basicConfig()
 """
-DEFAULT_CFG_ITEMS = [('', _bxibase_api.BXILOG_LOWEST)]
+DEFAULT_CFG_ITEMS = [('', _BXIBASE_CAPI.BXILOG_LOWEST)]
 
 
 def _findCaller():
@@ -232,7 +231,8 @@ def basicConfig(**kwargs):
     @param[in] kwargs named parameters as described above
 
     @return
-    @exception bxi.base.err.BXILogConfigError if the logging system as already been initialized
+    @exception bxi.base.err.BXILogConfigError if the logging system as
+               already been initialized
     """
     if _INITIALIZED:
         raise BXILogConfigError("The bxilog has already been initialized. "
@@ -268,21 +268,21 @@ def _configure_loggers(cfg_items):
     @param[in] cfg_items a list of tuple (prefix, level)
     @return
     """
-    cffi_items = _bxibase_ffi.new('bxilog_cfg_item_s[%d]' % len(cfg_items))
+    cffi_items = _BXIBASE_FFI.new('bxilog_cfg_item_s[%d]' % len(cfg_items))
     prefixes = [None] * len(cfg_items)
     for i in xrange(len(cfg_items)):
-        # cffi_items[i].prefix = _bxibase_ffi.new('char[]', cfg_items[i][0])
-        prefixes[i] = _bxibase_ffi.new('char[]', cfg_items[i][0])
+        # cffi_items[i].prefix = _BXIBASE_FFI.new('char[]', cfg_items[i][0])
+        prefixes[i] = _BXIBASE_FFI.new('char[]', cfg_items[i][0])
         cffi_items[i].prefix = prefixes[i]
         try:
             cffi_items[i].level = int(cfg_items[i][1])
         except (TypeError, ValueError):
-            level_p = _bxibase_ffi.new('bxilog_level_e[1]')
-            bxierr_p = _bxibase_api.bxilog_get_level_from_str(cfg_items[i][1], level_p)
+            level_p = _BXIBASE_FFI.new('bxilog_level_e[1]')
+            bxierr_p = _BXIBASE_CAPI.bxilog_get_level_from_str(cfg_items[i][1], level_p)
             BXICError.raise_if_ko(bxierr_p)
             cffi_items[i].level = level_p[0]
 
-    bxierr_p = _bxibase_api.bxilog_cfg_registered(len(cfg_items), cffi_items)
+    bxierr_p = _BXIBASE_CAPI.bxilog_cfg_registered(len(cfg_items), cffi_items)
     BXICError.raise_if_ko(bxierr_p)
     prefixes = None
 
@@ -306,13 +306,13 @@ def _init():
         # Configure loggers first, since init() produces logs that the user
         # might not want to see
         _configure_loggers(_CONFIG['cfg_items'])
-        bxierr_p = _bxibase_api.bxilog_init(os.path.basename(sys.argv[0]),
+        bxierr_p = _BXIBASE_CAPI.bxilog_init(os.path.basename(sys.argv[0]),
                                             _CONFIG['filename'])
         BXICError.raise_if_ko(bxierr_p)
         atexit.register(cleanup)
         _INITIALIZED = True
         if _CONFIG['setsighandler']:
-            bxierr_p = _bxibase_api.bxilog_install_sighandler()
+            bxierr_p = _BXIBASE_CAPI.bxilog_install_sighandler()
             BXICError.raise_if_ko(bxierr_p)
 
         sio = StringIO()
@@ -333,10 +333,10 @@ def get_logger(name):
     @return the BXILogger instance with the given name
     """
     for logger in get_all_loggers_iter():
-        if _bxibase_ffi.string(logger.clogger.name) == name:
+        if _BXIBASE_FFI.string(logger.clogger.name) == name:
             return logger
-    logger = _bxibase_api.bxilog_new(name)
-    _bxibase_api.bxilog_register(logger)
+    logger = _BXIBASE_CAPI.bxilog_new(name)
+    _BXIBASE_CAPI.bxilog_register(logger)
 
     return BXILogger(logger)
 
@@ -352,7 +352,7 @@ def cleanup(flush=True):
     global _CONFIG
     global _DEFAULT_LOGGER
     if _INITIALIZED:
-        bxierr_p = _bxibase_api.bxilog_finalize(flush)
+        bxierr_p = _BXIBASE_CAPI.bxilog_finalize(flush)
         BXICError.raise_if_ko(bxierr_p)
     _INITIALIZED = False
     _DEFAULT_LOGGER = None
@@ -365,7 +365,7 @@ def flush():
 
     @return
     """
-    bxierr_p = _bxibase_api.bxilog_flush()
+    bxierr_p = _BXIBASE_CAPI.bxilog_flush()
     BXICError.raise_if_ko(bxierr_p)
 
 
@@ -375,10 +375,10 @@ def get_all_level_names_iter():
 
     @return
     """
-    names = _bxibase_ffi.new("char ***")
-    nb = _bxibase_api.bxilog_get_all_level_names(names)
+    names = _BXIBASE_FFI.new("char ***")
+    nb = _BXIBASE_CAPI.bxilog_get_all_level_names(names)
     for i in xrange(nb):
-        yield _bxibase_ffi.string(names[0][i])
+        yield _BXIBASE_FFI.string(names[0][i])
 
 
 def get_all_loggers_iter():
@@ -387,8 +387,8 @@ def get_all_loggers_iter():
 
     @return
     """
-    loggers = _bxibase_ffi.new("bxilog_p **")
-    nb = _bxibase_api.bxilog_get_registered(loggers)
+    loggers = _BXIBASE_FFI.new("bxilog_p **")
+    nb = _BXIBASE_CAPI.bxilog_get_registered(loggers)
     for i in xrange(nb):
         yield BXILogger(loggers[0][i])
 
@@ -502,6 +502,7 @@ def output(msg, *args, **kwargs):
     """
     _get_default_logger().output(msg, *args, **kwargs)
 
+out = output
 
 def info(msg, *args, **kwargs):
     """
@@ -588,11 +589,11 @@ def exception(exception, msg="", *args, **kwargs):
     _get_default_logger().exception(exception, msg, *args, **kwargs)
 
 
-## Provide a compatible API with the standard Python logging module
+# Provide a compatible API with the standard Python logging module
 getLogger = get_logger
 
 
-## Provide a compatible API with the standard Python logging module
+# Provide a compatible API with the standard Python logging module
 warn = warning
 
 
@@ -626,7 +627,7 @@ class BXILogger(object):
         @exception BXICError if an error occurred at the underlying C layer
         """
         _init()
-        if _bxibase_api.bxilog_is_enabled_for(self.clogger, level):
+        if _BXIBASE_CAPI.bxilog_is_enabled_for(self.clogger, level):
             exc_str = ''
             if 'exc_info' in kwargs:
                 ei = sys.exc_info()
@@ -639,14 +640,14 @@ class BXILogger(object):
                 exc_str = '- Exception: %s' % exc_s
             msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
             filename, lineno, funcname = _findCaller()
-            bxierr_p = _bxibase_api.bxilog_log_nolevelcheck(self.clogger,
-                                                            level,
-                                                            filename,
-                                                            len(filename) + 1,
-                                                            funcname,
-                                                            len(funcname) + 1,
-                                                            lineno,
-                                                            msg_str)
+            bxierr_p = _BXIBASE_CAPI.bxilog_log_nolevelcheck(self.clogger,
+                                                             level,
+                                                             filename,
+                                                             len(filename) + 1,
+                                                             funcname,
+                                                             len(funcname) + 1,
+                                                             lineno,
+                                                             msg_str)
             BXICError.raise_if_ko(bxierr_p)
 
     def set_level(self, level):
@@ -668,7 +669,7 @@ class BXILogger(object):
         @see ::TRACE
         @see ::LOWEST
         """
-        _bxibase_api.bxilog_set_level(self.clogger, level)
+        _BXIBASE_CAPI.bxilog_set_level(self.clogger, level)
 
     def is_enabled_for(self, level):
         """
@@ -677,7 +678,7 @@ class BXILogger(object):
         @param[in] level the logging level to check against
         @return True if this logger is enabled for the given logging level.
         """
-        return _bxibase_api.bxilog_is_enabled_for(self.clogger, level)
+        return _BXIBASE_CAPI.bxilog_is_enabled_for(self.clogger, level)
 
     def panic(self, msg, *args, **kwargs):
         """
@@ -836,18 +837,20 @@ class BXILogger(object):
         kwargs['exc_info'] = True
         self.log(ERROR, msg, *args, **kwargs)
 
-    ## Provide a compatible API with the standard Python logging module
+    # Provide a compatible API with the standard Python logging module
     setLevel = set_level
 
-    ## Provide a compatible API with the standard Python logging module
+    # Provide a compatible API with the standard Python logging module
     isEnabledFor = is_enabled_for
 
-    ## Provide a compatible API with the standard Python logging module
+    # Provide a compatible API with the standard Python logging module
     warn = warning
+    out = output
 
 
 # Warnings integration - taken from the standard Python logging module
 _warnings_showwarning = None
+
 
 def _showwarning(message, category, filename, lineno, file=None, line=None):
     """

@@ -13,12 +13,12 @@ This module exposes all BXI Exception classes.
 
 """
 
-from bxi.base import get_bxibase_ffi
-from bxi.base import get_bxibase_api
+import bxi.base as bxibase
 
-# Find the shared BXI _bxibase_ffi
-_bxibase_ffi = get_bxibase_ffi()
-_bxibase_api = get_bxibase_api()
+
+# Find the shared BXI _BXIBASE_FFI
+_BXIBASE_FFI = bxibase.get_ffi()
+_BXIBASE_CAPI = bxibase.get_capi()
 
 
 class BXIError(Exception):
@@ -45,11 +45,11 @@ class BXICError(BXIError):
 
         @param[in] bxierr_p a ::bxierr_p C pointer
         """
-        errstr = _bxibase_ffi.string(_bxibase_api.bxierr_str(bxierr_p))
+        errstr = _BXIBASE_FFI.string(_BXIBASE_CAPI.bxierr_str(bxierr_p))
         super(BXICError, self).__init__(errstr)
-        self.bxierr_pp = _bxibase_ffi.new('bxierr_p[1]')
+        self.bxierr_pp = _BXIBASE_FFI.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
-        _bxibase_ffi.gc(self.bxierr_pp, _bxibase_api.bxierr_destroy)
+        _BXIBASE_FFI.gc(self.bxierr_pp, _BXIBASE_CAPI.bxierr_destroy)
 
     def __str__(self):
         return self.__class__.__name__ + '[bxierr_p: %s, msg: %s]' % (self.bxierr_pp[0],
@@ -99,7 +99,7 @@ class BXICError(BXIError):
         @return
         @exception BXICError the corresponding BXICError if the given ::bxierr_p is ko.
         """
-        if _bxibase_api.bxierr_isko(bxierr_p):
+        if _BXIBASE_CAPI.bxierr_isko(bxierr_p):
             raise BXICError(bxierr_p)
 
 
