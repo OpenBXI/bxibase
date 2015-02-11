@@ -14,7 +14,6 @@
 #ifndef BXITIME_H_
 #define BXITIME_H_
 
-
 #ifndef BXICFFI
 #include <time.h>
 #endif
