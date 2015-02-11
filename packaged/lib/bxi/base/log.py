@@ -106,40 +106,40 @@ _BXIBASE_CAPI = bxibase.get_capi()
 # normally, as other functions documentations) appears correctly in the doxygen generated
 # documentation.
 
-## @see ::BXILOG_PANIC
+# # @see ::BXILOG_PANIC
 PANIC = _BXIBASE_CAPI.BXILOG_PANIC
 
-## @see ::BXILOG_ALERT
+# # @see ::BXILOG_ALERT
 ALERT = _BXIBASE_CAPI.BXILOG_ALERT  # #!< See foo.
 
-## @see ::BXILOG_CRITICAL
+# # @see ::BXILOG_CRITICAL
 CRITICAL = _BXIBASE_CAPI.BXILOG_CRITICAL
 
-## @see ::BXILOG_CRITICAL
+# # @see ::BXILOG_CRITICAL
 ERROR = _BXIBASE_CAPI.BXILOG_ERROR
 
-## @see ::BXILOG_WARNING
+# # @see ::BXILOG_WARNING
 WARNING = _BXIBASE_CAPI.BXILOG_WARNING
 
-## @see ::BXILOG_NOTICE
+# # @see ::BXILOG_NOTICE
 NOTICE = _BXIBASE_CAPI.BXILOG_NOTICE
 
-## @see ::BXILOG_OUTPUT
+# # @see ::BXILOG_OUTPUT
 OUTPUT = _BXIBASE_CAPI.BXILOG_OUTPUT
 
-## @see ::BXILOG_INFO
+# # @see ::BXILOG_INFO
 INFO = _BXIBASE_CAPI.BXILOG_INFO
 
-## @see ::BXILOG_DEBUG
+# # @see ::BXILOG_DEBUG
 DEBUG = _BXIBASE_CAPI.BXILOG_DEBUG
 
-## @see ::BXILOG_FINE
+# # @see ::BXILOG_FINE
 FINE = _BXIBASE_CAPI.BXILOG_FINE
 
-## @see ::BXILOG_TRACE
+# # @see ::BXILOG_TRACE
 TRACE = _BXIBASE_CAPI.BXILOG_TRACE
 
-## @see ::BXILOG_LOWEST
+# # @see ::BXILOG_LOWEST
 LOWEST = _BXIBASE_CAPI.BXILOG_LOWEST
 
 #
@@ -197,10 +197,10 @@ def _findCaller():
 
 def parse_cfg_items(cfgitems):
     """
-    Return a list of tuples (prefix, level) 
+    Return a list of tuples (prefix, level)
     from a string representation of the logging system configuration items.
 
-    @param[in] cfgitems a string reprenting a list of configuration items such as: 
+    @param[in] cfgitems a string reprenting a list of configuration items such as:
                ':output,bxi.log:debug'
     @return a list of tuples (prefix, level)
     @exception ValueError if the string cannot be parsed according to the
@@ -210,7 +210,7 @@ def parse_cfg_items(cfgitems):
 
     for item in cfgitems.split(','):
         if ':' not in item:
-            raise ValueError("Bad logging configuration pattern, ':' expected in %s" % \
+            raise ValueError("Bad logging configuration pattern, ':' expected in %s" %
                              cfgitems)
         prefix, level = item.split(':')
         result.append((prefix, level))
@@ -299,7 +299,7 @@ def _init():
 
     if not _INITIALIZED:
         if _CONFIG is None:
-            _CONFIG = {'filename':'-',
+            _CONFIG = {'filename': '-',
                        'cfg_items': DEFAULT_CFG_ITEMS,
                        'setsighandler': True,
                        }
@@ -503,6 +503,7 @@ def output(msg, *args, **kwargs):
     _get_default_logger().output(msg, *args, **kwargs)
 
 out = output
+
 
 def info(msg, *args, **kwargs):
     """
@@ -852,7 +853,7 @@ class BXILogger(object):
 _warnings_showwarning = None
 
 
-def _showwarning(message, category, filename, lineno, file=None, line=None):
+def _showwarning(message, category, filename, lineno, _file=None, line=None):
     """
     Implementation of showwarnings which redirects to logging, which will first
     check to see if the file parameter is None. If a file is specified, it will
@@ -860,9 +861,9 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
     it will call warnings.formatwarning and will log the resulting string to a
     warnings logger named "py.warnings" with level logging.WARNING.
     """
-    if file is not None:
+    if _file is not None:
         if _warnings_showwarning is not None:
-            _warnings_showwarning(message, category, filename, lineno, file, line)
+            _warnings_showwarning(message, category, filename, lineno, _file, line)
     else:
         s = warnings.formatwarning(message, category, filename, lineno, line)
         getLogger("py.warnings").warning("%s", s)
