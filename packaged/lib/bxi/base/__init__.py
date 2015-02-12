@@ -14,31 +14,15 @@
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
-
-from cffi import FFI
 from cffi.api import CDefError
 
 from bxi.base.cffi_h import C_DEF
 
-__FFI__ = FFI()
-__FFI__.cdef(C_DEF)
-__CAPI__ = __FFI__.dlopen('libbxibase.so')
+import bxi.ffi as bxiffi
 
+bxiffi.add_cdef_for_type('bxilog_p', C_DEF)
 
-def include_if_required(other_ffi):
-    try:
-        other_ffi.getctype("bxilog_p")
-    except CDefError as ffi:
-        other_ffi.cdef(C_DEF)
-
-
-def get_ffi():
-    """
-    Return the ffi object used by this module to interact with the C backend.
-
-    @return the ffi object used by this module to interact with the C backend.
-    """
-    return __FFI__
+__CAPI__ = bxiffi.get_ffi().dlopen('libbxiutil.so')
 
 
 def get_capi():

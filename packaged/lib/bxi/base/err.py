@@ -13,12 +13,12 @@ This module exposes all BXI Exception classes.
 
 """
 
+import bxi.ffi as bxiffi
 import bxi.base as bxibase
 
-
-# Find the shared BXI _BXIBASE_FFI
-_BXIBASE_FFI = bxibase.get_ffi()
-_BXIBASE_CAPI = bxibase.get_capi()
+# Find the C library
+__FFI__ = bxiffi.get_ffi()
+__BXIBASE_CAPI__ = bxibase.get_capi()
 
 
 class BXIError(Exception):
@@ -45,11 +45,11 @@ class BXICError(BXIError):
 
         @param[in] bxierr_p a ::bxierr_p C pointer
         """
-        errstr = _BXIBASE_FFI.string(_BXIBASE_CAPI.bxierr_str(bxierr_p))
+        errstr = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
         super(BXICError, self).__init__(errstr)
-        self.bxierr_pp = _BXIBASE_FFI.new('bxierr_p[1]')
+        self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
-        _BXIBASE_FFI.gc(self.bxierr_pp, _BXIBASE_CAPI.bxierr_destroy)
+        __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
 
     def __str__(self):
         return self.__class__.__name__ + '[bxierr_p: %s, msg: %s]' % (self.bxierr_pp[0],
@@ -63,11 +63,11 @@ class BXICError(BXIError):
         @param[inout] cause the original error
         @param[in]    err the last error generated
         """
-        err_p = _BXIBASE_FFI.new('bxierr_p[1]')
+        err_p = __FFI__.new('bxierr_p[1]')
         err_p[0] = err
-        cause_p = _BXIBASE_FFI.new('bxierr_p[1]')
+        cause_p = __FFI__.new('bxierr_p[1]')
         cause_p[0] = cause
-        _BXIBASE_CAPI.bxierr_chain(cause_p, err_p)
+        __BXIBASE_CAPI__.bxierr_chain(cause_p, err_p)
         cause = cause_p[0]
 
     @staticmethod
@@ -78,7 +78,7 @@ class BXICError(BXIError):
         @param[in] bxierr_p the ::bxierr_p
         @return boolean
         """
-        return _BXIBASE_CAPI.bxierr_isko(bxierr_p)
+        return __BXIBASE_CAPI__.bxierr_isko(bxierr_p)
 
     @staticmethod
     def is_ok(bxierr_p):
@@ -88,7 +88,7 @@ class BXICError(BXIError):
         @param[in] bxierr_p the ::bxierr_p
         @return boolean
         """
-        return _BXIBASE_CAPI.bxierr_isok(bxierr_p)
+        return __BXIBASE_CAPI__.bxierr_isok(bxierr_p)
 
     @staticmethod
     def raise_if_ko(bxierr_p):
@@ -99,7 +99,7 @@ class BXICError(BXIError):
         @return
         @exception BXICError the corresponding BXICError if the given ::bxierr_p is ko.
         """
-        if _BXIBASE_CAPI.bxierr_isko(bxierr_p):
+        if __BXIBASE_CAPI__.bxierr_isko(bxierr_p):
             raise BXICError(bxierr_p)
 
 
