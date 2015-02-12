@@ -664,7 +664,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
 
         // Warning: recursive call!
         LOWEST(BXILOG_INTERNAL_LOGGER,
-              "Not enough space to log inside tsd log_buf (%d > %zu),"
+              "Not enough space to log inside tsd log_buf (%d < %zu),"
               " mallocating a new one",
               DEFAULT_LOG_BUF_SIZE, logmsg_len);
     }
