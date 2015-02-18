@@ -22,7 +22,7 @@ import bxi.ffi as bxiffi
 
 bxiffi.add_cdef_for_type('bxilog_p', C_DEF)
 
-__CAPI__ = bxiffi.get_ffi().dlopen('libbxiutil.so')
+__CAPI__ = bxiffi.get_ffi().dlopen('libbxibase.so')
 
 
 def get_capi():
