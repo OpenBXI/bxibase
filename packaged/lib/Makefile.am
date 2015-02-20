@@ -14,8 +14,8 @@ nobase_python_PYTHON=\
 
 
 #File present inside build and source folder should be install with a special rule
-bxidir==$(pythondir)/bxi
-bxibasedir==$(pythondir)/bxi/base
+bxidir=$(pythondir)/bxi
+bxibasedir=$(pythondir)/bxi/base
 bxi_PYTHON=\
 		   $(srcdir)/bxi/__init__.py 
 bxibase_PYTHON=\
