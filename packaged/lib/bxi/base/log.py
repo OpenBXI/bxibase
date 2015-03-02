@@ -78,7 +78,7 @@ Log levels
 
 This API provides a much richer set of logging levels, inspired by the standard POSIX
 syslog facility (from ::PANIC to ::NOTICE), and enhanced with
-lower detailed levels (from ::OUTPUT to ::LOWEST).
+lower detailed levels (from ::OUT to ::LOWEST).
 See the ::bxilog_level_e documentation of the underlying C API log.h
 for details on those levels.
 
@@ -492,7 +492,7 @@ def notice(msg, *args, **kwargs):
 
 def output(msg, *args, **kwargs):
     """
-    Log the given message at the ::OUTPUT logging level using the default logger.
+    Log the given message at the ::OUT logging level using the default logger.
 
     @param[in] msg the message to log
     @param[in] args the message arguments if any
@@ -664,7 +664,7 @@ class BXILogger(object):
         @see ::ERROR
         @see ::WARNING
         @see ::NOTICE
-        @see ::OUTPUT
+        @see ::OUT
         @see ::INFO
         @see ::DEBUG
         @see ::FINE
@@ -756,7 +756,7 @@ class BXILogger(object):
 
     def output(self, msg, *args, **kwargs):
         """
-        Log at the ::OUTPUT level the given msg.
+        Log at the ::OUT level the given msg.
 
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg

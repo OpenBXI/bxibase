@@ -62,6 +62,7 @@ class BXICError(BXIError):
 
         @param[inout] cause the original error
         @param[in]    err the last error generated
+        @return
         """
         err_p = __FFI__.new('bxierr_p[1]')
         err_p[0] = err
