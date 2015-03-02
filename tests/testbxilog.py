@@ -178,8 +178,9 @@ class BXILogTest(unittest.TestCase):
 
     def test_sighandler(self):
         """Unit test for mantis#19501"""
+        fnull = open(os.devnull, 'w')
         exe = os.path.join(os.path.dirname(__file__), "simple_bxilog_user.py")
-        p = subprocess.Popen([exe])
+        p = subprocess.Popen([exe], stderr=fnull)
         time.sleep(0.5)
         rc = p.poll()
         self.assertIsNone(rc, None)
