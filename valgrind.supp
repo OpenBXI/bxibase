@@ -68,7 +68,6 @@
 {
    <can_t_resolve_properly_sigalt_stack_malloc>
    Memcheck:Leak
-   match-leak-kinds: definite
    fun:calloc
    fun:bximem_calloc
    fun:bxilog_install_sighandler
