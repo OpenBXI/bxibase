@@ -369,9 +369,6 @@ static pthread_once_t ATFORK_ONCE = PTHREAD_ONCE_INIT;
 
 static pthread_mutex_t register_lock = PTHREAD_MUTEX_INITIALIZER;
 
-// Used by bxilog_install_sighandler()
-static char* _SIGSTACK_BUF[SIGSTKSZ];
-
 bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -613,10 +610,7 @@ bxierr_p bxilog_flush(void) {
                           "Wrong message received in reply to %s: %s. Expecting: %s",
                           FLUSH_CTRL_MSG_REQ, reply, FLUSH_CTRL_MSG_REP);
     }
-    // This last trace is useless since on exit, the internal thread might have
-    // already flushed already and exited, therefore this last message won't
-    // be send or receive, leading to error probably.
-    //    DEBUG(BXILOG_INTERNAL_LOGGER, "flush() done");
+    DEBUG(BXILOG_INTERNAL_LOGGER, "flush() done");
     BXIFREE(reply);
     return BXIERR_OK;
 }
@@ -841,9 +835,9 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
 // Asynchronous signals should be handled by the initializer thread
 // and this thread is the only one allowed to call bxilog_finalize(true)
 bxierr_p bxilog_install_sighandler(void) {
-    // Allocate a special signa stack for SIGSEGV and the like
+    // Allocate a special signal stack for SIGSEGV and the like
     stack_t sigstack;
-    sigstack.ss_sp = _SIGSTACK_BUF;
+    sigstack.ss_sp = bximem_calloc(SIGSTKSZ);
     sigstack.ss_size = SIGSTKSZ;
     sigstack.ss_flags = 0;
     errno = 0;
@@ -1839,6 +1833,8 @@ void _display_err_msg(char* msg) {
     // command such as 'cmd 2>&1 |head')...
     // assert(n > 0);
     UNUSED(n);
+    const char const details_msg[] = "\nSee bxilog for details.\n";
+    n = write(STDERR_FILENO, details_msg, ARRAYLEN(details_msg));
 }
 
 // Handler of Signals (such as SIGSEGV, ...)
@@ -1868,7 +1864,11 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     CRITICAL(BXILOG_INTERNAL_LOGGER, "%s", str);
     BXIFREE(str);
     // Flush all logs before terminating -> ask the iht to stop.
-    bxierr_p err = _end_iht();
+    bxierr_p err = BXIERR_OK, err2;
+    err2 = bxilog_flush();
+    BXIERR_CHAIN(err, err2);
+    err2 = _end_iht();
+    BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) _display_err_msg("Error while processing signal.\n");
 
     // Wait some time before exiting

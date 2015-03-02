@@ -240,7 +240,7 @@
  */
 #define BXIUNREACHABLE_STATEMENT_CODE 666 // Devil's code! ;-)
 
-#define BXIBUG_STD_MSG "This is a bug and should be reported as such.\n"                \
+#define BXIBUG_STD_MSG "\nThis is a bug and should be reported as such.\n"                \
                        "In your report, do not omit the following informations:\n"      \
                        "\t- version of the product;\n"                                  \
                        "\t- full command line arguments;\n"                             \

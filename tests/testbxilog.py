@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 ###############################################################################
-# Author: Sébastien Miquée <sebastien.miquee@bull.net>
+# Author: Pierre Vignéras <pierre.vigneras@bull.net>
 ###############################################################################
 # Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
 # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
@@ -10,9 +10,11 @@
 ###############################################################################
 """Unit tests of BXI Log Python library.
 """
-###############################################################################
 
-import os, time
+
+import __main__
+import os, time, signal
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -20,7 +22,8 @@ import unittest
 from bxi.base.err import BXICError
 import bxi.base.log as bxilog
 
-FILENAME = "%s.bxilog" % __name__
+BASENAME = os.path.basename(__main__.__file__)
+FILENAME = "%s.bxilog" % os.path.splitext(BASENAME)[0]
 
 
 class BXILogTest(unittest.TestCase):
@@ -171,6 +174,19 @@ class BXILogTest(unittest.TestCase):
                                  'This message must also appear in file %s', FILENAME)
         self._check_log_produced(FILENAME, bxilog.output,
                                  "This message must also appear in file %s", FILENAME)
+
+
+    def test_sighandler(self):
+        """Unit test for mantis#19501"""
+        exe = os.path.join(os.path.dirname(__file__), "simple_bxilog_user.py")
+        p = subprocess.Popen([exe])
+        time.sleep(0.5)
+        rc = p.poll()
+        self.assertIsNone(rc, None)
+        p.send_signal(signal.SIGTERM)
+        time.sleep(0.5)
+        rc = p.wait()
+        self.assertEquals(rc, -signal.SIGTERM)
 
 ###############################################################################
 

@@ -34,7 +34,7 @@
 // *********************************************************************************
 #define OK_MSG "No problem found - everything is ok"
 
-#define BACKTRACE_MAX 8192
+#define BACKTRACE_MAX 64 // Number of maximum depth of a backtrace
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -218,7 +218,6 @@ char * bxierr_backtrace_str(void) {
     }
     void *addresses[BACKTRACE_MAX];
     int c = backtrace(addresses, BACKTRACE_MAX);
-
     errno = 0;
     char **symbols = backtrace_symbols(addresses,c);
     char **strings = _pretty_backtrace(addresses, (unsigned long) c);
@@ -230,7 +229,11 @@ char * bxierr_backtrace_str(void) {
     bxierr_p err = bxilog_get_thread_rank(&tid);
     if (BXIERR_OK != err) tid = -1;
 #endif
-    fprintf(faked_file, "#### Backtrace of tid %u: %d function calls ####\n", tid, c);
+    const char const * truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
+
+    fprintf(faked_file,
+            "#### Backtrace of tid %u: %d function calls %s####\n",
+            tid, c, truncated);
     for(int i = 0; i < c; i++) {
         fprintf(faked_file, "#### [%2d] %s\n", i,
                 NULL == strings[i] ? symbols[i] : strings[i]);
