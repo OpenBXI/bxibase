@@ -10,4 +10,5 @@ encoding//packaged/lib/bxi/base/__init__.py=utf-8
 encoding//packaged/lib/bxi/base/err.py=utf-8
 encoding//packaged/lib/bxi/base/log.py=utf-8
 encoding//packaged/lib/bxi/ffi.py=utf-8
+encoding//tests/simple_bxilog_user.py=utf-8
 encoding//tests/testbxilog.py=utf-8
