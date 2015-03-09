@@ -643,13 +643,13 @@ class BXILogger(object):
             msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
             filename, lineno, funcname = _findCaller()
             bxierr_p = __BXIBASE_CAPI__.bxilog_log_nolevelcheck(self.clogger,
-                                                             level,
-                                                             filename,
-                                                             len(filename) + 1,
-                                                             funcname,
-                                                             len(funcname) + 1,
-                                                             lineno,
-                                                             msg_str)
+                                                                level,
+                                                                filename,
+                                                                len(filename) + 1,
+                                                                funcname,
+                                                                len(funcname) + 1,
+                                                                lineno,
+                                                                msg_str)
             BXICError.raise_if_ko(bxierr_p)
 
     def set_level(self, level):
