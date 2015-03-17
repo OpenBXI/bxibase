@@ -229,7 +229,7 @@ char * bxierr_backtrace_str(void) {
     bxierr_p err = bxilog_get_thread_rank(&tid);
     if (BXIERR_OK != err) tid = -1;
 #endif
-    const char const * truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
+    const char * const truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
 
     fprintf(faked_file,
             "##bt## Backtrace of tid %u: %d function calls %s\n",

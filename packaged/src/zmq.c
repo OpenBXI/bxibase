@@ -86,27 +86,23 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     char endpoint[512];
     endpoint[0] = '\0';
 
-    if (NULL != affected_port && strncmp(url, INPROC_PROTO, ARRAYLEN(INPROC_PROTO) - 1) != 0)
-    {
+    if (NULL != affected_port && strncmp(url, INPROC_PROTO, ARRAYLEN(INPROC_PROTO) - 1) != 0) {
         assert(NULL != socket);
         size_t endpoint_len = 512;
         errno = 0 ;
 
         rc = zmq_getsockopt(socket, ZMQ_LAST_ENDPOINT, &endpoint, &endpoint_len);
         if (rc == -1) {
-            if (errno == EINVAL || errno == ETERM || errno == ENOTSOCK || errno == EINTR)
-            {
+            if (errno == EINVAL || errno == ETERM || errno == ENOTSOCK || errno == EINTR) {
                 err2 = bxierr_errno("Can't retrieve the zocket endpoint option");
                 BXIERR_CHAIN(err, err2);
             }
         }
     }
 
-    if (NULL != endpoint && strlen(endpoint) > 0)
-    {
+    if (strlen(endpoint) > 0) {
         char * ptr = strrchr(endpoint, ':');
-        if (NULL == ptr)
-        {
+        if (NULL == ptr) {
             err2 = bxierr_errno("Unable to retrieve the binded port number");
             BXIERR_CHAIN(err, err2);
         }
@@ -123,8 +119,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     }
 
     counter++;
-    if (0 != port)
-    {
+    if (0 != port) {
         *affected_port = (int) port;
     }
     //if (NULL != affected_port)  *affected_port = rc;
@@ -559,7 +554,7 @@ bxierr_p bxizmq_str_rcv(void * const zsocket, const int flags, const bool check_
 // *********************************************************************************
 // **************************** Static function ************************************
 // *********************************************************************************
-// 
+//
 bxierr_p _zmq_context_creation(void * const ctx, const int type, void ** result) {
     assert(NULL != ctx);
     assert(NULL != result);

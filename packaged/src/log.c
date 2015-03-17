@@ -1833,7 +1833,7 @@ void _display_err_msg(char* msg) {
     // command such as 'cmd 2>&1 |head')...
     // assert(n > 0);
     UNUSED(n);
-    const char const details_msg[] = "\nSee bxilog for details.\n";
+    const char details_msg[] = "\nSee bxilog for details.\n";
     n = write(STDERR_FILENO, details_msg, ARRAYLEN(details_msg));
 }
 
