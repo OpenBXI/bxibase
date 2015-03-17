@@ -232,14 +232,14 @@ char * bxierr_backtrace_str(void) {
     const char const * truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
 
     fprintf(faked_file,
-            "#### Backtrace of tid %u: %d function calls %s####\n",
+            "##bt## Backtrace of tid %u: %d function calls %s\n",
             tid, c, truncated);
     for(int i = 0; i < c; i++) {
-        fprintf(faked_file, "#### [%2d] %s\n", i,
+        fprintf(faked_file, "##bt## [%02d] %s\n", i,
                 NULL == strings[i] ? symbols[i] : strings[i]);
         BXIFREE(strings[i]);
     }
-    fprintf(faked_file,"#### Backtrace end ####\n");
+    fprintf(faked_file,"##bt## Backtrace end\n");
     fclose(faked_file);
     BXIFREE(symbols);
     BXIFREE(strings);

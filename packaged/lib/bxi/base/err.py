@@ -103,6 +103,11 @@ class BXICError(BXIError):
         if __BXIBASE_CAPI__.bxierr_isko(bxierr_p):
             raise BXICError(bxierr_p)
 
+    @staticmethod
+    def errno2bxierr(msg):
+        return __BXIBASE_CAPI__.bxierr_fromidx(__BXIBASE_CAPI__.errno,
+                                               __FFI__.NULL, "%s", msg)
+
 
 class BXILogConfigError(BXIError):
     """
