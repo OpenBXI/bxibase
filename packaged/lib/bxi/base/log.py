@@ -237,10 +237,17 @@ def basicConfig(**kwargs):
     """
     if _INITIALIZED:
         raise BXILogConfigError("The bxilog has already been initialized. "
-                                "Its configuration cannot be changed. "
-                                "Call cleanup() before. For your convenience, "
+                                "Its configuration cannot be changed."
+                                "\nAvailable solutions:"
+                                "\n\t1. Do not perform a log at module level, "
+                                "and the configuration afterwards;"
+                                "\n\t2. Do no perform a log unless is_configured()"
+                                " returns True;"
+                                "\n\t3. Call cleanup() to reinitialize the whole "
+                                "bxilog library (Note: you might need a reconfiguration)."
+                                "\nFor your convenience, "
                                 "the following stacktrace might help finding out where "
-                                "the first _init() call  was made: %s" % _INIT_CALLER,
+                                "the first _init() call  was made:\n %s" % _INIT_CALLER,
                                 kwargs)
     global _CONFIG
 
@@ -298,28 +305,27 @@ def _init():
     global _CONFIG
     global _INIT_CALLER
 
-    if not _INITIALIZED:
-        if _CONFIG is None:
-            _CONFIG = {'filename': '-',
-                       'cfg_items': DEFAULT_CFG_ITEMS,
-                       'setsighandler': True,
-                       }
-        # Configure loggers first, since init() produces logs that the user
-        # might not want to see
-        _configure_loggers(_CONFIG['cfg_items'])
-        bxierr_p = __BXIBASE_CAPI__.bxilog_init(os.path.basename(sys.argv[0]),
+    if _CONFIG is None:
+        _CONFIG = {'filename': '-',
+                   'cfg_items': DEFAULT_CFG_ITEMS,
+                   'setsighandler': True,
+                   }
+    # Configure loggers first, since init() produces logs that the user
+    # might not want to see
+    _configure_loggers(_CONFIG['cfg_items'])
+    bxierr_p = __BXIBASE_CAPI__.bxilog_init(os.path.basename(sys.argv[0]),
                                             _CONFIG['filename'])
+    BXICError.raise_if_ko(bxierr_p)
+    atexit.register(cleanup)
+    _INITIALIZED = True
+    if _CONFIG['setsighandler']:
+        bxierr_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
         BXICError.raise_if_ko(bxierr_p)
-        atexit.register(cleanup)
-        _INITIALIZED = True
-        if _CONFIG['setsighandler']:
-            bxierr_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
-            BXICError.raise_if_ko(bxierr_p)
 
-        sio = StringIO()
-        traceback.print_stack(file=sio)
-        _INIT_CALLER = sio.getvalue()
-        sio.close()
+    sio = StringIO()
+    traceback.print_stack(file=sio)
+    _INIT_CALLER = sio.getvalue()
+    sio.close()
 
 
 def get_logger(name):
@@ -628,7 +634,8 @@ class BXILogger(object):
 
         @exception BXICError if an error occurred at the underlying C layer
         """
-        _init()
+        if not _INITIALIZED:
+            _init()
         if __BXIBASE_CAPI__.bxilog_is_enabled_for(self.clogger, level):
             exc_str = ''
             if 'exc_info' in kwargs:
