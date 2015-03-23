@@ -84,6 +84,7 @@ for details on those levels.
 
 """
 
+
 import atexit
 from cStringIO import StringIO
 import cStringIO
@@ -216,6 +217,13 @@ def parse_cfg_items(cfgitems):
         prefix, level = item.split(':')
         result.append((prefix, level))
     return result
+
+
+def is_configured():
+    """
+    Check if the logs have already been configured.
+    """
+    return _INITIALIZED
 
 
 def basicConfig(**kwargs):
@@ -696,7 +704,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(PANIC, msg, *args, **kwargs)
@@ -708,7 +716,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(ALERT, msg, *args, **kwargs)
@@ -720,7 +728,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(CRITICAL, msg, *args, **kwargs)
@@ -732,7 +740,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(ERROR, msg, *args, **kwargs)
@@ -744,7 +752,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(WARNING, msg, *args, **kwargs)
@@ -756,7 +764,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(NOTICE, msg, *args, **kwargs)
@@ -768,7 +776,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(OUTPUT, msg, *args, **kwargs)
@@ -780,7 +788,7 @@ class BXILogger(object):
         @param[in] msg the message to log
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return 
+        @return
 
         """
         self.log(INFO, msg, *args, **kwargs)
