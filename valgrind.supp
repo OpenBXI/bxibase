@@ -73,4 +73,11 @@
    fun:bxilog_install_sighandler
    ...
 }
-
+{
+    <libcapture_issue>
+        Memcheck:Leak
+        fun:calloc
+        fun:_dlerror_run
+        fun:dlsym
+        ...
+}

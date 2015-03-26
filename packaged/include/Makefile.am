@@ -7,6 +7,7 @@ cffi_h_files=\
 			 ${abs_top_srcdir}/packaged/include/bxi/base/log.h
 
 nobase_include_HEADERS = \
+						 bxi/base/version.h\
 						 bxi/base/mem.h\
 						 bxi/base/str.h\
 						 bxi/base/err.h\
