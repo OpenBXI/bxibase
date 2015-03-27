@@ -218,7 +218,11 @@ struct bxierr_s {
  * @see bxierr_isko()
  * @see bxierr_isok()
  */
+#ifndef BXICFFI
 extern const bxierr_p BXIERR_OK;
+#else
+extern bxierr_p BXIERR_OK;
+#endif
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
