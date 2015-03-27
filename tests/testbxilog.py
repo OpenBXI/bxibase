@@ -43,13 +43,11 @@ class BXILogTest(unittest.TestCase):
         bxilog.basicConfig(filename=FILENAME,
                            setsighandler=True,
                            cfg_items=[('', 'lowest')])
-        pass
 
     def tearDown(self):
         """Cleaning up for each test.
         """
         bxilog.cleanup()
-        pass
 
 
 ###############################################################################
