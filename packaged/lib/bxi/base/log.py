@@ -222,6 +222,8 @@ def parse_cfg_items(cfgitems):
 def is_configured():
     """
     Check if the logs have already been configured.
+
+    @return A boolean indicating the configuration state of the logs
     """
     return _INITIALIZED
 
