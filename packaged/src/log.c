@@ -517,15 +517,31 @@ size_t bxilog_get_all_level_names(char *** names) {
 
 
 bxierr_p bxilog_init(const char * const progname, const char * const fn) {
+    bxierr_p err = BXIERR_OK;
+    int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) return bxierr_fromidx(rc, NULL,
+                                       "Calling pthread_mutex_lock() failed (rc=%d)", rc);
+
+    if (INITIALIZED == STATE) {
+        DEBUG(BXILOG_INTERNAL_LOGGER, "Initialization already done. Skipping.");
+        goto UNLOCK;
+    }
     // WARNING: If you change the FSM transition,
     // comment your changes in bxilog_state_e above.
-    if(UNSET != STATE && FINALIZED != STATE) return bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
-                                                               NULL, NULL, NULL,
-                                                               "Illegal state: %d",
-                                                               STATE);
-    if (NULL == fn) return bxierr_new(BXILOG_CONFIG_ERR,
-                                      NULL, NULL, NULL,
-                                      "Bad configuration");
+    if(UNSET != STATE && FINALIZED != STATE) {
+        err = bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
+                         NULL, NULL, NULL,
+                         "Illegal state: %d",
+                         STATE);
+        goto UNLOCK;
+    }
+
+    if (NULL == fn) {
+        err = bxierr_new(BXILOG_CONFIG_ERR,
+                         NULL, NULL, NULL,
+                         "Bad configuration");
+        goto UNLOCK;
+    }
 
     // Copy parameters.
     FILENAME = strdup(fn);
@@ -533,34 +549,59 @@ bxierr_p bxilog_init(const char * const progname, const char * const fn) {
     PROGNAME = strdup(progname);
     PROGNAME_LEN = strlen(PROGNAME) + 1; // Include the NULL byte
 
-    bxierr_p err = _init();
-    if (bxierr_isko(err)) return err;
+    err = _init();
+    if (bxierr_isko(err)) {
+        goto UNLOCK;
+    }
     assert(INITIALIZING == STATE);
 
     // Install the fork handler once only
-    int rc = pthread_once(&ATFORK_ONCE, _install_fork_handlers);
-    if (0 != rc) return bxierr_fromidx(rc, NULL,
-                                       "Calling pthread_once() failed (rc = %d)", rc);
+    rc = pthread_once(&ATFORK_ONCE, _install_fork_handlers);
+    if (0 != rc) {
+        err = bxierr_fromidx(rc, NULL,
+                             "Calling pthread_once() failed (rc = %d)", rc);
+        goto UNLOCK;
+    }
 
     /* now the log library is initialized */
     STATE = INITIALIZED;
-
     DEBUG(BXILOG_INTERNAL_LOGGER, "Initialization done");
+UNLOCK:
+    rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) {
+        STATE = ILLEGAL;
+        bxierr_p err2 =  bxierr_fromidx(rc, NULL,
+                                        "Calling pthread_mutex_unlock() failed (rc=%d)",
+                                        rc);
+        BXIERR_CHAIN(err, err2);
+    }
 
-    return BXIERR_OK;
+    return err;
 }
 
 bxierr_p bxilog_finalize(bool flush) {
+    bxierr_p err = BXIERR_OK;
+    int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) {
+        err = bxierr_fromidx(rc, NULL,
+                             "Calling pthread_mutex_lock() failed (rc=%d)", rc);
+        goto UNLOCK;
+    }
+
     // WARNING: If you change the FSM transition,
     // comment your changes in bxilog_state_e above.
-    if (FINALIZED == STATE) return BXIERR_OK;
+    if (FINALIZED == STATE) {
+        err = BXIERR_OK;
+        goto UNLOCK;
+    }
     if (STATE != INITIALIZED) {
-        return bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
-                          NULL, NULL, NULL,
-                          "Illegal state: %d", STATE);
+        err = bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
+                         NULL, NULL, NULL,
+                         "Illegal state: %d", STATE);
+        goto UNLOCK;
     }
     DEBUG(BXILOG_INTERNAL_LOGGER, "Exiting bxilog");
-    bxierr_p err = BXIERR_OK, err2;
+    bxierr_p err2;
     if (flush) {
         err2 = bxilog_flush();
         BXIERR_CHAIN(err, err2);
@@ -568,11 +609,23 @@ bxierr_p bxilog_finalize(bool flush) {
 
     err2 = _finalize();
     BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) {
+        goto UNLOCK;
+    }
     assert(FINALIZING == STATE);
+    STATE = FINALIZED;
+UNLOCK:
+    rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) {
+        STATE = ILLEGAL;
+        err2 = bxierr_fromidx(rc, NULL,
+                              "Calling pthread_mutex_unlock() failed (rc=%d)",
+                              rc);
+        BXIERR_CHAIN(err, err2);
+    }
     BXIFREE(FILENAME);
     BXIFREE(PROGNAME);
-    STATE = FINALIZED;
+
     return err;
 }
 
@@ -1601,9 +1654,6 @@ bool _should_quit(bxierr_p * err) {
 bxierr_p _init(void) {
     // WARNING: If you change the FSM transition,
     // comment your changes in bxilog_state_e above.
-    int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
-    if (0 != rc) return bxierr_fromidx(rc, NULL,
-                                       "Calling pthread_mutex_lock() failed (rc=%d)", rc);
 
     PID = getpid();
 
@@ -1636,18 +1686,11 @@ bxierr_p _init(void) {
 
     bxierr_p err = _create_iht();
     if (bxierr_isko(err)) return err;
-    rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
+    int rc = pthread_once(&TSD_KEY_ONCE, _tsd_key_new);
     if (0 != rc) {
         STATE = ILLEGAL;
         return bxierr_fromidx(rc, NULL,
-                              "Calling pthread_mutex_unlock() failed (rc=%d)",
-                              rc);
-    }
-    rc = pthread_once(&TSD_KEY_ONCE, _tsd_key_new);
-    if (0 != rc) {
-        STATE = ILLEGAL;
-        return bxierr_fromidx(rc, NULL,
-                              "Calling pthread_mutex_unlock() failed (rc=%d)", rc);
+                              "Calling pthread_once() failed (rc=%d)", rc);
     }
 
     tsd_p tsd;

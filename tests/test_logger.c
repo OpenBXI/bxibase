@@ -123,7 +123,8 @@ void test_logger_init() {
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("%s%s", progname, ".log");
     err = bxilog_init(progname, filename);
-    CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+//    CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
     bxierr_destroy(&err);
     OUT(TEST_LOGGER, "Finalizing");
     err = bxilog_finalize(true);

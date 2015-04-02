@@ -8,22 +8,71 @@
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
+import ctypes
 """Unit tests of BXI Log Python library.
 """
 
-
 import __main__
+import multiprocessing
 import os, time, signal
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+
+from rpdb2 import thread_is_alive
 
 from bxi.base.err import BXICError
 import bxi.base.log as bxilog
 
+
 BASENAME = os.path.basename(__main__.__file__)
 FILENAME = "%s.bxilog" % os.path.splitext(BASENAME)[0]
+
+__LOOP_AGAIN__ = True
+
+def do_some_logs_threading():
+    global __LOOP_AGAIN__
+    while __LOOP_AGAIN__:
+        bxilog.out("Doing a simple log: %s", __LOOP_AGAIN__)
+        time.sleep(0.1)
+    bxilog.out("Termination requested. Exiting.")
+
+def do_some_logs_multiprocessing(again):
+    bxilog.cleanup()
+    bxilog.basicConfig(filename=FILENAME,
+                       setsighandler=True,
+                       cfg_items=[('', 'lowest')])
+    while again.value:
+        bxilog.out("Doing a simple log: %s", again)
+        time.sleep(0.1)
+    bxilog.out("Termination requested. Exiting.")
+    
+def threads_in_process(again):
+    global __LOOP_AGAIN__
+    __LOOP_AGAIN__ = True
+    bxilog.cleanup()
+    bxilog.basicConfig(filename=FILENAME,
+                       setsighandler=True,
+                       cfg_items=[('', 'lowest')])
+    threads = []
+    for i in xrange(multiprocessing.cpu_count()):
+        thread = threading.Thread(target=do_some_logs_threading)
+        bxilog.out("Starting new thread")
+        thread.start()
+        threads.append(thread)
+
+    while again.value:
+        time.sleep(0.05)
+
+    bxilog.out("Requesting termination of %s threads", len(threads))
+    __LOOP_AGAIN__ = False
+    for thread in threads:
+        try:
+            thread.join(1)
+        except Error as e:
+            bxilog.out("Exception: %s", e)
 
 
 class BXILogTest(unittest.TestCase):
@@ -172,6 +221,69 @@ class BXILogTest(unittest.TestCase):
                                  'This message must also appear in file %s', FILENAME)
         self._check_log_produced(FILENAME, bxilog.output,
                                  "This message must also appear in file %s", FILENAME)
+
+
+
+    def test_threading(self):
+        threads = []
+        for i in xrange(multiprocessing.cpu_count() * 2):
+            thread = threading.Thread(target=do_some_logs_threading)
+            bxilog.out("Starting new thread")
+            thread.start()
+            threads.append(thread)
+        bxilog.out("Sleeping")
+        time.sleep(0.5)
+        bxilog.out("Requesting termination of %s threads", len(threads))
+        global __LOOP_AGAIN__
+        __LOOP_AGAIN__ = False
+        for thread in threads:
+            try:
+                thread.join(1)
+            except Error as e:
+                bxilog.out("Exception: %s", e)
+            self.assertFalse(thread.is_alive())
+
+
+    def test_multiprocessing(self):
+        processes = []
+        again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
+        for i in xrange(multiprocessing.cpu_count() * 2):
+            process = multiprocessing.Process(target=do_some_logs_multiprocessing,
+                                              args=(again,))
+            bxilog.out("Starting new process")
+            process.start()
+            processes.append(process)
+        bxilog.out("Sleeping")
+        time.sleep(0.5)
+        bxilog.out("Requesting termination of %s processes", len(processes))
+        again.value = False
+        for process in processes:
+            try:
+                process.join(1)
+            except Error as e:
+                bxilog.out("Exception: %s", e)
+            self.assertFalse(process.is_alive())
+
+
+    def test_threads_and_forks(self):
+        processes = []
+        again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
+        for i in xrange(multiprocessing.cpu_count()):
+            process = multiprocessing.Process(target=threads_in_process,
+                                              args=(again,))
+            bxilog.out("Starting new process")
+            process.start()
+            processes.append(process)
+        bxilog.out("Sleeping")
+        time.sleep(0.5)
+        bxilog.out("Requesting termination of %s processes", len(processes))
+        again.value = False
+        for process in processes:
+            try:
+                process.join(1)
+            except Error as e:
+                bxilog.out("Exception: %s", e)
+            self.assertFalse(process.is_alive())
 
 
     def test_sighandler(self):
