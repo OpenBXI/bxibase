@@ -21,8 +21,6 @@ import tempfile
 import threading
 import unittest
 
-from rpdb2 import thread_is_alive
-
 from bxi.base.err import BXICError
 import bxi.base.log as bxilog
 
