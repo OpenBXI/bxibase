@@ -403,15 +403,23 @@ void bxilog_unregister(bxilog_p logger) {
     assert(0 == rc);
     bool found = false;
     for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
+//        if (strncmp(REGISTERED_LOGGERS[i]->name, logger->name,
+//                    REGISTERED_LOGGERS[i]->name_length)) {
+//            char * str = bxistr_new("[W] Strange: two different loggers share the same name: %s", logger->name);
+//            _display_err_msg(str);
+//            BXIFREE(str);
+//        }
         if (REGISTERED_LOGGERS[i] == logger) {
             REGISTERED_LOGGERS[i] = NULL;
             found = true;
         }
+
     }
     if (!found) {
-        char * str = bxistr_new("[W] Can't find registered logger: %s\n", logger->name);
-        _display_err_msg(str);
-        BXIFREE(str);
+//        bxierr_p bxierr = bxierr_gen("[W] Can't find registered logger: %s\n", logger->name);
+//        char * str = bxierr_str(bxierr);
+//        _display_err_msg(str);
+//        BXIFREE(str);
     }
     else REGISTERED_LOGGERS_NB--;
 
