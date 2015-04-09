@@ -432,7 +432,11 @@ void bxilog_unregister(bxilog_p logger) {
 
 size_t bxilog_get_registered(bxilog_p *loggers[]) {
     assert(loggers != NULL);
+    int rc = pthread_mutex_unlock(&register_lock);
+    assert(0 == rc);
     *loggers = REGISTERED_LOGGERS;
+    rc = pthread_mutex_unlock(&register_lock);
+    assert(0 == rc);
     return REGISTERED_LOGGERS_NB;
 }
 
@@ -1821,11 +1825,11 @@ void _parent_before_fork(void) {
         error(EX_SOFTWARE, 0, "Forking while bxilog is in state %d! Aborting", STATE);
     }
     if(INITIALIZED != STATE) return;
-    DEBUG(BXILOG_INTERNAL_LOGGER, "Preparing for a fork() (state == %d)", STATE);
+    FINE(BXILOG_INTERNAL_LOGGER, "Preparing for a fork() (state == %d)", STATE);
     _finalize();
     if (FINALIZING != STATE) {
         error(EX_SOFTWARE, 0,
-              "Forking should leads bxilog to reach state %d (current state is %d)!",
+              "Forking should lead bxilog to reach state %d (current state is %d)!",
               FINALIZING, STATE);
     }
     STATE = FORKED;
@@ -1847,7 +1851,7 @@ void _parent_after_fork(void) {
     }
     STATE = INITIALIZED;
     // Sending a log required the log library to be initialized.
-    DEBUG(BXILOG_INTERNAL_LOGGER, "Ready after a fork()");
+    FINE(BXILOG_INTERNAL_LOGGER, "Ready after a fork()");
 }
 
 void _child_after_fork(void) {
