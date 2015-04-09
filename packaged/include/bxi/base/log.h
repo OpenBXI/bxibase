@@ -287,10 +287,12 @@
  * @see BXIEXIT()
  */
 #define BXIASSERT(logger, expr) do {                                                \
-        bxilog_assert(logger, expr,                                                 \
-                      (char *)__FILE__, ARRAYLEN(__FILE__),                         \
-                      __func__, ARRAYLEN(__func__),                                 \
-                      __LINE__, #expr);                                             \
+        if (!(expr)) {                                                              \
+            bxilog_assert(logger, expr,                                             \
+                          (char *)__FILE__, ARRAYLEN(__FILE__),                     \
+                          __func__, ARRAYLEN(__func__),                             \
+                          __LINE__, #expr);                                         \
+        }                                                                           \
     } while(0)
 
 

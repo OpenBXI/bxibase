@@ -551,6 +551,12 @@ bxierr_p bxizmq_str_rcv(void * const zsocket, const int flags, const bool check_
 }
 /********************************* END STR  ****************************************/
 
+// Used by bxizmq_snd_str_zc() for freeing a simple mallocated string
+void bxizmq_data_free(void * const data, void * const hint) {
+    UNUSED(hint);
+    BXIFREE(data);
+}
+
 // *********************************************************************************
 // **************************** Static function ************************************
 // *********************************************************************************
@@ -590,8 +596,3 @@ bxierr_p _zmq_context_creation(void * const ctx, const int type, void ** result)
 
 }
 
-// Used by bxizmq_snd_str_zc() for freeing a simple mallocated string
-void bxizmq_data_free(void * const data, void * const hint) {
-    UNUSED(hint);
-    BXIFREE(data);
-}
