@@ -850,9 +850,9 @@ void bxilog_exit(int exit_code,
 }
 
 void bxilog_assert(bxilog_p logger, bool result,
-               char * file, size_t filelen,
-               const char * func, size_t funclen,
-               int line, char * expr) {
+                   char * file, size_t filelen,
+                   const char * func, size_t funclen,
+                   int line, char * expr) {
     if (!result) {
         bxierr_p err = bxierr_new(BXIASSERT_CODE,
                                   NULL,
