@@ -72,4 +72,33 @@ void test_bxierr() {
     bxierr_destroy(&current);
 }
 
+void test_bxierr_chain() {
+    bxierr_p err = BXIERR_OK, err2;
+
+    err2 = bxierr_new(420, "Level 0", NULL, NULL, "Initial Cause of error");
+    BXIERR_CHAIN(err, err2);
+
+    err2 = bxierr_new(421, "Level 1", NULL, NULL, "Intermediate Error");
+    BXIERR_CHAIN(err, err2);
+
+    err2 = bxierr_new(422, "Level 2", NULL, NULL, "Top Level Error");
+    BXIERR_CHAIN(err, err2);
+
+    CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
+
+    CU_ASSERT_EQUAL_FATAL(err->code, 422);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->data);
+    CU_ASSERT_STRING_EQUAL(err->data, "Level 2");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause);
+    CU_ASSERT_EQUAL_FATAL(err->cause->code, 421);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->data);
+    CU_ASSERT_STRING_EQUAL(err->cause->data, "Level 1");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause);
+    CU_ASSERT_EQUAL_FATAL(err->cause->cause->code, 420);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->data);
+    CU_ASSERT_STRING_EQUAL(err->cause->cause->data, "Level 0");
+}
+
 

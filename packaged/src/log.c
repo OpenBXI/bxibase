@@ -1301,9 +1301,12 @@ void * _iht_main(void * param) {
         }
     }
     QUIT:
-    err2 =  bxizmq_zocket_destroy(DATA_CHANNEL); BXIERR_CHAIN(err, err2);
-    err2 = bxizmq_zocket_destroy(CONTROL_CHANNEL); BXIERR_CHAIN(err, err2);
-    err2 = _sync(); BXIERR_CHAIN(err, err2);
+    err2 =  bxizmq_zocket_destroy(DATA_CHANNEL);
+    BXIERR_CHAIN(err, err2);
+    err2 = bxizmq_zocket_destroy(CONTROL_CHANNEL);
+    BXIERR_CHAIN(err, err2);
+    err2 = _sync();
+    BXIERR_CHAIN(err, err2);
     errno = 0;
     if (STDOUT_FILENO != IHT_DATA.fd && STDERR_FILENO != IHT_DATA.fd) {
         rc = close(IHT_DATA.fd);

@@ -130,7 +130,7 @@ void bxierr_report(bxierr_p self, int fd) {
 extern bool bxierr_isok(bxierr_p self);
 extern bool bxierr_isko(bxierr_p self);
 extern char* bxierr_str(bxierr_p self);
-extern void bxierr_chain( bxierr_p *cause, const bxierr_p *err);
+extern void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
 
 bxierr_p bxierr_get_ok() { return BXIERR_OK; }
 

@@ -135,7 +135,7 @@
  *      return err;
  */
 #define BXIERR_CHAIN(current, new) do {     \
-        bxierr_chain(&current, &new);       \
+        bxierr_chain(&(current), &(new));\
     } while(0)
 
 /**
@@ -358,33 +358,52 @@ inline char * bxierr_str(bxierr_p self) {
 }
 
 /**
- * Chain the new error (err) with the current one (cause) and adapt the current error accordingly.
+ * Chain the given new error (tmp) with the current one (err) if required.
  *
- * @param cause an error which is at the origin of err
- * @param err the last generated error
+ * The workflow is the following:
+ *
+ *   bxierr_p err = BXIERR_OK, err2;
+ *
+ *   err2 = f();
+ *   BXIERR_CHAIN(err, err2);
+ *
+ *   if (bxierr_isko(err)) return err;
+ *
+ *   err2 = bxierr_new(...);
+ *   BXIERR_CHAIN(err, err2);
+ *
+ *   return err;
+ *
+ *
+ * @param err the actual variable holding the final error, it might be changed by
+ *            this function
+ *
+ * @param tmp an error to check against, and to chain to err if required
  *
  */
-inline void bxierr_chain(bxierr_p *cause, const bxierr_p *err) {
+inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
             assert(NULL != (err));
-            assert(NULL != (cause));
-            if (bxierr_isko((*cause)) && bxierr_isko((*err))) {
-                if (NULL != (*err)->cause) {
-                    char * __str__ = bxierr_str((*err));
+            assert(NULL != (tmp));
+            if (bxierr_isko((*tmp)) && bxierr_isko((*err))) {
+                if (NULL != (*tmp)->cause) {
+                    char * __str__ = bxierr_str((*tmp));
                     fprintf(stderr,
-                            "WARNING: Cannot chain two chains of errors. "
-                            "Making *cause the data of *err. Current is: %s", __str__);
+                            "ERROR: Can't chain two chains of errors. "
+                            "The following error will just be displayed but "
+                            "not chained! This is a programming error. "
+                            "The process might continue without further "
+                            "notice leading to strange behavior. "
+                            "Unchained error: %s", __str__);
                     BXIFREE(__str__);
-                    (*err)->data = &(*cause);
-                    (*err)->free_fn = (void (*) (void*)) bxierr_destroy;
-                } else (*err)->cause = (*cause);
+                } else (*tmp)->cause = (*err);
             }
-            (*cause) = bxierr_isko((*err)) ? (*err) : (*cause);
+            (*err) = bxierr_isko((*tmp)) ? (*tmp) : (*err);
 }
 #else
 bool bxierr_isok(bxierr_p self);
 bool bxierr_isko(bxierr_p self);
 char * bxierr_str(bxierr_p self);
-void bxierr_chain(bxierr_p *cause, const bxierr_p *err);
+void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
 #endif
 
 /**

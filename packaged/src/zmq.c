@@ -62,15 +62,14 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     assert(NULL != ctx);
     assert(NULL != url);
     assert(NULL != result);
-    bxierr_p err = BXIERR_OK, err2, err3;
+    bxierr_p err = BXIERR_OK, err2;
 
     unsigned long port = 0;
 
     void * socket = NULL;
     err2 = _zmq_context_creation(ctx, type, &socket);
-    if (bxierr_isko(err2)) {
-        return err2;
-    }
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) return err;
 
     int rc = zmq_bind(socket, url);
     if (rc == -1) {
@@ -86,7 +85,9 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     char endpoint[512];
     endpoint[0] = '\0';
 
-    if (NULL != affected_port && strncmp(url, INPROC_PROTO, ARRAYLEN(INPROC_PROTO) - 1) != 0) {
+    if (NULL != affected_port && strncmp(url,
+                                         INPROC_PROTO,
+                                         ARRAYLEN(INPROC_PROTO) - 1) != 0) {
         assert(NULL != socket);
         size_t endpoint_len = 512;
         errno = 0 ;
@@ -111,8 +112,8 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         port = strtoul(ptr+1, &endptr, 10);
         if (errno == ERANGE) {
             err2 = bxizmq_zocket_destroy(socket);
-            err3 = bxierr_errno("Unable to parse integer in: '%s'", ptr+1);
-            BXIERR_CHAIN(err3, err2);
+            BXIERR_CHAIN(err, err2);
+            err2 = bxierr_errno("Unable to parse integer in: '%s'", ptr+1);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -138,8 +139,9 @@ bxierr_p bxizmq_zocket_connect(void * const ctx,
 
     void * socket = NULL;
     err2 = _zmq_context_creation(ctx, type, &socket);
-    if (bxierr_isko(err2)) {
-        return err2;
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) {
+        return err;
     }
 
     long sleep = 128; // nanoseconds
@@ -254,21 +256,24 @@ bxierr_p bxizmq_msg_rcv(void * const zocket,
  * clients.
  */
 bxierr_p bxizmq_msg_rcv_async(void * const zocket, zmq_msg_t * const msg,
-                           size_t retries_max, const long delay_ns) {
+                              const size_t retries_max, const long delay_ns) {
 
-    bxierr_p current = BXIERR_OK;
+    bxierr_p err = BXIERR_OK, err2;
+    size_t n = retries_max;
 
-    while(retries_max-- > 0) {
+    while(n-- > 0) {
         errno = 0;
         bxierr_p tmp = bxizmq_msg_rcv(zocket, msg, ZMQ_DONTWAIT);
-        if (BXIERR_OK == tmp) return BXIERR_OK;
-        BXIERR_CHAIN(current, tmp);
-        if (current->code != EAGAIN) return current;
-        bxierr_p new = bxitime_sleep(CLOCK_MONOTONIC, 0, delay_ns);
-        BXIERR_CHAIN(current, new);
+        if (bxierr_isok(tmp)) return BXIERR_OK;
+        if (EAGAIN != tmp->code) return tmp;
+        bxierr_destroy(&tmp);
+        err2 = bxitime_sleep(CLOCK_MONOTONIC, 0, delay_ns);
+        BXIERR_CHAIN(err, err2);
     }
 
-    return bxierr_gen("Waiting on socket tooks too much time!");
+    return bxierr_new(4941, NULL, NULL, err,
+                      "No receipt after %zu retries. Giving up.",
+                      retries_max);
 }
 
 

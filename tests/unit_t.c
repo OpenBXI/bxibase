@@ -44,6 +44,7 @@ void test_free();
 
 // From test_err.c
 void test_bxierr();
+void test_bxierr_chain();
 
 // From test_time.c
 void test_time(void);
@@ -167,7 +168,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
         || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
-//        || (NULL == CU_add_test(pSuite, "test logger signal", test_logger_signal))
+//        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
 
         || false) {
         CU_cleanup_registry();
@@ -185,6 +186,7 @@ int main(int argc, char * argv[]) {
     /* add the tests to the suite */
     if (false
         || (NULL == CU_add_test(bxierr_suite, "test bxierr", test_bxierr))
+        || (NULL == CU_add_test(bxierr_suite, "test bxierr_chain", test_bxierr_chain))
         || false) {
         CU_cleanup_registry();
         return (CU_get_error());
