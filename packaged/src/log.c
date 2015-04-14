@@ -228,8 +228,8 @@ typedef enum {
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 //--------------------------------- Generic Helpers --------------------------------
-void _display_err_msg(char* msg);
-
+static void _display_err_msg(char* msg);
+static void _configure(bxilog_p logger);
 //--------------------------------- Thread Specific Data helpers -------------------
 static void _tsd_free(void * const data);
 static void _tsd_key_new();
@@ -314,6 +314,16 @@ static bxilog_p * REGISTERED_LOGGERS = NULL;
  */
 static size_t REGISTERED_LOGGERS_NB = 0;
 
+/**
+ * Number of items in the current configuration.
+ */
+static size_t BXILOG_CFG_ITEMS_NB = 0;
+
+/**
+ * Current configuration.
+ */
+static bxilog_cfg_item_s * BXILOG_CFG_ITEMS = NULL;
+
 // The various log levels specific characters
 static const char LOG_LEVEL_STR[] = { 'P', 'A', 'C', 'E', 'W', 'N', 'O', 'I', 'D', 'F', 'T', 'L'};
 // The log format used by the IHT when writing
@@ -379,7 +389,6 @@ void bxilog_register(bxilog_p logger) {
     assert(logger != NULL);
     int rc = pthread_mutex_lock(&register_lock);
     assert(0 == rc);
-//    fprintf(stderr, "***** Registering %s *****\n", logger->name);
     if (REGISTERED_LOGGERS == NULL) {
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
         REGISTERED_LOGGERS = bximem_calloc(bytes);
@@ -391,6 +400,15 @@ void bxilog_register(bxilog_p logger) {
 //                "%zu registered loggers\n", REGISTERED_LOGGERS_ARRAY_SIZE,
 //                REGISTERED_LOGGERS_NB);
     }
+    for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
+        if (strcmp(REGISTERED_LOGGERS[i]->name, logger->name) == 0) {
+            fprintf(stderr,
+                    "[W] Registered loggers[%zu] share same "
+                    "logger name than loggers[%zu]: %s\n",
+                    i, REGISTERED_LOGGERS_NB + 1, logger->name);
+        }
+    }
+
     REGISTERED_LOGGERS[REGISTERED_LOGGERS_NB] = logger;
     REGISTERED_LOGGERS_NB++;
     rc = pthread_mutex_unlock(&register_lock);
@@ -403,23 +421,26 @@ void bxilog_unregister(bxilog_p logger) {
     assert(0 == rc);
     bool found = false;
     for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
-//        if (strncmp(REGISTERED_LOGGERS[i]->name, logger->name,
-//                    REGISTERED_LOGGERS[i]->name_length)) {
-//            char * str = bxistr_new("[W] Strange: two different loggers share the same name: %s", logger->name);
-//            _display_err_msg(str);
-//            BXIFREE(str);
-//        }
-        if (REGISTERED_LOGGERS[i] == logger) {
+        bxilog_p current = REGISTERED_LOGGERS[i];
+        if (NULL == current) continue;
+//        fprintf(stderr, "Logger[%zu]: %s\n", i, current->name);
+        if (found && 0 == strcmp(current->name, logger->name)) {
+            char * str = bxistr_new("[W] Strange: two different loggers share "
+                                    "the same name: %s", logger->name);
+            _display_err_msg(str);
+            BXIFREE(str);
+        }
+        if (current == logger) {
             REGISTERED_LOGGERS[i] = NULL;
             found = true;
         }
-
     }
     if (!found) {
-//        bxierr_p bxierr = bxierr_gen("[W] Can't find registered logger: %s\n", logger->name);
-//        char * str = bxierr_str(bxierr);
-//        _display_err_msg(str);
-//        BXIFREE(str);
+        bxierr_p bxierr = bxierr_gen("[W] Can't find registered logger: %s\n",
+                                     logger->name);
+        char * str = bxierr_str(bxierr);
+        _display_err_msg(str);
+        BXIFREE(str);
     }
     else REGISTERED_LOGGERS_NB--;
 
@@ -432,32 +453,34 @@ void bxilog_unregister(bxilog_p logger) {
 
 size_t bxilog_get_registered(bxilog_p *loggers[]) {
     assert(loggers != NULL);
-    int rc = pthread_mutex_unlock(&register_lock);
+    int rc = pthread_mutex_lock(&register_lock);
     assert(0 == rc);
-    *loggers = REGISTERED_LOGGERS;
+    size_t n = REGISTERED_LOGGERS_NB;
+    bxilog_p * result = bximem_calloc(n * sizeof(*result));
+    for (size_t i = 0; i < n; i++) {
+        result[i] = REGISTERED_LOGGERS[i];
+    }
     rc = pthread_mutex_unlock(&register_lock);
     assert(0 == rc);
-    return REGISTERED_LOGGERS_NB;
+    *loggers = result;
+    return n;
 }
 
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
-    int rc = pthread_mutex_unlock(&register_lock);
+    int rc = pthread_mutex_lock(&register_lock);
     assert(0 == rc);
+    if (NULL != BXILOG_CFG_ITEMS) {
+        BXIFREE(BXILOG_CFG_ITEMS);
+    }
+    BXILOG_CFG_ITEMS = bximem_calloc(n * sizeof(*BXILOG_CFG_ITEMS));
+    memcpy(BXILOG_CFG_ITEMS, cfg, n * sizeof(*BXILOG_CFG_ITEMS));
+    BXILOG_CFG_ITEMS_NB = n;
+
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
 //    fprintf(stderr, "Number of cfg items: %zd\n", n);
-    for (size_t i = 0; i < n; i++) {
-        assert(NULL != cfg[i].prefix);
-        size_t len = strlen(cfg[i].prefix);
-        for (size_t l = 0; l < REGISTERED_LOGGERS_NB; l++) {
-            bxilog_p logger = REGISTERED_LOGGERS[l];
-            if (0 == strncmp(cfg[i].prefix, logger->name, len)) {
-                // We have a prefix, configure it
-//                fprintf(stderr, "Prefix: '%s' match logger '%s': level: %d -> %d\n",
-//                        cfg[i].prefix, logger->name,
-//                        logger->level, cfg[i].level);
-                logger->level = cfg[i].level;
-            }
-        }
+    for (size_t l = 0; l < REGISTERED_LOGGERS_NB; l++) {
+        bxilog_p logger = REGISTERED_LOGGERS[l];
+        if (NULL != logger) _configure(logger);
     }
     rc = pthread_mutex_unlock(&register_lock);
     assert(0 == rc);
@@ -641,13 +664,30 @@ UNLOCK:
     return err;
 }
 
-bxilog_p bxilog_new(const char * logger_name) {
-    bxilog_p self = bximem_calloc(sizeof(*self));
-    self->name = strdup(logger_name);
-    self->name_length = strlen(logger_name) + 1;
-    self->level = BXILOG_LOWEST;
+bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
+    *result = NULL;
+    int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) return bxierr_errno("Call to pthread_mutex_lock() failed (rc=%d)", rc);
 
-    return self;
+    for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
+        bxilog_p logger = REGISTERED_LOGGERS[i];
+        if (strcmp(logger->name, logger_name) == 0) {
+            *result = logger;
+        }
+    }
+    if (NULL == *result) { // Not found
+        bxilog_p self = bximem_calloc(sizeof(*self));
+        self->name = strdup(logger_name);
+        self->name_length = strlen(logger_name) + 1;
+        self->level = BXILOG_LOWEST;
+        bxilog_register(self);
+        _configure(self);
+        *result = self;
+    }
+    rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
+
+    return BXIERR_OK;
 }
 
 void bxilog_destroy(bxilog_p * self_p) {
@@ -736,7 +776,6 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
             + logger->name_length;
 
     size_t data_len = sizeof(*header) + var_len + logmsg_len;
-
 
     // We need a mallocated buffer to prevent ZMQ from making its own copy
     // We use malloc() instead of calloc() for performance reason
@@ -1092,6 +1131,22 @@ bxierr_p bxilog_parse_levels(char * str) {
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
+
+void _configure(bxilog_p logger) {
+    assert(NULL != logger);
+    for (size_t i = 0; i < BXILOG_CFG_ITEMS_NB; i++) {
+        if (NULL == BXILOG_CFG_ITEMS[i].prefix) continue;
+
+        size_t len = strlen(BXILOG_CFG_ITEMS[i].prefix);
+        if (0 == strncmp(BXILOG_CFG_ITEMS[i].prefix, logger->name, len)) {
+            // We have a prefix, configure it
+//            fprintf(stderr, "Prefix: '%s' match logger '%s': level: %d -> %d\n",
+//                    BXILOG_CFG_ITEMS[i].prefix, logger->name,
+//                    logger->level, BXILOG_CFG_ITEMS[i].level);
+            logger->level = BXILOG_CFG_ITEMS[i].level;
+        }
+    }
+}
 
 // ---------------------------------- Thread Specific Data Helpers ---------------------
 

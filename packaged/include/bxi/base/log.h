@@ -523,7 +523,14 @@ void bxilog_register(bxilog_p logger);
 void bxilog_unregister(bxilog_p logger);
 
 /**
- * Return all registered loggers.
+ * Return  a copy of all registered loggers.
+ *
+ * Note the returned array is actually a copy of the
+ * currently registered loggers since the latter can be modified concurrently by
+ * other threads (however each element of the array -- logger instance -- are actual
+ * pointers on effective loggers, not a copy of them).
+ *
+ * The array will have to be freed using BXIFREE().
  *
  * @param[out] loggers a pointer on an array of loggers where the result
  *             should be returned.
@@ -686,18 +693,22 @@ bxierr_p bxilog_init(const char * progname, const char * filename);
 bxierr_p bxilog_finalize(bool flush);
 
 /**
- * Create a new logger instance.
+ * Get the logger with the given name.
+ *
+ * A new logger with the given name is created and registered
+ * if it does not already exist.
  *
  * Note: this function is mainly for language bindings (such as Python).
  * In C, use `SET_LOGGER` macro instead.
  *
  * @param[in] logger_name a logger name
+ * @param[out] result the logger instance with the given name
  *
- * @return a new logger instance
+ * return BXIERR_OK if ok, anything else on error.
  *
  * @see SET_LOGGER
  */
-bxilog_p bxilog_new(const char * logger_name);
+bxierr_p bxilog_get(const char * logger_name, bxilog_p * result);
 
 /**
  * Destroy the given logger.

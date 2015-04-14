@@ -35,6 +35,8 @@
 #include "bxi/base/log.h"
 
 SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
+SET_LOGGER(BAD_LOGGER1, "test.bad.logger");
+SET_LOGGER(BAD_LOGGER2, "test.bad.logger");
 
 extern char * FULLPROGNAME;
 extern char * PROGNAME;
@@ -466,6 +468,95 @@ void test_logger_signal(void) {
         _fork_kill(allsig_num[i]);
     }
     OUT(TEST_LOGGER, "Ending test");
+    err = bxilog_finalize(true);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+}
+
+static bool _is_logger_in_registered(bxilog_p logger) {
+    bxilog_p *loggers;
+    size_t n = bxilog_get_registered(&loggers);
+    bool found = false;
+    while(n-- > 0) {
+        if (loggers[n] == logger) {
+            found = true;
+            break;
+        }
+    }
+    BXIFREE(loggers);
+    return found;
+}
+
+void test_single_logger_instance(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+    bxilog_p logger;
+    err = bxilog_get("test.bxibase.log", &logger);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger);
+    CU_ASSERT_PTR_EQUAL(logger, TEST_LOGGER);
+    CU_ASSERT_TRUE(_is_logger_in_registered(TEST_LOGGER));
+
+    err = bxilog_get("tmp.foo.bar.single.tmp", &logger);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger);
+    CU_ASSERT_PTR_NOT_EQUAL(logger, TEST_LOGGER);
+    CU_ASSERT_TRUE(_is_logger_in_registered(logger));
+
+    err = bxilog_get("test.bad.logger", &logger);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger);
+    CU_ASSERT_PTR_NOT_EQUAL(logger, BAD_LOGGER1);
+    CU_ASSERT_PTR_EQUAL(logger, BAD_LOGGER2);
+    CU_ASSERT_TRUE(_is_logger_in_registered(logger));
+
+    err = bxilog_finalize(true);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+}
+
+void test_config(void) {
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+    bxilog_p logger_a;
+    err = bxilog_get("a", &logger_a);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger_a);
+    CU_ASSERT_NOT_EQUAL(logger_a->level, BXILOG_OUTPUT);
+
+    bxilog_cfg_item_s cfg[] = {{.prefix="", .level=BXILOG_DEBUG},
+                               {.prefix="a", .level=BXILOG_OUTPUT},
+                               {.prefix="a.b", .level=BXILOG_WARNING},
+    };
+    bxilog_cfg_registered(3, cfg);
+
+    CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
+    CU_ASSERT_EQUAL(logger_a->level, BXILOG_OUTPUT);
+
+    bxilog_p logger_a2;
+    err = bxilog_get("a.c", &logger_a2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger_a2);
+    CU_ASSERT_EQUAL(logger_a2->level, BXILOG_OUTPUT);
+
+    bxilog_p logger_ab;
+    err = bxilog_get("a.b", &logger_ab);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger_ab);
+    CU_ASSERT_EQUAL(logger_ab->level, BXILOG_WARNING);
+
+
+    cfg[1].level = BXILOG_ALERT;
+    bxilog_cfg_registered(3, cfg);
+
+    CU_ASSERT_EQUAL(logger_a->level, BXILOG_ALERT);
+    CU_ASSERT_EQUAL(logger_a2->level, BXILOG_ALERT);
+    CU_ASSERT_EQUAL(logger_ab->level, BXILOG_WARNING);
+
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }

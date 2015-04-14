@@ -352,10 +352,12 @@ def get_logger(name):
     for logger in get_all_loggers_iter():
         if __FFI__.string(logger.clogger.name) == name:
             return logger
-    logger = __BXIBASE_CAPI__.bxilog_new(name)
-    __BXIBASE_CAPI__.bxilog_register(logger)
 
-    return BXILogger(logger)
+    logger_p = __FFI__.new('bxilog_p[1]')
+    bxierr_p = __BXIBASE_CAPI__.bxilog_get(name, logger_p)
+    BXICError.raise_if_ko(bxierr_p)
+
+    return BXILogger(logger_p[0])
 
 
 def cleanup(flush=True):

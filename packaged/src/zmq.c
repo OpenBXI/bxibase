@@ -46,8 +46,6 @@ bxierr_p _zmq_context_creation(void * const ctx, const int type, void ** result)
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
-static volatile int counter = 0;
-
 
 // *********************************************************************************
 // ********************************** Implementation   *****************************
@@ -119,7 +117,6 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         }
     }
 
-    counter++;
     if (0 != port) {
         *affected_port = (int) port;
     }
@@ -173,7 +170,6 @@ bxierr_p bxizmq_zocket_connect(void * const ctx,
         return err;
     }
 
-    counter++;
     *result = socket;
     return err;
 }
@@ -216,7 +212,6 @@ bxierr_p bxizmq_zocket_destroy(void * const zocket) {
         while (rc == -1 && errno == EINTR) rc = zmq_close(zocket);
         if (rc != 0) return bxierr_errno("Can't close socket");
     }
-    counter--;
     return BXIERR_OK;
 }
 /*********************************** END Zocket ***********************************/
