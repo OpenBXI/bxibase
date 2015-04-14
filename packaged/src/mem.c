@@ -15,6 +15,7 @@
 #include <assert.h>
 
 #include "bxi/base/mem.h"
+#include "bxi/base/err.h"
 
 // *********************************************************************************
 // ********************************** Defines **************************************
@@ -48,7 +49,10 @@ void * bximem_calloc(const size_t n) {
  */
 void * bximem_realloc(void* ptr, const size_t n) {
     void * new_ptr = realloc(ptr, n);
-    assert(new_ptr != NULL || n == 0);
+    if (new_ptr == NULL && n != 0) {
+        bxierr_p err = bxierr_gen("failed!");
+        fprintf(stderr, "new_ptr: %p n: %zd %s", new_ptr, n, bxierr_str(err));
+    }
     return new_ptr;
 }
 
