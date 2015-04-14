@@ -704,7 +704,7 @@ bxierr_p bxilog_finalize(bool flush);
  * @param[in] logger_name a logger name
  * @param[out] result the logger instance with the given name
  *
- * return BXIERR_OK if ok, anything else on error.
+ * @return BXIERR_OK if ok, anything else on error.
  *
  * @see SET_LOGGER
  */
