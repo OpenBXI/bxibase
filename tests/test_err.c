@@ -99,6 +99,8 @@ void test_bxierr_chain() {
     CU_ASSERT_EQUAL_FATAL(err->cause->cause->code, 420);
     CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->data);
     CU_ASSERT_STRING_EQUAL(err->cause->cause->data, "Level 0");
+
+    bxierr_destroy(&err);
 }
 
 
