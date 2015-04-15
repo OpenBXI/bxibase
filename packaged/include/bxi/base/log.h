@@ -364,6 +364,7 @@
 #ifdef __cplusplus
 #define SET_LOGGER(variable_name, logger_name) \
     static struct bxilog_s variable_name ## _s = { \
+                                        false, \
                                         logger_name,\
                                         ARRAYLEN(logger_name),\
                                         BXILOG_LOWEST\
@@ -379,6 +380,7 @@
 #ifdef BXICFFI
 #define SET_LOGGER(variable_name, logger_name) \
     static struct bxilog_s variable_name ## _s = { \
+                                        .allocated = false, \
                                         .name = logger_name,\
                                         .name_length = ARRAYLEN(logger_name),\
                                         .level = BXILOG_LOWEST\
@@ -387,6 +389,7 @@
 #else
 #define SET_LOGGER(variable_name, logger_name) \
     static struct bxilog_s variable_name ## _s = { \
+                                        .allocated = false, \
                                         .name = logger_name,\
                                         .name_length = ARRAYLEN(logger_name),\
                                         .level = BXILOG_LOWEST\
@@ -464,8 +467,9 @@ typedef enum {
  * @see bxilog_p
  */
 struct bxilog_s {
+    bool allocated;                 //!< true if allocated on the heap, false otherwise
     const char * name;              //!< Logger name
-    size_t name_length;             //!< Logger name length, including NULL ending byte.
+    size_t name_length;             //!< Logger name length, including NULL ending byte
     bxilog_level_e level;           //!< Logger level
 };
 

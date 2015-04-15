@@ -230,6 +230,7 @@ typedef enum {
 //--------------------------------- Generic Helpers --------------------------------
 static void _display_err_msg(char* msg);
 static void _configure(bxilog_p logger);
+static void _wipeout();
 //--------------------------------- Thread Specific Data helpers -------------------
 static void _tsd_free(void * const data);
 static void _tsd_key_new();
@@ -392,6 +393,8 @@ void bxilog_register(bxilog_p logger) {
     if (REGISTERED_LOGGERS == NULL) {
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
         REGISTERED_LOGGERS = bximem_calloc(bytes);
+        int rc = atexit(_wipeout);
+        assert(0 == rc);
     } else if (REGISTERED_LOGGERS_NB >= REGISTERED_LOGGERS_ARRAY_SIZE) {
         REGISTERED_LOGGERS_ARRAY_SIZE += 10;
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
@@ -400,16 +403,20 @@ void bxilog_register(bxilog_p logger) {
 //                "%zu registered loggers\n", REGISTERED_LOGGERS_ARRAY_SIZE,
 //                REGISTERED_LOGGERS_NB);
     }
-    for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
-        if (strcmp(REGISTERED_LOGGERS[i]->name, logger->name) == 0) {
+    size_t slot = REGISTERED_LOGGERS_NB;
+    for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
+        // Find next free slot
+        if (NULL == REGISTERED_LOGGERS[i]) {
+            if (slot == REGISTERED_LOGGERS_NB) slot = i;
+        } else if (strcmp(REGISTERED_LOGGERS[i]->name, logger->name) == 0) {
             fprintf(stderr,
                     "[W] Registered loggers[%zu] share same "
                     "logger name than loggers[%zu]: %s\n",
-                    i, REGISTERED_LOGGERS_NB + 1, logger->name);
+                    i, slot, logger->name);
         }
     }
-
-    REGISTERED_LOGGERS[REGISTERED_LOGGERS_NB] = logger;
+//    fprintf(stderr, "Registering new logger[%zu]: %s\n", slot, logger->name);
+    REGISTERED_LOGGERS[slot] = logger;
     REGISTERED_LOGGERS_NB++;
     rc = pthread_mutex_unlock(&register_lock);
     assert(0 == rc);
@@ -420,29 +427,24 @@ void bxilog_unregister(bxilog_p logger) {
     int rc = pthread_mutex_lock(&register_lock);
     assert(0 == rc);
     bool found = false;
-    for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
+//    fprintf(stderr, "Nb Registered loggers: %zu\n", REGISTERED_LOGGERS_NB);
+    for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
         bxilog_p current = REGISTERED_LOGGERS[i];
         if (NULL == current) continue;
 //        fprintf(stderr, "Logger[%zu]: %s\n", i, current->name);
-        if (found && 0 == strcmp(current->name, logger->name)) {
-            char * str = bxistr_new("[W] Strange: two different loggers share "
-                                    "the same name: %s", logger->name);
-            _display_err_msg(str);
-            BXIFREE(str);
-        }
         if (current == logger) {
+//            fprintf(stderr, "Unregistering loggers[%zu]: %s\n", i, current->name);
             REGISTERED_LOGGERS[i] = NULL;
             found = true;
         }
     }
     if (!found) {
-        bxierr_p bxierr = bxierr_gen("[W] Can't find registered logger: %s\n",
-                                     logger->name);
-        char * str = bxierr_str(bxierr);
-        _display_err_msg(str);
-        BXIFREE(str);
-    }
-    else REGISTERED_LOGGERS_NB--;
+//        bxierr_p bxierr = bxierr_gen("[W] Can't find registered logger: %s\n",
+//                                     logger->name);
+//        char * str = bxierr_str(bxierr);
+//        _display_err_msg(str);
+//        BXIFREE(str);
+    } else REGISTERED_LOGGERS_NB--;
 
     if (0 == REGISTERED_LOGGERS_NB) {
         BXIFREE(REGISTERED_LOGGERS);
@@ -455,15 +457,16 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
     assert(loggers != NULL);
     int rc = pthread_mutex_lock(&register_lock);
     assert(0 == rc);
-    size_t n = REGISTERED_LOGGERS_NB;
-    bxilog_p * result = bximem_calloc(n * sizeof(*result));
-    for (size_t i = 0; i < n; i++) {
-        result[i] = REGISTERED_LOGGERS[i];
+    bxilog_p * result = bximem_calloc(REGISTERED_LOGGERS_NB * sizeof(*result));
+    size_t j = 0;
+    for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
+        if (NULL == REGISTERED_LOGGERS[i]) continue;
+        result[j++] = REGISTERED_LOGGERS[i];
     }
     rc = pthread_mutex_unlock(&register_lock);
     assert(0 == rc);
     *loggers = result;
-    return n;
+    return j;
 }
 
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
@@ -478,7 +481,7 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
 
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
 //    fprintf(stderr, "Number of cfg items: %zd\n", n);
-    for (size_t l = 0; l < REGISTERED_LOGGERS_NB; l++) {
+    for (size_t l = 0; l < REGISTERED_LOGGERS_ARRAY_SIZE; l++) {
         bxilog_p logger = REGISTERED_LOGGERS[l];
         if (NULL != logger) _configure(logger);
     }
@@ -669,14 +672,16 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
     int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) return bxierr_errno("Call to pthread_mutex_lock() failed (rc=%d)", rc);
 
-    for (size_t i = 0; i < REGISTERED_LOGGERS_NB; i++) {
+    for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
         bxilog_p logger = REGISTERED_LOGGERS[i];
+        if (NULL == logger) continue;
         if (strcmp(logger->name, logger_name) == 0) {
             *result = logger;
         }
     }
     if (NULL == *result) { // Not found
         bxilog_p self = bximem_calloc(sizeof(*self));
+        self->allocated = true;
         self->name = strdup(logger_name);
         self->name_length = strlen(logger_name) + 1;
         self->level = BXILOG_LOWEST;
@@ -691,6 +696,9 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
 }
 
 void bxilog_destroy(bxilog_p * self_p) {
+    if (NULL == *self_p) return;
+    if (!(*self_p)->allocated) return;
+
     BXIFREE((*self_p)->name);
     BXIFREE(*self_p);
 }
@@ -868,14 +876,14 @@ void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level) {
 extern bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level);
 
 void bxilog_exit(int exit_code,
-             bxierr_p err,
-             bxilog_p logger,
-             bxilog_level_e level,
-             char * file,
-             size_t filelen,
-             const char * func,
-             size_t funclen,
-             int line) {
+                 bxierr_p err,
+                 bxilog_p logger,
+                 bxilog_level_e level,
+                 char * file,
+                 size_t filelen,
+                 const char * func,
+                 size_t funclen,
+                 int line) {
 
     assert(NULL != logger);
     char * str = bxierr_str_limit(err, BXIERR_ALL_CAUSES);
@@ -1145,6 +1153,45 @@ void _configure(bxilog_p logger) {
 //                    logger->level, BXILOG_CFG_ITEMS[i].level);
             logger->level = BXILOG_CFG_ITEMS[i].level;
         }
+    }
+}
+
+void _wipeout() {
+    // Remove allocated configuration
+    if (NULL != BXILOG_CFG_ITEMS) {
+//        fprintf(stderr, "[I] Removing config\n");
+        BXIFREE(BXILOG_CFG_ITEMS);
+    }
+
+    // Remove allocated loggers
+    if (NULL != REGISTERED_LOGGERS) {
+//        fprintf(stderr, "Nb Registered loggers: %zu\n", REGISTERED_LOGGERS_NB);
+        for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
+            if (NULL == REGISTERED_LOGGERS[i]) {
+                continue;
+            }
+//            fprintf(stderr, "loggers[%zu]: %s\n", i, REGISTERED_LOGGERS[i]->name);
+            if (REGISTERED_LOGGERS[i]->allocated) {
+//                fprintf(stderr, "[I] Destroying %s\n", REGISTERED_LOGGERS[i]->name);
+                bxilog_destroy(&REGISTERED_LOGGERS[i]);
+            }
+            REGISTERED_LOGGERS[i] = NULL;
+            REGISTERED_LOGGERS_NB--;
+        }
+        assert(0 == REGISTERED_LOGGERS_NB);
+//        fprintf(stderr, "[I] Removing registered loggers\n");
+        BXIFREE(REGISTERED_LOGGERS);
+        REGISTERED_LOGGERS_ARRAY_SIZE = 0;
+    }
+
+    // Remove mallocated signal stack
+    stack_t sigstack;
+    errno = 0;
+    int rc = sigaltstack(NULL, &sigstack);
+    assert(0 == rc);
+    if (NULL != sigstack.ss_sp) {
+//        fprintf(stderr, "[I] Removing sigstack\n");
+        BXIFREE(sigstack.ss_sp);
     }
 }
 
