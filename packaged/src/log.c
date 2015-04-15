@@ -1189,7 +1189,7 @@ void _wipeout() {
     errno = 0;
     int rc = sigaltstack(NULL, &sigstack);
     assert(0 == rc);
-    if (NULL != sigstack.ss_sp) {
+    if (SS_ONSTACK == sigstack.ss_flags && NULL != sigstack.ss_sp) {
 //        fprintf(stderr, "[I] Removing sigstack\n");
         BXIFREE(sigstack.ss_sp);
     }
