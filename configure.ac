@@ -28,8 +28,6 @@ PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
                   [
                    AC_CHECK_LIB([zmq], [zmq_msg_init], [], [AC_MSG_ERROR([Could not find zmq library])])
                   ])
-PKG_CHECK_MODULES([CZMQ], [libczmq >= 1.0.0], [],
-                  [AC_CHECK_LIB([czmq], [zsocket_new], [], [AC_MSG_ERROR([Could not find czmq library])])])
 
 LDFLAGS+=" $ZMQ_LIBS $BACKTRACE_LIBS "
 
@@ -47,6 +45,9 @@ AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 AC_CONFIG_FILES([Makefile packaged/Makefile packaged/lib/Makefile packaged/include/Makefile packaged/doc/Makefile tests/Makefile packaged/src/version.c packaged/include/bxi/base/version.h])
 
 AM_PATH_PYTHON
+PC_INIT([2.7], [2.99])
+#PC_PYTHON_CHECK_MODULE([pyparsing], [], [AC_MSG_ERROR(Module not found)])
+PC_PYTHON_CHECK_MODULE([cffi], [], [AC_MSG_ERROR(Module not found)])
 
 AC_OUTPUT
 
