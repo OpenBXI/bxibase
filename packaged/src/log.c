@@ -158,14 +158,14 @@ char * control_url = NULL;
 #define FIXED_LOG_SIZE 2 + YEAR_SIZE + MONTH_SIZE + DAY_SIZE +\
                        1 + HOUR_SIZE + MINUTE_SIZE + SECOND_SIZE + 1 + SUBSECOND_SIZE +\
                        1 + PID_SIZE + 1 + TID_SIZE + 1 + THREAD_RANK_SIZE + \
-                       1 + 1 + 1 + 1 + 1 + 1  // Add all remaining fixed characters
-                                              // such as ':|:@||' in that order
+                       1 + 1 + 1 + 1 + 1 + 1 + 1  // Add all remaining fixed characters
+                                                  // such as ':|:@||\n' in that order
 #else
 #define FIXED_LOG_SIZE 2 + YEAR_SIZE + MONTH_SIZE + DAY_SIZE +\
                        1 + HOUR_SIZE + MINUTE_SIZE + SECOND_SIZE + 1 + SUBSECOND_SIZE +\
                        1 + PID_SIZE + 1 + THREAD_RANK_SIZE + \
-                       1 + 1 + 1 + 1 + 1 + 1  // Add all remaining fixed characters
-                                              // such as ':|:@||' in that order
+                       1 + 1 + 1 + 1 + 1 + 1 +1  // Add all remaining fixed characters
+                                                 // such as ':|:@||\n' in that order
 #endif
 
 //*********************************************************************************
@@ -1703,14 +1703,14 @@ ssize_t _mkmsg(const size_t n, char buf[n],
 
     // Truncation must never occur
     // If it happens, it means the size given was just plain wrong
-    assert(written <= (int)n);
+//    assert(written < (int)n);
     // For debugging in case the previous condition does not hold,
     // comment previous line, and uncomment lines below.
-//    if (written > (int) n) {
-//        printf("******** ERROR: FIXED_LOG_SIZE=%d, "
-//                "written = %d > %zu = n\nbuf(%zu)=%s\nlogmsg(%zu)=%s\n",
-//                FIXED_LOG_SIZE, written, n , strlen(buf), buf, strlen(logmsg), logmsg);
-//    }
+    if (written >= (int) n) {
+        printf("******** ERROR: FIXED_LOG_SIZE=%d, "
+                "written = %d >= %zu = n\nbuf(%zu)=%s\nlogmsg(%zu)=%s\n",
+                FIXED_LOG_SIZE, written, n , strlen(buf), buf, strlen(logmsg), logmsg);
+    }
 
     assert(written >= 0);
     return written;
@@ -1974,8 +1974,8 @@ void _child_after_fork(void) {
 inline const char * _basename(const char * const path, const size_t path_len) {
     assert(path != NULL && path_len > 0);
 
-    size_t c = path_len;
-    while(c != 0) {
+    size_t c = path_len - 2; // path_len includes the NULL terminating byte. Therefore last char is at -2
+    while(c > 0) {
         if (path[c] == '/') {
             c++;
             break;
