@@ -117,7 +117,7 @@
 // ********************************** Define  **************************************
 // *********************************************************************************
 
-#define BXIERR_GENERIC_CODE 32203  // Leet speak ;-)
+#define BXIERR_GENERIC_CODE 32203  // ERROR in Leet speak ;-)
 #define BXIERR_ALL_CAUSES UINT64_MAX
 #define ERR2STR_MAX_SIZE 1024
 
