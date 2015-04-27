@@ -68,7 +68,7 @@ def threads_in_process(again):
     __LOOP_AGAIN__ = False
     for thread in threads:
         try:
-            thread.join(1)
+            thread.join(5)
         except Error as e:
             bxilog.out("Exception: %s", e)
 
@@ -236,7 +236,7 @@ class BXILogTest(unittest.TestCase):
         __LOOP_AGAIN__ = False
         for thread in threads:
             try:
-                thread.join(1)
+                thread.join(5)
             except Error as e:
                 bxilog.out("Exception: %s", e)
             self.assertFalse(thread.is_alive())
@@ -257,7 +257,7 @@ class BXILogTest(unittest.TestCase):
         again.value = False
         for process in processes:
             try:
-                process.join(1)
+                process.join(5)
             except Error as e:
                 bxilog.out("Exception: %s", e)
             self.assertFalse(process.is_alive())
@@ -278,7 +278,7 @@ class BXILogTest(unittest.TestCase):
         again.value = False
         for process in processes:
             try:
-                process.join(1)
+                process.join(5)
             except Error as e:
                 bxilog.out("Exception: %s", e)
             self.assertFalse(process.is_alive())
