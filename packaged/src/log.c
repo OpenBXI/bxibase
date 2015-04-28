@@ -378,7 +378,7 @@ volatile sig_atomic_t FATAL_ERROR_IN_PROGRESS = 0;
 /* Once-only initialisation of the pthread_atfork() */
 static pthread_once_t ATFORK_ONCE = PTHREAD_ONCE_INIT;
 
-static pthread_mutex_t register_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 
 bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 //*********************************************************************************
@@ -388,7 +388,7 @@ bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 
 void bxilog_register(bxilog_p logger) {
     assert(logger != NULL);
-    int rc = pthread_mutex_lock(&register_lock);
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
     assert(0 == rc);
     if (REGISTERED_LOGGERS == NULL) {
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
@@ -418,13 +418,14 @@ void bxilog_register(bxilog_p logger) {
 //    fprintf(stderr, "Registering new logger[%zu]: %s\n", slot, logger->name);
     REGISTERED_LOGGERS[slot] = logger;
     REGISTERED_LOGGERS_NB++;
-    rc = pthread_mutex_unlock(&register_lock);
+    _configure(logger);
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
     assert(0 == rc);
 }
 
 void bxilog_unregister(bxilog_p logger) {
     assert(logger != NULL);
-    int rc = pthread_mutex_lock(&register_lock);
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
     assert(0 == rc);
     bool found = false;
 //    fprintf(stderr, "Nb Registered loggers: %zu\n", REGISTERED_LOGGERS_NB);
@@ -449,13 +450,13 @@ void bxilog_unregister(bxilog_p logger) {
     if (0 == REGISTERED_LOGGERS_NB) {
         BXIFREE(REGISTERED_LOGGERS);
     }
-    rc = pthread_mutex_unlock(&register_lock);
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
     assert(0 == rc);
 }
 
 size_t bxilog_get_registered(bxilog_p *loggers[]) {
     assert(loggers != NULL);
-    int rc = pthread_mutex_lock(&register_lock);
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
     assert(0 == rc);
     bxilog_p * result = bximem_calloc(REGISTERED_LOGGERS_NB * sizeof(*result));
     size_t j = 0;
@@ -463,20 +464,23 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
         if (NULL == REGISTERED_LOGGERS[i]) continue;
         result[j++] = REGISTERED_LOGGERS[i];
     }
-    rc = pthread_mutex_unlock(&register_lock);
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
     assert(0 == rc);
     *loggers = result;
     return j;
 }
 
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
-    int rc = pthread_mutex_lock(&register_lock);
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
     assert(0 == rc);
     if (NULL != BXILOG_CFG_ITEMS) {
         BXIFREE(BXILOG_CFG_ITEMS);
     }
     BXILOG_CFG_ITEMS = bximem_calloc(n * sizeof(*BXILOG_CFG_ITEMS));
-    memcpy(BXILOG_CFG_ITEMS, cfg, n * sizeof(*BXILOG_CFG_ITEMS));
+    for (size_t i = 0; i < n; i++) {
+        BXILOG_CFG_ITEMS[i].level = cfg[i].level;
+        BXILOG_CFG_ITEMS[i].prefix = strdup(cfg[i].prefix);
+    }
     BXILOG_CFG_ITEMS_NB = n;
 
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
@@ -485,7 +489,7 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
         bxilog_p logger = REGISTERED_LOGGERS[l];
         if (NULL != logger) _configure(logger);
     }
-    rc = pthread_mutex_unlock(&register_lock);
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
     assert(0 == rc);
     return BXIERR_OK;
 }
@@ -669,9 +673,8 @@ UNLOCK:
 
 bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
     *result = NULL;
-    int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
     if (0 != rc) return bxierr_errno("Call to pthread_mutex_lock() failed (rc=%d)", rc);
-
     for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
         bxilog_p logger = REGISTERED_LOGGERS[i];
         if (NULL == logger) continue;
@@ -679,19 +682,19 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
             *result = logger;
         }
     }
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
+    if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
     if (NULL == *result) { // Not found
         bxilog_p self = bximem_calloc(sizeof(*self));
         self->allocated = true;
         self->name = strdup(logger_name);
         self->name_length = strlen(logger_name) + 1;
         self->level = BXILOG_LOWEST;
+        if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
         bxilog_register(self);
-        _configure(self);
         *result = self;
     }
-    rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
-    if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
-
+//    fprintf(stderr, "Returning %s %d\n", (*result)->name, (*result)->level);
     return BXIERR_OK;
 }
 
@@ -1130,8 +1133,8 @@ bxierr_p bxilog_parse_levels(char * str) {
 
     bxierr_p err = bxilog_cfg_registered(next_idx, cfg_items);
     BXIASSERT(BXILOG_INTERNAL_LOGGER, bxierr_isok(err));
-    for (size_t i = 0; i < next_idx; i++) BXIFREE(cfg_items[i].prefix);
-    BXIFREE(cfg_items);
+//    for (size_t i = 0; i < next_idx; i++) BXIFREE(cfg_items[i].prefix);
+//    BXIFREE(cfg_items);
     BXIFREE(str);
     return BXIERR_OK;
 }
@@ -1142,6 +1145,7 @@ bxierr_p bxilog_parse_levels(char * str) {
 
 void _configure(bxilog_p logger) {
     assert(NULL != logger);
+
     for (size_t i = 0; i < BXILOG_CFG_ITEMS_NB; i++) {
         if (NULL == BXILOG_CFG_ITEMS[i].prefix) continue;
 
@@ -1153,6 +1157,9 @@ void _configure(bxilog_p logger) {
 //                    logger->level, BXILOG_CFG_ITEMS[i].level);
             logger->level = BXILOG_CFG_ITEMS[i].level;
         }
+//        else {
+//            fprintf(stderr, "Mismatch: %s %s\n", BXILOG_CFG_ITEMS[i].prefix, logger->name);
+//        }
     }
 }
 
