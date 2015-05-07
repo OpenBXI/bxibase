@@ -671,6 +671,14 @@ class BXILogger(object):
                                                                 msg_str)
             BXICError.raise_if_ko(bxierr_p)
 
+    @property
+    def name(self):
+        return __FFI__.string(self.clogger.name)
+    
+    @property
+    def level(self):
+        return self.clogger.level
+    
     def set_level(self, level):
         """
         Set this logger logging level.
