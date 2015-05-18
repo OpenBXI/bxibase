@@ -733,6 +733,36 @@ bxierr_p bxilog_flush(void);
 
 
 /**
+ * Create a log unconditionally without formatting. This is mainly used for
+ * high level languages binding.
+ *
+ *
+ * WARNING: the `filename_len` and `funcname_len` should include the NULL
+ * terminated string. Use strlen(s) + 1 for dynamic strings,
+ * or ARRAYLEN(a) for static strings.
+ *
+ * @param[in] logger the logger to perform the log with
+ * @param[in] level the level at which the log must be emitted
+ * @param[in] filename the name of the source file the log comes from
+ * @param[in] filename_len the length of 'filename' including the NULL terminating byte
+ * @param[in] funcname the name of the function the log comes from
+ * @param[in] funcname_len the length of 'funcname' including the NULL terminating byte
+ * @param[in] line the line number in file 'filename' the log comes from
+ * @param[in] rawstr the raw string
+ *
+ * @return BXIERR_OK on success, any other value is an error
+ *
+ * @see bxilog_log()
+ * @see bxierr_p
+ */
+bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
+                           char * filename, size_t filename_len,
+                           const char * funcname, size_t funcname_len,
+                           int line,
+                           const char * rawstr, size_t rawstr_len);
+
+
+/**
  * Create a log unconditionally. This is mainly used by macros defined above
  * that already check the logger level, removing the useless function call.
  *
@@ -754,7 +784,7 @@ bxierr_p bxilog_flush(void);
  * @return BXIERR_OK on success, any other value is an error
  *
  * @see bxilog_log()
- * @see bxierr_new()
+ * @see bxierr_p
  */
 bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
                                  char * filename, size_t filename_len,

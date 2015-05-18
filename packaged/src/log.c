@@ -231,6 +231,16 @@ typedef enum {
 static void _display_err_msg(char* msg);
 static void _configure(bxilog_p logger);
 static void _wipeout();
+static bxierr_p _send2iht(const bxilog_p logger, const bxilog_level_e level,
+                          void * log_channel,
+#ifdef __linux__
+                          pid_t tid,
+#endif
+                          uint16_t thread_rank,
+                          char * filename, size_t filename_len,
+                          const char * funcname, size_t funcname_len,
+                          int line,
+                          const char * rawstr, size_t rawstr_len);
 //--------------------------------- Thread Specific Data helpers -------------------
 static void _tsd_free(void * const data);
 static void _tsd_key_new();
@@ -731,6 +741,28 @@ bxierr_p bxilog_flush(void) {
     return BXIERR_OK;
 }
 
+bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
+                           char * filename, size_t filename_len,
+                           const char * funcname, size_t funcname_len,
+                           int line,
+                           const char * rawstr, size_t rawstr_len) {
+    if (INITIALIZED != STATE) return BXIERR_OK;
+    tsd_p tsd;
+    bxierr_p err = _get_tsd(&tsd);
+    if (bxierr_isko(err)) return err;
+
+    err = _send2iht(logger, level, tsd->log_channel,
+#ifdef __linux__
+                    tsd->tid,
+#endif
+                    tsd->thread_rank,
+                    filename, filename_len,
+                    funcname, funcname_len,
+                    line,
+                    rawstr, rawstr_len);
+    return err;
+}
+
 bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
                                   char * filename, size_t filename_len,
                                   const char * funcname, size_t funcname_len,
@@ -779,63 +811,15 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
               DEFAULT_LOG_BUF_SIZE, logmsg_len);
     }
 
-    struct log_header_s * header;
-    char * data;
-
-    size_t var_len = filename_len\
-            + funcname_len\
-            + logger->name_length;
-
-    size_t data_len = sizeof(*header) + var_len + logmsg_len;
-
-    // We need a mallocated buffer to prevent ZMQ from making its own copy
-    // We use malloc() instead of calloc() for performance reason
-    header = malloc(data_len);
-    assert(NULL != header);
-    // Fill the buffer
-    header->level = level;
-    err = bxitime_get(CLOCK_REALTIME, &header->detail_time);
-    // TODO: be smarter here, if the time can't be fetched, just fake it!
-    if (bxierr_isko(err)) return err;
+    err = _send2iht(logger, level, tsd->log_channel,
 #ifdef __linux__
-    header->tid = tsd->tid;
+                    tsd->tid,
 #endif
-    header->thread_rank = tsd->thread_rank;
-    header->line_nb = line;
-    header->filename_len = filename_len;
-    header->funcname_len = funcname_len;
-    header->logname_len = logger->name_length;
-    header->variable_len = var_len;
-    header->logmsg_len = logmsg_len;
-
-    // Now copy the rest after the header
-    data = (char *) header + sizeof(*header);
-    memcpy(data, filename, filename_len);
-    data += filename_len;
-    memcpy(data, funcname, funcname_len);
-    data += funcname_len;
-    memcpy(data, logger->name, logger->name_length);
-    data += logger->name_length;
-    memcpy(data, logmsg, logmsg_len);
-
-    // Send the frame
-    // normal version if header comes from the stack 'buf'
-    //    size_t retries = bxizmq_snd_data(header, data_len,
-    //                                      _get_tsd()->zocket, ZMQ_DONTWAIT,
-    //                                      RETRIES_MAX, RETRY_DELAY);
-
-    // Zero-copy version (if header has been mallocated).
-    err = bxizmq_data_snd_zc(header, data_len,
-                             tsd->log_channel, ZMQ_DONTWAIT,
-                             RETRIES_MAX, RETRY_DELAY,
-                             bxizmq_data_free, NULL);
-    if (bxierr_isko(err)) {
-        if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
-        // Recursive call!
-        WARNING(BXILOG_INTERNAL_LOGGER,
-                "Sending last log required %lu retries", (long) err->data);
-        bxierr_destroy(&err);
-    }
+                    tsd->thread_rank,
+                    filename, filename_len,
+                    funcname, funcname_len,
+                    line,
+                    logmsg, logmsg_len);
 
     if (logmsg_allocated) BXIFREE(logmsg);
     // Either header comes from the stack
@@ -843,7 +827,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
     // by bxizmq_snd_data_zc itself
     // Therefore it should not be freed here
     // FREE(header);
-    return BXIERR_OK;
+    return err;
 }
 
 bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
@@ -1200,6 +1184,78 @@ void _wipeout() {
 //        fprintf(stderr, "[I] Removing sigstack\n");
         BXIFREE(sigstack.ss_sp);
     }
+}
+
+bxierr_p _send2iht(const bxilog_p logger, const bxilog_level_e level,
+                   void * log_channel,
+#ifdef __linux__
+               pid_t tid,
+#endif
+               uint16_t thread_rank,
+               char * filename, size_t filename_len,
+               const char * funcname, size_t funcname_len,
+               int line,
+               const char * rawstr, size_t rawstr_len) {
+
+    struct log_header_s * header;
+    char * data;
+
+    size_t var_len = filename_len\
+            + funcname_len\
+            + logger->name_length;
+
+    size_t data_len = sizeof(*header) + var_len + rawstr_len;
+
+    // We need a mallocated buffer to prevent ZMQ from making its own copy
+    // We use malloc() instead of calloc() for performance reason
+    header = malloc(data_len);
+    assert(NULL != header);
+    // Fill the buffer
+    header->level = level;
+    bxierr_p err = bxitime_get(CLOCK_REALTIME, &header->detail_time);
+    // TODO: be smarter here, if the time can't be fetched, just fake it!
+    if (bxierr_isko(err)) return err;
+
+#ifdef __linux__
+    header->tid = tid;
+#endif
+    header->thread_rank = thread_rank;
+    header->line_nb = line;
+    header->filename_len = filename_len;
+    header->funcname_len = funcname_len;
+    header->logname_len = logger->name_length;
+    header->variable_len = var_len;
+    header->logmsg_len = rawstr_len;
+
+    // Now copy the rest after the header
+    data = (char *) header + sizeof(*header);
+    memcpy(data, filename, filename_len);
+    data += filename_len;
+    memcpy(data, funcname, funcname_len);
+    data += funcname_len;
+    memcpy(data, logger->name, logger->name_length);
+    data += logger->name_length;
+    memcpy(data, rawstr, rawstr_len);
+
+    // Send the frame
+    // normal version if header comes from the stack 'buf'
+    //    size_t retries = bxizmq_snd_data(header, data_len,
+    //                                      _get_tsd()->zocket, ZMQ_DONTWAIT,
+    //                                      RETRIES_MAX, RETRY_DELAY);
+
+    // Zero-copy version (if header has been mallocated).
+    err = bxizmq_data_snd_zc(header, data_len,
+                             log_channel, ZMQ_DONTWAIT,
+                             RETRIES_MAX, RETRY_DELAY,
+                             bxizmq_data_free, NULL);
+    if (bxierr_isko(err)) {
+        if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
+        // Recursive call!
+        WARNING(BXILOG_INTERNAL_LOGGER,
+                "Sending last log required %lu retries", (long) err->data);
+        bxierr_destroy(&err);
+    }
+    return BXIERR_OK;
 }
 
 // ---------------------------------- Thread Specific Data Helpers ---------------------
@@ -2021,10 +2077,15 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
               PROGNAME, tid, sigstr);
     }
     FATAL_ERROR_IN_PROGRESS = 1;
-    char * trace = bxierr_backtrace_str();
-    char * str = bxistr_new("%s - %s", sigstr, trace);
-    BXIFREE(sigstr);
-    BXIFREE(trace);
+    char * str;
+    if (SIGINT == signum || SIGTERM == signum) {
+        str = sigstr;
+    } else {
+        char * trace = bxierr_backtrace_str();
+        str = bxistr_new("%s - %s", sigstr, trace);
+        BXIFREE(sigstr);
+        BXIFREE(trace);
+    }
 
     _display_err_msg(str);
 
@@ -2036,7 +2097,13 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     BXIERR_CHAIN(err, err2);
     err2 = _end_iht();
     BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) _display_err_msg("Error while processing signal.\n");
+    if (bxierr_isko(err)) {
+        char * err_str = bxierr_str(err);
+        char * str = bxistr_new("Error while processing signal - %s\n",
+                                err_str);
+        _display_err_msg(str);
+        BXIFREE(str);
+    }
 
     // Wait some time before exiting
     struct timespec rem;

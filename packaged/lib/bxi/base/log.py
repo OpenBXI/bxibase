@@ -594,11 +594,10 @@ def lowest(msg, *args, **kwargs):
     _get_default_logger().lowest(msg, *args, **kwargs)
 
 
-def exception(exception, msg="", *args, **kwargs):
+def exception(msg="", *args, **kwargs):
     """
-    Log the given exception at the ::ERROR logging level.
+    Log the current exception at the ::ERROR logging level.
 
-    @param[in] exception the exception to log
     @param[in] msg a message to display before the exception itself
     @param[in] args the message arguments if any
     @param[in] kwargs the message arguments if any
@@ -606,7 +605,7 @@ def exception(exception, msg="", *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().exception(exception, msg, *args, **kwargs)
+    _get_default_logger().exception(msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
@@ -661,14 +660,15 @@ class BXILogger(object):
                 exc_str = '- Exception: %s' % exc_s
             msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
             filename, lineno, funcname = _findCaller()
-            bxierr_p = __BXIBASE_CAPI__.bxilog_log_nolevelcheck(self.clogger,
-                                                                level,
-                                                                filename,
-                                                                len(filename) + 1,
-                                                                funcname,
-                                                                len(funcname) + 1,
-                                                                lineno,
-                                                                msg_str)
+            bxierr_p = __BXIBASE_CAPI__.bxilog_log_rawstr(self.clogger,
+                                                          level,
+                                                          filename,
+                                                          len(filename) + 1,
+                                                          funcname,
+                                                          len(funcname) + 1,
+                                                          lineno,
+                                                          msg_str,
+                                                          len(msg_str) + 1)
             BXICError.raise_if_ko(bxierr_p)
 
     @property

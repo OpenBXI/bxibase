@@ -105,6 +105,31 @@ class BXILogTest(unittest.TestCase):
                                      getattr(bxilog, level), "Some stuff with noarg")
             self._check_log_produced(FILENAME, 
                                      getattr(bxilog, level), "Some stuff with args: %d %f %s", 2, 3.14, 'a string')
+            self._check_log_produced(FILENAME,
+                                     getattr(bxilog, level), "Some stuff with no args but special characters: %d %f %s")
+            
+        self._check_log_produced(FILENAME, 
+                                 bxilog.exception,
+                                 "When no exception was raised - inner message: '%s'",
+                                "Who care?")
+        self._check_log_produced(FILENAME, 
+                                 bxilog.exception,
+                                 "When no exception was raised - special char but no args: '%s'")
+        try:
+            raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
+        except ValueError as ve:
+            self._check_log_produced(FILENAME, 
+                                     bxilog.exception,
+                                     "Exception catched: inner message: '%s'",
+                                     "Kilroy was here")
+        
+        try:
+            raise ValueError("Exception raised: inner message: '%s'" % "And so what again?")
+        except ValueError as ve:
+            self._check_log_produced(FILENAME, 
+                                     bxilog.exception,
+                                     "Exception catched - special char but no args: '%s'")
+        
 
     def test_basic_log(self):
         """Test normal logging"""
@@ -113,6 +138,8 @@ class BXILogTest(unittest.TestCase):
                                      getattr(logger, level), "Some stuff with noarg")
             self._check_log_produced(FILENAME,
                                      getattr(logger, level), "Some stuff with args: %d %f %s", 2, 3.14, 'a string')
+            self._check_log_produced(FILENAME,
+                                     getattr(logger, level), "Some stuff with no args but special characters: %d %f %s")
 
         logger1 = bxilog.getLogger("foo")
         for level in bxilog.get_all_level_names_iter():
@@ -125,6 +152,31 @@ class BXILogTest(unittest.TestCase):
         logger3 = bxilog.getLogger("foo.bar")
         for level in bxilog.get_all_level_names_iter():
             _produce_logs(logger3, level)
+        
+        self._check_log_produced(FILENAME, 
+                                 logger1.exception,
+                                 "When no exception was raised - inner message: '%s'",
+                                 "Who care?")
+        
+        self._check_log_produced(FILENAME, 
+                                 logger1.exception,
+                                 "When no exception was raised - special char but no args: '%s'")
+            
+        try:
+            raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
+        except ValueError as ve:
+            self._check_log_produced(FILENAME, 
+                                     logger1.exception,
+                                     "Exception catched: inner message: '%s'",
+                                     "Kilroy was here")
+            
+        try:
+            raise ValueError("Exception raised: inner message: '%s'" % "And so what again?")
+        except ValueError as ve:
+            self._check_log_produced(FILENAME, 
+                                     logger1.exception,
+                                     "Exception catched - special char but no args: '%s'")
+        
 
 
     def test_error_log(self):
