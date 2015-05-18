@@ -438,13 +438,13 @@ void bxierr_report(bxierr_p self, int fd);
  * @return a bxierr instance
  *
  * @see bxierr_errno
- * @see bxierr_vstrerror
+ * @see bxierr_vfromidx
  */
 bxierr_p bxierr_fromidx(int erridx,
                         const char * const * erridx2str,
                         const char * fmt, ...);
 /**
- * Equivalent to `bxierr_strerror()` but with a variable argument list instead
+ * Equivalent to `bxierr_fromidx()` but with a variable argument list instead
  * of an ellipse, useful for library wrapper.
  *
  * @param[in] errcode the error code
@@ -454,7 +454,7 @@ bxierr_p bxierr_fromidx(int erridx,
  *
  * @return BXIERR_OK on success, any other value on error
  *
- * @see bxierr_strerror
+ * @see bxierr_fromidx
  */
 #ifndef BXICFFI
 bxierr_p bxierr_vfromidx(int errcode,
