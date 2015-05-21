@@ -406,9 +406,14 @@ void bxilog_register(bxilog_p logger) {
         int rc = atexit(_wipeout);
         assert(0 == rc);
     } else if (REGISTERED_LOGGERS_NB >= REGISTERED_LOGGERS_ARRAY_SIZE) {
-        REGISTERED_LOGGERS_ARRAY_SIZE += 10;
+        size_t old_size = REGISTERED_LOGGERS_ARRAY_SIZE;
+        REGISTERED_LOGGERS_ARRAY_SIZE *= 2;
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
         REGISTERED_LOGGERS = bximem_realloc(REGISTERED_LOGGERS, bytes);
+        // Set to NULL all new slots.
+        for (size_t i = old_size; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
+            REGISTERED_LOGGERS[i] = NULL;
+        }
 //        fprintf(stderr, "[I] Reallocation of %zu slots for (currently) "
 //                "%zu registered loggers\n", REGISTERED_LOGGERS_ARRAY_SIZE,
 //                REGISTERED_LOGGERS_NB);
@@ -418,7 +423,7 @@ void bxilog_register(bxilog_p logger) {
         // Find next free slot
         if (NULL == REGISTERED_LOGGERS[i]) {
             if (slot == REGISTERED_LOGGERS_NB) slot = i;
-        } else if (strcmp(REGISTERED_LOGGERS[i]->name, logger->name) == 0) {
+        } else if (0 == strcmp(REGISTERED_LOGGERS[i]->name, logger->name)) {
             fprintf(stderr,
                     "[W] Registered loggers[%zu] share same "
                     "logger name than loggers[%zu]: %s\n",
@@ -700,7 +705,6 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
         self->name = strdup(logger_name);
         self->name_length = strlen(logger_name) + 1;
         self->level = BXILOG_LOWEST;
-        if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
         bxilog_register(self);
         *result = self;
     }
@@ -1770,9 +1774,10 @@ ssize_t _mkmsg(const size_t n, char buf[n],
     // For debugging in case the previous condition does not hold,
     // comment previous line, and uncomment lines below.
     if (written >= (int) n) {
-        printf("******** ERROR: FIXED_LOG_SIZE=%d, "
-                "written = %d >= %zu = n\nbuf(%zu)=%s\nlogmsg(%zu)=%s\n",
-                FIXED_LOG_SIZE, written, n , strlen(buf), buf, strlen(logmsg), logmsg);
+        fprintf(stderr, "******** ERROR: FIXED_LOG_SIZE=%d, "
+                    "written = %d >= %zu = n\nbuf(%zu)=%s\nlogmsg(%zu)=%s\n",
+                    FIXED_LOG_SIZE, written, n ,
+                    strlen(buf), buf, strlen(logmsg), logmsg);
     }
 
     assert(written >= 0);
@@ -1994,7 +1999,22 @@ void _parent_before_fork(void) {
     }
     if(INITIALIZED != STATE) return;
     FINE(BXILOG_INTERNAL_LOGGER, "Preparing for a fork() (state == %d)", STATE);
-    _finalize();
+    bxierr_p err = BXIERR_OK, err2;
+    err2 = bxilog_flush();
+    BXIERR_CHAIN(err, err2);
+    err2 = _finalize();
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) {
+        char * err_str = bxierr_str(err);
+        char * msg = bxistr_new("Error while preparing for a fork(), "
+                                "some logs might have been missed. "
+                                "Detailed error is - %s",
+                                err_str);
+        _display_err_msg(msg);
+        BXIFREE(msg);
+        BXIFREE(err_str);
+        bxierr_destroy(&err);
+    }
     if (FINALIZING != STATE) {
         error(EX_SOFTWARE, 0,
               "Forking should lead bxilog to reach state %d (current state is %d)!",
@@ -2079,13 +2099,13 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     FATAL_ERROR_IN_PROGRESS = 1;
     char * str;
     if (SIGINT == signum || SIGTERM == signum) {
-        str = sigstr;
+        str = bxistr_new("%s: %s", PROGNAME, sigstr);
     } else {
         char * trace = bxierr_backtrace_str();
-        str = bxistr_new("%s - %s", sigstr, trace);
-        BXIFREE(sigstr);
+        str = bxistr_new("%s: %s - %s", PROGNAME, sigstr, trace);
         BXIFREE(trace);
     }
+    BXIFREE(sigstr);
 
     _display_err_msg(str);
 
