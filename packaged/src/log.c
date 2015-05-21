@@ -424,10 +424,10 @@ void bxilog_register(bxilog_p logger) {
         if (NULL == REGISTERED_LOGGERS[i]) {
             if (slot == REGISTERED_LOGGERS_NB) slot = i;
         } else if (0 == strcmp(REGISTERED_LOGGERS[i]->name, logger->name)) {
-            fprintf(stderr,
-                    "[W] Registered loggers[%zu] share same "
-                    "logger name than loggers[%zu]: %s\n",
-                    i, slot, logger->name);
+//            fprintf(stderr,
+//                    "[W] Registered loggers[%zu] share same "
+//                    "logger name than loggers[%zu]: %s\n",
+//                    i, slot, logger->name);
         }
     }
 //    fprintf(stderr, "Registering new logger[%zu]: %s\n", slot, logger->name);
