@@ -60,7 +60,6 @@ void test_logger_signal(void);
 void test_single_logger_instance(void);
 
 
-
 /* The suite initialization function.
  * Opens the temporary file used by the tests.
  * Returns zero on success, non-zero otherwise.
