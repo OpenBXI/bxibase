@@ -1083,7 +1083,7 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (NULL == token) break;
         char * sep = strchr(token, ':');
         if (sep == NULL) {
-            return bxierr_errno("Expected ':' in log level configuration: %s", token);
+            return bxierr_gen("Expected ':' in log level configuration: %s", token);
         }
 
         *sep = '\0';
