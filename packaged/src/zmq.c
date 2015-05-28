@@ -104,6 +104,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         if (NULL == ptr) {
             err2 = bxierr_errno("Unable to retrieve the binded port number");
             BXIERR_CHAIN(err, err2);
+            return err;
         }
         char * endptr = NULL;
         errno = 0;
@@ -259,7 +260,7 @@ bxierr_p bxizmq_msg_rcv_async(void * const zocket, zmq_msg_t * const msg,
     while(n-- > 0) {
         errno = 0;
         bxierr_p tmp = bxizmq_msg_rcv(zocket, msg, ZMQ_DONTWAIT);
-        if (bxierr_isok(tmp)) return BXIERR_OK;
+        if (bxierr_isok(tmp)) return tmp;
         if (EAGAIN != tmp->code) return tmp;
         bxierr_destroy(&tmp);
         err2 = bxitime_sleep(CLOCK_MONOTONIC, 0, delay_ns);

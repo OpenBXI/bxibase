@@ -50,8 +50,11 @@ void * bximem_calloc(const size_t n) {
 void * bximem_realloc(void* ptr, const size_t n) {
     void * new_ptr = realloc(ptr, n);
     if (new_ptr == NULL && n != 0) {
-        bxierr_p err = bxierr_gen("failed!");
-        fprintf(stderr, "new_ptr: %p n: %zd %s", new_ptr, n, bxierr_str(err));
+        bxierr_p err = bxierr_gen("Calling realloc(%p, %zu) failed!", ptr, n);
+        char * str = bxierr_str(err);
+        fprintf(stderr, "%s", str);
+        BXIFREE(str);
+        bxierr_destroy(&err);
     }
     return new_ptr;
 }

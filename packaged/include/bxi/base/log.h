@@ -660,6 +660,11 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
 size_t bxilog_get_all_level_names(char *** names);
 
 /**
+ * Reset the bxilog configuration.
+ */
+void bxilog_reset_config();
+
+/**
  * Initialize the BXI logging module.
  *
  * WARNING: this function should be called once only (from the `main()` usually).

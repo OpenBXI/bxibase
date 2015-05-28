@@ -517,6 +517,7 @@ void test_single_logger_instance(void) {
 }
 
 void test_config(void) {
+    bxilog_reset_config();
     bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
@@ -526,13 +527,15 @@ void test_config(void) {
     err = bxilog_get("a", &logger_a);
     CU_ASSERT_TRUE(bxierr_isok(err));
     CU_ASSERT_PTR_NOT_NULL_FATAL(logger_a);
+    OUT(TEST_LOGGER, "Logger %s level: %d", logger_a->name, logger_a->level);
     CU_ASSERT_NOT_EQUAL(logger_a->level, BXILOG_OUTPUT);
 
     bxilog_cfg_item_s cfg[] = {{.prefix="", .level=BXILOG_DEBUG},
                                {.prefix="a", .level=BXILOG_OUTPUT},
                                {.prefix="a.b", .level=BXILOG_WARNING},
     };
-    bxilog_cfg_registered(3, cfg);
+    err = bxilog_cfg_registered(3, cfg);
+    CU_ASSERT_TRUE(bxierr_isok(err));
 
     CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
     CU_ASSERT_EQUAL(logger_a->level, BXILOG_OUTPUT);
@@ -551,7 +554,8 @@ void test_config(void) {
 
 
     cfg[1].level = BXILOG_ALERT;
-    bxilog_cfg_registered(3, cfg);
+    err = bxilog_cfg_registered(3, cfg);
+    CU_ASSERT_TRUE(bxierr_isok(err));
 
     CU_ASSERT_EQUAL(logger_a->level, BXILOG_ALERT);
     CU_ASSERT_EQUAL(logger_a2->level, BXILOG_ALERT);
@@ -559,5 +563,43 @@ void test_config(void) {
 
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+}
+
+
+void test_config_parser(void) {
+    bxilog_reset_config();
+    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_install_sighandler();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+    bxilog_p logger_z;
+    err = bxilog_get("z", &logger_z);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger_z);
+    CU_ASSERT_NOT_EQUAL(logger_z->level, BXILOG_OUTPUT);
+
+    char cfg[] = ":debug,z:output,z.w:WARNING";
+    err = bxilog_parse_levels(cfg);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
+    CU_ASSERT_EQUAL(logger_z->level, BXILOG_OUTPUT);
+
+    bxilog_p logger_z2;
+    err = bxilog_get("z.x", &logger_z2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger_z2);
+    CU_ASSERT_EQUAL(logger_z2->level, BXILOG_OUTPUT);
+
+    bxilog_p logger_zw;
+    err = bxilog_get("z.w", &logger_zw);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(logger_zw);
+    CU_ASSERT_EQUAL(logger_zw->level, BXILOG_WARNING);
+
+    err = bxilog_finalize(true);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_reset_config();
 }
 

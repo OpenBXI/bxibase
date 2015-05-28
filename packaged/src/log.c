@@ -241,6 +241,7 @@ static bxierr_p _send2iht(const bxilog_p logger, const bxilog_level_e level,
                           const char * funcname, size_t funcname_len,
                           int line,
                           const char * rawstr, size_t rawstr_len);
+void _reset_config();
 //--------------------------------- Thread Specific Data helpers -------------------
 static void _tsd_free(void * const data);
 static void _tsd_key_new();
@@ -395,7 +396,6 @@ bxierr_define(_IHT_EXIT_ERR_, 333, "Special error message");
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-
 void bxilog_register(bxilog_p logger) {
     assert(logger != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
@@ -485,12 +485,19 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
     return j;
 }
 
+
+void bxilog_reset_config() {
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
+    assert(0 == rc);
+    _reset_config();
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
+    assert(0 == rc);
+}
+
 bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     assert(0 == rc);
-    if (NULL != BXILOG_CFG_ITEMS) {
-        BXIFREE(BXILOG_CFG_ITEMS);
-    }
+    _reset_config();
     BXILOG_CFG_ITEMS = bximem_calloc(n * sizeof(*BXILOG_CFG_ITEMS));
     for (size_t i = 0; i < n; i++) {
         BXILOG_CFG_ITEMS[i].level = cfg[i].level;
@@ -1068,11 +1075,13 @@ void bxilog_display_loggers() {
     while(n-- > 0) {
         fprintf(stderr, "\t%s\n", loggers[n]->name);
     }
+    BXIFREE(loggers);
 }
 
 bxierr_p bxilog_parse_levels(char * str) {
     BXIASSERT(BXILOG_INTERNAL_LOGGER, NULL != str);
     str = strdup(str); // Required because str might not be allocated on the heap
+    bxierr_p err = BXIERR_OK;
     char *saveptr1 = NULL;
     char *str1 = str;
     size_t cfg_items_nb = 20;
@@ -1083,7 +1092,8 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (NULL == token) break;
         char * sep = strchr(token, ':');
         if (sep == NULL) {
-            return bxierr_gen("Expected ':' in log level configuration: %s", token);
+            err = bxierr_gen("Expected ':' in log level configuration: %s", token);
+            goto QUIT;
         }
 
         *sep = '\0';
@@ -1097,10 +1107,13 @@ bxierr_p bxilog_parse_levels(char * str) {
         tmp = strtoul(level_str, &endptr, 10);
         if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
         if (endptr == level_str) {
-            bxierr_p err = bxilog_get_level_from_str(level_str, &level);
-            if (bxierr_isko(err)) return err;
+            err = bxilog_get_level_from_str(level_str, &level);
+            if (bxierr_isko(err)) {
+                goto QUIT;
+            }
         } else if (*endptr != '\0') {
-            return bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
+            err = bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
+            goto QUIT;
         } else {
             if (tmp > BXILOG_LOWEST) {
                 DEBUG(BXILOG_INTERNAL_LOGGER,
@@ -1119,12 +1132,14 @@ bxierr_p bxilog_parse_levels(char * str) {
         }
     }
 
-    bxierr_p err = bxilog_cfg_registered(next_idx, cfg_items);
-    BXIASSERT(BXILOG_INTERNAL_LOGGER, bxierr_isok(err));
-//    for (size_t i = 0; i < next_idx; i++) BXIFREE(cfg_items[i].prefix);
-//    BXIFREE(cfg_items);
+    err = bxilog_cfg_registered(next_idx, cfg_items);
+QUIT:
+    for (size_t i = 0; i < next_idx; i++) {
+        BXIFREE(cfg_items[i].prefix);
+    }
+    BXIFREE(cfg_items);
     BXIFREE(str);
-    return BXIERR_OK;
+    return err;
 }
 
 //*********************************************************************************
@@ -1151,12 +1166,16 @@ void _configure(bxilog_p logger) {
     }
 }
 
+void _reset_config() {
+    for (size_t i = 0; i < BXILOG_CFG_ITEMS_NB; i++) {
+        BXIFREE(BXILOG_CFG_ITEMS[i].prefix);
+    }
+    BXIFREE(BXILOG_CFG_ITEMS);
+    BXILOG_CFG_ITEMS_NB = 0;
+}
 void _wipeout() {
     // Remove allocated configuration
-    if (NULL != BXILOG_CFG_ITEMS) {
-//        fprintf(stderr, "[I] Removing config\n");
-        BXIFREE(BXILOG_CFG_ITEMS);
-    }
+    _reset_config();
 
     // Remove allocated loggers
     if (NULL != REGISTERED_LOGGERS) {
@@ -1218,7 +1237,10 @@ bxierr_p _send2iht(const bxilog_p logger, const bxilog_level_e level,
     header->level = level;
     bxierr_p err = bxitime_get(CLOCK_REALTIME, &header->detail_time);
     // TODO: be smarter here, if the time can't be fetched, just fake it!
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) {
+        BXIFREE(header);
+        return err;
+    }
 
 #ifdef __linux__
     header->tid = tid;
@@ -1477,7 +1499,7 @@ void * _iht_main(void * param) {
     err2 = _sync();
     BXIERR_CHAIN(err, err2);
     errno = 0;
-    if (STDOUT_FILENO != IHT_DATA.fd && STDERR_FILENO != IHT_DATA.fd) {
+    if (STDOUT_FILENO != IHT_DATA.fd && STDERR_FILENO != IHT_DATA.fd && 0 < IHT_DATA.fd) {
         rc = close(IHT_DATA.fd);
         if (-1 == rc) {
             err2 = bxierr_errno("Closing logging file '%s' failed", FILENAME);
@@ -2123,6 +2145,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
                                 err_str);
         _display_err_msg(str);
         BXIFREE(str);
+        BXIFREE(err_str);
     }
 
     // Wait some time before exiting
