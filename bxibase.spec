@@ -69,7 +69,7 @@ Provides: %{name}
 #TODO: What do you require
 Requires: zeromq3
 Requires: backtrace
-Requires: python-cffi >= 0.7.2
+Requires: python-cffi >= 0.8.6
 
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
