@@ -68,7 +68,6 @@ Provides: %{name}
 #Conflicts:
 #TODO: What do you require
 Requires: zeromq3
-Requires: czmq
 Requires: backtrace
 Requires: python-cffi >= 0.7.2
 
