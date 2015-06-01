@@ -49,5 +49,6 @@ DISTCLEANFILES=\
 			   valgrind.supp\
 			   ${PACKAGE_NAME}.bxilog\
 			   unit_t.bxilog\
+			   lt-unit_t.bxilog\
 			   report/${PACKAGE_NAME}-Results.xml\
 			   report/${PACKAGE_NAME}-Listing.xml
