@@ -1,11 +1,12 @@
 
 #file to be installed
-cffi_h_files=\
-			 ${abs_top_srcdir}/packaged/include/bxi/base/mem.h\
-			 ${abs_top_srcdir}/packaged/include/bxi/base/str.h\
-			 ${abs_top_srcdir}/packaged/include/bxi/base/err.h\
-			 ${abs_top_srcdir}/packaged/include/bxi/base/log.h
+cffi_files=\
+			 bxi/base/mem.h\
+			 bxi/base/str.h\
+			 bxi/base/err.h\
+			 bxi/base/log.h
 
+#file to be install
 nobase_include_HEADERS = \
 						 bxi/base/version.h\
 						 bxi/base/mem.h\
@@ -15,14 +16,13 @@ nobase_include_HEADERS = \
 						 bxi/base/time.h\
 						 bxi/base/zmq.h
 
-../lib/bxi/base/cffi_h.py: $(cffi_h_files) 
+../lib/bxi/base/cffi_h.py: $(cffi_files) 
 	mkdir -p $$(dirname $@)
-	touch  $$(dirname $@)/__init__.py
-	touch  $$(dirname $$(dirname $@))/__init__.py
 	for i in $^; do \
 		echo "#include <$$i>";\
 		done > cffi.h
-	C_INCLUDE_PATH=$(top_srcdir)/packaged/include:$(abs_top_builddir)/packaged/include: $(top_srcdir)/h2py.sh cffi.h $@
+	C_INCLUDE_PATH=$(top_srcdir)/packaged/include:$(abs_top_builddir)/packaged/include: $(top_srcdir)/h2py.sh cffi.h $@;\
+	rm cffi.h
 
 
 all-local: ../lib/bxi/base/cffi_h.py

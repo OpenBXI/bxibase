@@ -44,3 +44,10 @@ unit_t_SOURCES=\
 			   test_time.c\
 			   test_logger.c\
 			   unit_t.c
+
+DISTCLEANFILES=\
+			   valgrind.supp\
+			   ${PACKAGE_NAME}.bxilog\
+			   unit_t.bxilog\
+			   report/${PACKAGE_NAME}-Results.xml\
+			   report/${PACKAGE_NAME}-Listing.xml

@@ -11,6 +11,6 @@ doc:
 all-local: doxygen.warn
 
 clean-local:
-	rm -rf html doxygen.warn
+	rm -rf html doxygen.warn latex
 
 endif
