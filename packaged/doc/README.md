@@ -84,10 +84,9 @@ Dealing with error in C is known to be difficult. The BXI base library offers
 the err.h module that helps a lot in this regards. The following convention holds 
 therefore for most BXI functions:
 
-- Functions that deal with errors internally (using BXIASSERT() internally, 
-  or BXILOG_REPORT() for example) use a traditionnal signature. See for example:
-  bximem_calloc(), bxistr_new(),
-  bxilog_new(), bxilog_get_level().
+- Functions that deal with errors internally (using assert() internally, 
+  or error() for example) use a traditionnal signature. See for example:
+  bximem_calloc(), bxistr_new(), bxilog_get_level().
   
 - Functions that ask the caller to deal with the error (most functions actually),
   return a `::bxierr_p` instance. If they must also provide a result, 
