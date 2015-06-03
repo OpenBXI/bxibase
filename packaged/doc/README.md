@@ -57,7 +57,7 @@ bxilog_init() and bxilog_finalize().
 
 ### Object like API ###                                         {#OO_c}
 Object like module provides `bxi*_new()` and `bxi*_destroy()` functions. 
-See for example: bxizmq_zocket_new() and bxizmq_zocket_destroy().
+See for example: bxizmq_zocket_connect() and bxizmq_zocket_destroy().
 Note that `bxi*_destroy()` 
 actually *nullify* the given pointer as shown in the following example:
 
@@ -70,7 +70,7 @@ actually *nullify* the given pointer as shown in the following example:
 
 Note also that objects are always refered to through pointers and 
 their type name always ends with an '_p' to clearly state it. See for example:
-`bxierr_p`, `bxilog_p`. Therefore, instantiating a BXI object, using it
+`::bxierr_p`, `::bxilog_p`. Therefore, instantiating a BXI object, using it
 and destroying it, always look like the following code snippet: 
 
     bxifoo_p object = bxifoo_new(...);
@@ -91,7 +91,7 @@ therefore for most BXI functions:
 - Functions that ask the caller to deal with the error (most functions actually),
   return a `::bxierr_p` instance. If they must also provide a result, 
   a *pointer* on the result is taken as the *last* argument. See for example: 
-  `bxizmq_zocket_new()`, `bxitime_get()`.
+  `bxizmq_zocket_connect()`, `bxitime_get()`.
 
 BXI Base Library for Python Language               {#BXIBase4Python}
 =====================================
