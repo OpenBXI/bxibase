@@ -42,7 +42,7 @@
 %define target_doc_dir /usr/share/doc/%{name}
 
 # TODO: Give your summary
-Summary:        Implementation of basical functionnality in c like a logger a module of parallelization
+Summary:    Basic library for high-level C programming (logging, error, string, zmq)
 Name:		%{name}
 Version:	%{version}
 Release:	%{release}

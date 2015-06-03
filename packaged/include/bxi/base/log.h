@@ -754,6 +754,7 @@ bxierr_p bxilog_flush(void);
  * @param[in] funcname_len the length of 'funcname' including the NULL terminating byte
  * @param[in] line the line number in file 'filename' the log comes from
  * @param[in] rawstr the raw string
+ * @param[in] rawstr_len the length of the string including the NULL terminating byte
  *
  * @return BXIERR_OK on success, any other value is an error
  *
