@@ -106,9 +106,11 @@ void test_logger_levels(void) {
     }
     buf[2047] = '\0';
     OUT(TEST_LOGGER, "One big log: %s", buf);
-    bxilog_flush();
+    err = bxilog_flush();
+    bxierr_p err2 = bxierr_gen("An error to report");
+    BXIERR_CHAIN(err,err2);
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
-                  bxierr_gen("An error to report"),
+                  err,
                   "Don't worry, this is just a test for error reporting");
     OUT(TEST_LOGGER, "Ending test");
     err = bxilog_finalize(true);

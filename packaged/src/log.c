@@ -1081,7 +1081,7 @@ void bxilog_display_loggers() {
 bxierr_p bxilog_parse_levels(char * str) {
     BXIASSERT(BXILOG_INTERNAL_LOGGER, NULL != str);
     str = strdup(str); // Required because str might not be allocated on the heap
-    bxierr_p err = BXIERR_OK;
+    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
     char *saveptr1 = NULL;
     char *str1 = str;
     size_t cfg_items_nb = 20;
@@ -1092,7 +1092,8 @@ bxierr_p bxilog_parse_levels(char * str) {
         if (NULL == token) break;
         char * sep = strchr(token, ':');
         if (sep == NULL) {
-            err = bxierr_gen("Expected ':' in log level configuration: %s", token);
+            err2 = bxierr_gen("Expected ':' in log level configuration: %s", token);
+            BXIERR_CHAIN(err, err2);
             goto QUIT;
         }
 
@@ -1107,12 +1108,14 @@ bxierr_p bxilog_parse_levels(char * str) {
         tmp = strtoul(level_str, &endptr, 10);
         if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
         if (endptr == level_str) {
-            err = bxilog_get_level_from_str(level_str, &level);
+            err2 = bxilog_get_level_from_str(level_str, &level);
+            BXIERR_CHAIN(err, err2);
             if (bxierr_isko(err)) {
                 goto QUIT;
             }
         } else if (*endptr != '\0') {
             err = bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
+            BXIERR_CHAIN(err, err2);
             goto QUIT;
         } else {
             if (tmp > BXILOG_LOWEST) {
@@ -1132,7 +1135,8 @@ bxierr_p bxilog_parse_levels(char * str) {
         }
     }
 
-    err = bxilog_cfg_registered(next_idx, cfg_items);
+    err2 = bxilog_cfg_registered(next_idx, cfg_items);
+    BXIERR_CHAIN(err, err2);
 QUIT:
     for (size_t i = 0; i < next_idx; i++) {
         BXIFREE(cfg_items[i].prefix);
@@ -1599,26 +1603,31 @@ void _log_single_line(const struct log_header_s * const header,
                             line);
     errno = 0;
     ssize_t written = write(IHT_DATA.fd, msg, (size_t) loglen);
+    int write_errno = errno;
 
     if (0 >= written) {
         IHT_DATA.lost_logs++;
-        bxierr_p bxierr = bxierr_errno("Calling write(fd=%d,name=%s) failed (written=%d)",
-                                       IHT_DATA.fd, FILENAME, written);
         // Only report newly detected errors
         size_t i = 0;
         bxierr_p reported_error = NULL;
         for (; i < IHT_DATA.reported_errors_len; i++) {
             reported_error = IHT_DATA.reported_errors[i];
             if (NULL == reported_error) break;
-            if (reported_error->code == bxierr->code) break;
+            if (reported_error->code == write_errno) break;
         }
         if (i >= IHT_DATA.reported_errors_len) {
             size_t new_len = IHT_DATA.reported_errors_len * 2;
             IHT_DATA.reported_errors = bximem_realloc(IHT_DATA.reported_errors,
                                                       new_len*sizeof(*IHT_DATA.reported_errors));
+            memset((void*)&IHT_DATA.reported_errors[IHT_DATA.reported_errors_len],
+                   0,
+                   (new_len - IHT_DATA.reported_errors_len) * sizeof(*IHT_DATA.reported_errors));
             IHT_DATA.reported_errors_len = new_len;
         }
         if (reported_error == NULL) {
+            errno = write_errno;
+            bxierr_p bxierr = bxierr_errno("Calling write(fd=%d,name=%s) failed (written=%d)",
+                                           IHT_DATA.fd, FILENAME, written);
             char * err_str = bxierr_str(bxierr);
             char * str = bxistr_new("[W] Can't write to '%s' - cause is %s\n"
                     "This means "
@@ -1958,8 +1967,10 @@ bxierr_p _join_iht(bxierr_p * iht_err_p) {
 bxierr_p _cleanup(void) {
     tsd_p tsd;
     bxierr_p err = _get_tsd(&tsd);
+    if (tsd != NULL) {
+        _tsd_free(tsd);
+    }
     if (bxierr_isko(err)) return err;
-    _tsd_free(tsd);
     int rc = zmq_ctx_destroy(BXILOG_CONTEXT);
     if (-1 == rc) {
         while (-1 == rc && EINTR == errno) {
