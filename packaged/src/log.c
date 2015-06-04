@@ -809,6 +809,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
             break;
         }
 
+        if(logmsg_allocated) BXIFREE(logmsg);
         // Not enough space, mallocate a new special buffer of the precise size
         logmsg_len = (size_t) (n + 1);
         logmsg = malloc(logmsg_len); // Include the null terminated byte
@@ -967,7 +968,8 @@ bxierr_p bxilog_install_sighandler(void) {
     int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM};
     // Mask all signals during the execution of a signal handler.
     sigset_t allsig_blocked;
-    bxilog_sigset_new(&allsig_blocked, allsig_num, ARRAYLEN(allsig_num));
+    bxierr_p err = bxilog_sigset_new(&allsig_blocked, allsig_num, ARRAYLEN(allsig_num));
+    if (bxierr_isko(err)) return err;
 
     sa.sa_sigaction = _sig_handler;
     sa.sa_mask = allsig_blocked;
@@ -1714,7 +1716,10 @@ bxierr_p _process_data(void * const data_channel) {
 
     /* Release */
     bxierr_p err = bxizmq_msg_close(&zmsg);
-    if (bxierr_isko(err)) _display_err_msg("[W] Can't close zmg msg");
+    if (bxierr_isko(err)) {
+        _display_err_msg("[W] Can't close zmg msg");
+        bxierr_destroy(&err);
+    }
 
     return BXIERR_OK;
 }
@@ -1757,7 +1762,9 @@ bxierr_p _process_ctrl_msg(void * ctrl_channel, void * data_channel) {
         return err;
     }
     BXIFREE(cmd);
-    return bxierr_gen("bxilog.iht: Unknown control command: %s", cmd);
+    err2 = bxierr_gen("bxilog.iht: Unknown control command: %s", cmd);
+    BXIERR_CHAIN(err, err2);
+    return err;
 }
 
 ssize_t _mkmsg(const size_t n, char buf[n],
@@ -2012,6 +2019,7 @@ bxierr_p _finalize(void) {
     BXIERR_CHAIN(err, iht_err);
 
     err2 = _cleanup();
+    BXIERR_CHAIN(err, err2);
     return err;
 }
 
