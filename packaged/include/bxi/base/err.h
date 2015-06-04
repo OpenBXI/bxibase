@@ -42,74 +42,79 @@
  * Various macros and functions are provided for different use cases:
  *
  * 1. errno with a static message:
- *
- *        errno = 0;
- *        int rc = f(...);
- *        if (0 != rc) return bxierr_errno("Cannot call f()");
+ *    ~~~
+ *    errno = 0;
+ *    int rc = f(...);
+ *    if (0 != rc) return bxierr_errno("Cannot call f()");
+ *    ~~~
  * 2. errno with a message:
- *
- *        errno = 0;
- *        int rc = f(i, j);
- *        if (0 != rc) return bxierr_errno("Cannot call f(%d, %d)", i, j);
+ *    ~~~
+ *    errno = 0;
+ *    int rc = f(i, j);
+ *    if (0 != rc) return bxierr_errno("Cannot call f(%d, %d)", i, j);
+ *    ~~~
  * 3. generic error (no specific returned code, just a simple message):
- *
- *        if (error) return bxierr_gen("An error occured");
- *
+ *    ~~~
+ *    if (error) return bxierr_gen("An error occured");
+ *    ~~~
  * 4. error message given by an array of static messages
- *        const char * errmsg[] = {"A given type of error occured",
- *                                 "Another type of error occured",
- *                                 "Yet another type of error occured",
- *                                 };
- *        if (error) return bxierr_fromidx(idx, errmsg,
- *                                         "An error occured at %s", __FILE__);
+ *    ~~~
+ *    const char * errmsg[] = {"A given type of error occured",
+ *                             "Another type of error occured",
+ *                             "Yet another type of error occured",
+ *                             };
+ *    if (error) return bxierr_fromidx(idx, errmsg,
+ *                                     "An error occured at %s", __FILE__);
+ *    ~~~
  *
  * 5. error message given by specific error code
- *
- *        #define MY_FIRST_ERR 1    // Data is NULL
- *        #define MY_SECOND_ERR 2   // Data is a size_t casted to a void*
- *        #define MY_THIRD_ERR 3    // Data is a mallocated buffer
- *        ...
- *        if (error1) return bxierr_new(MY_FIRST_ERR, NULL, NULL, NULL, "%s", "Error");
- *        size_t some_stuff = ...;
- *        if (error2) return bxierr_new(MY_SECOND_ERR,
- *                                      (void*) some_stuff, NULL,
- *                                      NULL,
- *                                     "%s", "Error");
- *        struct stuff_s stuff_p = bximisc_calloc(...);
- *        stuff_p->field1 = ...;
- *        ...
- *        if (error3) return bxierr_new(MY_THIRD_ERR, stuff_p, free, NULL, "%s", "Error");
- *
+ *    ~~~
+ *    #define MY_FIRST_ERR 1    // Data is NULL
+ *    #define MY_SECOND_ERR 2   // Data is a size_t casted to a void*
+ *    #define MY_THIRD_ERR 3    // Data is a mallocated buffer
+ *    ...
+ *    if (error1) return bxierr_new(MY_FIRST_ERR, NULL, NULL, NULL, "%s", "Error");
+ *    size_t some_stuff = ...;
+ *    if (error2) return bxierr_new(MY_SECOND_ERR,
+ *                                  (void*) some_stuff, NULL,
+ *                                  NULL,
+ *                                 "%s", "Error");
+ *    struct stuff_s stuff_p = bximisc_calloc(...);
+ *    stuff_p->field1 = ...;
+ *    ...
+ *    if (error3) return bxierr_new(MY_THIRD_ERR, stuff_p, free, NULL, "%s", "Error");
+ *    ~~~
  * ### Handling Errors
  *
  * When using `log.h` module (which is highly recommended),
  * see `BXIEXIT()` and `BXILOG_REPORT()`.
  *
  * 1. Exiting with an error message (but use `BXIEXIT()` instead):
- *
- *        bxierr_p err = f(...);
- *        if (bxierr_isko(err)) {
- *            char * str = bxierr_str(err);
- *            // If you use bxilog, use BXIEXIT() instead in order to flush the logs.
- *            error(EX_SOFTWARE, 0, "Error calling f(): %s", str);
- *            BXIFREE(str);
- *        }
+ *    ~~~
+ *    bxierr_p err = f(...);
+ *    if (bxierr_isko(err)) {
+ *        char * str = bxierr_str(err);
+ *        // If you use bxilog, use BXIEXIT() instead in order to flush the logs.
+ *        error(EX_SOFTWARE, 0, "Error calling f(): %s", str);
+ *        BXIFREE(str);
+ *    }
+ *    ~~~
  *
  * 2. Returning to the caller:
- *
- *        bxierr_p err = f(...);
- *        if (bxierr_isko(err)) return err;
+ *    ~~~
+ *    bxierr_p err = f(...);
+ *    if (bxierr_isko(err)) return err;
+ *    ~~~
  *
  * 3. Chain/wrap multiple errors and return only one:
+ *    ~~~
+ *    bxierr_p err = BXIERR_OK, err2;
+ *    err2 = f(...); BXIERR_CHAIN(err, err2);
+ *    err2 = g(...); BXIERR_CHAIN(err, err2);
+ *    err2 = h(...); BXIERR_CHAIN(err, err2);
  *
- *        bxierr_p err = BXIERR_OK, err2;
- *        err2 = f(...); BXIERR_CHAIN(err, err2);
- *        err2 = g(...); BXIERR_CHAIN(err, err2);
- *        err2 = h(...); BXIERR_CHAIN(err, err2);
- *
- *        return err;
- *
- *
+ *    return err;
+ *    ~~~
  */
 
 
@@ -125,14 +130,15 @@
  * Chain the new error with the current one and adapt the current error accordingly.
  *
  * Use it like this:
+ * ~~~{C}
+ * bxierr_p err = BXIERR_OK, err2;
+ * err2 = f1(...); BXIERR_CHAIN(err, err2);
+ * err2 = f2(...); BXIERR_CHAIN(err, err2);
+ * err2 = f2(...); BXIERR_CHAIN(err, err2);
  *
- *      bxierr_p err = BXIERR_OK, err2;
- *      err2 = f1(...); BXIERR_CHAIN(err, err2);
- *      err2 = f2(...); BXIERR_CHAIN(err, err2);
- *      err2 = f2(...); BXIERR_CHAIN(err, err2);
- *
- *      // The err pointer points to the last error and is chained with all others.
- *      return err;
+ * // The err pointer points to the last error and is chained with all others.
+ * return err;
+ * ~~~
  */
 #define BXIERR_CHAIN(current, new) do {     \
         bxierr_chain(&(current), &(new));\

@@ -77,96 +77,98 @@
  *
  * Full running example (compile with `-lbxibase`):
  *
- *      #include <sys/types.h>
- *      #include <unistd.h>
- *      #include <string.h>
- *      #include <libgen.h>
- *      #include <sysexits.h>
+ *  ~~~
+ *  #include <sys/types.h>
+ *  #include <unistd.h>
+ *  #include <string.h>
+ *  #include <libgen.h>
+ *  #include <sysexits.h>
  *
- *      #include <bxi/base/mem.h>
- *      #include <bxi/base/str.h>
- *      #include <bxi/base/err.h>
- *      #include <bxi/base/time.h>
- *      #include <bxi/base/log.h>
+ *  #include <bxi/base/mem.h>
+ *  #include <bxi/base/str.h>
+ *  #include <bxi/base/err.h>
+ *  #include <bxi/base/time.h>
+ *  #include <bxi/base/log.h>
  *
- *      // Create a logger for my module/main
- *      SET_LOGGER(MY_LOGGER, "my.logger");
+ *  // Create a logger for my module/main
+ *  SET_LOGGER(MY_LOGGER, "my.logger");
  *
- *      // This function does not raise an error
- *      // It deals with error itself, internally
- *      // using BXILOG_REPORT()
- *      void foo_noraise(void) {
- *        struct timespec start, stop;
- *        bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
- *        if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
- *                                            BXILOG_ERROR,
- *                                            err,
- *                                            "Calling bxitime_gettime() failed");
- *        DEBUG(MY_LOGGER, "Producing a log");
- *        double duration;
- *        err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
- *        if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
- *                                            BXILOG_ERROR,
- *                                            err,
- *                                            "Calling bxitime_duration() failed");
- *        OUT(MY_LOGGER, "Duration: %lf", duration);
- *      }
+ *  // This function does not raise an error
+ *  // It deals with error itself, internally
+ *  // using BXILOG_REPORT()
+ *  void foo_noraise(void) {
+ *    struct timespec start, stop;
+ *    bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
+ *    if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
+ *                                        BXILOG_ERROR,
+ *                                        err,
+ *                                        "Calling bxitime_gettime() failed");
+ *    DEBUG(MY_LOGGER, "Producing a log");
+ *    double duration;
+ *    err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
+ *    if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
+ *                                        BXILOG_ERROR,
+ *                                        err,
+ *                                        "Calling bxitime_duration() failed");
+ *    OUT(MY_LOGGER, "Duration: %lf", duration);
+ *  }
  *
- *      // This function is the equivalent but it does raise errors
- *      // It uses BXIERR_CHAIN() for this purpose.
- *      bxierr_p bar_raise(void) {
- *        struct timespec start, stop;
- *        bxierr_p err = BXIERR_OK, err2;
- *        err2 = bxitime_get(CLOCK_MONOTONIC, &start);
- *        BXIERR_CHAIN(err, err2); // This makes err2->cause = err, err=err2 on error
- *        // We choose to continue here, despite the error.
- *        // We migh have returned sooner with:
- *        // if (bxierr_isko(err)) return err;
- *        DEBUG(MY_LOGGER, "Producing a log");
- *        double duration = 0;
- *        err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
- *        BXIERR_CHAIN(err, err2);
- *        OUT(MY_LOGGER, "Duration: %lf", duration);
- *        return err;
- *      }
+ *  // This function is the equivalent but it does raise errors
+ *  // It uses BXIERR_CHAIN() for this purpose.
+ *  bxierr_p bar_raise(void) {
+ *    struct timespec start, stop;
+ *    bxierr_p err = BXIERR_OK, err2;
+ *    err2 = bxitime_get(CLOCK_MONOTONIC, &start);
+ *    BXIERR_CHAIN(err, err2); // This makes err2->cause = err, err=err2 on error
+ *    // We choose to continue here, despite the error.
+ *    // We migh have returned sooner with:
+ *    // if (bxierr_isko(err)) return err;
+ *    DEBUG(MY_LOGGER, "Producing a log");
+ *    double duration = 0;
+ *    err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
+ *    BXIERR_CHAIN(err, err2);
+ *    OUT(MY_LOGGER, "Duration: %lf", duration);
+ *    return err;
+ *  }
  *
- *      int main(int argc, char** argv) {
- *        // Produce the log on stdout
- *        bxierr_p err = bxilog_init(argv[0], "-");
+ *  int main(int argc, char** argv) {
+ *    // Produce the log on stdout
+ *    bxierr_p err = bxilog_init(argv[0], "-");
  *
- *        if (bxierr_isko(err)) {
- *          // Nothing can be logged, use fprintf() exceptionnaly
- *          char * str = bxierr_str(err);
- *          fprintf(stderr, "Calling bxilog_init() failed: %s", str);
- *          BXIFREE(str); // Nullify the pointer!
- *          BXIASSERT(MY_LOGGER, NULL == str);
- *          int rc = err->code;
- *          bxierr_destroy(&err);
- *          exit(rc);
- *        }
+ *    if (bxierr_isko(err)) {
+ *      // Nothing can be logged, use fprintf() exceptionnaly
+ *      char * str = bxierr_str(err);
+ *      fprintf(stderr, "Calling bxilog_init() failed: %s", str);
+ *      BXIFREE(str); // Nullify the pointer!
+ *      BXIASSERT(MY_LOGGER, NULL == str);
+ *      int rc = err->code;
+ *      bxierr_destroy(&err);
+ *      exit(rc);
+ *    }
  *
- *        DEBUG(MY_LOGGER, "Calling noraise");
- *        foo_noraise();
- *        DEBUG(MY_LOGGER, "Calling raise");
- *        err = bar_raise();
- *        if (bxierr_isko(err)) {
- *          // Exit the program
- *          BXIEXIT(EX_SOFTWARE, err, MY_LOGGER, BXILOG_CRITICAL);
- *          // The following statement must never be reached
- *          BXIUNREACHABLE_STATEMENT(MY_LOGGER);
- *        }
+ *    DEBUG(MY_LOGGER, "Calling noraise");
+ *    foo_noraise();
+ *    DEBUG(MY_LOGGER, "Calling raise");
+ *    err = bar_raise();
+ *    if (bxierr_isko(err)) {
+ *      // Exit the program
+ *      BXIEXIT(EX_SOFTWARE, err, MY_LOGGER, BXILOG_CRITICAL);
+ *      // The following statement must never be reached
+ *      BXIUNREACHABLE_STATEMENT(MY_LOGGER);
+ *    }
  *
- *        err = bxilog_finalize();
- *        if (bxierr_isko(err)) {
- *          // Logging cannot be used, use fprintf() exceptionnaly
- *          char * str = bxierr_str(err);
- *          fprintf(stderr, "Calling bxilog_finalize() failed: %s",
- *                  str);
- *          BXIFREE(str);
- *          bxierr_destroy(&err);
- *        }
- *        exit(EXIT_SUCCESS);
- *      }
+ *    err = bxilog_finalize();
+ *    if (bxierr_isko(err)) {
+ *      // Logging cannot be used, use fprintf() exceptionnaly
+ *      char * str = bxierr_str(err);
+ *      fprintf(stderr, "Calling bxilog_finalize() failed: %s",
+ *              str);
+ *      BXIFREE(str);
+ *      bxierr_destroy(&err);
+ *    }
+ *    exit(EXIT_SUCCESS);
+ *  }
+ *  ~~~
  *
  * *************************************************************************************
  */
@@ -255,17 +257,19 @@
  * given `level`,  before flushing the log and exiting the program.
  *
  * Usage looks like (for an `errno` related error message):
- *
- *      errno = 0;
- *      int rc = function_call(...);
- *      if (rc != 0) BXIEXIT(EX_OSERR,  // See sysexits.h for other standard exit code
- *                           bxierr_errno("Can't call function_call()),
- *                           MYLOGGER, BXILOG_ERROR);
+ * ~~~{C}
+ * errno = 0;
+ * int rc = function_call(...);
+ * if (rc != 0) BXIEXIT(EX_OSERR,  // See sysexits.h for other standard exit code
+ *                      bxierr_errno("Can't call function_call()),
+ *                      MYLOGGER, BXILOG_ERROR);
+ * ~~~
  *
  * Same stuff with a generic `bxierr`:
- *
- *      bxierr_p err = function_call(...);
- *      if (BXIERR_OK != err) BXIEXIT(EXIT_FAILURE, err, MYLOGGER, BXILOG_ERROR);
+ * ~~~{C}
+ * bxierr_p err = function_call(...);
+ * if (BXIERR_OK != err) BXIEXIT(EXIT_FAILURE, err, MYLOGGER, BXILOG_ERROR);
+ * ~~~
  *
  * @param[in] exit_code the exit code to exit the program with (see `sysexits.h`)
  * @param[in] bxierr the `bxierr` to log before exiting
@@ -319,11 +323,12 @@
  * Log the given error with the given message and destroys it.
  *
  * Basic usage is:
- *
- *      err = f(...);
- *      if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER, BXILOG_ERROR, err,
- *                                          "Calling f() failed");
- *      ...
+ * ~~~{C}
+ * err = f(...);
+ * if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER, BXILOG_ERROR, err,
+ *                                     "Calling f() failed");
+ * ...
+ * ~~~
  */
 #define BXILOG_REPORT(logger, level, err, ...) do {                                 \
         bxilog_report((logger), (level), (err),                                     \
@@ -561,73 +566,73 @@ size_t bxilog_get_registered(bxilog_p *loggers[]);
  * specified with other log levels.
  *
  * Full running example (compile with `-lbxibase`):
+ * ~~~{C}
+ * #include <assert.h>
+ *
+ * #include <bxi/base/err.h>
+ * #include <bxi/base/log.h>
+ *
+ * // Create a logger for my module/main
+ * SET_LOGGER(MY_LOGGER, "my.logger");
+ * // And other loggers to play with
+ * SET_LOGGER(LOGGER_A, "a.logger");
+ * SET_LOGGER(LOGGER_AB, "a.b.logger");
+ * SET_LOGGER(LOGGER_AC, "a.c.logger");
+ *
+ * char ** LEVEL_NAMES;
+ *
+ * void log_stuff(bxilog_p logger) {
+ *   WARNING(logger, "A message");
+ *   OUT(logger, "A message");
+ *   DEBUG(logger, "A message");
+ * }
+ *
+ * void display_loggers(size_t n, bxilog_p loggers[n]) {
+ *
+ *   for (size_t i = 0; i < n; i++) {
+ *     OUT(MY_LOGGER, "%s: %s",
+ *     loggers[i]->name,
+ *     LEVEL_NAMES[loggers[i]->level]);
+ *   }
+ * }
+ *
+ * int main(int argc, char** argv) {
+ *   // Produce the log on stdout
+ *   bxierr_p err = bxilog_init(argv[0], "-");
+ *   assert(bxierr_isok(err));
+ *
+ *   // Fetching log level names
+ *   size_t n = bxilog_get_all_level_names(&LEVEL_NAMES);
+ *   BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
  *
  *
- *     #include <assert.h>
+ *   // Fetching all registered loggers
+ *   bxilog_p *loggers = NULL;
+ *   n = bxilog_get_registered(&loggers);
+ *   BXIASSERT(MY_LOGGER, n>0 && NULL != loggers);
  *
- *     #include <bxi/base/err.h>
- *     #include <bxi/base/log.h>
+ *   OUT(MY_LOGGER, "Before configuration:");
+ *   display_loggers(n, loggers);
+ *   log_stuff(LOGGER_A);
+ *   log_stuff(LOGGER_AB);
+ *   log_stuff(LOGGER_AC);
  *
- *     // Create a logger for my module/main
- *     SET_LOGGER(MY_LOGGER, "my.logger");
- *     // And other loggers to play with
- *     SET_LOGGER(LOGGER_A, "a.logger");
- *     SET_LOGGER(LOGGER_AB, "a.b.logger");
- *     SET_LOGGER(LOGGER_AC, "a.c.logger");
+ *   bxilog_cfg_item_s cfg[] = {{.prefix="", .level=BXILOG_LOWEST},
+ *                  {.prefix="a", .level=BXILOG_OUTPUT},
+ *                  {.prefix="a.b", .level=BXILOG_WARNING},
+ *   };
+ *   bxilog_cfg_registered(3, cfg);
+ *   OUT(MY_LOGGER, "After configuration:");
+ *   display_loggers(n, loggers);
+ *   log_stuff(LOGGER_A);
+ *   log_stuff(LOGGER_AB);
+ *   log_stuff(LOGGER_AC);
  *
- *     char ** LEVEL_NAMES;
- *
- *     void log_stuff(bxilog_p logger) {
- *       WARNING(logger, "A message");
- *       OUT(logger, "A message");
- *       DEBUG(logger, "A message");
- *     }
- *
- *     void display_loggers(size_t n, bxilog_p loggers[n]) {
- *
- *       for (size_t i = 0; i < n; i++) {
- *         OUT(MY_LOGGER, "%s: %s",
- *         loggers[i]->name,
- *         LEVEL_NAMES[loggers[i]->level]);
- *       }
- *     }
- *
- *     int main(int argc, char** argv) {
- *       // Produce the log on stdout
- *       bxierr_p err = bxilog_init(argv[0], "-");
- *       assert(bxierr_isok(err));
- *
- *       // Fetching log level names
- *       size_t n = bxilog_get_all_level_names(&LEVEL_NAMES);
- *       BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
- *
- *
- *       // Fetching all registered loggers
- *       bxilog_p *loggers = NULL;
- *       n = bxilog_get_registered(&loggers);
- *       BXIASSERT(MY_LOGGER, n>0 && NULL != loggers);
- *
- *       OUT(MY_LOGGER, "Before configuration:");
- *       display_loggers(n, loggers);
- *       log_stuff(LOGGER_A);
- *       log_stuff(LOGGER_AB);
- *       log_stuff(LOGGER_AC);
- *
- *       bxilog_cfg_item_s cfg[] = {{.prefix="", .level=BXILOG_LOWEST},
- *                      {.prefix="a", .level=BXILOG_OUTPUT},
- *                      {.prefix="a.b", .level=BXILOG_WARNING},
- *       };
- *       bxilog_cfg_registered(3, cfg);
- *       OUT(MY_LOGGER, "After configuration:");
- *       display_loggers(n, loggers);
- *       log_stuff(LOGGER_A);
- *       log_stuff(LOGGER_AB);
- *       log_stuff(LOGGER_AC);
- *
- *       err = bxilog_finalize();
- *       assert(bxierr_isok(err));
- *       return 0;
- *     }
+ *   err = bxilog_finalize();
+ *   assert(bxierr_isok(err));
+ *   return 0;
+ * }
+ * ~~~
  *
  *
  * @param[in] n the number of configuration items in the `cfg` array
