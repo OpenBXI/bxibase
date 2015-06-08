@@ -13,7 +13,7 @@ $(abs_builddir)/bxi/base/__init__.py: $(abs_builddir)/bxi/__init__.py
 # For installation
 nobase_python_PYTHON=\
                   bxi/ffi.py \
-                  bxi/base/signal.py \
+                  bxi/base/sign.py \
                   bxi/base/cffi_h.py \
                   bxi/base/err.py \
                   bxi/base/log.py

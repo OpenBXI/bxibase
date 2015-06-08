@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-##########################################################################################
-# Author: Sébastien Miquée <sebastien.miquee@bull.net>
-# Contributor:
-##########################################################################################
-# Copyright (C) 2014  Bull S. A. S.  -  All rights reserved
-# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
-# This is not Free or Open Source software.
-# Please contact Bull S. A. S. for details about its license.
-##########################################################################################
 
-"""Signal handling"""
+"""
+@file err.py Defines all Python signal handling for all BXI modules
+@authors Sébastien Miquée <sebastien.miquee@bull.net>
+@copyright 2014  Bull S.A.S.  -  All rights reserved.\n
+           This is not Free or Open Source software.\n
+           Please contact Bull SAS for details about its license.\n
+           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+@namespace bxi.base.sign Python BXI Signal handling
+
+Signal handling"""
 
 
 import signal
@@ -86,12 +86,26 @@ SIGNALS = ['None',
 
 
 def default_handler(signum, frame):
-    """Default signal handler"""
+    """
+    Default signal handler.
+
+    @param[in] signum Signal number
+    @param[in] frame Signal data
+
+    @return
+    """
     _LOGGER.debug('Received signal %s (%s)', signum, SIGNALS[signum])
 
 
 def set_handler(sig, function):
-    """Set a handler function on a given signal (numeric or name)"""
+    """
+    Set a handler function on a given signal (numeric or name).
+
+    @param[in] sig Signal number or string
+    @param[in] function The function to be executed
+
+    @return
+    """
     signum = -1
     if type(sig) == int:
         if sig > 0 and sig < len(SIGNALS):
@@ -110,7 +124,11 @@ def set_handler(sig, function):
 
 
 def mask_all():
-    """Set the default signal handler for all signals"""
+    """
+    Set the default signal handler for all signals.
+
+    @return
+    """
     for i in xrange(1, len(SIGNALS)):
         if i != 9 and i != 19 and i != 32 and i != 33:
             _LOGGER.debug('Setting default handler for signal: %d (%s)', i, SIGNALS[i])
