@@ -46,7 +46,7 @@
 static int _bt_full_cb(void *data, uintptr_t pc,
                        const char *filename, int lineno, const char *function);
 static void _bt_error_cb(void *data, const char *msg, int errnum);
-static char** _pretty_backtrace(void* addresses[], size_t array_size);
+static char** _pretty_backtrace(void* addresses[], int array_size);
 static void __bt_init__(void);
 // *********************************************************************************
 // ********************************** Global Variables *****************************
@@ -193,15 +193,15 @@ bxierr_p bxierr_vfromidx(const int erridx,
     return result;
 }
 
-char** _pretty_backtrace(void* addresses[], size_t array_size) {
+char** _pretty_backtrace(void* addresses[], int array_size) {
     // Used to return the strings generated from the addresses
-    char** backtrace_strings = bximem_calloc(sizeof(*backtrace_strings) * array_size);
-    for(size_t i = 0; i < array_size; i++) {
+    char** backtrace_strings = bximem_calloc(sizeof(*backtrace_strings) * (unsigned)array_size);
+    for(int i = 0; i < array_size; i++) {
         int rc = backtrace_pcinfo(BT_STATE,
                                   (uintptr_t) addresses[i],
                                   _bt_full_cb,
                                   _bt_error_cb,
-                                  backtrace_strings + i);
+                                  &backtrace_strings[i]);
         assert(0 == rc);
     }
     return backtrace_strings;
@@ -220,7 +220,7 @@ char * bxierr_backtrace_str(void) {
     int c = backtrace(addresses, BACKTRACE_MAX);
     errno = 0;
     char **symbols = backtrace_symbols(addresses,c);
-    char **strings = _pretty_backtrace(addresses, (unsigned long) c);
+    char **strings = _pretty_backtrace(addresses, c);
 
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
