@@ -181,6 +181,7 @@
                                 .data = NULL,                       \
                                 .free_fn = NULL,                    \
                                 .cause = NULL,                      \
+                                .last_cause = NULL,                 \
                                 .msg = user_msg,                    \
                                 .msg_len = ARRAYLEN(user_msg),      \
     };                                                              \
@@ -212,6 +213,7 @@ struct bxierr_s {
     void * data;                            //!< some data related to the error
     void (*free_fn)(void *);                //!< the function to use to free the data
     bxierr_p cause;                         //!< the cause if any (can be NULL)
+    bxierr_p last_cause;                    //!< the initial cause valid only on the first error
     char * msg;                             //!< the message of the error
     size_t msg_len;                         //!< the length of the message
 };
@@ -392,16 +394,16 @@ inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
             assert(NULL != (tmp));
             if (bxierr_isko((*tmp)) && bxierr_isko((*err))) {
                 if (NULL != (*tmp)->cause) {
-                    char * __str__ = bxierr_str((*tmp));
-                    fprintf(stderr,
-                            "ERROR: Can't chain two chains of errors. "
-                            "The following error will just be displayed but "
-                            "not chained! This is a programming error. "
-                            "The process might continue without further "
-                            "notice leading to strange behavior. "
-                            "Unchained error: %s", __str__);
-                    BXIFREE(__str__);
-                } else (*tmp)->cause = (*err);
+                    assert((*tmp)->last_cause->cause == NULL);
+                    (*tmp)->last_cause->cause = (*err);
+                } else {
+                    (*tmp)->cause = (*err);
+                }
+                if ((*err)->last_cause != NULL) {
+                    (*tmp)->last_cause = (*err)->last_cause;
+                } else {
+                    (*tmp)->last_cause = (*err);
+                }
             }
             (*err) = bxierr_isko((*tmp)) ? (*tmp) : (*err);
 }

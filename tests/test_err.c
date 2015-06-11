@@ -86,6 +86,8 @@ void test_bxierr_chain() {
 
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
 
+
+
     CU_ASSERT_EQUAL_FATAL(err->code, 422);
     CU_ASSERT_PTR_NOT_NULL_FATAL(err->data);
     CU_ASSERT_STRING_EQUAL(err->data, "Level 2");
@@ -99,6 +101,46 @@ void test_bxierr_chain() {
     CU_ASSERT_EQUAL_FATAL(err->cause->cause->code, 420);
     CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->data);
     CU_ASSERT_STRING_EQUAL(err->cause->cause->data, "Level 0");
+
+    bxierr_p nerr = BXIERR_OK, nerr2;
+    nerr2 = bxierr_new(430, "Level 10", NULL, NULL, "Initial Cause of error");
+    BXIERR_CHAIN(nerr, nerr2);
+
+    nerr = bxierr_new(431, "Level 11", NULL, nerr, "Intermediate Error");
+
+    nerr2 = bxierr_new(432, "Level 12", NULL, NULL, "Top Level Error");
+    BXIERR_CHAIN(nerr, nerr2);
+
+    BXIERR_CHAIN(err, nerr);
+
+    CU_ASSERT_EQUAL_FATAL(err->code, 432);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->data);
+    CU_ASSERT_STRING_EQUAL(err->data, "Level 12");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause);
+    CU_ASSERT_EQUAL_FATAL(err->cause->code, 431);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->data);
+    CU_ASSERT_STRING_EQUAL(err->cause->data, "Level 11");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause);
+    CU_ASSERT_EQUAL_FATAL(err->cause->cause->code, 430);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->data);
+    CU_ASSERT_STRING_EQUAL(err->cause->cause->data, "Level 10");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->cause);
+    CU_ASSERT_EQUAL_FATAL(       err->cause->cause->cause->code, 422);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->cause->data);
+    CU_ASSERT_STRING_EQUAL(      err->cause->cause->cause->data, "Level 2");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->cause->cause);
+    CU_ASSERT_EQUAL_FATAL(       err->cause->cause->cause->cause->code, 421);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->cause->cause->data);
+    CU_ASSERT_STRING_EQUAL(      err->cause->cause->cause->cause->data, "Level 1");
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->cause->cause->cause);
+    CU_ASSERT_EQUAL_FATAL(       err->cause->cause->cause->cause->cause->code, 420);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(err->cause->cause->cause->cause->cause->data);
+    CU_ASSERT_STRING_EQUAL(      err->cause->cause->cause->cause->cause->data, "Level 0");
 
     bxierr_destroy(&err);
 }

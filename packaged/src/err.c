@@ -74,6 +74,13 @@ bxierr_p bxierr_new(int code,
     self->data = data;
     self->free_fn = free_fn;
     self->cause = cause;
+    if (self->cause != NULL) {
+        if (self->cause->last_cause != NULL) {
+            self->last_cause = self->cause->last_cause;
+        } else {
+            self->last_cause = self->cause;
+        }
+    }
 
     va_list ap;
     va_start(ap, fmt);
@@ -219,7 +226,7 @@ char * bxierr_backtrace_str(void) {
     void *addresses[BACKTRACE_MAX];
     int c = backtrace(addresses, BACKTRACE_MAX);
     errno = 0;
-    char **symbols = backtrace_symbols(addresses,c);
+    char **symbols = backtrace_symbols(addresses, c);
     char **strings = _pretty_backtrace(addresses, c);
 
 #ifdef __linux__
