@@ -917,27 +917,29 @@ void bxilog_assert(bxilog_p logger, bool result,
     }
 }
 
-void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
+void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
                    char * file, size_t filelen,
                    const char * func, size_t funclen,
                    int line,
                    const char * fmt, ...) {
 
-    if (bxilog_is_enabled_for(logger, level) && bxierr_isko(err)) {
+    if (*err == NULL) return;
+    if (bxilog_is_enabled_for(logger, level) && bxierr_isko(*err)) {
         va_list ap;
         va_start(ap, fmt);
         char * msg;
         bxistr_vnew(&msg, fmt, ap);
         va_end(ap);
-        char * err_str = bxierr_str(err);
+        char * err_str = bxierr_str(*err);
         bxierr_p logerr = bxilog_log_nolevelcheck(logger, level,
                                                   file, filelen,
                                                   func, funclen, line,
                                                   "%s: %s", msg, err_str);
         BXIFREE(msg);
         BXIFREE(err_str);
-        bxierr_destroy(&err);
+        bxierr_destroy(err);
         bxierr_report(logerr, STDERR_FILENO);
+        *err = BXIERR_OK;
     }
 }
 

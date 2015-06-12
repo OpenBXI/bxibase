@@ -325,13 +325,13 @@
  * Basic usage is:
  * ~~~{C}
  * err = f(...);
- * if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER, BXILOG_ERROR, err,
+ * if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER, BXILOG_ERROR, &err,
  *                                     "Calling f() failed");
  * ...
  * ~~~
  */
 #define BXILOG_REPORT(logger, level, err, ...) do {                                 \
-        bxilog_report((logger), (level), (err),                                     \
+        bxilog_report((logger), (level), (&err),                                     \
                       (char *)__FILE__, ARRAYLEN(__FILE__),                         \
                       __func__, ARRAYLEN(__func__),                                 \
                       __LINE__, __VA_ARGS__);                                     \
@@ -927,7 +927,7 @@ void bxilog_assert(bxilog_p logger, bool result,
  *
  * @param[in] logger a logger instance
  * @param[in] level the logger level to use while reporting the given error
- * @param[in] err the error to report
+ * @param[in] err pointer on the error to report
  * @param[in] file the file name
  * @param[in] filelen the file name length (including the terminal NULL byte)
  * @param[in] func the function name
@@ -937,7 +937,7 @@ void bxilog_assert(bxilog_p logger, bool result,
  *
  * @see BXILOG_REPORT
  */
-void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p err,
+void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
                    char * file, size_t filelen,
                    const char * func, size_t funclen,
                    int line,

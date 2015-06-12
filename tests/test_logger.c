@@ -451,9 +451,12 @@ void _fork_kill(int signum) {
         OUT(TEST_LOGGER, "Removing file %s", name);
         errno = 0;
         rc = unlink(name);
-        if (0 != rc) BXILOG_REPORT(TEST_LOGGER, BXILOG_WARNING,
-                                   bxierr_errno("Calling unlink(%s) failed", name),
+        if (0 != rc) {
+            bxierr_p err = bxierr_errno("Calling unlink(%s) failed", name);
+            BXILOG_REPORT(TEST_LOGGER, BXILOG_WARNING,
+                                   err,
                                    "Error during cleanup");
+        }
         BXIFREE(name);
         break;
     }
