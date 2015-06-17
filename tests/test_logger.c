@@ -109,9 +109,14 @@ void test_logger_levels(void) {
     err = bxilog_flush();
     bxierr_p err2 = bxierr_gen("An error to report");
     BXIERR_CHAIN(err,err2);
+    BXILOG_REPORT_KEEP(TEST_LOGGER, BXILOG_OUTPUT,
+                       err,
+                       "Don't worry, this is just a test for error reporting");
+    CU_ASSERT_FALSE(bxierr_isok(err));
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
                   err,
-                  "Don't worry, this is just a test for error reporting");
+                  "Don't worry, this is just another test for error reporting");
+    CU_ASSERT_TRUE(bxierr_isok(err));
     OUT(TEST_LOGGER, "Ending test");
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));

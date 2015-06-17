@@ -145,4 +145,3 @@ void test_bxierr_chain() {
     bxierr_destroy(&err);
 }
 
-

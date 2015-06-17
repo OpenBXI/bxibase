@@ -39,11 +39,11 @@
  * for heavy multi-threaded processes, while supporting fork() system call,
  * and signal handling. It provides convenient functions to deal with:
  *
- * - logging at various log levels: `bxilog_level_e`,
+ * - logging at various log levels: `::bxilog_level_e`,
  * - logging configuration: `bxilog_cfg_registered()`,
  * - error reporting: `BXILOG_REPORT()`,
  * - assertion: `BXIASSERT()` and `BXIUNREACHABLE_STATEMENT()`,
- * - exiting: `BXIEXIT`,
+ * - exiting: `::BXIEXIT`,
  * - signal handling set-up: `bxilog_install_sighandler()`
  *
  * ### Basic 4-steps usage:
@@ -57,7 +57,7 @@
  *
  * - `OUT()` should be seen as a replacement for `printf()`
  * - Loggers created with `SET_LOGGER()` are automatically registered with the library
- * - Dynamically created loggers with `bxilog_new()` (such as from higher level languages)
+ * - Dynamically created loggers with `bxilog_get()` (such as from higher level languages)
  *   can be registered with `bxilog_register()`
  * - Default level of each logger is `BXILOG_LOWEST`. Use `bxilog_cfg_registered()`
  *   to configure all registered loggers.
@@ -65,10 +65,10 @@
  *   to guarantee that logs are flushed before exiting the process.
  * - For the same reason, you might need the installation of a signal handler in order
  *   to call `bxilog_finalize()` properly and to flush all pending messages.
- *   See `bxilog_install_sighanler()` for this purpose.
- * - For `bxierr_p` reporting, use `BXILOG_REPORT`.
- * - Exiting a process (with `BXIEXIT`) normally requires at least the level
- *   `BXILOG_CRITICAL` or above and a standard exit code (see sysexits.h).
+ *   See `bxilog_install_sighandler()` for this purpose.
+ * - For `::bxierr_p` reporting, use `::BXILOG_REPORT`.
+ * - Exiting a process (with `::BXIEXIT`) normally requires at least the level
+ *   `::BXILOG_CRITICAL` or above and a standard exit code (see sysexits.h).
  *
  * - All functions in this library are thread safe.
  * - Fork is supported, but note that after a `fork()`, while the parent remains in same
@@ -134,17 +134,9 @@
  *  int main(int argc, char** argv) {
  *    // Produce the log on stdout
  *    bxierr_p err = bxilog_init(argv[0], "-");
- *
- *    if (bxierr_isko(err)) {
- *      // Nothing can be logged, use fprintf() exceptionnaly
- *      char * str = bxierr_str(err);
- *      fprintf(stderr, "Calling bxilog_init() failed: %s", str);
- *      BXIFREE(str); // Nullify the pointer!
- *      BXIASSERT(MY_LOGGER, NULL == str);
- *      int rc = err->code;
- *      bxierr_destroy(&err);
- *      exit(rc);
- *    }
+ *    // If the logging library raise an error, nothing can be logged!
+ *    // Use the bxierr_report() convenience method in this case
+ *    bxierr_report(err, STDERR_FILENO);
  *
  *    DEBUG(MY_LOGGER, "Calling noraise");
  *    foo_noraise();
@@ -157,15 +149,10 @@
  *      BXIUNREACHABLE_STATEMENT(MY_LOGGER);
  *    }
  *
- *    err = bxilog_finalize();
- *    if (bxierr_isko(err)) {
- *      // Logging cannot be used, use fprintf() exceptionnaly
- *      char * str = bxierr_str(err);
- *      fprintf(stderr, "Calling bxilog_finalize() failed: %s",
- *              str);
- *      BXIFREE(str);
- *      bxierr_destroy(&err);
- *    }
+ *    err = bxilog_finalize(true);
+ *    // Again, the logging library is not in a normal state,
+ *    // use bxierr_report()
+ *    bxierr_report(err, STDERR_FILENO);
  *    exit(EXIT_SUCCESS);
  *  }
  *  ~~~
@@ -322,13 +309,21 @@
 /**
  * Log the given error with the given message and destroys it.
  *
+ * Note the given err is assigned ::BXIERR_OK.
+ *
  * Basic usage is:
  * ~~~{C}
  * err = f(...);
  * if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER, BXILOG_ERROR, &err,
  *                                     "Calling f() failed");
+ * assert(bxierr_isok(err)); // Always true, since BXILOG_REPORT
+ *                           // destroys err and assign it ::BXIERR_OK
  * ...
  * ~~~
+ *
+ * @see bxilog_report
+ * @see BXILOG_REPORT_KEEP
+ * @see bxilog_report_keep
  */
 #define BXILOG_REPORT(logger, level, err, ...) do {                                 \
         bxilog_report((logger), (level), (&err),                                     \
@@ -337,6 +332,33 @@
                       __LINE__, __VA_ARGS__);                                     \
     } while(0)
 
+
+/**
+ * Log the given error with the given message.
+ *
+ * This is a convenience macro, used mainly in test. Most of the time,
+ * an error reported, has no good reason from being kept in the process.
+ * Therefore, one might prefer ::BXILOG_REPORT instead which destroys
+ * the error after reporting.
+ *
+ * Basic usage is:
+ * ~~~{C}
+ * err = f(...);
+ * if (bxierr_isko(err)) BXILOG_REPORT_KEEP(MY_LOGGER, BXILOG_ERROR, &err,
+ *                                          "Calling f() failed");
+ * ...
+ * ~~~
+ *
+ * @see bxilog_report_keep
+ * @see BXILOG_REPORT
+ * @see bxilog_report
+ */
+#define BXILOG_REPORT_KEEP(logger, level, err, ...) do {                             \
+        bxilog_report_keep((logger), (level), (&err),                                     \
+                           (char *)__FILE__, ARRAYLEN(__FILE__),                         \
+                           __func__, ARRAYLEN(__func__),                                 \
+                           __LINE__, __VA_ARGS__);                                     \
+    } while(0)
 
 /**
  * Create a log using the given logger at the given level.
@@ -482,7 +504,7 @@ struct bxilog_s {
 /**
  * A logger "object".
  *
- * Use `SET_LOGGER()` to create one (or `bxilog_new()`
+ * Use `SET_LOGGER()` to create one (or `bxilog_get()`
  * from a high level language).
  */
 typedef struct bxilog_s * bxilog_p;
@@ -920,7 +942,9 @@ void bxilog_assert(bxilog_p logger, bool result,
                    int line, char * expr);
 
 /**
- * Report an error and destroys it.
+ * Report an error and destroy it.
+ *
+ * Note: after this call bxierr_isko(*err) is always true.
  *
  * This function sole purpose is to make the macro BXILOG_REPORT() cleaner.
  * Use BXILOG_REPORT() instead.
@@ -946,6 +970,35 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
                    __attribute__ ((format (printf, 9, 10)))
 #endif
 ;
+
+/**
+ * Report an error but do not destroy it.
+ *
+ * This function sole purpose is to make the macro BXILOG_REPORT_KEEP() cleaner.
+ * Use BXILOG_REPORT_KEEP() instead.
+ *
+ * @param[in] logger a logger instance
+ * @param[in] level the logger level to use while reporting the given error
+ * @param[in] err pointer on the error to report
+ * @param[in] file the file name
+ * @param[in] filelen the file name length (including the terminal NULL byte)
+ * @param[in] func the function name
+ * @param[in] funclen the function name length (including the terminal NULL byte)
+ * @param[in] line the line number
+ * @param[in] fmt a printf-like format string
+ *
+ * @see BXILOG_REPORT_KEEP
+ */
+void bxilog_report_keep(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+                        char * file, size_t filelen,
+                        const char * func, size_t funclen,
+                        int line,
+                        const char * fmt, ...)
+#ifndef BXICFFI
+                       __attribute__ ((format (printf, 9, 10)))
+#endif
+;
+
 
 /**
  * Set a logical rank to the current pthread.
