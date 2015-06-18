@@ -46,14 +46,14 @@
  * - exiting: `::BXIEXIT`,
  * - signal handling set-up: `bxilog_install_sighandler()`
  *
- * ### Basic 4-steps usage:
+ * ### Basic 4-steps usage
  *
  * 1. use macro `SET_LOGGER()` at the beginning of each C module (in .c, not in .h)
  * 2. in the same source file, use `DEBUG()`, `INFO()`, `WARNING()`, `ERROR()`, ...
  * 3. call `bxilog_init()` (in your `main()`) to initialize the whole module
  * 4. call `bxilog_finalize()` (in your `main()`) otherwise *your program won't terminate*!
  *
- * ### Notes:
+ * ### Notes
  *
  * - `OUT()` should be seen as a replacement for `printf()`
  * - Loggers created with `SET_LOGGER()` are automatically registered with the library
@@ -75,89 +75,11 @@
  *   state as before the `fork()`, the child have to call `bxilog_init()` in order to
  *   produce logs.
  *
- * Full running example (compile with `-lbxibase`):
  *
- *  ~~~
- *  #include <sys/types.h>
- *  #include <unistd.h>
- *  #include <string.h>
- *  #include <libgen.h>
- *  #include <sysexits.h>
+ * ### Full Running Examples
  *
- *  #include <bxi/base/mem.h>
- *  #include <bxi/base/str.h>
- *  #include <bxi/base/err.h>
- *  #include <bxi/base/time.h>
- *  #include <bxi/base/log.h>
- *
- *  // Create a logger for my module/main
- *  SET_LOGGER(MY_LOGGER, "my.logger");
- *
- *  // This function does not raise an error
- *  // It deals with error itself, internally
- *  // using BXILOG_REPORT()
- *  void foo_noraise(void) {
- *    struct timespec start, stop;
- *    bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
- *    if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
- *                                        BXILOG_ERROR,
- *                                        err,
- *                                        "Calling bxitime_gettime() failed");
- *    DEBUG(MY_LOGGER, "Producing a log");
- *    double duration;
- *    err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
- *    if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
- *                                        BXILOG_ERROR,
- *                                        err,
- *                                        "Calling bxitime_duration() failed");
- *    OUT(MY_LOGGER, "Duration: %lf", duration);
- *  }
- *
- *  // This function is the equivalent but it does raise errors
- *  // It uses BXIERR_CHAIN() for this purpose.
- *  bxierr_p bar_raise(void) {
- *    struct timespec start, stop;
- *    bxierr_p err = BXIERR_OK, err2;
- *    err2 = bxitime_get(CLOCK_MONOTONIC, &start);
- *    BXIERR_CHAIN(err, err2); // This makes err2->cause = err, err=err2 on error
- *    // We choose to continue here, despite the error.
- *    // We migh have returned sooner with:
- *    // if (bxierr_isko(err)) return err;
- *    DEBUG(MY_LOGGER, "Producing a log");
- *    double duration = 0;
- *    err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
- *    BXIERR_CHAIN(err, err2);
- *    OUT(MY_LOGGER, "Duration: %lf", duration);
- *    return err;
- *  }
- *
- *  int main(int argc, char** argv) {
- *    // Produce the log on stdout
- *    bxierr_p err = bxilog_init(argv[0], "-");
- *    // If the logging library raise an error, nothing can be logged!
- *    // Use the bxierr_report() convenience method in this case
- *    bxierr_report(err, STDERR_FILENO);
- *
- *    DEBUG(MY_LOGGER, "Calling noraise");
- *    foo_noraise();
- *    DEBUG(MY_LOGGER, "Calling raise");
- *    err = bar_raise();
- *    if (bxierr_isko(err)) {
- *      // Exit the program
- *      BXIEXIT(EX_SOFTWARE, err, MY_LOGGER, BXILOG_CRITICAL);
- *      // The following statement must never be reached
- *      BXIUNREACHABLE_STATEMENT(MY_LOGGER);
- *    }
- *
- *    err = bxilog_finalize(true);
- *    // Again, the logging library is not in a normal state,
- *    // use bxierr_report()
- *    bxierr_report(err, STDERR_FILENO);
- *    exit(EXIT_SUCCESS);
- *  }
- *  ~~~
- *
- * *************************************************************************************
+ * - @link bxilog_err.c logging and error handling@endlink
+ * - @link bxilog_cfg.c logging and error handling@endlink
  */
 
 // *********************************************************************************
@@ -1089,5 +1011,12 @@ bxierr_p bxilog_parse_levels(char * str);
  */
 void bxilog_display_loggers();
 
+
+/**
+ * @example bxilog_err.c
+ * An example on how to use the BXI Logging API with high-level error
+ * management. Compile with `-lbxibase`.
+ *
+ */
 
 #endif /* BXILOG_H_ */
