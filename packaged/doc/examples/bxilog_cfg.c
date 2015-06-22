@@ -30,12 +30,15 @@ void display_loggers(size_t n, bxilog_p loggers[n]) {
 int main(int argc, char** argv) {
     // Produce the log on stdout
     bxierr_p err = bxilog_init(argv[0], "-");
-    assert(bxierr_isok(err));
+    // If the logging library raises an error, nothing can be logged!
+    // Use the bxierr_report() convenience method in this case
+    bxierr_report(err, STDERR_FILENO);
 
     // Fetching log level names
     size_t n = bxilog_get_all_level_names(&LEVEL_NAMES);
+    // Use BXIASSERT() instead of assert(), this guarantee all logs
+    // are flushed before exiting.
     BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
-
 
     // Fetching all registered loggers
     bxilog_ploggers = NULL;
@@ -59,7 +62,9 @@ int main(int argc, char** argv) {
     log_stuff(LOGGER_AB);
     log_stuff(LOGGER_AC);
 
-    err = bxilog_finalize();
-    assert(bxierr_isok(err));
+    err = bxilog_finalize(true);
+    // Again, the logging library is not in a normal state,
+    // use bxierr_report()
+    bxierr_report(err, STDERR_FILENO);
     return 0;
 }

@@ -41,7 +41,7 @@ bxierr_p bar_raise(void) {
     err2 = bxitime_get(CLOCK_MONOTONIC, &start);
     BXIERR_CHAIN(err, err2); // This makes err2->cause = err, err=err2 on error
     // We choose to continue here, despite the error.
-    // We migh have returned sooner with:
+    // We might have returned sooner with:
     // if (bxierr_isko(err)) return err;
     DEBUG(MY_LOGGER, "Producing a log");
     double duration = 0;
@@ -54,7 +54,7 @@ bxierr_p bar_raise(void) {
 int main(int argc, char** argv) {
     // Produce the log on stdout
     bxierr_p err = bxilog_init(argv[0], "-");
-    // If the logging library raise an error, nothing can be logged!
+    // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
     bxierr_report(err, STDERR_FILENO);
 
