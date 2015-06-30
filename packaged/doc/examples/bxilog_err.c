@@ -17,7 +17,7 @@ SET_LOGGER(MY_LOGGER, "my.logger");
 // It deals with error itself, internally
 // using BXILOG_REPORT()
 void foo_noraise(void) {
-    struct timespec start, stop;
+    struct timespec start;
     bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
     if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
                                         BXILOG_ERROR,
@@ -36,7 +36,7 @@ void foo_noraise(void) {
 // This function is the equivalent but it does raise errors
 // It uses BXIERR_CHAIN() for this purpose.
 bxierr_p bar_raise(void) {
-    struct timespec start, stop;
+    struct timespec start;
     bxierr_p err = BXIERR_OK, err2;
     err2 = bxitime_get(CLOCK_MONOTONIC, &start);
     BXIERR_CHAIN(err, err2); // This makes err2->cause = err, err=err2 on error
@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
     bxierr_report(err, STDERR_FILENO);
+    if (argc != 1) exit(EX_SOFTWARE);
 
     DEBUG(MY_LOGGER, "Calling noraise");
     foo_noraise();

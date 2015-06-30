@@ -1,3 +1,5 @@
+#include <unistd.h>
+#include <sysexits.h>
 #include <assert.h>
 
 #include <bxi/base/err.h>
@@ -10,7 +12,7 @@ SET_LOGGER(LOGGER_A, "a.logger");
 SET_LOGGER(LOGGER_AB, "a.b.logger");
 SET_LOGGER(LOGGER_AC, "a.c.logger");
 
-char* LEVEL_NAMES;
+char ** LEVEL_NAMES = NULL;
 
 void log_stuff(bxilog_p logger) {
     WARNING(logger, "A message");
@@ -33,15 +35,17 @@ int main(int argc, char** argv) {
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
     bxierr_report(err, STDERR_FILENO);
+    if (argc != 1) exit(EX_SOFTWARE);
 
     // Fetching log level names
-    size_t n = bxilog_get_all_level_names(&LEVEL_NAMES);
+    size_t n = 0;
+    n = bxilog_get_all_level_names(&LEVEL_NAMES);
     // Use BXIASSERT() instead of assert(), this guarantee all logs
     // are flushed before exiting.
     BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
 
     // Fetching all registered loggers
-    bxilog_ploggers = NULL;
+    bxilog_p *loggers = {NULL};
     n = bxilog_get_registered(&loggers);
     BXIASSERT(MY_LOGGER, n>0 && NULL != loggers);
 
