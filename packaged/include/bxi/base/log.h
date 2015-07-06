@@ -213,7 +213,7 @@
 #define BXIUNREACHABLE_STATEMENT(logger) do {                                       \
     BXIEXIT(EX_SOFTWARE,                                                            \
             bxierr_new(BXIUNREACHABLE_STATEMENT_CODE,                               \
-                                 NULL, NULL, NULL,                                  \
+                                 NULL, NULL, NULL, NULL,                                  \
                                  "Unreachable statement reached! This is a bug"     \
                                  BXIBUG_STD_MSG),                                   \
             (logger),                                                               \

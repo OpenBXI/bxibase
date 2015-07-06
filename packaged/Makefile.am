@@ -24,3 +24,17 @@ lib_libbxibase_la_LIBADD=$(LIB_LIBS)
 
 SUBDIRS=include lib doc
 
+EXTRA_DIST=\
+		   doc/examples/bxilog_err.c\
+		   doc/examples/bxilog_cfg.c
+
+TESTS=\
+	  doc/examples/bxilog_err\
+	  doc/examples/bxilog_cfg
+
+check_PROGRAMS=\
+	  doc/examples/bxilog_err\
+	  doc/examples/bxilog_cfg
+
+doc_examples_bxilog_err_LDADD=lib/libbxibase.la
+doc_examples_bxilog_cfg_LDADD=lib/libbxibase.la

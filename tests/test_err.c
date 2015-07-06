@@ -25,7 +25,7 @@ SET_LOGGER(TEST_LOGGER, "test.bxibase.err");
 void test_bxierr() {
     srand((unsigned int)time(NULL));
     size_t nb = (size_t)(rand()% 8 + 2);
-    bxierr_p leaf_err = bxierr_new((int) nb, "STATIC DATA", NULL, NULL, "%s", "LEAF");
+    bxierr_p leaf_err = bxierr_new((int) nb, "STATIC DATA", NULL, NULL, NULL, "%s", "LEAF");
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(leaf_err);
 
@@ -47,7 +47,7 @@ void test_bxierr() {
     bxierr_p current = leaf_err;
     for (size_t i = nb - 1; i > 0; i--) {
         char * data = bxistr_new("data-%zu", i);
-        current = bxierr_new((int) i, data, free, current, "err-%zu", i);
+        current = bxierr_new((int) i, data, free, NULL,  current, "err-%zu", i);
     }
 
     OUT(TEST_LOGGER, "Depth: %zu, nb: %zu", bxierr_get_depth(current), nb);
@@ -68,6 +68,7 @@ void test_bxierr() {
     current = bxierr_errno("Just a test, don't take this message into account");
     str = bxierr_str(current);
     OUT(TEST_LOGGER, "Test of perror: %s", str);
+    current->str = NULL;
     BXIFREE(str);
     bxierr_destroy(&current);
 }
@@ -75,13 +76,13 @@ void test_bxierr() {
 void test_bxierr_chain() {
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 = bxierr_new(420, "Level 0", NULL, NULL, "Initial Cause of error");
+    err2 = bxierr_new(420, "Level 0", NULL, NULL, NULL, "Initial Cause of error");
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxierr_new(421, "Level 1", NULL, NULL, "Intermediate Error");
+    err2 = bxierr_new(421, "Level 1", NULL, NULL, NULL, "Intermediate Error");
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxierr_new(422, "Level 2", NULL, NULL, "Top Level Error");
+    err2 = bxierr_new(422, "Level 2", NULL, NULL, NULL, "Top Level Error");
     BXIERR_CHAIN(err, err2);
 
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
@@ -103,12 +104,12 @@ void test_bxierr_chain() {
     CU_ASSERT_STRING_EQUAL(err->cause->cause->data, "Level 0");
 
     bxierr_p nerr = BXIERR_OK, nerr2;
-    nerr2 = bxierr_new(430, "Level 10", NULL, NULL, "Initial Cause of error");
+    nerr2 = bxierr_new(430, "Level 10", NULL, NULL, NULL, "Initial Cause of error");
     BXIERR_CHAIN(nerr, nerr2);
 
-    nerr = bxierr_new(431, "Level 11", NULL, nerr, "Intermediate Error");
+    nerr = bxierr_new(431, "Level 11", NULL, NULL, nerr, "Intermediate Error");
 
-    nerr2 = bxierr_new(432, "Level 12", NULL, NULL, "Top Level Error");
+    nerr2 = bxierr_new(432, "Level 12", NULL, NULL, NULL, "Top Level Error");
     BXIERR_CHAIN(nerr, nerr2);
 
     BXIERR_CHAIN(err, nerr);

@@ -63,6 +63,7 @@ struct backtrace_state * BT_STATE = NULL;
 bxierr_p bxierr_new(int code,
                     void * data,
                     void (*free_fn) (void *),
+                    char * (*str)(bxierr_p, uint64_t),
                     bxierr_p cause,
                     const char * fmt,
                     ...) {
@@ -73,6 +74,10 @@ bxierr_p bxierr_new(int code,
     self->backtrace = bxierr_backtrace_str();
     self->data = data;
     self->free_fn = free_fn;
+    self->str = str;
+    if (self->str == NULL) {
+        self->str = bxierr_str_limit;
+    }
     self->cause = cause;
     if (self->cause != NULL) {
         if (self->cause->last_cause != NULL) {
@@ -112,7 +117,11 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
         size_t remaining = bxierr_get_depth(self->cause);
         cause_str = bxistr_new("...<%zu more causes>", remaining);
     } else {
-        cause_str = bxierr_str_limit(self->cause, depth-1);
+        if (self->cause->str != NULL) {
+            cause_str = self->cause->str(self->cause, depth-1);
+        } else {
+            cause_str = bxierr_str_limit(self->cause, depth-1);
+        }
     }
     char * result = bxistr_new("msg='%s' code=%d backtrace=%s\n%s",
                                self->msg, self->code, self->backtrace,
@@ -194,7 +203,7 @@ bxierr_p bxierr_vfromidx(const int erridx,
     char * msg;
     bxistr_vnew(&msg, fmt, ap);
 
-    bxierr_p result = bxierr_new(erridx, NULL, NULL, NULL, "%s: %s", msg, errmsg);
+    bxierr_p result = bxierr_new(erridx, NULL, NULL, NULL, NULL, "%s: %s", msg, errmsg);
     BXIFREE(msg);
 
     return result;

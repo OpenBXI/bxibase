@@ -267,7 +267,7 @@ bxierr_p bxizmq_msg_rcv_async(void * const zocket, zmq_msg_t * const msg,
         BXIERR_CHAIN(err, err2);
     }
 
-    return bxierr_new(4941, NULL, NULL, err,
+    return bxierr_new(4941, NULL, NULL, NULL, err,
                       "No receipt after %zu retries. Giving up.",
                       retries_max);
 }
@@ -319,6 +319,7 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
                                       (void *) retries,
                                       NULL,
                                       NULL,
+                                      NULL,
                                       "Sending a message "
                                       "needed %zu retries", retries);
             BXIERR_CHAIN(current, new);
@@ -329,7 +330,7 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
             bxierr_p new;
             if (errno == EFSM) {
                 new = bxierr_new(BXIZMQ_FSM_ERR,
-                                          NULL, NULL, NULL,
+                                          NULL, NULL, NULL, NULL,
                                           "Invalid state for sending through zsocket %p" \
                                           " (error code is zeromq EFSM)", zocket);
             } else {
@@ -413,6 +414,7 @@ bxierr_p bxizmq_data_rcv(void ** result, const size_t expected_size,
         new = bxizmq_msg_has_more(zsocket, &more);
         if (BXIERR_OK != new) return new;
         if (!more) return bxierr_new(BXIZMQ_MISSING_FRAME_ERR,
+                                     NULL,
                                      NULL,
                                      NULL,
                                      NULL,
@@ -512,6 +514,7 @@ bxierr_p bxizmq_str_rcv(void * const zsocket, const int flags, const bool check_
                                      NULL,
                                      NULL,
                                      NULL,
+                                     NULL,
                                      "Missing zeromq frame on socket %p", zsocket);
     }
     zmq_msg_t msg;
@@ -527,6 +530,7 @@ bxierr_p bxizmq_str_rcv(void * const zsocket, const int flags, const bool check_
         if (-1 == rc) {
             if (EAGAIN != errno) {
                 if (EFSM == errno) return bxierr_new(BXIZMQ_FSM_ERR,
+                                                     NULL,
                                                      NULL,
                                                      NULL,
                                                      NULL,

@@ -462,7 +462,12 @@ void bxilog_unregister(bxilog_p logger) {
     if (!found) {
 //        bxierr_p bxierr = bxierr_gen("[W] Can't find registered logger: %s\n",
 //                                     logger->name);
-//        char * str = bxierr_str(bxierr);
+//        char * str = NULL;
+//        if (err->str != NULL) {
+//            err_str = err->str(err);
+//        } else {
+//            err_str = bxierr_str(err);
+//        }
 //        _display_err_msg(str);
 //        BXIFREE(str);
     } else REGISTERED_LOGGERS_NB--;
@@ -599,7 +604,7 @@ bxierr_p bxilog_init(const char * const progname, const char * const fn) {
     // comment your changes in bxilog_state_e above.
     if(UNSET != STATE && FINALIZED != STATE) {
         err = bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
-                         NULL, NULL, NULL,
+                         NULL, NULL, NULL, NULL,
                          "Illegal state: %d",
                          STATE);
         goto UNLOCK;
@@ -607,7 +612,7 @@ bxierr_p bxilog_init(const char * const progname, const char * const fn) {
 
     if (NULL == fn) {
         err = bxierr_new(BXILOG_CONFIG_ERR,
-                         NULL, NULL, NULL,
+                         NULL, NULL, NULL, NULL,
                          "Bad configuration");
         goto UNLOCK;
     }
@@ -665,7 +670,7 @@ bxierr_p bxilog_finalize(bool flush) {
     }
     if (STATE != INITIALIZED) {
         err = bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
-                         NULL, NULL, NULL,
+                         NULL, NULL, NULL, NULL,
                          "Illegal state: %d", STATE);
         goto UNLOCK;
     }
@@ -748,7 +753,7 @@ bxierr_p bxilog_flush(void) {
     // Warning, no not introduce recursive call here (using ERROR() for example
     // or any log message: we are currently flushing!
     if (0 != strcmp(FLUSH_CTRL_MSG_REP, reply)) {
-        return bxierr_new(BXILOG_IHT2BC_PROTO_ERR, NULL, NULL, NULL,
+        return bxierr_new(BXILOG_IHT2BC_PROTO_ERR, NULL, NULL, NULL, NULL,
                           "Wrong message received in reply to %s: %s. Expecting: %s",
                           FLUSH_CTRL_MSG_REQ, reply, FLUSH_CTRL_MSG_REP);
     }
@@ -910,6 +915,7 @@ void bxilog_assert(bxilog_p logger, bool result,
                    int line, char * expr) {
     if (!result) {
         bxierr_p err = bxierr_new(BXIASSERT_CODE,
+                                  NULL,
                                   NULL,
                                   NULL,
                                   NULL,
@@ -1234,7 +1240,7 @@ void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
 
     char * msg;
     bxistr_vnew(&msg, fmt, arglist);
-    char * err_str = bxierr_str(*err);
+    char * err_str = bxierr_str(*err);;
     bxierr_p logerr = bxilog_log_nolevelcheck(logger, level,
                                               file, filelen,
                                               func, funclen, line,
@@ -1446,7 +1452,7 @@ void * _iht_main(void * param) {
     if (bxierr_isko(fatal_err)) {
         // We can't communicate with main thread, there is nothing else to do
         // than exiting
-        char * fatal_err_str = bxierr_str(fatal_err);
+        char * fatal_err_str = bxierr_str(err);
         error(EX_SOFTWARE, 0,
               "Can't create control socket - exiting. Reason: %s", fatal_err_str);
         BXIFREE(fatal_err_str);
@@ -1912,7 +1918,7 @@ bxierr_p _init(void) {
 
     if (UNSET != STATE && FINALIZED != STATE) {
         bxierr_p err =  bxierr_new(BXILOG_ILLEGAL_STATE_ERR,
-                                   NULL, NULL, NULL,
+                                   NULL, NULL, NULL, NULL,
                                    "Illegal state: %d", STATE);
         STATE = ILLEGAL;
         return err;
@@ -2033,7 +2039,7 @@ bxierr_p _finalize(void) {
     // WARNING: If you change the FSM transition,
     // comment your changes in bxilog_state_e above.
     if (INITIALIZED != STATE) {
-        bxierr_p err = bxierr_new(BXILOG_ILLEGAL_STATE_ERR, NULL, NULL, NULL,
+        bxierr_p err = bxierr_new(BXILOG_ILLEGAL_STATE_ERR, NULL, NULL, NULL, NULL,
                                   "Illegal state: %d", STATE);
         STATE = ILLEGAL;
         return err;

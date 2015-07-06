@@ -116,6 +116,17 @@ void test_logger_levels(void) {
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
                   err,
                   "Don't worry, this is just another test for error reporting");
+    err2 = bxierr_gen("An error to report");
+    err2->str = NULL;
+    BXIERR_CHAIN(err,err2);
+    err->str = NULL;
+    BXILOG_REPORT_KEEP(TEST_LOGGER, BXILOG_OUTPUT,
+                       err,
+                       "Don't worry, this is just a test for error reporting");
+    CU_ASSERT_FALSE(bxierr_isok(err));
+    BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT,
+                  err,
+                  "Don't worry, this is just another test for error reporting");
     CU_ASSERT_TRUE(bxierr_isok(err));
     OUT(TEST_LOGGER, "Ending test");
     err = bxilog_finalize(true);

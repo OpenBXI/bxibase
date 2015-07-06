@@ -73,16 +73,23 @@
  *    #define MY_SECOND_ERR 2   // Data is a size_t casted to a void*
  *    #define MY_THIRD_ERR 3    // Data is a mallocated buffer
  *    ...
- *    if (error1) return bxierr_new(MY_FIRST_ERR, NULL, NULL, NULL, "%s", "Error");
+ *    if (error1) return bxierr_new(MY_FIRST_ERR, NULL, NULL, NULL, NULL, "%s", "Error");
  *    size_t some_stuff = ...;
  *    if (error2) return bxierr_new(MY_SECOND_ERR,
- *                                  (void*) some_stuff, NULL,
+ *                                  (void*) some_stuff,
+ *                                  NULL,
+ *                                  NULL,
  *                                  NULL,
  *                                 "%s", "Error");
  *    struct stuff_s stuff_p = bximisc_calloc(...);
  *    stuff_p->field1 = ...;
  *    ...
- *    if (error3) return bxierr_new(MY_THIRD_ERR, stuff_p, free, NULL, "%s", "Error");
+ *    if (error3) return bxierr_new(MY_THIRD_ERR,
+ *                                  stuff_p,
+ *                                  free,
+ *                                  NULL,
+ *                                  NULL,
+ *                                  "%s", "Error");
  *    ~~~
  * ### Handling Errors
  *
@@ -166,7 +173,7 @@
  *
  * @see bxierr_new()
  */
-#define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, __VA_ARGS__)
+#define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL,NULL, NULL, __VA_ARGS__)
 
 /**
  * Define a new static error.
@@ -211,6 +218,11 @@ struct bxierr_s {
     int  code;                              //!< the error code
     char * backtrace;                       //!< the backtrace
     void * data;                            //!< some data related to the error
+    /**
+     * Return a human string representation of the given error up
+     * to the given depth.
+     */
+    char * (*str)(bxierr_p err, uint64_t depth);
     void (*free_fn)(void *);                //!< the function to use to free the data
     bxierr_p cause;                         //!< the cause if any (can be NULL)
     bxierr_p last_cause;                    //!< the initial cause valid only on the first error
@@ -246,6 +258,7 @@ extern bxierr_p BXIERR_OK;
  * @param code the error code
  * @param data an error specific data (can be NULL)
  * @param free_fn the function that must be used to release the given `data` (can be NULL)
+ * @param str the function that must be used to transform the error into a string (can be NULL)
  * @param cause the error cause (can be NULL)
  * @param fmt the error message in a printf like style.
  *
@@ -257,11 +270,12 @@ extern bxierr_p BXIERR_OK;
 bxierr_p bxierr_new(int code,
                     void * data,
                     void (*free_fn) (void *),
+                    char * (*str)(bxierr_p err, uint64_t depth),
                     bxierr_p cause,
                     const char * fmt,
                     ...)
 #ifndef BXICFFI
-__attribute__ ((format (printf, 5, 6)))
+__attribute__ ((format (printf, 6, 7)))
 #endif
                     ;
 
@@ -362,7 +376,11 @@ inline bool bxierr_isko(bxierr_p self) {
  * @return a human string representation of the given `bxierr`.
  */
 inline char * bxierr_str(bxierr_p self) {
-    return bxierr_str_limit(self, BXIERR_ALL_CAUSES);
+    if (self->str != NULL) {
+        return self->str(self, BXIERR_ALL_CAUSES);
+    } else {
+        return bxierr_str_limit(self, BXIERR_ALL_CAUSES);
+    }
 }
 
 /**
