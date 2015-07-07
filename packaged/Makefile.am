@@ -38,3 +38,10 @@ check_PROGRAMS=\
 
 doc_examples_bxilog_err_LDADD=lib/libbxibase.la
 doc_examples_bxilog_cfg_LDADD=lib/libbxibase.la
+
+doc_examples_bxilog_err_CFLAGS=\
+							   -I$(top_srcdir)/packaged/include
+
+
+doc_examples_bxilog_cfg_CFLAGS=\
+							   -I$(top_srcdir)/packaged/include
