@@ -11,8 +11,8 @@ $(abs_builddir)/bxi/base/__init__.py: $(abs_builddir)/bxi/__init__.py
 
 
 # For installation
-nodist_python_PYTHON=\
-                  bxi/base/cffi_h.py
+nobase_nodist_python_PYTHON=\
+							bxi/base/cffi_h.py
 nobase_python_PYTHON=\
                   bxi/ffi.py \
                   bxi/base/sign.py \
@@ -26,14 +26,14 @@ nodist_bxibase_PYTHON=\
 			   $(srcdir)/bxi/base/__init__.py
 bxidir=$(pythondir)/bxi
 nodist_bxi_PYTHON=\
-				  $(srcdir)/bxi/__init__.py 
+				  $(srcdir)/bxi/__init__.py
 
-dist-hook:${bxibase_PYTHON} ${bxi_PYTHON}
-		cp ${bxibase_PYTHON} $(distdir)/bxi/base/
-		cp ${bxi_PYTHON} $(distdir)/bxi
+dist-hook:
+		cp ${nodist_bxibase_PYTHON} $(distdir)/bxi/base/
+		cp ${nodist_bxi_PYTHON} $(distdir)/bxi
 
 # For generation
-all-local: $(nobase_python_PYTHON) $(abs_builddir)/bxi/base/__init__.py
+all-local: $(nobase_nodist_python_PYTHON) $(abs_builddir)/bxi/base/__init__.py
 
 clean-local:
 	if test $(srcdir) != $(builddir);\
