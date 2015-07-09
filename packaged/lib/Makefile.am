@@ -30,7 +30,7 @@ nodist_bxi_PYTHON=\
 
 dist-hook:${bxibase_PYTHON} ${bxi_PYTHON}
 		cp ${bxibase_PYTHON} $(distdir)/bxi/base/
-		   ${bxi_PYTHON} $(distdir)/bxi
+		cp ${bxi_PYTHON} $(distdir)/bxi
 
 # For generation
 all-local: $(nobase_python_PYTHON) $(abs_builddir)/bxi/base/__init__.py
