@@ -137,8 +137,6 @@ int main(int argc, char * argv[]) {
 
     fprintf(stderr, "Logging to file: %s\n", FULLFILENAME);
 
-
-
     /* initialize the CUnit test registry */
     if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
@@ -183,7 +181,8 @@ int main(int argc, char * argv[]) {
 
     /* add suites to the registry */
     CU_pSuite bxierr_suite = CU_add_suite("bxierr_suite",
-                                          init_suite_logger, clean_suite_logger);
+                                          init_suite_logger,
+                                          clean_suite_logger);
     if (NULL == bxierr_suite) {
         CU_cleanup_registry();
         return (CU_get_error());
@@ -192,14 +191,17 @@ int main(int argc, char * argv[]) {
     /* add the tests to the suite */
     if (false
         || (NULL == CU_add_test(bxierr_suite, "test bxierr", test_bxierr))
-        || (NULL == CU_add_test(bxierr_suite, "test bxierr_chain", test_bxierr_chain))
+        || (NULL == CU_add_test(bxierr_suite,
+                                "test bxierr_chain", test_bxierr_chain))
         || false) {
         CU_cleanup_registry();
         return (CU_get_error());
     }
 
 
-    CU_pSuite bxitime_suite = CU_add_suite("bxitime_suite", init_suite_logger, clean_suite_logger);
+    CU_pSuite bxitime_suite = CU_add_suite("bxitime_suite",
+                                           init_suite_logger,
+                                           clean_suite_logger);
     if (NULL == bxitime_suite) {
         CU_cleanup_registry();
         return (CU_get_error());
