@@ -173,7 +173,7 @@
  *
  * @see bxierr_new()
  */
-#define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL,NULL, NULL, __VA_ARGS__)
+#define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, NULL, __VA_ARGS__)
 
 /**
  * Define a new static error.
