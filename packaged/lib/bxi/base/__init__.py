@@ -32,4 +32,3 @@ def get_capi():
     @return the CFFI wrapped C library.
     """
     return __CAPI__
-

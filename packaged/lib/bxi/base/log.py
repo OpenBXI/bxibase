@@ -674,11 +674,11 @@ class BXILogger(object):
     @property
     def name(self):
         return __FFI__.string(self.clogger.name)
-    
+
     @property
     def level(self):
         return self.clogger.level
-    
+
     def set_level(self, level):
         """
         Set this logger logging level.
@@ -873,7 +873,6 @@ class BXILogger(object):
         @return
         """
         flush()
-
 
     # Provide a compatible API with the standard Python logging module
     setLevel = set_level
