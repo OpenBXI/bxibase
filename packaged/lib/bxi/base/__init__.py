@@ -14,8 +14,6 @@
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
-from cffi.api import CDefError
-
 from bxi.base.cffi_h import C_DEF
 
 import bxi.ffi as bxiffi

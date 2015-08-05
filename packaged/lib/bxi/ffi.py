@@ -16,7 +16,7 @@ from cffi.api import CDefError
 __FFI__ = FFI()
 
 
-def add_cdef_for_type(ctype, cdef):
+def add_cdef_for_type(ctype, cdef, packed=False):
     """
     Return the ffi object used by this module to interact with the C backend.
 
@@ -25,7 +25,7 @@ def add_cdef_for_type(ctype, cdef):
     try:
         __FFI__.getctype(ctype)
     except CDefError:
-        __FFI__.cdef(cdef)
+        __FFI__.cdef(cdef, packed)
 
 
 def get_ffi():
