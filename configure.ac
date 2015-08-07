@@ -33,7 +33,14 @@ LDFLAGS+=" $ZMQ_LIBS $BACKTRACE_LIBS "
 
 DEFAULT_BXIOPTION
 
+if test "$ENABLE_PYTHON" == "yes"
+then
 INIT_BXIPYTHON
+
+
+#PC_PYTHON_CHECK_MODULE([pyparsing], [], [AC_MSG_ERROR(Module not found)])
+PC_PYTHON_CHECK_MODULE([cffi], [], [AC_MSG_ERROR(Module not found)])
+fi
 
 FLAGS_BXITEST
 
@@ -45,10 +52,6 @@ AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 
 #TODO add the pc.in file
 AC_CONFIG_FILES([Makefile packaged/Makefile packaged/lib/Makefile packaged/include/Makefile packaged/doc/Makefile tests/Makefile packaged/src/version.c packaged/include/bxi/base/version.h])
-
-
-#PC_PYTHON_CHECK_MODULE([pyparsing], [], [AC_MSG_ERROR(Module not found)])
-PC_PYTHON_CHECK_MODULE([cffi], [], [AC_MSG_ERROR(Module not found)])
 
 AC_OUTPUT
 

@@ -1,6 +1,7 @@
 #
 ##
 #
+if HAVE_PYTHON
 
 $(abs_builddir)/bxi/__init__.py:
 	touch  $@
@@ -45,3 +46,4 @@ clean-local:
 ##
 #
 CLEANFILES=${nodist_python_PYTHON}
+endif

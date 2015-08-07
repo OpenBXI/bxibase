@@ -16,6 +16,7 @@ nobase_include_HEADERS = \
 						 bxi/base/time.h\
 						 bxi/base/zmq.h
 
+if HAVE_PYTHON
 ../lib/bxi/base/cffi_h.py: $(cffi_files) 
 	mkdir -p $$(dirname $@)
 	for i in $^; do \
@@ -30,3 +31,4 @@ nobase_include_HEADERS = \
 all-local: ../lib/bxi/base/cffi_h.py
 
 .PHONY: ../lib/bxi/base/cffi_h.py
+endif
