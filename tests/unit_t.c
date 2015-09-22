@@ -216,7 +216,7 @@ int main(int argc, char * argv[]) {
     }
 
     /* Run all tests using the automated interface */
-    CU_set_output_filename("./report/bxibase");
+    CU_set_output_filename("./report/cunit");
     CU_automated_run_tests();
     CU_list_tests_to_file();
 
