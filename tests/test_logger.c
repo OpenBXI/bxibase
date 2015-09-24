@@ -57,7 +57,7 @@ void test_logger_levels(void) {
     for (bxilog_level_e level = BXILOG_PANIC; level <= BXILOG_LOWEST; level++) {
         size_t n = (size_t)(rand()% 3 + 3);
         for (size_t i = 0; i < n; i++) {
-            bxilog_level_e len = (rand()% 18 + 2);
+            bxilog_level_e len = (bxilog_level_e)(rand()% 18 + 2);
             char buf[len];
             for (size_t i = 0; i < len; i++) {
                 buf[i] = (char) ('A' + (char) (rand()%50));
@@ -72,7 +72,9 @@ void test_logger_levels(void) {
     // Random level order
     size_t n = (size_t)(rand()% 3 + 3);
     for (size_t i = 0; i < n; i++) {
-        bxilog_level_e level = rand()%(BXILOG_LOWEST+1 - BXILOG_PANIC) + BXILOG_PANIC;
+        bxilog_level_e level = (bxilog_level_e)(rand()%(BXILOG_LOWEST + 1
+                                                        - BXILOG_PANIC)
+                                                + BXILOG_PANIC);
         size_t len = (size_t)(rand()% 18 + 2);
         char buf[len];
         for (size_t i = 0; i < len; i++) {
@@ -350,6 +352,7 @@ void * _logger_thread_dummy(void * data) {
         _DUMMY_LOGGING = true;
     }
     BXIUNREACHABLE_STATEMENT(TEST_LOGGER);
+    return NULL;
 }
 
 void _fork_kill(int signum) {
@@ -387,7 +390,6 @@ void _fork_kill(int signum) {
         err = bxilog_install_sighandler();
         BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         pthread_t thread;
-        UNUSED(thread);
         size_t data = (size_t) signum;
         int rc = pthread_create(&thread, NULL, _logger_thread_dummy, (void*)data);
         BXIASSERT(TEST_LOGGER, 0 == rc);
