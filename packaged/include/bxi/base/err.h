@@ -192,7 +192,7 @@
                                 .msg = user_msg,                    \
                                 .msg_len = ARRAYLEN(user_msg),      \
     };                                                              \
-    const bxierr_p name = (const bxierr_p) &name ## _S;
+    const bxierr_p name = (bxierr_p) &name ## _S;
 
 // *********************************************************************************
 // ********************************** Types   **************************************
