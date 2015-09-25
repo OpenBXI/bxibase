@@ -5,7 +5,7 @@ if HAVE_PYTHON
 check-local: 
 	PYTHONPATH=${top_srcdir}/packaged/lib:${top_builddir}/packaged/lib/:$${PYTHONPATH} \
 		LD_LIBRARY_PATH=${top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-		nosetests ${top_srcdir} ${NOSETESTS_ARGS}
+		nosetests -w ${top_srcdir} ${NOSETESTS_ARGS}
 endif
 
 TESTS = unit_t
