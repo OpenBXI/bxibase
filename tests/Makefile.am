@@ -3,8 +3,8 @@ all-local:
 
 if HAVE_PYTHON
 check-local: 
-	PYTHONPATH=${top_srcdir}/packaged/lib:${top_builddir}/packaged/lib/:$${PYTHONPATH} \
-		LD_LIBRARY_PATH=${top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
+	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
+		LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 		nosetests -w ${top_srcdir} ${NOSETESTS_ARGS}
 endif
 
