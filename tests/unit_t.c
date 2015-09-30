@@ -18,29 +18,39 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <assert.h>
 #include <libgen.h>
 
 #include <sched.h>
 
 #include <linux/limits.h>
 
+#include <bxi/base/err.h>
 #include <bxi/base/str.h>
 #include <bxi/base/log.h>
+#include <bxi/base/log_file_handler.h>
 
 
 SET_LOGGER(TEST_LOGGER, "test.bxibase");
 
 char * FULLPROGNAME = NULL;
-char * PROGNAME = NULL;
+char * BXILOG__CORE_PROGNAME = NULL;
 char * FULLFILENAME = NULL;
+int ARGC;
 char ** ARGV = NULL;
+
+bxilog_param_p LOGPARAM;
 
 // Actual test functions are separated into their respective test file.
 // However, to prevent defining related .h, we define all functions here
 
 // From test_mem.c
 void test_free();
+
+
+// From test_str.c
+void test_bxistr_apply_lines();
+void test_bxistr_prefix_lines();
+void test_bxistr_join();
 
 // From test_err.c
 void test_bxierr();
@@ -68,7 +78,9 @@ void test_config_parser(void);
  */
 int init_suite_logger(void) {
     bxierr_p err = BXIERR_OK, err2;
-    err2 = bxilog_init(PROGNAME, FULLFILENAME);
+    err2 = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &LOGPARAM);
+    bxiassert(bxierr_isok(err2));
+    err2 = bxilog_init(LOGPARAM);
     BXIERR_CHAIN(err, err2);
     err2 = bxilog_install_sighandler();
     BXIERR_CHAIN(err, err2);
@@ -89,6 +101,7 @@ int clean_suite_logger(void) {
         bxierr_report(err, STDERR_FILENO);
         exit(1);
     }
+    bxilog_param_destroy(&LOGPARAM);
     return 0;
 }
 
@@ -111,29 +124,21 @@ int _handle_rc_code(){
 }
 
 
-
 /* The main() function for setting up and running the tests.
  * Returns a CUE_SUCCESS on successful running, another
  * CUnit error code on failure.
  */
 int main(int argc, char * argv[]) {
-    UNUSED(argc);
+    ARGC = argc;
     ARGV = argv;
     FULLPROGNAME = strdup(argv[0]);
-    PROGNAME = basename(FULLPROGNAME);
-    char * filename = bxistr_new("%s%s", PROGNAME, ".bxilog");
+    BXILOG__CORE_PROGNAME = basename(FULLPROGNAME);
+    char * filename = bxistr_new("%s%s", BXILOG__CORE_PROGNAME, ".bxilog");
     char cwd[PATH_MAX];
     char * res = getcwd(cwd, PATH_MAX);
-    assert(NULL != res);
+    bxiassert(NULL != res);
     FULLFILENAME = bxistr_new("%s/%s", cwd, filename);
     BXIFREE(filename);
-    // TODO: provides an option in bxilog for
-    // "Do not append into logfile, but overwrite it"
-    errno = 0;
-    int rc = unlink(FULLFILENAME);
-    // We just don't care if we encounter an error here!
-    //    if (0 != rc) perror("Calling unlink() failed");
-
 
     fprintf(stderr, "Logging to file: %s\n", FULLFILENAME);
 
@@ -156,28 +161,23 @@ int main(int argc, char * argv[]) {
             return (CU_get_error());
         }
 
-    CU_pSuite bxilog_suite = CU_add_suite("bxilog_suite", NULL, NULL);
-    if (NULL == bxilog_suite) {
+    /* add suites to the registry */
+    CU_pSuite bxistr_suite = CU_add_suite("bxistr_suite", NULL, NULL);
+    if (NULL == bxistr_suite) {
         CU_cleanup_registry();
         return (CU_get_error());
     }
+
     /* add the tests to the suite */
     if (false
-        || (NULL == CU_add_test(bxilog_suite, "test logger init", test_logger_init))
-        || (NULL == CU_add_test(bxilog_suite, "test logger existing file", test_logger_existing_file))
-        || (NULL == CU_add_test(bxilog_suite, "test logger non existing file", test_logger_non_existing_file))
-        || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
-        || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
-        || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
-        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
-//        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
-        || (NULL == CU_add_test(bxilog_suite, "test logger config", test_config))
-        || (NULL == CU_add_test(bxilog_suite, "test logger config parser", test_config_parser))
-
+        || (NULL == CU_add_test(bxistr_suite, "test bxistr_apply_lines", test_bxistr_apply_lines))
+        || (NULL == CU_add_test(bxistr_suite, "test bxistr_prefix_lines", test_bxistr_prefix_lines))
+        || (NULL == CU_add_test(bxistr_suite, "test bxistr_join", test_bxistr_join))
         || false) {
         CU_cleanup_registry();
         return (CU_get_error());
     }
+
 
     /* add suites to the registry */
     CU_pSuite bxierr_suite = CU_add_suite("bxierr_suite",
@@ -215,12 +215,36 @@ int main(int argc, char * argv[]) {
         return (CU_get_error());
     }
 
+    CU_pSuite bxilog_suite = CU_add_suite("bxilog_suite", NULL, NULL);
+    if (NULL == bxilog_suite) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+    /* add the tests to the suite */
+    if (false
+        || (NULL == CU_add_test(bxilog_suite, "test logger init", test_logger_init))
+        || (NULL == CU_add_test(bxilog_suite, "test logger existing file", test_logger_existing_file))
+        || (NULL == CU_add_test(bxilog_suite, "test logger non existing file", test_logger_non_existing_file))
+        || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
+        || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
+        || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
+        || (NULL == CU_add_test(bxilog_suite, "test logger config", test_config))
+        || (NULL == CU_add_test(bxilog_suite, "test logger config parser", test_config_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
+////        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
+
+
+        || false) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+
     /* Run all tests using the automated interface */
     CU_set_output_filename("./report/cunit");
-    CU_automated_run_tests();
+//    CU_automated_run_tests();
     CU_list_tests_to_file();
 
-    rc = _handle_rc_code();
+    int rc = _handle_rc_code();
 
     /* Run all tests using the CUnit Basic interface */
     CU_basic_set_mode(CU_BRM_VERBOSE);
@@ -233,8 +257,6 @@ int main(int argc, char * argv[]) {
     rc = rc > rc2 ? rc : rc2;
 
     CU_cleanup_registry();
-    bxierr_p err = bxilog_finalize(true);
-    bxierr_report(err, STDERR_FILENO);
 
     BXIFREE(FULLFILENAME);
     BXIFREE(FULLPROGNAME);

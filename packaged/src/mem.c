@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "bxi/base/mem.h"
 #include "bxi/base/err.h"
@@ -47,15 +48,21 @@ void * bximem_calloc(const size_t n) {
 /*
  * New realloc
  */
-void * bximem_realloc(void* ptr, const size_t n) {
-    void * new_ptr = realloc(ptr, n);
-    if (new_ptr == NULL && n != 0) {
-        bxierr_p err = bxierr_gen("Calling realloc(%p, %zu) failed!", ptr, n);
+void * bximem_realloc(void* ptr, const size_t old_size, const size_t new_size) {
+    void * new_ptr = realloc(ptr, new_size);
+    if (new_ptr == NULL && new_size != 0) {
+        bxierr_p err = bxierr_gen("Calling realloc(%p, %zu) failed!", ptr, new_size);
         char * str = bxierr_str(err);
         fprintf(stderr, "%s", str);
         BXIFREE(str);
         bxierr_destroy(&err);
     }
+    if (old_size > 0) {
+        bxiassert(old_size < new_size);
+        // Initialize the memory.
+        memset(new_ptr + old_size, 0, new_size - old_size);
+    }
+
     return new_ptr;
 }
 

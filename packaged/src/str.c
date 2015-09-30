@@ -14,9 +14,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
+#include <string.h>
 
 #include "bxi/base/mem.h"
 #include "bxi/base/str.h"
+#include "bxi/base/err.h"
 
 // *********************************************************************************
 // ********************************** Defines **************************************
@@ -27,6 +30,7 @@
 // *********************************************************************************
 // ********************************** Types ****************************************
 // *********************************************************************************
+
 
 // *********************************************************************************
 // **************************** Static function declaration ************************
@@ -100,6 +104,145 @@ char* bxistr_new(const char * const fmt, ...) {
     return (msg);
 }
 
+
+bxierr_p bxistr_apply_lines(char * str,
+                            bxierr_p (*f)(char * line,
+                                          size_t line_len,
+                                          bool last,
+                                          void *param),
+                            void * param) {
+
+        char * s = str;
+        char * next = s;
+        size_t len = 0;
+        while(true) {
+            if ('\0' == *next) return f(s, len, true, param);
+            if ('\n' == *next) {
+                *next = '\0';
+                bxierr_p err = f(s, len, false, param);
+                if (bxierr_isko(err)) return err;
+                len = 0;
+                s = next + 1;
+            } else {
+                len++;
+            }
+            next++;
+        }
+        return BXIERR_OK;
+}
+
+void bxistr_prefixer_init(bxistr_prefixer_p self,
+                          char * prefix, size_t prefix_len) {
+    assert(NULL != self);
+    assert(NULL != prefix);
+    assert(0 < prefix_len);
+
+    self->allocated = false;
+    self->prefix = prefix;
+    self->prefix_len = prefix_len;
+    self->lines_nb = 0;
+    self->allocated_lines_nb = 16;
+
+    self->lines = bximem_calloc(self->allocated_lines_nb * sizeof(*self->lines));
+    self->lines_len = bximem_calloc(self->allocated_lines_nb * sizeof(*self->lines_len));
+}
+
+bxistr_prefixer_p bxistr_prefixer_new(char * prefix, size_t prefix_len) {
+    bxistr_prefixer_p result = bximem_calloc(sizeof(*result));
+    bxistr_prefixer_init(result, prefix, prefix_len);
+
+    result->allocated = true;
+    return result;
+}
+
+void bxistr_prefixer_destroy(bxistr_prefixer_p * self_p) {
+    bxistr_prefixer_cleanup(*self_p);
+    if ((*self_p)->allocated) bximem_destroy((char**) self_p);
+}
+
+void bxistr_prefixer_cleanup(bxistr_prefixer_p self) {
+    for (size_t i = 0; i < self->lines_nb; i++) {
+        BXIFREE(self->lines[i]);
+    }
+    BXIFREE(self->lines);
+    BXIFREE(self->lines_len);
+}
+
+bxierr_p bxistr_prefixer_line(char * line, size_t line_len, bool last, void * param) {
+    bxistr_prefixer_p self = (bxistr_prefixer_p) param;
+    assert(NULL != self);
+
+    if (last && 0 == line_len) return BXIERR_OK;
+
+    size_t len = line_len + self->prefix_len;
+    self->lines_len[self->lines_nb] = len;
+    char * result = bximem_calloc((len +1) * sizeof(*line));
+    strncpy(result, self->prefix, self->prefix_len);
+    strncpy(result + self->prefix_len, line, line_len);
+    self->lines[self->lines_nb] = result;
+    // We did a calloc, no need to initialize last terminating byte to NULL
+
+    self->lines_nb++;
+
+    if (self->lines_nb >= self->allocated_lines_nb) {
+        size_t new_size = self->allocated_lines_nb * 2;
+        self->lines = bximem_realloc(self->lines,
+                                     self->allocated_lines_nb * sizeof(*self->lines),
+                                     new_size * sizeof(*self->lines));
+        self->lines_len = bximem_realloc(self->lines_len,
+                                         self->allocated_lines_nb * sizeof(*self->lines_len),
+                                         new_size * sizeof(*self->lines_len));
+        self->allocated_lines_nb = new_size;
+    }
+    return BXIERR_OK;
+}
+
+
+size_t bxistr_join(char * sep, size_t sep_len,
+                   char ** lines, size_t *lines_len, size_t lines_nb,
+                   char** result) {
+
+    size_t len = 0;
+
+    for (size_t i = 0; i < lines_nb; i++) {
+        len += lines_len[i];
+        if (i < lines_nb - 1) {
+            len += sep_len;
+        }
+    }
+
+    char * s = bximem_calloc((len + 1) * sizeof(*s));
+    len = 0;
+    for (size_t i = 0; i < lines_nb; i++) {
+        strncpy(s + len, lines[i], lines_len[i]);
+        len += lines_len[i];
+        if (i < lines_nb - 1) {
+            strncpy(s + len, sep, sep_len);
+            len += sep_len;
+        }
+    }
+
+    *result = s;
+    return len;
+}
+
+const char * bxistr_rfind(const char * const str,
+                          const size_t str_len,
+                          const char c) {
+
+    if (NULL == str || 0 == str_len) return NULL;
+
+    // start from last character
+    size_t i = str_len - 1;
+    while(i > 0) {
+        if (str[i] == c) {
+            i++;
+            break;
+        }
+        i--;
+    }
+    return str + i;
+}
 
 // *********************************************************************************
 // ********************************** Static Functions  ****************************

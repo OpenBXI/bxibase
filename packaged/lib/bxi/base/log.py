@@ -233,7 +233,8 @@ def basicConfig(**kwargs):
     Configure the whole bxilog module.
 
     Parameter kwargs can contain following parameters:
-        - `'filename'`: the file output name ('-': stdout, '+': stderr)
+        - `'console'`: None or a list of console handler arguments
+        - `'filename'`: None or a list of file handler arguments 
         - `'setsighandler'`: if True, set signal handlers
         - `'cfg_items'`: either a string or a list of tuples (prefix, level).
                          If 'cfg_items' is a string, it must follow the bxi
@@ -260,9 +261,13 @@ def basicConfig(**kwargs):
                                 "the first _init() call  was made:\n %s" % _INIT_CALLER,
                                 kwargs)
     global _CONFIG
-
-    if 'filename' not in kwargs:
-        kwargs['filename'] = '-'
+    
+    if 'console' not in kwargs:
+        #kwargs['console'] = (WARNING,)
+        # TODO: Default to no console for the moment so we keep the previous behavior
+        # on all bxi projects. This will change soon, projects will have to adapt 
+        # accordingly
+        kwargs['console'] = None
 
     if 'cfg_items' not in kwargs:
         kwargs['cfg_items'] = DEFAULT_CFG_ITEMS
@@ -316,15 +321,46 @@ def _init():
     global _INIT_CALLER
 
     if _CONFIG is None:
-        _CONFIG = {'filename': '-',
+#         _CONFIG = {'console': (WARNING,),
+        # TODO: Default to no console for the moment so we keep the previous behavior
+        # on all bxi projects. This will change soon, projects will have to adapt 
+        # accordingly
+        _CONFIG = {'console': None,
+                   'filename': None,
                    'cfg_items': DEFAULT_CFG_ITEMS,
                    'setsighandler': True,
                    }
     # Configure loggers first, since init() produces logs that the user
     # might not want to see
     _configure_loggers(_CONFIG['cfg_items'])
-    bxierr_p = __BXIBASE_CAPI__.bxilog_init(os.path.basename(sys.argv[0]),
-                                            _CONFIG['filename'])
+
+    param = __BXIBASE_CAPI__.bxilog_param_new(sys.argv[0]);
+    
+    console_handler_args = _CONFIG.get('console', None)
+    file_handler_args = _CONFIG.get('filename', None)
+        
+    if console_handler_args is not None:
+        if not isinstance(console_handler_args, tuple):
+            raise ValueError("Tuple expected! Got: %s" % console_handler_args)
+            
+        __BXIBASE_CAPI__.bxilog_param_add(param, 
+                                          __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER, 
+                                          __FFI__.cast('int', console_handler_args[0]));
+    if file_handler_args is not None:
+        if isinstance(file_handler_args, str):
+            file_handler_args = (file_handler_args, True)
+
+        __BXIBASE_CAPI__.bxilog_param_add(param, 
+                                          __BXIBASE_CAPI__.BXILOG_FILE_HANDLER, 
+                                          __FFI__.new('char[]', sys.argv[0]), 
+                                          __FFI__.new('char[]', file_handler_args[0]),
+                                          __FFI__.cast('bool', file_handler_args[1]));
+
+    if param.handlers_nb == 0:
+        print("Warning: no handler defined in bxi logging library configuration!")
+        __BXIBASE_CAPI__.bxilog_param_add(param, __BXIBASE_CAPI__.BXILOG_NULL_HANDLER);
+                                          
+    bxierr_p = __BXIBASE_CAPI__.bxilog_init(param)
     BXICError.raise_if_ko(bxierr_p)
     atexit.register(cleanup)
     _INITIALIZED = True

@@ -35,7 +35,7 @@
 <flagvalue id="cflags-gprof" value="false"/>
 <flagvalue id="cflags-gcov" value="false"/>
 </flag>
-<option id="user" value=""/>
+<option id="user" value="--enable-valgrind=no"/>
 <option id="autogen" value="bootstrap.sh"/>
 <option id="autogenOpts" value=""/>
 </configuration>

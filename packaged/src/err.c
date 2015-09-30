@@ -14,14 +14,10 @@
 #include <unistd.h>
 #include <execinfo.h>
 #include <error.h>
-#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/syscall.h>
-//#include <sys/types.h>
-//#include <regex.h>
-//#include <dlfcn.h>
 #include <backtrace.h>
 #include <backtrace-supported.h>
 
@@ -35,6 +31,9 @@
 #define OK_MSG "No problem found - everything is ok"
 
 #define BACKTRACE_MAX 64 // Number of maximum depth of a backtrace
+#define ERR_BT_PREFIX   "##trce## "
+#define ERR_CODE_PREFIX "##code## "
+#define ERR_MSG_PREFIX  "##mesg## "
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -59,6 +58,14 @@ struct backtrace_state * BT_STATE = NULL;
 // *********************************************************************************
 // ********************************** Implementation   *****************************
 // *********************************************************************************
+// Inline functions defined in the .h
+extern void bxierr_group_destroy(bxierr_group_p * group_p);
+extern void bxierr_destroy(bxierr_p * self_p);
+extern void bxierr_abort_ifko(bxierr_p fatal_err);
+extern bool bxierr_isok(bxierr_p self);
+extern bool bxierr_isko(bxierr_p self);
+extern char* bxierr_str(bxierr_p self);
+extern void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
 
 bxierr_p bxierr_new(int code,
                     void * data,
@@ -95,21 +102,21 @@ bxierr_p bxierr_new(int code,
     return self;
 }
 
-void bxierr_destroy(bxierr_p * self_p) {
-    assert(NULL != self_p);
-
-    bxierr_p self = *self_p;
+void bxierr_free(bxierr_p self) {
     if (NULL == self) return;
     if (!self->allocated) return;
     if (NULL != self->cause) bxierr_destroy(&(self->cause));
-    if (NULL != self->free_fn) self->free_fn(self->data);
+    if (NULL != self->free_fn) {
+        self->free_fn(self->data);
+        self->data = NULL;
+    }
     BXIFREE(self->msg);
     BXIFREE(self->backtrace);
-    BXIFREE(*self_p);
+    BXIFREE(self);
 }
 
 char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
-    assert(NULL != self);
+    bxiassert(NULL != self);
     const char * cause_str;
     if (NULL == self->cause) {
         cause_str = bxistr_new("%s", "");
@@ -123,10 +130,24 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
             cause_str = bxierr_str_limit(self->cause, depth-1);
         }
     }
-    char * result = bxistr_new("msg='%s' code=%d backtrace=%s\n%s",
-                               self->msg, self->code, self->backtrace,
+
+    bxistr_prefixer_s data;
+    bxistr_prefixer_init(&data, ERR_MSG_PREFIX, ARRAYLEN(ERR_MSG_PREFIX) - 1);
+    bxierr_p tmp = bxistr_apply_lines(self->msg, bxistr_prefixer_line, &data);
+    assert(bxierr_isok(tmp));
+    char * final_msg;
+    bxistr_join("\n", ARRAYLEN("\n") - 1,
+                data.lines, data.lines_len, data.lines_nb,
+                &final_msg);
+
+    char * result = bxistr_new(ERR_CODE_PREFIX"%d\n%s\n%s\n%s",
+                               self->code, final_msg, self->backtrace,
                                cause_str);
+
+    bxistr_prefixer_cleanup(&data);
     BXIFREE(cause_str);
+    BXIFREE(final_msg);
+
     return result;
 }
 
@@ -134,24 +155,16 @@ void bxierr_report(bxierr_p self, int fd) {
     if (bxierr_isok(self)) return;
 
     char * errstr = bxierr_str(self);
-    char * msg = bxistr_new("Reporting error: %s\n", errstr);
-    ssize_t count = write(fd, msg, strlen(msg) + 1);
-    assert(0 < count);
-    BXIFREE(msg);
+    ssize_t count = write(fd, errstr, strlen(errstr));
+    bxiassert(0 < count);
     BXIFREE(errstr);
     bxierr_destroy(&self);
 }
 
-// Inline functions defined in the .h
-extern bool bxierr_isok(bxierr_p self);
-extern bool bxierr_isko(bxierr_p self);
-extern char* bxierr_str(bxierr_p self);
-extern void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
-
 bxierr_p bxierr_get_ok() { return BXIERR_OK; }
 
 size_t bxierr_get_depth(bxierr_p self) {
-//    assert(NULL != self);
+//    bxiassert(NULL != self);
 
     bxierr_p current = self;
     size_t result = 0;
@@ -165,7 +178,7 @@ size_t bxierr_get_depth(bxierr_p self) {
 bxierr_p bxierr_fromidx(const int erridx,
                         const char * const * const erridx2str,
                         const char * const fmt, ...) {
-    assert(NULL != fmt);
+    bxiassert(NULL != fmt);
 
     va_list ap;
     va_start(ap, fmt);
@@ -178,7 +191,7 @@ bxierr_p bxierr_fromidx(const int erridx,
 bxierr_p bxierr_vfromidx(const int erridx,
                          const char * const * const erridx2str,
                          const char * const fmt, va_list ap) {
-    assert(NULL != fmt);
+    bxiassert(NULL != fmt);
 
     char * errmsg;
     char buf[ERR2STR_MAX_SIZE];
@@ -193,8 +206,8 @@ bxierr_p bxierr_vfromidx(const int erridx,
         int rc = strerror_r(erridx, buf, ERR2STR_MAX_SIZE);
         if (rc != 0) {
             snprintf(buf, ERR2STR_MAX_SIZE,
-                     "<can't get related error message,"
-                     " strerror_r() failed with rc = %d>", rc);
+                     "<can't get related error message for errno=%d,"
+                     " strerror_r() failed with rc = %d>", erridx, rc);
         }
         errmsg = buf;
 #endif
@@ -207,20 +220,6 @@ bxierr_p bxierr_vfromidx(const int erridx,
     BXIFREE(msg);
 
     return result;
-}
-
-char** _pretty_backtrace(void* addresses[], int array_size) {
-    // Used to return the strings generated from the addresses
-    char** backtrace_strings = bximem_calloc(sizeof(*backtrace_strings) * (unsigned)array_size);
-    for(int i = 0; i < array_size; i++) {
-        int rc = backtrace_pcinfo(BT_STATE,
-                                  (uintptr_t) addresses[i],
-                                  _bt_full_cb,
-                                  _bt_error_cb,
-                                  &backtrace_strings[i]);
-        assert(0 == rc);
-    }
-    return backtrace_strings;
 }
 
 char * bxierr_backtrace_str(void) {
@@ -248,25 +247,170 @@ char * bxierr_backtrace_str(void) {
     const char * const truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
 
     fprintf(faked_file,
-            "##bt## Backtrace of tid %u: %d function calls %s\n",
+            ERR_BT_PREFIX"Backtrace of tid %u: %d function calls %s\n",
             tid, c, truncated);
     for(int i = 0; i < c; i++) {
-        fprintf(faked_file, "##bt## [%02d] %s\n", i,
+        fprintf(faked_file, ERR_BT_PREFIX"[%02d] %s\n", i,
                 NULL == strings[i] ? symbols[i] : strings[i]);
         BXIFREE(strings[i]);
     }
-    fprintf(faked_file,"##bt## Backtrace end\n");
+    fprintf(faked_file,ERR_BT_PREFIX"Backtrace end\n");
     fclose(faked_file);
     BXIFREE(symbols);
     BXIFREE(strings);
     return buf;
 }
 
+void bxierr_assert_fail(const char *assertion, const char *file,
+                        unsigned int line, const char *function) {
+
+    bxierr_p err = bxierr_new(BXIASSERT_CODE,
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
+                              "%s:%d - %s(): wrong assertion: %s"\
+                              BXIBUG_STD_MSG,
+                              file, line, function, assertion);
+    bxierr_report(err, STDERR_FILENO);
+    abort();
+}
+
+void bxierr_unreachable_statement(const char *file,
+                                  unsigned int line,
+                                  const char * function) {
+    bxierr_p err = bxierr_new(BXIUNREACHABLE_STATEMENT_CODE,
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
+                              "Unreachable statement reached at %s:%d in %s()."\
+                              BXIBUG_STD_MSG,
+                              file, line, function);
+    bxierr_report(err, STDERR_FILENO);
+    abort();
+}
+
+bxierr_group_p bxierr_group_new() {
+    bxierr_group_p result = bximem_calloc(sizeof(*result));
+
+    result->errors_size = 16;
+    result->errors = bximem_calloc(result->errors_size * sizeof(*result->errors));
+    return result;
+}
+
+void bxierr_group_free(bxierr_group_p group) {
+    if (NULL == group) return;
+
+    for (size_t i = 0; i < group->errors_size; i++) {
+        bxierr_p err = group->errors[i];
+        if (NULL == err) continue;
+        bxierr_destroy(&err);
+    }
+    BXIFREE(group->errors);
+    BXIFREE(group);
+}
+
+char * bxierr_group_str(bxierr_p err, uint64_t depth) {
+    char * str = bxierr_str_limit(err, depth);
+    bxierr_group_p group = err->data;
+    char ** ierr_lines = bximem_calloc(group->errors_nb * sizeof(*ierr_lines));
+    size_t * ierr_lines_len = bximem_calloc(group->errors_nb * sizeof(*ierr_lines_len));
+    size_t current = 0;
+    bxistr_prefixer_s prefixer;
+    char * final_s;
+    // Create the string for each internal error in the group
+    for (size_t i = 0; i < group->errors_size; i++) {
+        bxierr_p ierr = group->errors[i];
+        if (NULL == ierr) continue;
+        char * s = bxierr_str_limit(ierr, depth);
+        // Prefix all line
+        char * prefix = bxistr_new("##egrp %zu", current);
+        bxistr_prefixer_init(&prefixer, prefix, strlen(prefix));
+        bxistr_apply_lines(s, bxistr_prefixer_line, &prefixer);
+        // Join all lines
+        ierr_lines_len[current] = bxistr_join("\n", ARRAYLEN("\n") - 1,
+                                         prefixer.lines, prefixer.lines_len,
+                                         prefixer.lines_nb,
+                                         &final_s);
+        ierr_lines[current] = final_s;
+        bxistr_prefixer_cleanup(&prefixer);
+        current++;
+    }
+    // Join all lines from each internal error into one big string
+    bxistr_join("\n", ARRAYLEN("\n") - 1,
+                ierr_lines, ierr_lines_len,
+                current,
+                &final_s);
+    char * result = bxistr_new("%s%s", str, final_s);
+    BXIFREE(str);
+    BXIFREE(final_s);
+    return result;
+}
+
+bool bxierr_set_add(bxierr_group_p set, bxierr_p * err) {
+    size_t i = 0;
+    bxierr_p slot = NULL;
+    for (; i < set->errors_size; i++) {
+        slot = set->errors[i];
+        if (NULL == slot) break;
+        if (slot->code == (*err)->code) {
+            // An error with same code is already recorded, delete the new one.
+            bxierr_destroy(err);
+            return false;
+        }
+    }
+    if (i >= set->errors_size) {
+        // Not enough space, allocate some new
+        size_t new_len = set->errors_size * 2;
+        set->errors = bximem_realloc(set->errors,
+                                     set->errors_size * sizeof(*set->errors),
+                                     new_len*sizeof(*set->errors));
+        set->errors_size = new_len;
+    }
+    if (slot == NULL) set->errors[i] = *err;
+    set->errors_nb++;
+    return true;
+}
+
+void bxierr_list_append(bxierr_group_p list, bxierr_p err) {
+    if (list->errors_nb >= list->errors_size) {
+        // Not enough space, allocate some new
+        // Add one to prevent product with zero!
+        size_t new_len = (list->errors_size + 1) * 2;
+        list->errors = bximem_realloc(list->errors,
+                                      list->errors_size*sizeof(*list->errors),
+                                      new_len*sizeof(*list->errors));
+        list->errors_size = new_len;
+    }
+    list->errors[list->errors_nb] = err;
+    list->errors_nb++;
+}
+
+//*********************************************************************************
+//********************************** Static Helpers Implementation ****************
+//*********************************************************************************
+
+
+char** _pretty_backtrace(void* addresses[], int array_size) {
+    // Used to return the strings generated from the addresses
+    char** backtrace_strings = bximem_calloc(sizeof(*backtrace_strings) * (unsigned)array_size);
+    for(int i = 0; i < array_size; i++) {
+        int rc = backtrace_pcinfo(BT_STATE,
+                                  (uintptr_t) addresses[i],
+                                  _bt_full_cb,
+                                  _bt_error_cb,
+                                  &backtrace_strings[i]);
+        bxiassert(0 == rc);
+    }
+    return backtrace_strings;
+}
+
 __attribute__((constructor)) void __bt_init__(void) {
     BT_STATE = backtrace_create_state(NULL,
                                       BACKTRACE_SUPPORTS_THREADS,
                                       _bt_error_cb, NULL);
-    assert(NULL != BT_STATE);
+    bxiassert(NULL != BT_STATE);
 }
 
 void _bt_error_cb(void *data, const char *msg, int errnum) {

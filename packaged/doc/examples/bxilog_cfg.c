@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <sysexits.h>
-#include <assert.h>
 
 #include <bxi/base/err.h>
 #include <bxi/base/log.h>
@@ -30,8 +29,11 @@ void display_loggers(size_t n, bxilog_p loggers[n]) {
 }
 
 int main(int argc, char** argv) {
-    // Produce the log on stdout
-    bxierr_p err = bxilog_init(argv[0], "-");
+    // Produce logs on stdout/stderr, and also in /tmp/foo.log (append=false)
+    bxilog_param_p param;
+    bxierr_p err = bxilog_basic_config(argv[0], "/tmp/foo.log", false, &param);
+    bxierr_report(err, STDERR_FILENO); // Report error on stderr
+    err = bxilog_init(param);
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
     bxierr_report(err, STDERR_FILENO);

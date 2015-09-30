@@ -15,6 +15,7 @@
 #define BXIERR_H_
 
 #ifndef BXICFFI
+#include <unistd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -22,7 +23,8 @@
 #include <stdarg.h>
 #include <assert.h>
 #endif
-#include <bxi/base/mem.h>
+
+#include "bxi/base/mem.h"
 
 /**
  * @file    err.h
@@ -128,10 +130,60 @@
 // *********************************************************************************
 // ********************************** Define  **************************************
 // *********************************************************************************
+#ifndef BXICFFI
+/**
+ * Use to check at compile time an assertion.
+ *
+ * @param[in] type the name of the generated typedef
+ * @param[in] expn a compile-time boolean expression
+ */
+#define BXIERR_CASSERT(type, expn) typedef char __C_ASSERT__ ## type[(expn)?1:-1]
+#endif
 
-#define BXIERR_GENERIC_CODE 32203  // ERROR in Leet speak ;-)
+
+/**
+ * Define the bxierr_p generic code
+ *
+ * Note: the value is ERROR in leet speak ;-)
+ */
+#define BXIERR_GENERIC_CODE 32203
+
+/**
+ * Define the bxierr_p code for failed assertion
+ *
+ * Note: the value is ASSERT in leet speak ;-)
+ *
+ * @see bxierr_p
+ */
+#define BXIASSERT_CODE 455327
+
+/**
+ * Define the bxierr_p code for unreachable statement
+ *
+ * Note: this is the devil code! ;-)
+ */
+#define BXIUNREACHABLE_STATEMENT_CODE 666
+
+/**
+ * Define the bxierr_p code for an error containing a bxierr_group_p in its data.
+ */
+#define BXIERR_GROUP_CODE 6209
+
+/**
+ * Define the standard BXI message for a bug.
+ */
+#define BXIBUG_STD_MSG "\nThis is a bug and should be reported as such.\n"                \
+                       "In your report, do not omit the following informations:\n"      \
+                       "\t- version of the product;\n"                                  \
+                       "\t- full command line arguments;\n"                             \
+                       "\t- the logging file at the lowest log level.\n"                \
+                       "Contact Bull for bug submission.\n"                             \
+                       "Thanks and Sorry."
+
+
 #define BXIERR_ALL_CAUSES UINT64_MAX
 #define ERR2STR_MAX_SIZE 1024
+
 
 /**
  * Chain the new error with the current one and adapt the current error accordingly.
@@ -149,7 +201,7 @@
  */
 #define BXIERR_CHAIN(current, new) do {     \
         bxierr_chain(&(current), &(new));\
-    } while(0)
+    } while(false)
 
 /**
  * Produce a backtrace in the given `file` (a FILE* object).
@@ -158,7 +210,7 @@
     char * _trace = bxierr_backtrace_str(); \
     fprintf((file), "%s", _trace); \
     BXIFREE(_trace); \
-    } while(0)
+    } while(false)
 
 /**
  * Return a new instance according to current `errno` value and the given
@@ -175,6 +227,9 @@
  */
 #define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, NULL, __VA_ARGS__)
 
+#define bxierr_from_group(code, errgroup, ...) \
+    bxierr_new(code, errgroup, (void (*) (void*)) bxierr_group_free, bxierr_group_str,\
+               NULL, __VA_ARGS__)
 /**
  * Define a new static error.
  *
@@ -193,6 +248,38 @@
                                 .msg_len = ARRAYLEN(user_msg),      \
     };                                                              \
     const bxierr_p name = (bxierr_p) &name ## _S;
+
+/**
+ * If the given expression is false, exit with a message and a
+ * stack trace.
+ *
+ * @note This must not be used unless bxilog is not
+ * available (such as when bxilog_init() failed).
+ * Use BXIASSERT() instead
+ *
+ * This is a replacement for standard POSIX assert().
+ *
+ * @see BXIASSERT
+ */
+#define bxiassert(expr)                                             \
+        ((expr)                                                     \
+          ? (void) (0)                                              \
+          : bxierr_assert_fail(__STRING(expr),                      \
+                               __FILE__, __LINE__,                  \
+                               __func__))
+
+/**
+ * Display a message when this statement is reached with a stack
+ * trace and exit.
+ *
+ * @note This must not be used unless bxilog is not
+ * available (such as when bxilog_init() failed).
+ * Use BXIUNREACHABLE_STATEMENT() instead
+ *
+ * @see BXIUNREACHABLE_STATEMENT
+ */
+#define bxiunreachable_statement                                    \
+          bxierr_unreachable_statement(__FILE__, __LINE__, __func__)
 
 // *********************************************************************************
 // ********************************** Types   **************************************
@@ -230,6 +317,21 @@ struct bxierr_s {
     size_t msg_len;                         //!< the length of the message
 };
 
+
+/**
+ * An error set
+ */
+typedef struct {
+    size_t errors_nb;              //!< Number of errors in the group
+    size_t errors_size;            //!< Size of the errors array
+    bxierr_p * errors;             //!< The list of errors
+} bxierr_group_s;
+
+/**
+ * A simple set of several errors.
+ */
+typedef bxierr_group_s * bxierr_group_p;
+
 /**
  * The single instance meaning OK.
  *
@@ -255,12 +357,12 @@ extern bxierr_p BXIERR_OK;
 /**
  * Return a new bxi error instance.
  *
- * @param code the error code
- * @param data an error specific data (can be NULL)
- * @param free_fn the function that must be used to release the given `data` (can be NULL)
- * @param str the function that must be used to transform the error into a string (can be NULL)
- * @param cause the error cause (can be NULL)
- * @param fmt the error message in a printf like style.
+ * @param[in] code the error code
+ * @param[in] data an error specific data (can be NULL)
+ * @param[in] free_fn the function that must be used to release the given `data` (can be NULL)
+ * @param[in] str the function that must be used to transform the error into a string (can be NULL)
+ * @param[in] cause the error cause (can be NULL)
+ * @param[in] fmt the error message in a printf like style.
  *
  * @return a new bxi error instance
  *
@@ -279,24 +381,17 @@ __attribute__ ((format (printf, 6, 7)))
 #endif
                     ;
 
-
 /**
- * Destroy the error instance pointed to by `self_p`.
+ * Release all resources in self and self itself.
  *
- * All underlying mallocated data will be released,
- * and the pointer given by `*self_p` will be nullified.
+ * @note: the pointer is not nullified, use bxierr_destroy() instead.
  *
- * If `bxierr_get_cause(*self_p)` is not NULL,
- * `bxierr_destroy()` will be called on the returned cause
- * (and so on recursively).
+ * @param[in] self the error to free
  *
- * If `bxierr_get_data(*self_p)` is not NULL,
- * function given by `bxierr_get_free_fn()` will be called with the returned
- * `data` in parameter.
- *
- * @param self_p the pointer on the error to destroy
+ * @see bxierr_destroy()
  */
-void bxierr_destroy(bxierr_p * self_p);
+void bxierr_free(bxierr_p self);
+
 
 /**
  * Return a human string representation of the given error up
@@ -345,7 +440,69 @@ size_t bxierr_get_depth(bxierr_p self);
  */
 bxierr_p bxierr_get_ok();
 
+
+/**
+ * Report the given error on the given file descriptor.
+ *
+ * Use only when you do not have the bxilog library initialized. Otherwise,
+ * use BXILOG_REPORT().
+ *
+ * @note the given error will be destroyed.
+ *
+ * @param self the error to report
+ * @param fd a file descriptor where the error will be reported
+ *
+ * @see BXILOG_REPORT()
+ */
+void bxierr_report(bxierr_p self, int fd);
+
+
+/**
+ * Display an assertion failed message with a stack trace and exit.
+ *
+ * @note this function is only useful when logging is not available, otherwise,
+ *       BXIASSERT must be used instead.
+ *
+ * @param[in] assertion a string representing the assertion that failed
+ * @param[in] file the file in which the failed assertion was seen
+ * @param[in] line the line in file in which the failed assertion was seen
+ * @param[in] function the function in file in which the failed assertion was seen
+ *
+ * @see bxierr_assert
+ * @see BXIASSERT
+ */
+void bxierr_assert_fail(const char *assertion, const char *file,
+                        unsigned int line, const char *function)
 #ifndef BXICFFI
+                        __attribute__ ((__noreturn__))
+#endif
+                        ;
+
+#ifndef BXICFFI
+/**
+ * Destroy the error instance pointed to by `self_p`.
+ *
+ * All underlying mallocated data will be released,
+ * and the pointer given by `*self_p` will be nullified.
+ *
+ * If `bxierr_get_cause(*self_p)` is not NULL,
+ * `bxierr_destroy()` will be called on the returned cause
+ * (and so on recursively).
+ *
+ * If `bxierr_get_data(*self_p)` is not NULL,
+ * function given by `bxierr_get_free_fn()` will be called with the returned
+ * `data` in parameter.
+ *
+ * @param self_p the pointer on the error to destroy
+ */
+inline void bxierr_destroy(bxierr_p * self_p) {
+    bxiassert(NULL != self_p);
+
+    bxierr_free(*self_p);
+    *self_p = NULL;
+}
+
+
 /**
  * Return true if the given `bxierr` is ok. False otherwise.
  *
@@ -376,6 +533,9 @@ inline bool bxierr_isko(bxierr_p self) {
  * @return a human string representation of the given `bxierr`.
  */
 inline char * bxierr_str(bxierr_p self) {
+    assert(NULL != self);
+    // Ensure that even when the str function is NULL, we can still create the message
+    // in one way or another
     if (self->str != NULL) {
         return self->str(self, BXIERR_ALL_CAUSES);
     } else {
@@ -408,8 +568,8 @@ inline char * bxierr_str(bxierr_p self) {
  *
  */
 inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
-            assert(NULL != (err));
-            assert(NULL != (tmp));
+            assert(NULL != (*err));
+            assert(NULL != (*tmp));
             if (bxierr_isko((*tmp)) && bxierr_isko((*err))) {
                 if (NULL != (*tmp)->cause) {
                     assert((*tmp)->last_cause->cause == NULL);
@@ -425,27 +585,32 @@ inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
             }
             (*err) = bxierr_isko((*tmp)) ? (*tmp) : (*err);
 }
+/**
+ * Abort the program if the given fatal_err is ko.
+ *
+ * The given error is reported first on stderr.
+ *
+ * @note: This function never returns as it exit the program.
+ *
+ * @param[in] fatal_err the error to check
+ */
+inline void bxierr_abort_ifko(bxierr_p fatal_err) {
+    if (bxierr_isko(fatal_err)) {
+        bxierr_report(fatal_err, STDERR_FILENO);
+        abort();
+    }
+}
 #else
+void bxierr_destroy(bxierr_p * self_p);
 bool bxierr_isok(bxierr_p self);
 bool bxierr_isko(bxierr_p self);
 char * bxierr_str(bxierr_p self);
 void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
+void bxierr_abort_ifko(bxierr_p fatal_err);
+
 #endif
 
-/**
- * Report the given error on the given file descriptor.
- *
- * Use only when you do not have the bxilog library initialized. Otherwise,
- * use BXILOG_REPORT().
- *
- * @note the given error will be destroyed.
- *
- * @param self the error to report
- * @param fd a file descriptor where the error will be reported
- *
- * @see BXILOG_REPORT()
- */
-void bxierr_report(bxierr_p self, int fd);
+
 
 /**
  * Return a bxierr from the given errcode error code.
@@ -495,5 +660,51 @@ bxierr_p bxierr_vfromidx(int errcode,
  */
 char * bxierr_backtrace_str(void);
 
+
+
+/**
+ * Display an 'Unreachable statement reached' message with a stack trace and exit.
+ *
+ * @note this function is only useful when logging is not available, otherwise,
+ *       BXIUNREACHABLE_STATEMENT must be used instead.
+ *
+ * @param[in] file the file in which the failed assertion was seen
+ * @param[in] line the line in file in which the failed assertion was seen
+ * @param[in] function the function in file in which the failed assertion was seen
+ */
+void bxierr_unreachable_statement(const char *__file,
+                                  unsigned int __line, const char *__function)
+#ifndef BXICFFI
+                                  __attribute__ ((__noreturn__))
+#endif
+                                  ;
+
+bxierr_group_p bxierr_group_new();
+
+void bxierr_group_free(bxierr_group_p group);
+
+#ifndef BXICFFI
+inline void bxierr_group_destroy(bxierr_group_p * group_p) {
+    bxiassert(NULL != group_p);
+
+    bxierr_group_free(*group_p);
+
+    *group_p = NULL;
+}
+#else
+void bxierr_group_destroy(bxierr_group_p * group_p);
+#endif
+
+char * bxierr_group_str(bxierr_p err, uint64_t depth);
+
+/**
+ * Add the given error in the set if no error with the same code exists.
+ */
+bool bxierr_set_add(bxierr_group_p set, bxierr_p * err);
+
+/**
+ * Append the given error in the list.
+ */
+void bxierr_list_append(bxierr_group_p list, bxierr_p err);
 
 #endif /* BXIERR_H_ */

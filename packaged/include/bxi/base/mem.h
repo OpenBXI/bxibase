@@ -82,13 +82,15 @@ void * bximem_calloc(size_t n);
  * Same usage as realloc(). A check is performed to ensure the returned pointer
  * is usable.
  *
- * @param ptr the memory region to resize
+ * If old_size is greater than 0, the new space allocated is zeroed.
  *
- * @param n the new number of allocated bytes
+ * @param[inout] ptr the memory region to resize
+ * @param[in] old_size the old size of the memory region. No effect if 0.
+ * @param[in] n the new number of allocated bytes
  *
  * @return a usable pointer with the given size
  */
-void * bximem_realloc(void *ptr, size_t n);
+void * bximem_realloc(void *ptr, size_t old_size, size_t n);
 
 /**
  * Free and nullify the given pointer.

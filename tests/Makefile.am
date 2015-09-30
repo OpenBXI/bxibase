@@ -42,6 +42,7 @@ force:${top_srcdir}/valgrind.supp
 
 unit_t_SOURCES=\
 			   test_mem.c\
+			   test_str.c\
 			   test_err.c\
 			   test_time.c\
 			   test_logger.c\

@@ -7,7 +7,15 @@ lib_libbxibase_la_SOURCES=\
 		  src/err.c\
 		  src/time.c\
 		  src/zmq.c\
-		  src/log.c
+		  src/log/core.c\
+		  src/log/cfg.c\
+		  src/log/fork.c\
+		  src/log/signal.c\
+		  src/log/tsd.c\
+		  src/log/log_file_handler.c\
+		  src/log/log_console_handler.c\
+		  src/log/log_null_handler.c\
+		  src/log/handler.c
 
 lib_libbxibase_la_LDFLAGS=\
 					 $(ZMQ_LIBS)\

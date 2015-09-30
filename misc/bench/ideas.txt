@@ -1,0 +1,7 @@
+Optimization of bxilog:
+
+	- Use direct PUB/SUB from BC threads + 2 threads, one for console, one for file, and potentially other threads for syslog or whatever
+	- Gives hints to GCC, see https://gcc.gnu.org/onlinedocs/gcc-4.4.2/gcc/Function-Attributes.html
+          for details
+	- Use Profiler
+	- See logstash

@@ -6,13 +6,13 @@
 #ifndef BXICFFI
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include <signal.h>
 #include <sys/signalfd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #endif
+
 
 #include "bxi/base/mem.h"
 #include "bxi/base/err.h"
@@ -80,9 +80,6 @@
 // ********************************** Defines **************************************
 // *********************************************************************************
 
-// WARNING: These macros should be first initialized with bxilog_init_default_logger()
-// This is reentrant
-
 /**
  * Produce a log at the `BXILOG_LOWEST` level
  */
@@ -134,25 +131,29 @@
 
 
 /**
- * Define the bxierr code for `BXIASSERT`
+ * Define the error code when a bad level configuration is given.
  *
- * @see bxierr_p
+ * @note: BAD LVL in Leet Speak
+ *
+ * @note: The bxierr_p.data holds the incorrect level as a casted (void*).
+ *        It must not be freed since it is not a memory address.
+ *
  */
-#define BXIASSERT_CODE 455327 // Leet speak! ;-)
+#define BXILOG_BADLVL_ERR 840111
 
 /**
- * Define the bxierr code for `BXIUNREACHABLE_STATEMENT`
+ * Define the error code when an error occurred while flushing
+ *
+ * @note the bxierr_p.data holds a bxierr_group data containing all errors
+ * encountered while flushing. This data will be freed when the error is freed.
  */
-#define BXIUNREACHABLE_STATEMENT_CODE 666 // Devil's code! ;-)
+#define BXILOG_FLUSH_ERR 51054
 
-#define BXIBUG_STD_MSG "\nThis is a bug and should be reported as such.\n"                \
-                       "In your report, do not omit the following informations:\n"      \
-                       "\t- version of the product;\n"                                  \
-                       "\t- full command line arguments;\n"                             \
-                       "\t- the logging file at the lowest log level.\n"                \
-                       "Contact Bull for bug submission.\n"                             \
-                       "Thanks and Sorry."
 
+/**
+ *  Error code used by handlers to specify they must exit
+ */
+#define BXILOG_HANDLER_EXIT_CODE 41322811
 /**
  * Exit the program with given `exit_code`.
  *
@@ -184,7 +185,7 @@
                 (char *)__FILE__, ARRAYLEN(__FILE__),                               \
                 __func__, ARRAYLEN(__func__),                                       \
                 __LINE__);                                                          \
-    } while(0)
+    } while(false)
 
 /**
  * Equivalent to assert() but ensure logs are flushed before exiting.
@@ -198,7 +199,7 @@
                           (char *)__FILE__, ARRAYLEN(__FILE__),                     \
                           __func__, ARRAYLEN(__func__),                             \
                           __LINE__, #expr);                                         \
-    } while(0)
+    } while(false)
 
 
 /**
@@ -218,7 +219,7 @@
                                  BXIBUG_STD_MSG),                                   \
             (logger),                                                               \
             BXILOG_CRITICAL);                                                       \
-    } while(0)
+    } while(false)
 
 
 
@@ -246,7 +247,7 @@
                       (char *)__FILE__, ARRAYLEN(__FILE__),                         \
                       __func__, ARRAYLEN(__func__),                                 \
                       __LINE__, __VA_ARGS__);                                     \
-    } while(0)
+    } while(false)
 
 
 /**
@@ -274,7 +275,7 @@
                            (char *)__FILE__, ARRAYLEN(__FILE__),                         \
                            __func__, ARRAYLEN(__func__),                                 \
                            __LINE__, __VA_ARGS__);                                     \
-    } while(0)
+    } while(false)
 
 /**
  * Create a log using the given logger at the given level.
@@ -290,13 +291,10 @@
                                                        (funcname), (funcname_len),      \
                                                        (line), __VA_ARGS__);            \
             if (bxierr_isko(__err__)) {                                                 \
-                char * str = bxierr_str(__err__);                                       \
-                fprintf(stderr, "Can't produce a log: %s", str);                        \
-                BXIFREE(str);                                                           \
-                bxierr_destroy(&__err__);                                               \
+                bxierr_report(__err__, STDOUT_FILENO);                                  \
             }                                                                           \
         }                                                                               \
-    } while(0);
+    } while(false);
 
 
 /**
@@ -368,6 +366,8 @@
  * The error code returned when a signal prevented a function to complete successfully.
  */
 #define BXILOG_SIGNAL_ERR     10
+
+
 
 // *********************************************************************************
 // ********************************** Types   **************************************
@@ -441,14 +441,110 @@ typedef struct bxilog_cfg_item_s {
  * @see bxilog_cfg_registered()
  */
 typedef bxilog_cfg_item_s * bxilog_cfg_item_p;
+
+#define TIMESPEC_SIZE 16
+#ifndef BXICFFI
+BXIERR_CASSERT(timespec_size, TIMESPEC_SIZE == sizeof(struct timespec));
+#endif
+
+// A bxilog record
+// TODO: reorganize with most-often used data first
+// see cachegrind results.
+typedef struct {
+    bxilog_level_e level;           // log level
+#ifndef BXICFFI
+    struct timespec detail_time;    // log timestamp
+#else
+    uint8_t detail_time[TIMESPEC_SIZE];
+#endif
+#ifndef BXICFFI
+    pid_t pid;                      // process pid
+#ifdef __linux__
+    pid_t tid;                      // kernel thread id
+//    size_t thread_name_len        // Thread name (see pthread_getname_np())
+#endif
+#else
+    int pid;
+#ifdef __linux__
+    int tid;
+#endif
+#endif
+    uint16_t thread_rank;           // user thread rank
+    int line_nb;                    // line nb
+    //  size_t progname_len;            // program name length
+    size_t filename_len;            // file name length
+    size_t funcname_len;            // function name length
+    size_t logname_len;             // logger name length
+    size_t variable_len;            // filename_len + funcname_len +
+                                    // logname_len
+    size_t logmsg_len;              // the logmsg length
+} bxilog_record_s;
+
+typedef bxilog_record_s * bxilog_record_p;
+
+typedef struct {
+    bool mask_signals;
+    void * zmq_context;
+    int data_hwm;
+    int ctrl_hwm;
+    double connect_timeout_s;
+    long poll_timeout_ms;
+    size_t subscriptions_nb;
+    char **subscriptions;
+    char * data_url;
+    char * ctrl_url;
+} bxilog_handler_param_s;
+
+typedef bxilog_handler_param_s * bxilog_handler_param_p;
+
+typedef struct bxilog_handler_s_f bxilog_handler_s;
+typedef bxilog_handler_s * bxilog_handler_p;
+struct bxilog_handler_s_f {
+    char * name;
+    bxilog_handler_param_p (*param_new)(bxilog_handler_p,
+#ifndef BXICFFI
+            va_list);
+#else
+            void *);
+#endif
+    bxierr_p (*init)(bxilog_handler_param_p param);
+    bxierr_p (*process_log)(bxilog_record_p record,
+                            char * filename,
+                            char * funcname,
+                            char * loggername,
+                            char * logmsg,
+                            bxilog_handler_param_p param);
+    bxierr_p (*process_err)(bxierr_p *err, bxilog_handler_param_p param);
+    bxierr_p (*process_implicit_flush)(bxilog_handler_param_p param);
+    bxierr_p (*process_explicit_flush)(bxilog_handler_param_p param);
+    bxierr_p (*process_exit)(bxilog_handler_param_p param);
+    bxierr_p (*process_cfg)(bxilog_handler_param_p param);
+    bxierr_p (*param_destroy)(bxilog_handler_param_p* param);
+};
+
+
+typedef struct {
+    size_t handlers_nb;
+    int data_hwm;
+    int ctrl_hwm;
+    size_t tsd_log_buf_size;
+    const char * progname;
+    bxilog_handler_p * handlers;
+    bxilog_handler_param_p * handlers_params;
+} bxilog_param_s;
+
+typedef bxilog_param_s * bxilog_param_p;
+
+
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
 
+
+
 // *********************************************************************************
 // ********************************** Interface ************************************
 // *********************************************************************************
-
 
 
 /**
@@ -540,6 +636,23 @@ size_t bxilog_get_all_level_names(char *** names);
  */
 void bxilog_reset_config();
 
+bxierr_p bxilog_basic_config(const char *progname,
+                             const char * filename,
+                             bool append,
+                             bxilog_param_p *result);
+
+bxierr_p bxilog_unit_test_config(const char *progname,
+                                 const char * filename,
+                                 bool append,
+                                 bxilog_param_p *result);
+
+bxilog_param_p bxilog_param_new(const char * progname);
+void bxilog_param_add(bxilog_param_p self, bxilog_handler_p handler, ...);
+
+bxierr_p bxilog_param_destroy(bxilog_param_p * param_p);
+void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p param);
+void bxilog_handler_clean_param(bxilog_handler_param_p param);
+
 /**
  * Initialize the BXI logging module.
  *
@@ -555,13 +668,13 @@ void bxilog_reset_config();
  * This library provides `bxilog_install_sighandler()` that can be used for this
  * specific purpose. It should be called just after `bxilog_init()`.
  *
- * @param[in] progname the progname, as given by argv[0]
- * @param[in] filename the filename to write into ('-' means standard output,
- *         '+': means stdandard error )
+ * @param[in] param bxilog parameters
+ *
  * @return BXIERR_OK on success, anything else on error.
  *
+ * @see bxilog_param_p
  */
-bxierr_p bxilog_init(const char * progname, const char * filename);
+bxierr_p bxilog_init(bxilog_param_p param);
 
 /**
  * Release all resources used by the logging system. After this call,
@@ -731,7 +844,7 @@ void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level);
  */
 #ifndef BXICFFI
 inline bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level) {
-    assert (logger != NULL && level <= BXILOG_LOWEST);
+    bxiassert(logger != NULL && level <= BXILOG_LOWEST);
     return level <= logger->level;
 }
 #else

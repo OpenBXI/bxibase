@@ -22,7 +22,7 @@
 #include <zmq.h>
 #endif
 
-#include <bxi/base/err.h>
+#include "bxi/base/err.h"
 
 
 /**
@@ -38,6 +38,19 @@
 #define BXIZMQ_RETRIES_MAX_ERR 1
 #define BXIZMQ_FSM_ERR 2
 #define BXIZMQ_MISSING_FRAME_ERR 3
+
+/**
+ * The bxierr code for protocol error
+ *
+ * @note This is leet code for PROTO
+ */
+#define BXIZMQ_PROTOCOL_ERR 92070
+/**
+ * The bxierr code for timeout error
+ *
+ * @note This is leet code for TIEOT
+ */
+#define BXIZMQ_TIMEOUT_ERR 71307
 
 // *********************************************************************************
 // ********************************** Types   **************************************
@@ -101,6 +114,16 @@ bxierr_p bxizmq_zocket_setopt(void * self,
                               const size_t option_len
                              );
 
+//TODO: comment
+bxierr_p bxizmq_sync_pub(void * pub_zocket,
+                         void * sync_zocket,
+                         char * const prefix,
+                         const size_t prefix_len,
+                         const double timeout_s);
+
+bxierr_p bxizmq_sync_sub(void * zmq_ctx,
+                         void * sub_zocket,
+                         const double timeout_s);
 
 /**
  * Cleanup the given zeromq socket, releasing all underlying resources.
@@ -128,9 +151,6 @@ bxierr_p bxizmq_msg_init(zmq_msg_t * zmsg);
  */
 bxierr_p bxizmq_msg_close(zmq_msg_t * zmsg);
 
-/*
- *
- */
 /**
  * Try asynchronous sending of the given zmq message `zmsg`
  * through the given zmq socket `zocket`.
@@ -212,20 +232,7 @@ bxierr_p bxizmq_msg_rcv_async(void *zocket, zmq_msg_t *msg,
  */
 bxierr_p bxizmq_msg_has_more(void *zocket, bool* result);
 
-/*
- * Try asynchronous sending of the given *data through the given zocket.
- * After each failure (EAGAIN) sleep for 'delay' seconds.
- * If after 'retries_max' retries, it still fail (EAGAIN), retry
- * synchronously.
- *
- * Return the number of retries (0 means the first send was successful).
- *
- * If retries_max == 0, this call is equivalent to a synchronous send
- * (with all the checks performed).
- *
- *
- *
- */
+
 /**
  * Send the given data through the given zeromq socket.
  *
@@ -236,10 +243,10 @@ bxierr_p bxizmq_msg_has_more(void *zocket, bool* result);
  *      int i = 12345;
  *      // Synchronous send
  *      bxierr_p err = bxizmq_msg_snd(&i, sizeof(int), socket, 0, 0, 0);
- *      assert(BXIERR_OK == retries);
+ *      bxiassert(BXIERR_OK == retries);
  *      // Asynchronous send, 4 retries, sleep 1us
  *      err = bxizmq_msg_snd(&i, sizeof(int), socket, ZMQ_DONTWAIT, 4, 1000);
- *      assert(BXIERR_OK || 4 >= (size_t) err.data);
+ *      bxiassert(BXIERR_OK || 4 >= (size_t) err.data);
  *
  * @param data the data to send
  * @param size the size of the data
@@ -259,7 +266,7 @@ bxierr_p bxizmq_data_snd(void * data, size_t size, void * zocket,
 
 
 /**
- * Equivalent to bxizmq_msg_snd() but with zero copy.
+ * Equivalent to bxizmq_data_snd() but with zero copy.
  *
  * This means that the given *data pointer should not be used afterwards!
  *
@@ -359,18 +366,19 @@ bxierr_p bxizmq_str_snd(char * const str, void * zocket, int flags,
  * Send the given string through the given zocket with the given ZMQ flags without
  * performing a copy. The given string should not be modified after this call.
  *
- * @param str the NULL terminated string to send
- * @param zocket the zeromq socket to send the string with
- * @param flags some zeromq flags
- * @param retries_max the maximum number of retries
- * @param delay_ns the maximum number of nanoseconds to wait between two retries
+ * @param[in] str the NULL terminated string to send
+ * @param[inout] zocket the zeromq socket to send the string with
+ * @param[in] flags some zeromq flags
+ * @param[in] retries_max the maximum number of retries
+ * @param[in] delay_ns the maximum number of nanoseconds to wait between two retries
+ * @param[in] freestr if true, release the given string using BXIFREE
  *
  * @return BXIERR_OK on success
  *
  * @see bxizmq_msg_snd()
  */
 bxierr_p bxizmq_str_snd_zc(const char * const str, void * zocket, int flags,
-                           size_t retries_max, long delay_ns);
+                           size_t retries_max, long delay_ns, bool freestr);
 
 
 /**

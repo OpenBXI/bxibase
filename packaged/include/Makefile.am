@@ -4,8 +4,11 @@ cffi_files=\
 			 bxi/base/mem.h\
 			 bxi/base/str.h\
 			 bxi/base/err.h\
-			 bxi/base/log.h
-
+			 bxi/base/log.h\
+			 bxi/base/log_file_handler.h\
+			 bxi/base/log_null_handler.h
+			 bxi/base/log_console_handler.h
+			 
 #file to be install
 nobase_include_HEADERS = \
 						 bxi/base/version.h\
@@ -14,6 +17,9 @@ nobase_include_HEADERS = \
 						 bxi/base/err.h\
 						 bxi/base/log.h\
 						 bxi/base/time.h\
+						 bxi/base/log_file_handler.h\
+						 bxi/base/log_console_handler.h\
+						 bxi/base/log_null_handler.h\
 						 bxi/base/zmq.h
 
 if HAVE_PYTHON

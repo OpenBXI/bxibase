@@ -23,7 +23,7 @@ basename = os.path.basename(__main__.__file__)
 FILENAME = "%s.bxilog" % os.path.splitext(basename)[0]
 
 if __name__ == "__main__":
-    bxilog.basicConfig(filename=FILENAME)
+    bxilog.basicConfig(console=None, filename=FILENAME)
 
     bxilog.output("Logging a message")
     while True:

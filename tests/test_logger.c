@@ -39,17 +39,23 @@ SET_LOGGER(BAD_LOGGER1, "test.bad.logger");
 SET_LOGGER(BAD_LOGGER2, "test.bad.logger");
 
 extern char * FULLPROGNAME;
-extern char * PROGNAME;
+extern char * BXILOG__CORE_PROGNAME;
 extern char * FULLFILENAME;
+extern int ARGC;
 extern char ** ARGV;
 
 /*
  *  Check logger initialization
  */
 void test_logger_levels(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
+    bxierr_report(err, STDERR_FILENO);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
+
     // Log at all level, we use a loop here to generate many messages
     // and watch how post processing deal with them.
     // Do not change it!
@@ -109,6 +115,7 @@ void test_logger_levels(void) {
     buf[2047] = '\0';
     OUT(TEST_LOGGER, "One big log: %s", buf);
     err = bxilog_flush();
+    bxierr_abort_ifko(err);
     bxierr_p err2 = bxierr_gen("An error to report");
     BXIERR_CHAIN(err,err2);
     BXILOG_REPORT_KEEP(TEST_LOGGER, BXILOG_OUTPUT,
@@ -132,43 +139,47 @@ void test_logger_levels(void) {
     CU_ASSERT_TRUE(bxierr_isok(err));
     OUT(TEST_LOGGER, "Ending test");
     err = bxilog_finalize(true);
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxierr_abort_ifko(err);
+    bxilog_param_destroy(&param);
 }
 
 void test_logger_init() {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
-    char * fullprogname = bxistr_new("fakeprogram");
-    char * progname = basename(fullprogname);
-    char * filename = bxistr_new("%s%s", progname, ".log");
-    err = bxilog_init(progname, filename);
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-//    CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
+    // Initializing the library twice must not be possible
+    // since the options/parameters might vary between the two
+    // and checking that params and options are indeed same is
+    // too heavy
+    err = bxilog_init(param);
+    CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
+    CU_ASSERT_EQUAL(err->code, BXILOG_ILLEGAL_STATE_ERR);
     bxierr_destroy(&err);
     OUT(TEST_LOGGER, "Finalizing");
     err = bxilog_finalize(true);
-    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     err = bxilog_finalize(true);
-    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     bxierr_destroy(&err);
-    BXIFREE(fullprogname);
-    BXIFREE(filename);
+    bxilog_param_destroy(&param);
 }
 
 static char * _get_filename(int fd) {
     char path[512];
     const size_t n = 512 * sizeof(*path);
     char * const result = malloc(n);
-    assert(result != NULL);
+    bxiassert(result != NULL);
     sprintf(path, "/proc/self/fd/%d", fd);
     memset(result, 0, n);
     errno = 0;
     /* Read out the link to our file descriptor. */
     const ssize_t rc = readlink(path, result, n - 1);
-    assert(-1 != rc);
+    bxiassert(-1 != rc);
     return result;
 }
 
@@ -185,40 +196,53 @@ static long _get_filesize(char* name) {
 }
 
 void test_logger_existing_file(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
     char * template = strdup("test_logger_XXXXXX");
     int fd = mkstemp(template);
-    assert(-1 != fd);
+    bxiassert(-1 != fd);
     char * name = _get_filename(fd);
     OUT(TEST_LOGGER, "Filename: %s", name);
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
     close(fd);
+    bxilog_param_destroy(&param);
 
-    err = bxilog_init(PROGNAME, name);
+    bxilog_param_p new_param;
+    err= bxilog_unit_test_config(ARGV[0],
+                             name, true, &new_param);
+    bxierr_report(err, STDERR_FILENO);
+    err = bxilog_init(new_param);
+
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "One log on file: %s", name);
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(0 < _get_filesize(name));
     int rc = unlink(name);
-    assert(0 == rc);
+    bxiassert(0 == rc);
     BXIFREE(template);
     BXIFREE(name);
+    bxilog_param_destroy(&new_param);
 }
 
 void test_logger_non_existing_file(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
     int fd = mkstemp(template);
-    assert(-1 != fd);
+    bxiassert(-1 != fd);
     char * name = _get_filename(fd);
     OUT(TEST_LOGGER, "Filename: %s", name);
     err = bxilog_finalize(true);
@@ -227,272 +251,59 @@ void test_logger_non_existing_file(void) {
     CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
     close(fd);
     int rc = unlink(name);
-    assert(0 == rc);
+    bxiassert(0 == rc);
+    bxilog_param_destroy(&param);
 
-    err = bxilog_init(PROGNAME, name);
+    bxilog_param_p new_param;
+    err = bxilog_unit_test_config(ARGV[0], name, true, &new_param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(new_param);
+    bxierr_report(err, STDERR_FILENO);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "One log on file: %s", name);
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(0 < _get_filesize(name));
     rc = unlink(name);
-    assert(0 == rc);
+    bxiassert(0 == rc);
     BXIFREE(template);
     BXIFREE(name);
+    bxilog_param_destroy(&new_param);
 }
 
 void test_logger_non_existing_dir(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
     char * dirname = mkdtemp(template);
-    assert(NULL != dirname);
+    bxiassert(NULL != dirname);
     char * name = bxistr_new(" %s/test_logger_non_existing_dir.bxilog", dirname);
     OUT(TEST_LOGGER, "Filename: %s", name);
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_param_destroy(&param);
 
     int rc = rmdir(dirname);
-    assert(0 == rc);
+    bxiassert(0 == rc);
 
-    err = bxilog_init(PROGNAME, name);
+
+    bxilog_param_p new_param;
+    err = bxilog_unit_test_config(ARGV[0], name, true, &new_param);
+    bxiassert(bxierr_isok(err));
+    // Failed because the directory does not exist
+    err = bxilog_init(new_param);
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
     bxierr_destroy(&err);
+    // Fail because the library has not been initialized correctly
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     BXIFREE(name);
     BXIFREE(template);
-}
-
-void _fork_childs(size_t n) {
-    if (n == 0) return;
-    DEBUG(TEST_LOGGER, "Forking child #%zu", n - 1);
-    errno = 0;
-    pid_t cpid = fork();
-    switch(cpid) {
-    case -1: {
-        BXIEXIT(EXIT_FAILURE,
-                bxierr_errno("Can't fork()"),
-                TEST_LOGGER, BXILOG_CRITICAL);
-        break;
-    }
-    case 0: { // In the child
-        n--;
-        char * child_progname = bxistr_new("%s.%zu", PROGNAME, n);
-        snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
-        bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
-        BXIFREE(child_progname);
-        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
-        // Check that logging works as expected in the child too
-        CRITICAL(TEST_LOGGER, "Child #%zu: One log line", n);
-        ERROR(TEST_LOGGER, "Child #%zu: One log line", n);
-        WARNING(TEST_LOGGER, "Child #%zu: One log line", n);
-        OUT(TEST_LOGGER, "Child #%zu: One log line", n);
-        INFO(TEST_LOGGER, "Child #%zu: One log line", n);
-        DEBUG(TEST_LOGGER, "Child #%zu: One log line", n);
-        TRACE(TEST_LOGGER, "Child #%zu: One log line", n);
-        _fork_childs(n);
-        err = bxilog_finalize(true);
-        if (bxierr_isko(err)) {
-            error(EXIT_FAILURE, 0,
-                  "Calling bxilog_finalize(true) failed in child #%zu: %s",
-                  n, bxierr_str(err));
-        }
-        BXIFREE(FULLFILENAME);
-        BXIFREE(FULLPROGNAME);
-        exit(EXIT_SUCCESS);
-        break;
-    }
-    default: {  // In the parent
-        CRITICAL(TEST_LOGGER, "Parent #%zu: One log line", n);
-        ERROR(TEST_LOGGER, "Parent #%zu: One log line", n);
-        WARNING(TEST_LOGGER, "Parent #%zu: One log line", n);
-        OUT(TEST_LOGGER, "Parent #%zu: One log line", n);
-        INFO(TEST_LOGGER, "Parent #%zu: One log line", n);
-        DEBUG(TEST_LOGGER, "Parent #%zu: One log line", n);
-        TRACE(TEST_LOGGER, "Parent #%zu: One log line", n);
-        int status;
-        DEBUG(TEST_LOGGER,
-              "Parent #%zu: Waiting termination of child #%zu pid:%d", n, n - 1, cpid);
-        errno = 0;
-        pid_t w = waitpid(cpid, &status, WUNTRACED);
-        if (-1 == w) {
-            BXIEXIT(EX_SOFTWARE, bxierr_errno("Can't wait()"),
-                    TEST_LOGGER, BXILOG_CRIT);
-        }
-        CU_ASSERT_TRUE(WIFEXITED(status));
-        CU_ASSERT_EQUAL_FATAL(WEXITSTATUS(status), EXIT_SUCCESS);
-        DEBUG(TEST_LOGGER, "Child #%zu, pid: %d terminated", n-1, cpid);
-        break;
-    }
-    }
-}
-
-void test_logger_fork(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
-    bxierr_report(err, STDERR_FILENO);
-    err = bxilog_install_sighandler();
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-    DEBUG(TEST_LOGGER, "Starting test");
-    _fork_childs((size_t)(rand()%5 + 5));
-    OUT(TEST_LOGGER, "Ending test");
-    err = bxilog_finalize(true);
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-}
-
-static volatile bool _DUMMY_LOGGING = false;
-
-void * _logger_thread_dummy(void * data) {
-    size_t signum = (size_t) data;
-
-    while(true) {
-        OUT(TEST_LOGGER, "Waiting for signal: %zu", signum);
-        bxitime_sleep(CLOCK_MONOTONIC, 0, 2e8);
-        _DUMMY_LOGGING = true;
-    }
-    BXIUNREACHABLE_STATEMENT(TEST_LOGGER);
-    return NULL;
-}
-
-void _fork_kill(int signum) {
-    OUT(TEST_LOGGER, "Starting test for signum %d", signum);
-    _DUMMY_LOGGING = true;
-    char * name = bxistr_new("%s.%d", FULLFILENAME, getpid());
-    OUT(TEST_LOGGER, "Child output (stdout/stderr) is redirected to %s", name);
-    int pipefd[2];
-    int rc = pipe(pipefd);
-    BXIASSERT(TEST_LOGGER, 0 == rc);
-    errno = 0;
-    pid_t cpid = fork();
-    switch(cpid) {
-    case -1: {
-        BXIEXIT(EXIT_FAILURE,
-                bxierr_errno("Can't fork()"),
-                TEST_LOGGER, BXILOG_CRITICAL);
-        break;
-    }
-    case 0: { // In the child
-        rc = close(pipefd[0]); // Close the read-end of the pipe, we won't use it!
-        assert (0 == rc);
-        int fd = open(name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-        assert(fd != -1);
-//         Redirect input/output to the file
-        dup2(fd, STDOUT_FILENO);
-        dup2(fd, STDERR_FILENO);
-        rc = close(fd);
-        assert(0 == rc);
-        char * child_progname = bxistr_new("%s-sig-%d.child", PROGNAME, signum);
-        snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
-        bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
-        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
-        BXIFREE(child_progname);
-        err = bxilog_install_sighandler();
-        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
-        pthread_t thread;
-        size_t data = (size_t) signum;
-        int rc = pthread_create(&thread, NULL, _logger_thread_dummy, (void*)data);
-        BXIASSERT(TEST_LOGGER, 0 == rc);
-        while(!_DUMMY_LOGGING) {
-            OUT(TEST_LOGGER, "Waiting until dummy thread log something...");
-            bxitime_sleep(CLOCK_MONOTONIC, 0, 2e8);
-        }
-        OUT(TEST_LOGGER, "Informing parent %d, we are ready to be killed!", getppid());
-        errno = 0;
-        char readystr[] = "Ready";
-        size_t count = ARRAYLEN(readystr);
-        errno = 0;
-        ssize_t n = write(pipefd[1], readystr, count);
-        BXIASSERT(TEST_LOGGER, count == (size_t) n);
-        errno = 0;
-        rc = close(pipefd[1]);
-        BXIASSERT(TEST_LOGGER, 0 == rc || (-1 == rc && errno == EINTR));
-        OUT(TEST_LOGGER, "Waiting signal %d from %d", signum, getppid());
-        bxitime_sleep(CLOCK_MONOTONIC, 5, 0);
-        BXIEXIT(EXIT_FAILURE, bxierr_gen("Should have been killed, but was not"),
-                TEST_LOGGER, BXILOG_CRITICAL);
-        break;
-    }
-    default: {  // In the parent
-        char buf[512];
-        memset(buf, 0, 512);
-        rc = close(pipefd[1]); // Close the write-end of the pipe
-        BXIASSERT(TEST_LOGGER, 0 == rc);
-        OUT(TEST_LOGGER, "Waiting ready signal from child %d", cpid);
-        while(true) { // Read while EOF
-            ssize_t n = read(pipefd[0], &buf, 512);
-            BXIASSERT(TEST_LOGGER, -1 != n);
-            if (0 == n) break; // EOF
-        }
-        rc = close(pipefd[0]);
-        BXIASSERT(TEST_LOGGER, 0 == rc);
-        OUT(TEST_LOGGER, "Child sent us: %s", buf);
-        bxitime_sleep(CLOCK_MONOTONIC, 0, 5e8);
-        OUT(TEST_LOGGER, "Killing %d with signal %d", cpid, signum);
-        errno = 0;
-        int rc = kill(cpid, signum);
-        if (-1 == rc) {
-            BXIEXIT(EXIT_FAILURE,
-                    bxierr_errno("Calling kill(%d, %d) failed", cpid, signum),
-                    TEST_LOGGER, BXILOG_CRITICAL);
-        }
-        int status;
-        OUT(TEST_LOGGER, "Waiting termination of pid:%d", cpid);
-        errno = 0;
-        int times = 50000;
-        while(true) {
-            times--;
-            pid_t w = waitpid(cpid, &status, WNOHANG);
-            if (w > 0) break;
-            if (0 == w && 0 == times) {
-                BXIEXIT(EXIT_FAILURE,
-                        bxierr_errno("Unable to wait for %d", cpid),
-                        TEST_LOGGER, BXILOG_CRITICAL);
-            }
-            if (-1 == w) {
-                BXIEXIT(EXIT_FAILURE,
-                        bxierr_errno("Can't wait()"),
-                        TEST_LOGGER, BXILOG_CRITICAL);
-            }
-            bxitime_sleep(CLOCK_MONOTONIC, 0, 1e6); // Wait a bit...
-        }
-        if (WIFEXITED(status)) {
-            OUT(TEST_LOGGER, "Process pid: %d terminated, with error code=%d",
-                cpid, WEXITSTATUS(status));
-        }
-        if (WIFSIGNALED(status)) {
-            OUT(TEST_LOGGER, "Process pid: %d terminated, with signal=%d",
-                            cpid, WTERMSIG(status));
-        }
-        CU_ASSERT_TRUE_FATAL(WIFSIGNALED(status));
-        CU_ASSERT_EQUAL_FATAL(signum, WTERMSIG(status));
-        OUT(TEST_LOGGER, "Removing file %s", name);
-        errno = 0;
-        rc = unlink(name);
-        if (0 != rc) {
-            bxierr_p err = bxierr_errno("Calling unlink(%s) failed", name);
-            BXILOG_REPORT(TEST_LOGGER, BXILOG_WARNING,
-                                   err,
-                                   "Error during cleanup");
-        }
-        BXIFREE(name);
-        break;
-    }
-    }
-}
-
-void test_logger_signal(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
-    bxierr_report(err, STDERR_FILENO);
-    err = bxilog_install_sighandler();
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-    int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM, SIGQUIT};
-    for (size_t i = 0; i < ARRAYLEN(allsig_num); i++) {
-        _fork_kill(allsig_num[i]);
-    }
-    OUT(TEST_LOGGER, "Ending test");
-    err = bxilog_finalize(true);
-    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_param_destroy(&new_param);
 }
 
 static bool _is_logger_in_registered(bxilog_p logger) {
@@ -510,7 +321,10 @@ static bool _is_logger_in_registered(bxilog_p logger) {
 }
 
 void test_single_logger_instance(void) {
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -537,12 +351,17 @@ void test_single_logger_instance(void) {
 
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_param_destroy(&param);
 }
 
 void test_config(void) {
     bxilog_reset_config();
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
+
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 
@@ -586,13 +405,19 @@ void test_config(void) {
 
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_param_destroy(&param);
 }
 
 
 void test_config_parser(void) {
     bxilog_reset_config();
-    bxierr_p err = bxilog_init(PROGNAME, FULLFILENAME);
+
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
     bxierr_report(err, STDERR_FILENO);
+
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 
@@ -624,5 +449,249 @@ void test_config_parser(void) {
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     bxilog_reset_config();
+
+    bxilog_param_destroy(&param);
 }
 
+
+void _fork_childs(size_t n) {
+    if (n == 0) return;
+    DEBUG(TEST_LOGGER, "Forking child #%zu", n - 1);
+    errno = 0;
+    pid_t cpid = fork();
+    switch(cpid) {
+    case -1: {
+        BXIEXIT(EXIT_FAILURE,
+                bxierr_errno("Can't fork()"),
+                TEST_LOGGER, BXILOG_CRITICAL);
+        break;
+    }
+    case 0: { // In the child
+        n--;
+        char * child_progname = bxistr_new("%s.%zu", ARGV[0], n);
+        snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
+        BXIFREE(child_progname);
+        bxilog_param_p param;
+        bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+        bxiassert(bxierr_isok(err));
+        err = bxilog_init(param);
+        bxierr_report(err, STDERR_FILENO);
+        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
+        // Check that logging works as expected in the child too
+        CRITICAL(TEST_LOGGER, "Child #%zu: One log line", n);
+        ERROR(TEST_LOGGER, "Child #%zu: One log line", n);
+        WARNING(TEST_LOGGER, "Child #%zu: One log line", n);
+        OUT(TEST_LOGGER, "Child #%zu: One log line", n);
+        INFO(TEST_LOGGER, "Child #%zu: One log line", n);
+        DEBUG(TEST_LOGGER, "Child #%zu: One log line", n);
+        TRACE(TEST_LOGGER, "Child #%zu: One log line", n);
+        _fork_childs(n);
+        err = bxilog_finalize(true);
+        if (bxierr_isko(err)) {
+            error(EXIT_FAILURE, 0,
+                  "Calling bxilog_finalize(true) failed in child #%zu: %s",
+                  n, bxierr_str(err));
+        }
+        BXIFREE(FULLFILENAME);
+        BXIFREE(FULLPROGNAME);
+        bxilog_param_destroy(&param);
+        exit(EXIT_SUCCESS);
+        break;
+    }
+    default: {  // In the parent
+        CRITICAL(TEST_LOGGER, "Parent #%zu: One log line", n);
+        ERROR(TEST_LOGGER, "Parent #%zu: One log line", n);
+        WARNING(TEST_LOGGER, "Parent #%zu: One log line", n);
+        OUT(TEST_LOGGER, "Parent #%zu: One log line", n);
+        INFO(TEST_LOGGER, "Parent #%zu: One log line", n);
+        DEBUG(TEST_LOGGER, "Parent #%zu: One log line", n);
+        TRACE(TEST_LOGGER, "Parent #%zu: One log line", n);
+        int status;
+        DEBUG(TEST_LOGGER,
+              "Parent #%zu: Waiting termination of child #%zu pid:%d", n, n - 1, cpid);
+        errno = 0;
+        pid_t w = waitpid(cpid, &status, WUNTRACED);
+        if (-1 == w) {
+            BXIEXIT(EX_SOFTWARE, bxierr_errno("Can't wait()"),
+                    TEST_LOGGER, BXILOG_CRIT);
+        }
+        CU_ASSERT_TRUE(WIFEXITED(status));
+        CU_ASSERT_EQUAL_FATAL(WEXITSTATUS(status), EXIT_SUCCESS);
+        DEBUG(TEST_LOGGER, "Child #%zu, pid: %d terminated", n-1, cpid);
+        break;
+    }
+    }
+}
+
+void test_logger_fork(void) {
+    bxilog_param_p param;
+    bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
+    bxiassert(bxierr_isok(err));
+    err = bxilog_init(param);
+    bxierr_report(err, STDERR_FILENO);
+
+    err = bxilog_install_sighandler();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    DEBUG(TEST_LOGGER, "Starting test");
+    _fork_childs((size_t)(rand()%5 + 5));
+    OUT(TEST_LOGGER, "Ending test");
+    err = bxilog_finalize(true);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_param_destroy(&param);
+}
+//
+//static volatile bool _DUMMY_LOGGING = false;
+//
+//void * _logger_thread_dummy(void * data) {
+//    size_t signum = (size_t) data;
+//
+//    while(true) {
+//        OUT(TEST_LOGGER, "Waiting for signal: %zu", signum);
+//        bxitime_sleep(CLOCK_MONOTONIC, 0, 2e8);
+//        _DUMMY_LOGGING = true;
+//    }
+//    BXIUNREACHABLE_STATEMENT(TEST_LOGGER);
+//}
+//
+//void _fork_kill(int signum) {
+//    OUT(TEST_LOGGER, "Starting test for signum %d", signum);
+//    _DUMMY_LOGGING = true;
+//    char * name = bxistr_new("%s.%d", FULLFILENAME, getpid());
+//    OUT(TEST_LOGGER, "Child output (stdout/stderr) is redirected to %s", name);
+//    int pipefd[2];
+//    int rc = pipe(pipefd);
+//    BXIASSERT(TEST_LOGGER, 0 == rc);
+//    errno = 0;
+//    pid_t cpid = fork();
+//    switch(cpid) {
+//    case -1: {
+//        BXIEXIT(EXIT_FAILURE,
+//                bxierr_errno("Can't fork()"),
+//                TEST_LOGGER, BXILOG_CRITICAL);
+//        break;
+//    }
+//    case 0: { // In the child
+//        rc = close(pipefd[0]); // Close the read-end of the pipe, we won't use it!
+//        bxiassert(0 == rc);
+//        int fd = open(name, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+//        bxiassert(fd != -1);
+////         Redirect input/output to the file
+//        dup2(fd, STDOUT_FILENO);
+//        dup2(fd, STDERR_FILENO);
+//        rc = close(fd);
+//        bxiassert(0 == rc);
+//        char * child_progname = bxistr_new("%s-sig-%d.child", BXILOG__CORE_PROGNAME, signum);
+//        snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
+////        bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
+//        bxierr_p err = bxilog_init(NULL);
+//        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
+//        BXIFREE(child_progname);
+//        err = bxilog_install_sighandler();
+//        BXIASSERT(TEST_LOGGER, bxierr_isok(err));
+//        pthread_t thread;
+//        UNUSED(thread);
+//        size_t data = (size_t) signum;
+//        int rc = pthread_create(&thread, NULL, _logger_thread_dummy, (void*)data);
+//        BXIASSERT(TEST_LOGGER, 0 == rc);
+//        while(!_DUMMY_LOGGING) {
+//            OUT(TEST_LOGGER, "Waiting until dummy thread log something...");
+//            bxitime_sleep(CLOCK_MONOTONIC, 0, 2e8);
+//        }
+//        OUT(TEST_LOGGER, "Informing parent %d, we are ready to be killed!", getppid());
+//        errno = 0;
+//        char readystr[] = "Ready";
+//        size_t count = ARRAYLEN(readystr);
+//        errno = 0;
+//        ssize_t n = write(pipefd[1], readystr, count);
+//        BXIASSERT(TEST_LOGGER, count == (size_t) n);
+//        errno = 0;
+//        rc = close(pipefd[1]);
+//        BXIASSERT(TEST_LOGGER, 0 == rc || (-1 == rc && errno == EINTR));
+//        OUT(TEST_LOGGER, "Waiting signal %d from %d", signum, getppid());
+//        bxitime_sleep(CLOCK_MONOTONIC, 5, 0);
+//        BXIEXIT(EXIT_FAILURE, bxierr_gen("Should have been killed, but was not"),
+//                TEST_LOGGER, BXILOG_CRITICAL);
+//        break;
+//    }
+//    default: {  // In the parent
+//        char buf[512];
+//        memset(buf, 0, 512);
+//        rc = close(pipefd[1]); // Close the write-end of the pipe
+//        BXIASSERT(TEST_LOGGER, 0 == rc);
+//        OUT(TEST_LOGGER, "Waiting ready signal from child %d", cpid);
+//        while(true) { // Read while EOF
+//            ssize_t n = read(pipefd[0], &buf, 512);
+//            BXIASSERT(TEST_LOGGER, -1 != n);
+//            if (0 == n) break; // EOF
+//        }
+//        rc = close(pipefd[0]);
+//        BXIASSERT(TEST_LOGGER, 0 == rc);
+//        OUT(TEST_LOGGER, "Child sent us: %s", buf);
+//        bxitime_sleep(CLOCK_MONOTONIC, 0, 5e8);
+//        OUT(TEST_LOGGER, "Killing %d with signal %d", cpid, signum);
+//        errno = 0;
+//        int rc = kill(cpid, signum);
+//        if (-1 == rc) {
+//            BXIEXIT(EXIT_FAILURE,
+//                    bxierr_errno("Calling kill(%d, %d) failed", cpid, signum),
+//                    TEST_LOGGER, BXILOG_CRITICAL);
+//        }
+//        int status;
+//        OUT(TEST_LOGGER, "Waiting termination of pid:%d", cpid);
+//        errno = 0;
+//        int times = 50000;
+//        while(true) {
+//            times--;
+//            pid_t w = waitpid(cpid, &status, WNOHANG);
+//            if (w > 0) break;
+//            if (0 == w && 0 == times) {
+//                BXIEXIT(EXIT_FAILURE,
+//                        bxierr_errno("Unable to wait for %d", cpid),
+//                        TEST_LOGGER, BXILOG_CRITICAL);
+//            }
+//            if (-1 == w) {
+//                BXIEXIT(EXIT_FAILURE,
+//                        bxierr_errno("Can't wait()"),
+//                        TEST_LOGGER, BXILOG_CRITICAL);
+//            }
+//            bxitime_sleep(CLOCK_MONOTONIC, 0, 1e6); // Wait a bit...
+//        }
+//        if (WIFEXITED(status)) {
+//            OUT(TEST_LOGGER, "Process pid: %d terminated, with error code=%d",
+//                cpid, WEXITSTATUS(status));
+//        }
+//        if (WIFSIGNALED(status)) {
+//            OUT(TEST_LOGGER, "Process pid: %d terminated, with signal=%d",
+//                            cpid, WTERMSIG(status));
+//        }
+//        CU_ASSERT_TRUE_FATAL(WIFSIGNALED(status));
+//        CU_ASSERT_EQUAL_FATAL(signum, WTERMSIG(status));
+//        OUT(TEST_LOGGER, "Removing file %s", name);
+//        errno = 0;
+//        rc = unlink(name);
+//        if (0 != rc) {
+//            bxierr_p err = bxierr_errno("Calling unlink(%s) failed", name);
+//            BXILOG_REPORT(TEST_LOGGER, BXILOG_WARNING,
+//                                   err,
+//                                   "Error during cleanup");
+//        }
+//        BXIFREE(name);
+//        break;
+//    }
+//    }
+//}
+//
+//void test_logger_signal(void) {
+//    bxierr_p err = bxilog_init(&BXILOG_PARAM);
+//    bxierr_report(err, STDERR_FILENO);
+//    err = bxilog_install_sighandler();
+//    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+//    int allsig_num[] = {SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGINT, SIGTERM, SIGQUIT};
+//    for (size_t i = 0; i < ARRAYLEN(allsig_num); i++) {
+//        _fork_kill(allsig_num[i]);
+//    }
+//    OUT(TEST_LOGGER, "Ending test");
+//    err = bxilog_finalize(true);
+//    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+//}
+//
