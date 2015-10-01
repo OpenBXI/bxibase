@@ -18,10 +18,10 @@
 
 #include "bxi/base/log.h"
 
-#include "core.h"
-#include "handler.h"
+#include "handler_impl.h"
+#include "log_impl.h"
 
-#include "bxi/base/log_null_handler.h"
+#include "bxi/base/log/null_handler.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************

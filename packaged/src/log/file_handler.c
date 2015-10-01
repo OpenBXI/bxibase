@@ -28,10 +28,10 @@
 
 #include "bxi/base/log.h"
 
-#include "core.h"
-#include "handler.h"
+#include "handler_impl.h"
+#include "log_impl.h"
 
-#include "bxi/base/log_file_handler.h"
+#include "bxi/base/log/file_handler.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -250,7 +250,7 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
                                 "\tNumber of reported distinct errors: %zu\n",
                                 data->lost_logs,
                                 data->errset->errors_nb);
-        bxilog__core_display_err_msg(str);
+        bxilog__display_err_msg(str);
         BXIFREE(str);
     }
 
@@ -401,7 +401,7 @@ bxierr_p _log_single_line(char * line,
                     "available in your program if it uses the full bxi "
                     "high performance logging library.\n",
                     data->filename, err_str);
-            bxilog__core_display_err_msg(str);
+            bxilog__display_err_msg(str);
             BXIFREE(err_str);
             BXIFREE(str);
         } else {

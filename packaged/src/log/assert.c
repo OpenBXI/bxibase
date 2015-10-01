@@ -11,15 +11,18 @@
  ###############################################################################
  */
 
-#ifndef BXILOG_TSD_H
-#define BXILOG_TSD_H
-
-#include <unistd.h>
-#include <stdint.h>
+#include <stdbool.h>
+#include <sysexits.h>
 
 #include "bxi/base/err.h"
+#include "bxi/base/mem.h"
+#include "bxi/base/str.h"
+#include "bxi/base/time.h"
+#include "bxi/base/zmq.h"
 
-#include "tsd.h"
+#include "bxi/base/log.h"
+
+
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -29,41 +32,40 @@
 //********************************** Types ****************************************
 //*********************************************************************************
 
-struct tsd_s {
-    size_t log_nb;
-    size_t rsz_log_nb;
-    size_t max_log_size;
-    size_t min_log_size;
-    size_t sum_log_size;
 
-    char * log_buf;                 // The per-thread log buffer
-    void * data_channel;             // The thread-specific zmq logging socket;
-    void * ctrl_channel;             // The thread-specific zmq controlling socket;
-#ifdef __linux__
-    pid_t tid;                      // Cache the tid on Linux since we assume NPTL
-                                    // and therefore a 1:1 thread implementation.
-#endif
-    uint16_t thread_rank;           // user thread rank
-};
+//*********************************************************************************
+//********************************** Static Functions  ****************************
+//*********************************************************************************
 
-typedef struct tsd_s * tsd_p;
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
 
+
 //*********************************************************************************
-//********************************** Interface         ****************************
+//********************************** Implementation    ****************************
 //*********************************************************************************
 
-/* Free the thread-specific data */
-void bxilog__tsd_free(void * const data);
+void bxilog_assert(bxilog_p logger, bool result,
+                   char * file, size_t filelen,
+                   const char * func, size_t funclen,
+                   int line, char * expr) {
+    if (!result) {
+        bxierr_p err = bxierr_new(BXIASSERT_CODE,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  "From file %s:%d: assertion %s is false"\
+                                  BXIBUG_STD_MSG,
+                                  file, line, expr);
+        bxilog_exit(EX_SOFTWARE, err, logger, BXILOG_CRITICAL,
+                    file, filelen, func, funclen, line);
+        bxierr_destroy(&err);
+    }
+}
 
-/* Allocate the tsd key */
-void bxilog__tsd_key_new();
-
-/* Return the thread-specific data.*/
-bxierr_p bxilog__tsd_get(tsd_p * result);
-
-
-#endif
+//*********************************************************************************
+//********************************** Static Helpers Implementation ****************
+//*********************************************************************************

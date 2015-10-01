@@ -27,9 +27,9 @@
 
 #include "bxi/base/log.h"
 
-#include "core.h"
+#include "handler_impl.h"
+#include "log_impl.h"
 
-#include "handler.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************

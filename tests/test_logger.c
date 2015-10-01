@@ -345,8 +345,8 @@ void test_single_logger_instance(void) {
     err = bxilog_get("test.bad.logger", &logger);
     CU_ASSERT_TRUE(bxierr_isok(err));
     CU_ASSERT_PTR_NOT_NULL_FATAL(logger);
-    CU_ASSERT_PTR_NOT_EQUAL(logger, BAD_LOGGER1);
-    CU_ASSERT_PTR_EQUAL(logger, BAD_LOGGER2);
+    CU_ASSERT_PTR_EQUAL(logger, BAD_LOGGER1);
+    CU_ASSERT_PTR_NOT_EQUAL(logger, BAD_LOGGER2);
     CU_ASSERT_TRUE(_is_logger_in_registered(logger));
 
     err = bxilog_finalize(true);
@@ -355,7 +355,7 @@ void test_single_logger_instance(void) {
 }
 
 void test_config(void) {
-    bxilog_reset_config();
+    bxilog_reset_registry();
     bxilog_param_p param;
     bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
     bxiassert(bxierr_isok(err));
@@ -410,7 +410,7 @@ void test_config(void) {
 
 
 void test_config_parser(void) {
-    bxilog_reset_config();
+    bxilog_reset_registry();
 
     bxilog_param_p param;
     bxierr_p err = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &param);
@@ -428,7 +428,7 @@ void test_config_parser(void) {
     CU_ASSERT_NOT_EQUAL(logger_z->level, BXILOG_OUTPUT);
 
     char cfg[] = ":debug,z:output,z.w:WARNING";
-    err = bxilog_parse_levels(cfg);
+    err = bxilog_cfg_parse(cfg);
     CU_ASSERT_TRUE(bxierr_isok(err));
 
     CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
@@ -448,7 +448,7 @@ void test_config_parser(void) {
 
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-    bxilog_reset_config();
+    bxilog_reset_registry();
 
     bxilog_param_destroy(&param);
 }

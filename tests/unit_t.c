@@ -27,7 +27,7 @@
 #include <bxi/base/err.h>
 #include <bxi/base/str.h>
 #include <bxi/base/log.h>
-#include <bxi/base/log_file_handler.h>
+#include <bxi/base/log/file_handler.h>
 
 
 SET_LOGGER(TEST_LOGGER, "test.bxibase");

@@ -1,25 +1,21 @@
 /* -*- coding: utf-8 -*-  */
 
-#ifndef BXILOG_H_
-#define BXILOG_H_
+#ifndef BXILOG_HANDLER_H_
+#define BXILOG_HANDLER_H_
 
 #ifndef BXICFFI
+#include <stdlib.h>
+#include <stdio.h>
+#include <signal.h>
+#include <sys/signalfd.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #endif
 
 
 #include "bxi/base/mem.h"
 #include "bxi/base/err.h"
-
-#include "bxi/base/log/level.h"
-#include "bxi/base/log/logger.h"
-#include "bxi/base/log/config.h"
-#include "bxi/base/log/report.h"
-#include "bxi/base/log/assert.h"
-#include "bxi/base/log/exit.h"
-#include "bxi/base/log/signal.h"
-#include "bxi/base/log/thread.h"
-#include "bxi/base/log/registry.h"
 
 
 /**
@@ -83,40 +79,103 @@
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
+#define READY_CTRL_MSG_REQ "BC->H: ready?"
+#define READY_CTRL_MSG_REP "H->BC: ready!"
+#define FLUSH_CTRL_MSG_REQ "BC->H: flush?"
+#define FLUSH_CTRL_MSG_REP "H->BC: flushed!"
+#define EXIT_CTRL_MSG_REQ "BC->H: exit?"
+#define EXIT_CTRL_MSG_REP "H->BC: exited!"
+
 
 /**
- * The error code returned when a function is called while the library is
- * in an illegal state.
+ *  Error code used by handlers to specify they must exit
  */
-#define BXILOG_ILLEGAL_STATE_ERR       1
+#define BXILOG_HANDLER_EXIT_CODE 41322811
 
-/**
- * The error code returned when an error occurred within the underlying protocol.
- */
-#define BXILOG_IHT2BC_PROTO_ERR 3
 
-/**
- * Define the error code when an error occurred while flushing
- *
- * @note the bxierr_p.data holds a bxierr_group data containing all errors
- * encountered while flushing. This data will be freed when the error is freed.
- */
-#define BXILOG_FLUSH_ERR 51054
-
-/**
- * Define the error code when a bad level configuration is given.
- *
- * @note: BAD LVL in Leet Speak
- *
- * @note: The bxierr_p.data holds the incorrect level as a casted (void*).
- *        It must not be freed since it is not a memory address.
- *
- */
-#define BXILOG_BADLVL_ERR 840111
+#define TIMESPEC_SIZE 16
+#ifndef BXICFFI
+BXIERR_CASSERT(timespec_size, TIMESPEC_SIZE == sizeof(struct timespec));
+#endif
 
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************
+
+// A bxilog record
+// TODO: reorganize with most-often used data first
+// see cachegrind results.
+typedef struct {
+    bxilog_level_e level;           // log level
+#ifndef BXICFFI
+    struct timespec detail_time;    // log timestamp
+#else
+    uint8_t detail_time[TIMESPEC_SIZE];
+#endif
+#ifndef BXICFFI
+    pid_t pid;                      // process pid
+#ifdef __linux__
+    pid_t tid;                      // kernel thread id
+//    size_t thread_name_len        // Thread name (see pthread_getname_np())
+#endif
+#else
+    int pid;
+#ifdef __linux__
+    int tid;
+#endif
+#endif
+    uint16_t thread_rank;           // user thread rank
+    int line_nb;                    // line nb
+    //  size_t progname_len;            // program name length
+    size_t filename_len;            // file name length
+    size_t funcname_len;            // function name length
+    size_t logname_len;             // logger name length
+    size_t variable_len;            // filename_len + funcname_len +
+                                    // logname_len
+    size_t logmsg_len;              // the logmsg length
+} bxilog_record_s;
+
+typedef bxilog_record_s * bxilog_record_p;
+
+typedef struct {
+    bool mask_signals;
+    void * zmq_context;
+    int data_hwm;
+    int ctrl_hwm;
+    double connect_timeout_s;
+    long poll_timeout_ms;
+    size_t subscriptions_nb;
+    char **subscriptions;
+    char * data_url;
+    char * ctrl_url;
+} bxilog_handler_param_s;
+
+typedef bxilog_handler_param_s * bxilog_handler_param_p;
+
+typedef struct bxilog_handler_s_f bxilog_handler_s;
+typedef bxilog_handler_s * bxilog_handler_p;
+struct bxilog_handler_s_f {
+    char * name;
+    bxilog_handler_param_p (*param_new)(bxilog_handler_p,
+#ifndef BXICFFI
+            va_list);
+#else
+            void *);
+#endif
+    bxierr_p (*init)(bxilog_handler_param_p param);
+    bxierr_p (*process_log)(bxilog_record_p record,
+                            char * filename,
+                            char * funcname,
+                            char * loggername,
+                            char * logmsg,
+                            bxilog_handler_param_p param);
+    bxierr_p (*process_err)(bxierr_p *err, bxilog_handler_param_p param);
+    bxierr_p (*process_implicit_flush)(bxilog_handler_param_p param);
+    bxierr_p (*process_explicit_flush)(bxilog_handler_param_p param);
+    bxierr_p (*process_exit)(bxilog_handler_param_p param);
+    bxierr_p (*process_cfg)(bxilog_handler_param_p param);
+    bxierr_p (*param_destroy)(bxilog_handler_param_p* param);
+};
 
 
 // *********************************************************************************
@@ -129,71 +188,7 @@
 // ********************************** Interface ************************************
 // *********************************************************************************
 
-/**
- * Initialize the BXI logging module.
- *
- * WARNING: this function should be called once only (from the `main()` usually).
- *
- * If program_name is NULL, a name will be generated somehow. ;-)
- *
- * Note: `bxilog_init()` does not set any signal handler.
- *
- * Most of the time, you want to guarantee that bxilog_finalize() will be called
- * before exiting whatever the reason is to prevent log lost.
- *
- * This library provides `bxilog_install_sighandler()` that can be used for this
- * specific purpose. It should be called just after `bxilog_init()`.
- *
- * @param[in] param bxilog parameters
- *
- * @return BXIERR_OK on success, anything else on error.
- *
- * @see bxilog_param_p
- */
-bxierr_p bxilog_init(bxilog_param_p param);
-
-/**
- * Release all resources used by the logging system. After this call,
- * no other thread will be able to perform a log.
- *
- * A return result different than BXIERR_OK is an error
- * related to a bad state such as when
- * `bxilog_init()` has not been called.
- *
- * @param[in] flush flush before exiting if true
- * @return BXIERR_OK on success, anything else on error.
- *
- */
-bxierr_p bxilog_finalize(bool flush);
-
-
-/**
- * Request a flush of all pending logs.
- *
- * Return when all messages have been flushed.
- *
- * @return BXIERR_OK on success, anything else is an error.
- */
-bxierr_p bxilog_flush(void);
-
-
-/**
- * Display on stderr the loggers which can be configured.
- */
-void bxilog_display_loggers();
-
-
-/**
- * @example bxilog_err.c
- * An example on how to use the BXI Logging API with high-level error
- * management. Compile with `-lbxibase`.
- *
- */
-
-/**
- * @example bxilog_cfg.c
- * An example on how to configure the BXI Logging API. Compile with `-lbxibase`.
- *
- */
+void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p param);
+void bxilog_handler_clean_param(bxilog_handler_param_p param);
 
 #endif /* BXILOG_H_ */

@@ -19,8 +19,8 @@
 #include "bxi/base/str.h"
 #include "bxi/base/log.h"
 
-#include "core.h"
-#include "fork.h"
+#include "log_impl.h"
+#include "fork_impl.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -72,7 +72,7 @@ void _parent_before_fork(void) {
     bxierr_p err = BXIERR_OK, err2;
     err2 = bxilog_flush();
     BXIERR_CHAIN(err, err2);
-    err2 = bxilog__core_finalize();
+    err2 = bxilog__finalize();
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) {
         char * err_str = bxierr_str(err);
@@ -80,7 +80,7 @@ void _parent_before_fork(void) {
                                 "some logs might have been missed. "
                                 "Detailed error is - %s",
                                 err_str);
-        bxilog__core_display_err_msg(msg);
+        bxilog__display_err_msg(msg);
         BXIFREE(msg);
         BXIFREE(err_str);
         bxierr_destroy(&err);
@@ -99,9 +99,9 @@ void _parent_after_fork(void) {
     if (FORKED != BXILOG__GLOBALS->state) return;
 
     BXILOG__GLOBALS->state = INITIALIZING;
-    bxilog__core_init_globals();
+    bxilog__init_globals();
 
-    bxierr_p err = bxilog__core_start_handlers();
+    bxierr_p err = bxilog__start_handlers();
     // Can't do a log
     bxiassert(bxierr_isok(err));
 

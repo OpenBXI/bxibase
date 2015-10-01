@@ -23,7 +23,10 @@
 #include <execinfo.h>
 #include <time.h>
 #include <errno.h>
+
 #include <limits.h>
+
+
 #include <pthread.h>
 
 #include <sys/syscall.h>
@@ -44,20 +47,21 @@
 
 #include "bxi/base/log.h"
 
-#include "tsd.h"
-#include "fork.h"
-#include "cfg.h"
-#include "tsd.h"
-#include "handler.h"
+#include "log/tsd_impl.h"
+#include "log/config_impl.h"
+#include "log/handler_impl.h"
+#include "log/fork_impl.h"
 
-
-#include "core.h"
+#include "log/log_impl.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
 
-
+// How many retries before falling back to SYNC sending.
+#define RETRIES_MAX 3u
+// Used when a sending failed with EAGAIN, we sleep for that amount of time (in ns).
+#define RETRY_DELAY 500000l
 
 //*********************************************************************************
 //********************************** Types ****************************************
@@ -67,22 +71,6 @@
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-
-static void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
-                        char * file, size_t filelen,
-                        const char * func, size_t funclen,
-                        int line,
-                        const char * fmt, va_list arglist);
-static bxierr_p _send2handlers(const bxilog_p logger, const bxilog_level_e level,
-                            void * log_channel,
-#ifdef __linux__
-                            pid_t tid,
-#endif
-                            uint16_t thread_rank,
-                            char * filename, size_t filename_len,
-                            const char * funcname, size_t funcname_len,
-                            int line,
-                            const char * rawstr, size_t rawstr_len);
 static void _check_set_params(bxilog_param_p param);
 static bxierr_p _reset_globals();
 static bxierr_p _cleanup(void);
@@ -145,13 +133,13 @@ bxierr_p bxilog_init(bxilog_param_p param) {
 
     BXILOG__GLOBALS->state = INITIALIZING;
 
-    err = bxilog__core_init_globals();
+    err = bxilog__init_globals();
     if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = BROKEN;
         goto UNLOCK;
     }
 
-    err = bxilog__core_start_handlers();
+    err = bxilog__start_handlers();
     if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = BROKEN;
         goto UNLOCK;
@@ -210,7 +198,7 @@ bxierr_p bxilog_finalize(bool flush) {
         BXIERR_CHAIN(err, err2);
     }
 
-    err2 = bxilog__core_finalize();
+    err2 = bxilog__finalize();
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = BROKEN;
@@ -230,15 +218,6 @@ UNLOCK:
 
     return err;
 }
-
-void bxilog_destroy(bxilog_p * self_p) {
-    if (NULL == *self_p) return;
-    if (!(*self_p)->allocated) return;
-
-    BXIFREE((*self_p)->name);
-    BXIFREE(*self_p);
-}
-
 
 bxierr_p bxilog_flush(void) {
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
@@ -284,214 +263,6 @@ bxierr_p bxilog_flush(void) {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
-                           char * filename, size_t filename_len,
-                           const char * funcname, size_t funcname_len,
-                           int line,
-                           const char * rawstr, size_t rawstr_len) {
-    if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
-    tsd_p tsd;
-    bxierr_p err = bxilog__tsd_get(&tsd);
-    if (bxierr_isko(err)) return err;
-
-    err = _send2handlers(logger, level, tsd->data_channel,
-#ifdef __linux__
-                    tsd->tid,
-#endif
-                    tsd->thread_rank,
-                    filename, filename_len,
-                    funcname, funcname_len,
-                    line,
-                    rawstr, rawstr_len);
-    return err;
-}
-
-bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
-                                  char * filename, size_t filename_len,
-                                  const char * funcname, size_t funcname_len,
-                                  const int line,
-                                  const char * fmt, va_list arglist) {
-
-    if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
-
-    tsd_p tsd;
-    bxierr_p err = bxilog__tsd_get(&tsd);
-    if (bxierr_isko(err)) return err;
-
-    // Start creating the logmsg so the length can be computed
-    // We start in the thread local buffer
-
-    char * logmsg = tsd->log_buf;
-    size_t logmsg_len = BXILOG__GLOBALS->param->tsd_log_buf_size;
-    bool logmsg_allocated = false; // When true,  means that a new special buffer has been
-                                   // allocated -> it will have to be freed
-    while(true) {
-        va_list arglist_copy;
-        va_copy(arglist_copy, arglist);
-        // Does not include the null terminated byte
-        int n = vsnprintf(logmsg, logmsg_len, fmt, arglist_copy);
-        va_end(arglist_copy);
-
-        // Check error
-        bxiassert(n >= 0);
-
-        // Ok
-        if ((size_t) n < logmsg_len) {
-            logmsg_len = (size_t) n + 1; // Record the actual size of the message
-            break;
-        }
-
-        if (logmsg_allocated) BXIFREE(logmsg);
-        // Not enough space, mallocate a new special buffer of the precise size
-        logmsg_len = (size_t) (n + 1);
-        logmsg = malloc(logmsg_len); // Include the null terminated byte
-        bxiassert(NULL != logmsg);
-        logmsg_allocated = true;
-
-        tsd->rsz_log_nb++;
-    }
-
-    tsd->max_log_size = tsd->max_log_size > logmsg_len ? tsd->max_log_size : logmsg_len;
-    tsd->min_log_size = tsd->min_log_size < logmsg_len ? tsd->min_log_size : logmsg_len;
-    tsd->sum_log_size += logmsg_len;
-    tsd->log_nb++;
-
-    err = _send2handlers(logger, level, tsd->data_channel,
-#ifdef __linux__
-                    tsd->tid,
-#endif
-                    tsd->thread_rank,
-                    filename, filename_len,
-                    funcname, funcname_len,
-                    line,
-                    logmsg, logmsg_len);
-
-    if (logmsg_allocated) BXIFREE(logmsg);
-    // Either record comes from the stack
-    // or it comes from a mallocated region that will be freed
-    // by bxizmq_snd_data_zc itself
-    // Therefore it should not be freed here
-    // FREE(record);
-    return err;
-}
-
-bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
-                                 char * filename, size_t filename_len,
-                                 const char * funcname, size_t funcname_len,
-                                 const int line,
-                                 const char * fmt, ...) {
-    va_list ap;
-    bxierr_p err;
-
-    va_start(ap, fmt);
-    err = bxilog_vlog_nolevelcheck(logger, level,
-                                   filename, filename_len, funcname, funcname_len, line,
-                                   fmt, ap);
-    va_end(ap);
-
-    return err;
-}
-
-
-bxilog_level_e bxilog_get_level(const bxilog_p logger) {
-    bxiassert(NULL != logger);
-    return logger->level;
-}
-
-void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level) {
-    bxiassert(NULL != logger);
-    bxiassert(BXILOG_LOWEST >= level);
-    logger->level = level;
-}
-
-// Defined inline in bxilog.h
-extern bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level);
-
-void bxilog_exit(int exit_code,
-                 bxierr_p err,
-                 bxilog_p logger,
-                 bxilog_level_e level,
-                 char * file,
-                 size_t filelen,
-                 const char * func,
-                 size_t funclen,
-                 int line) {
-
-    bxiassert(NULL != logger);
-    char * str = bxierr_str_limit(err, BXIERR_ALL_CAUSES);
-    bxilog_log(logger, level,
-               file, filelen,
-               func, funclen,
-               line,
-               "Exiting with code %d, Error is: %s", exit_code, str);
-    bxierr_destroy(&err);
-    err = bxitime_sleep(CLOCK_MONOTONIC, 0, 50000000);
-    bxierr_destroy(&err);
-    err = bxilog_flush();
-    bxierr_destroy(&err);
-    exit((exit_code));
-}
-
-void bxilog_assert(bxilog_p logger, bool result,
-                   char * file, size_t filelen,
-                   const char * func, size_t funclen,
-                   int line, char * expr) {
-    if (!result) {
-        bxierr_p err = bxierr_new(BXIASSERT_CODE,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  "From file %s:%d: assertion %s is false"\
-                                  BXIBUG_STD_MSG,
-                                  file, line, expr);
-        bxilog_exit(EX_SOFTWARE, err, logger, BXILOG_CRITICAL,
-                    file, filelen, func, funclen, line);
-        bxierr_destroy(&err);
-    }
-}
-
-void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
-                   char * file, size_t filelen,
-                   const char * func, size_t funclen,
-                   int line,
-                   const char * fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    _report_err(logger, level,
-                err, file, filelen, func, funclen, line, fmt, ap);
-    va_end(ap);
-    bxierr_destroy(err);
-    *err = BXIERR_OK;
-}
-
-void bxilog_report_keep(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
-                        char * file, size_t filelen,
-                        const char * func, size_t funclen,
-                        int line,
-                        const char * fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    _report_err(logger, level,
-                err, file, filelen, func, funclen, line, fmt, ap);
-    va_end(ap);
-}
-
-bxierr_p bxilog_set_thread_rank(uint16_t rank) {
-    tsd_p tsd;
-    bxierr_p err = bxilog__tsd_get(&tsd);
-    if (bxierr_isko(err)) return err;
-    tsd->thread_rank = rank;
-    return BXIERR_OK;
-}
-
-bxierr_p bxilog_get_thread_rank(uint16_t * rank_p) {
-    tsd_p tsd;
-    bxierr_p err = bxilog__tsd_get(&tsd);
-    if (bxierr_isko(err)) return err;
-    *rank_p = tsd->thread_rank;
-    return BXIERR_OK;
-}
 
 void bxilog_display_loggers() {
     char ** level_names;
@@ -510,9 +281,9 @@ void bxilog_display_loggers() {
 }
 
 
-void bxilog__core_wipeout() {
+void bxilog__wipeout() {
     // Remove allocated configuration
-    bxilog_reset_config();
+    bxilog_reset_registry();
 
     // Remove allocated loggers
     bxilog__cfg_release_loggers();
@@ -529,7 +300,7 @@ void bxilog__core_wipeout() {
 }
 
 
-bxierr_p bxilog__core_init_globals() {
+bxierr_p bxilog__init_globals() {
 
     BXILOG__GLOBALS->pid = getpid();
     pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->param->handlers_nb * sizeof(*threads));
@@ -565,7 +336,7 @@ bxierr_p bxilog__core_init_globals() {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog__core_start_handlers(void) {
+bxierr_p bxilog__start_handlers(void) {
     bxiassert(INITIALIZING == BXILOG__GLOBALS->state);
     bxierr_p err = BXIERR_OK;
     bxierr_group_p errlist = bxierr_group_new();
@@ -613,7 +384,7 @@ bxierr_p bxilog__core_start_handlers(void) {
 }
 
 
-bxierr_p bxilog__core_finalize(void) {
+bxierr_p bxilog__finalize(void) {
     // WARNING: If you change the FSM transition,
     // comment your changes in bxilog_state_e above.
     if (INITIALIZED != BXILOG__GLOBALS->state && BROKEN != BXILOG__GLOBALS->state) {
@@ -624,7 +395,7 @@ bxierr_p bxilog__core_finalize(void) {
     }
     BXILOG__GLOBALS->state = FINALIZING;
     bxierr_p err = BXIERR_OK, err2;
-    err2 = bxilog__core_stop_handlers();
+    err2 = bxilog__stop_handlers();
     BXIERR_CHAIN(err, err2);
 
     err2 = _cleanup();
@@ -632,7 +403,7 @@ bxierr_p bxilog__core_finalize(void) {
     return err;
 }
 
-bxierr_p bxilog__core_stop_handlers(void) {
+bxierr_p bxilog__stop_handlers(void) {
     // TODO: hack around zeromq issue
     // https://github.com/zeromq/libzmq/issues/1590
     bxierr_p err = BXIERR_OK, err2;
@@ -720,7 +491,7 @@ bxierr_p bxilog__core_stop_handlers(void) {
 }
 
 
-void bxilog__core_display_err_msg(char* msg) {
+void bxilog__display_err_msg(char* msg) {
     // TODO: use a better format?
     ssize_t n = write(STDERR_FILENO, msg, strlen(msg) + 1);
     // Just don't care on error, the end-user might have redirected
@@ -736,104 +507,6 @@ void bxilog__core_display_err_msg(char* msg) {
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
-
-void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
-                 char * file, size_t filelen,
-                 const char * func, size_t funclen,
-                 int line,
-                 const char * fmt, va_list arglist) {
-
-    if (*err == NULL) return;
-    if (bxierr_isok(*err)) return;
-    if (!bxilog_is_enabled_for(logger, level)) return ;
-
-    char * msg;
-    bxistr_vnew(&msg, fmt, arglist);
-    char * err_str = bxierr_str(*err);;
-    bxierr_p logerr = bxilog_log_nolevelcheck(logger, level,
-                                              file, filelen,
-                                              func, funclen, line,
-                                              "%s: %s", msg, err_str);
-    BXIFREE(msg);
-    BXIFREE(err_str);
-    bxierr_report(logerr, STDERR_FILENO);
-}
-
-bxierr_p _send2handlers(const bxilog_p logger,
-                        const bxilog_level_e level,
-                        void * log_channel,
-#ifdef __linux__
-                        pid_t tid,
-#endif
-                        uint16_t thread_rank,
-                        char * filename, size_t filename_len,
-                        const char * funcname, size_t funcname_len,
-                        int line,
-                        const char * rawstr, size_t rawstr_len) {
-
-    bxilog_record_p record;
-    char * data;
-
-    size_t var_len = filename_len\
-            + funcname_len\
-            + logger->name_length;
-
-    size_t data_len = sizeof(*record) + var_len + rawstr_len;
-
-    // We need a mallocated buffer to prevent ZMQ from making its own copy
-    // We use malloc() instead of calloc() for performance reason
-    record = malloc(data_len);
-    bxiassert(NULL != record);
-    // Fill the buffer
-    record->level = level;
-    bxierr_p err = bxitime_get(CLOCK_REALTIME, &record->detail_time);
-    // TODO: be smarter here, if the time can't be fetched, just fake it!
-    if (bxierr_isko(err)) {
-        BXIFREE(record);
-        return err;
-    }
-    record->pid = BXILOG__GLOBALS->pid;
-#ifdef __linux__
-    record->tid = tid;
-#endif
-    record->thread_rank = thread_rank;
-    record->line_nb = line;
-    record->filename_len = filename_len;
-    record->funcname_len = funcname_len;
-    record->logname_len = logger->name_length;
-    record->variable_len = var_len;
-    record->logmsg_len = rawstr_len;
-
-    // Now copy the rest after the record
-    data = (char *) record + sizeof(*record);
-    memcpy(data, filename, filename_len);
-    data += filename_len;
-    memcpy(data, funcname, funcname_len);
-    data += funcname_len;
-    memcpy(data, logger->name, logger->name_length);
-    data += logger->name_length;
-    memcpy(data, rawstr, rawstr_len);
-
-    // Send the frame
-    // normal version if record comes from the stack 'buf'
-    //    size_t retries = bxizmq_snd_data(record, data_len,
-    //                                      _get_tsd()->zocket, ZMQ_DONTWAIT,
-    //                                      RETRIES_MAX, RETRY_DELAY);
-
-    // Zero-copy version (if record has been mallocated).
-    err = bxizmq_data_snd_zc(record, data_len,
-                             log_channel, ZMQ_DONTWAIT,
-                             RETRIES_MAX, RETRY_DELAY,
-                             bxizmq_data_free, NULL);
-    if (bxierr_isko(err)) {
-        if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
-        // Recursive call!
-        WARNING(LOGGER,
-                "Sending last log required %lu retries", (long) err->data);
-        bxierr_destroy(&err);
-    }
-    return BXIERR_OK;
-}
 
 bxierr_p _reset_globals() {
     bxierr_p err = BXIERR_OK, err2;

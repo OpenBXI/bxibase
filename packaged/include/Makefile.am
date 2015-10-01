@@ -5,9 +5,9 @@ cffi_files=\
 			 bxi/base/str.h\
 			 bxi/base/err.h\
 			 bxi/base/log.h\
-			 bxi/base/log_file_handler.h\
-			 bxi/base/log_null_handler.h
-			 bxi/base/log_console_handler.h
+			 bxi/base/log/file_handler.h\
+			 bxi/base/log/null_handler.h\
+			 bxi/base/log/console_handler.h
 			 
 #file to be install
 nobase_include_HEADERS = \
@@ -15,12 +15,23 @@ nobase_include_HEADERS = \
 						 bxi/base/mem.h\
 						 bxi/base/str.h\
 						 bxi/base/err.h\
-						 bxi/base/log.h\
-						 bxi/base/time.h\
-						 bxi/base/log_file_handler.h\
-						 bxi/base/log_console_handler.h\
-						 bxi/base/log_null_handler.h\
 						 bxi/base/zmq.h
+						 bxi/base/time.h\
+						 bxi/base/log.h\
+						 bxi/base/log/level.h\
+						 bxi/base/log/logger.h\
+						 bxi/base/log/assert.h\
+						 bxi/base/log/config.h\
+						 bxi/base/log/exit.h\
+						 bxi/base/log/handler.h\
+						 bxi/base/log/report.h\
+						 bxi/base/log/signal.h\
+						 bxi/base/log/thread.h\
+						 bxi/base/log/registry.h\
+						 bxi/base/log/file_handler.h\
+						 bxi/base/log/console_handler.h\
+						 bxi/base/log/null_handler.h
+
 
 if HAVE_PYTHON
 ../lib/bxi/base/cffi_h.py: $(cffi_files) 

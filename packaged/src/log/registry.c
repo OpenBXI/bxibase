@@ -11,30 +11,35 @@
  ###############################################################################
  */
 
+
+#include <errno.h>
 #include <string.h>
 #include <pthread.h>
-#include <errno.h>
 
 #include "bxi/base/err.h"
-#include "bxi/base/log_file_handler.h"
-#include "bxi/base/log_console_handler.h"
+#include "bxi/base/mem.h"
+#include "bxi/base/str.h"
+#include "bxi/base/time.h"
+#include "bxi/base/zmq.h"
 
-#include "core.h"
+#include "bxi/base/log.h"
 
-#include "cfg.h"
+#include "log_impl.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
+#define REGISTERED_LOGGERS_DEFAULT_ARRAY_SIZE 64
 
 //*********************************************************************************
 //********************************** Types ****************************************
 //*********************************************************************************
 
+
+
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-//--------------------------------- Generic Helpers --------------------------------
 
 static void _configure(bxilog_p logger);
 static void _reset_config();
@@ -42,25 +47,6 @@ static void _reset_config();
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
-
-// The internal logger
-SET_LOGGER(LOGGER, "bxi.base.log.cfg");
-
-
-static char * _LOG_LEVEL_NAMES[] = {
-                                                "panic",
-                                                "alert",
-                                                "critical",
-                                                "error",
-                                                "warning",
-                                                "notice",
-                                                "output",
-                                                "info",
-                                                "debug",
-                                                "fine",
-                                                "trace",
-                                                "lowest"
-};
 
 /**
  * Initial number of registered loggers array size
@@ -92,184 +78,6 @@ static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 //*********************************************************************************
 
 
-bxierr_p bxilog_basic_config(const char * const progname,
-                             const char * const filename,
-                             bool append,
-                             bxilog_param_p *result) {
-
-    bxilog_param_p param = bxilog_param_new(progname);
-
-    // TODO: default configuration for the moment is compatible with old
-    // behaviour. This will change soon.
-//    bxilog_param_add(param, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
-    bxilog_param_add(param, BXILOG_FILE_HANDLER, progname, filename, append);
-
-    *result = param;
-
-    return BXIERR_OK;
-}
-
-bxierr_p bxilog_unit_test_config(const char * const progname,
-                                 const char * const filename,
-                                 bool append,
-                                 bxilog_param_p *result) {
-
-    bxilog_param_p param = bxilog_param_new(progname);
-
-    // Use 2 loggers to ensure multiple handlers works
-    bxilog_param_add(param, BXILOG_FILE_HANDLER, progname, filename, append);
-    bxilog_param_add(param, BXILOG_FILE_HANDLER, progname, "/dev/null", append);
-
-    *result = param;
-
-    return BXIERR_OK;
-}
-
-bxilog_param_p bxilog_param_new(const char * const progname) {
-    bxilog_param_p param = bximem_calloc(sizeof(*param));
-    param->progname = progname;
-    param->tsd_log_buf_size = 128;
-    param->handlers_nb = 0;
-
-    return param;
-}
-
-void bxilog_param_add(bxilog_param_p self, bxilog_handler_p handler, ...) {
-    size_t new_size = self->handlers_nb + 1;
-    self->handlers = bximem_realloc(self->handlers,
-                                    self->handlers_nb * sizeof(*self->handlers),
-                                    new_size * sizeof(*self->handlers));
-    self->handlers_params = bximem_realloc(self->handlers_params,
-                                           self->handlers_nb * sizeof(*self->handlers_params),
-                                           new_size * sizeof(*self->handlers_params));
-    self->handlers[self->handlers_nb] = handler;
-
-    va_list ap;
-    va_start(ap, handler);
-    self->handlers_params[self->handlers_nb] = handler->param_new(handler, ap);
-    va_end(ap);
-
-    self->handlers_nb++;
-}
-
-bxierr_p bxilog_param_destroy(bxilog_param_p * param_p) {
-    bxierr_group_p errlist = bxierr_group_new();
-    bxilog_param_p param = *param_p;
-
-    for (size_t i = 0; i < param->handlers_nb; i++) {
-        bxilog_handler_param_p handler_param = param->handlers_params[i];
-
-        if (NULL != param->handlers[i]->param_destroy) {
-            bxierr_p err = param->handlers[i]->param_destroy(&handler_param);
-            if (bxierr_isko(err)) bxierr_list_append(errlist, err);
-        }
-    }
-    BXIFREE(param->handlers);
-    BXIFREE(param->handlers_params);
-    bximem_destroy((char**) param_p);
-    if (errlist->errors_nb > 0) {
-        return bxierr_from_group(BXIERR_GROUP_CODE, errlist,
-                                 "Errors encountered while destroying logging parameters");
-    } else {
-        bxierr_group_destroy(&errlist);
-    }
-    return BXIERR_OK;
-}
-
-bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
-    *result = NULL;
-
-    int rc = pthread_mutex_lock(&REGISTER_LOCK);
-    if (0 != rc) return bxierr_errno("Call to pthread_mutex_lock() failed (rc=%d)", rc);
-
-    for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
-        bxilog_p logger = REGISTERED_LOGGERS[i];
-        if (NULL == logger) continue;
-        if (strncmp(logger->name, logger_name, logger->name_length) == 0) {
-            *result = logger;
-            break;
-        }
-    }
-
-    rc = pthread_mutex_unlock(&REGISTER_LOCK);
-    if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
-
-    if (NULL == *result) { // Not found
-        bxilog_p self = bximem_calloc(sizeof(*self));
-        self->allocated = true;
-        self->name = strdup(logger_name);
-        self->name_length = strlen(logger_name) + 1;
-        self->level = BXILOG_LOWEST;
-        bxilog_register(self);
-        *result = self;
-    }
-//    fprintf(stderr, "Returning %s %d\n", (*result)->name, (*result)->level);
-    return BXIERR_OK;
-}
-
-bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
-    if (0 == strcasecmp("panic", level_str)
-            || 0 == strcasecmp("emergency", level_str)) {
-        *level = BXILOG_PANIC;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("alert", level_str)) {
-        *level = BXILOG_ALERT;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("critical", level_str)
-            || 0 == strcasecmp("crit", level_str)) {
-        *level = BXILOG_CRIT;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("error", level_str)
-            || 0 == strcasecmp("err", level_str)) {
-        *level = BXILOG_ERR;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("warning", level_str)
-            || 0 == strcasecmp("warn", level_str)) {
-        *level = BXILOG_WARN;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("notice", level_str)) {
-        *level = BXILOG_NOTICE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("output", level_str)
-            || 0 == strcasecmp("out", level_str)) {
-        *level = BXILOG_OUTPUT;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("info", level_str)) {
-        *level = BXILOG_INFO;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("debug", level_str)) {
-        *level = BXILOG_DEBUG;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("fine", level_str)) {
-        *level = BXILOG_FINE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("trace", level_str)) {
-        *level = BXILOG_TRACE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("lowest", level_str)) {
-        *level = BXILOG_LOWEST;
-        return BXIERR_OK;
-    }
-    *level = BXILOG_LOWEST;
-    return bxierr_gen("Bad log level name: %s", level_str);
-}
-
-size_t bxilog_get_all_level_names(char *** names) {
-    *names = _LOG_LEVEL_NAMES;
-    return ARRAYLEN(_LOG_LEVEL_NAMES);
-}
-
 void bxilog_register(bxilog_p logger) {
     bxiassert(logger != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
@@ -278,7 +86,7 @@ void bxilog_register(bxilog_p logger) {
     if (REGISTERED_LOGGERS == NULL) {
         size_t bytes = REGISTERED_LOGGERS_ARRAY_SIZE * sizeof(*REGISTERED_LOGGERS);
         REGISTERED_LOGGERS = bximem_calloc(bytes);
-        int rc = atexit(bxilog__core_wipeout);
+        int rc = atexit(bxilog__wipeout);
         bxiassert(0 == rc);
 
     } else if (REGISTERED_LOGGERS_NB >= REGISTERED_LOGGERS_ARRAY_SIZE) {
@@ -304,10 +112,11 @@ void bxilog_register(bxilog_p logger) {
                                 logger->name,
                                 logger->name_length)) {
             // TODO: provide something better here!
-//            fprintf(stderr,
-//                    "[W] Registered loggers[%zu] share same "
-//                    "logger name than loggers[%zu]: %s\n",
-//                    i, slot, logger->name);
+            fprintf(stderr,
+                    "[W] Logger name '%s' already registered at position %zu, "
+                    "this can lead to various problems such as wrong logging level "
+                    "configuration or misleading messages!\n",
+                    logger->name, i);
         }
     }
 //    fprintf(stderr, "Registering new logger[%zu]: %s\n", slot, logger->name);
@@ -354,6 +163,39 @@ void bxilog_unregister(bxilog_p logger) {
     bxiassert(0 == rc);
 }
 
+
+bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
+    *result = NULL;
+
+    int rc = pthread_mutex_lock(&REGISTER_LOCK);
+    if (0 != rc) return bxierr_errno("Call to pthread_mutex_lock() failed (rc=%d)", rc);
+
+    for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
+        bxilog_p logger = REGISTERED_LOGGERS[i];
+        if (NULL == logger) continue;
+        if (strncmp(logger->name, logger_name, logger->name_length) == 0) {
+            *result = logger;
+            break;
+        }
+    }
+
+    rc = pthread_mutex_unlock(&REGISTER_LOCK);
+    if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
+
+    if (NULL == *result) { // Not found
+        bxilog_p self = bximem_calloc(sizeof(*self));
+        self->allocated = true;
+        self->name = strdup(logger_name);
+        self->name_length = strlen(logger_name) + 1;
+        self->level = BXILOG_LOWEST;
+        bxilog_register(self);
+        *result = self;
+    }
+//    fprintf(stderr, "Returning %s %d\n", (*result)->name, (*result)->level);
+    return BXIERR_OK;
+}
+
+
 size_t bxilog_get_registered(bxilog_p *loggers[]) {
     bxiassert(loggers != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
@@ -371,7 +213,7 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
 }
 
 
-void bxilog_reset_config() {
+void bxilog_reset_registry() {
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
@@ -401,8 +243,9 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog_parse_levels(char * str) {
+bxierr_p bxilog_cfg_parse(char * str) {
     bxiassert(NULL != str);
+
     str = strdup(str); // Required because str might not be allocated on the heap
     bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
     char *saveptr1 = NULL;
@@ -437,7 +280,8 @@ bxierr_p bxilog_parse_levels(char * str) {
                 goto QUIT;
             }
         } else if (*endptr != '\0') {
-            err = bxierr_errno("Error while parsing number: '%s' doesn't contain only a number or a level", level_str);
+            err = bxierr_errno("Error while parsing number: '%s' doesn't contain only "
+                               "a number or a level", level_str);
             BXIERR_CHAIN(err, err2);
             goto QUIT;
         } else {
@@ -474,6 +318,8 @@ QUIT:
     return err;
 }
 
+
+
 void bxilog__cfg_release_loggers() {
     if (NULL != REGISTERED_LOGGERS) {
         //        fprintf(stderr, "Nb Registered loggers: %zu\n", REGISTERED_LOGGERS_NB);
@@ -495,9 +341,6 @@ void bxilog__cfg_release_loggers() {
         REGISTERED_LOGGERS_ARRAY_SIZE = 0;
     }
 }
-
-
-
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
@@ -530,4 +373,3 @@ void _configure(bxilog_p logger) {
 //        }
     }
 }
-

@@ -11,14 +11,17 @@
  ###############################################################################
  */
 
+
 #include <pthread.h>
 #include <sys/syscall.h>
 
 #include "bxi/base/zmq.h"
 
-#include "core.h"
+#include "log_impl.h"
+#include "tsd_impl.h"
 
-#include "tsd.h"
+
+
 
 
 

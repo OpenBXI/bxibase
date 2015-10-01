@@ -14,19 +14,18 @@
 #include <string.h>
 #include <errno.h>
 #include <error.h>
-#include <signal.h>
+
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <pthread.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/str.h"
-#include "bxi/base/log.h"
 #include "bxi/base/time.h"
 
-#include "core.h"
+#include "bxi/base/log.h"
 
-#include "signal.h"
+#include "log_impl.h"
 
 
 
@@ -198,7 +197,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     }
     BXIFREE(sigstr);
 
-    bxilog__core_display_err_msg(str);
+    bxilog__display_err_msg(str);
 
     CRITICAL(LOGGER, "%s", str);
     BXIFREE(str);
@@ -206,13 +205,13 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     bxierr_p err = BXIERR_OK, err2;
     err2 = bxilog_flush();
     BXIERR_CHAIN(err, err2);
-    err2 = bxilog__core_stop_handlers();
+    err2 = bxilog__stop_handlers();
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) {
         char * err_str = bxierr_str(err);
         char * str = bxistr_new("Error while processing signal - %s\n",
                                 err_str);
-        bxilog__core_display_err_msg(str);
+        bxilog__display_err_msg(str);
         BXIFREE(str);
         BXIFREE(err_str);
     }
@@ -236,7 +235,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     rc = sigfillset(&mask);
     bxiassert(0 == rc);
     rc = pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
-    if (-1 == rc) bxilog__core_display_err_msg("Calling pthread_sigmask() failed\n");
+    if (-1 == rc) bxilog__display_err_msg("Calling pthread_sigmask() failed\n");
     rc = pthread_kill(pthread_self(), signum);
     if (0 != rc) {
         error(128 + signum, errno, "Calling pthread_kill(self, %d) failed", signum);

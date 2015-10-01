@@ -12,48 +12,14 @@
  */
 
 
-#ifndef BXILOG_CORE_H
-#define BXILOG_CORE_H
+#ifndef BXILOG_LOG_IMPL_H
+#define BXILOG_LOG_IMPL_H
 
 #include "bxi/base/log.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
-#define DEFAULT_LOG_BUF_SIZE 128   // We use a 128 bytes per thread log buffer
-                                   // by default expecting it is sufficient
-                                   // for the vast majority of cases
-                                   // If this is not the case, a specific
-                                   // mallocated buffer will be used instead
-#define DEFAULT_POLL_TIMEOUT 500   // Awake after this amount of milliseconds
-                                   // if nothing has been received.
-
-#define MAX_DEPTH_ERR 5            // Maximum number of chained errors before quiting
-
-#define IH_RCVHWM 1500000
-
-// How many retries before falling back to SYNC sending.
-#define RETRIES_MAX 3u
-// Used when a sending failed with EAGAIN, we sleep for that amount of time (in ns).
-#define RETRY_DELAY 500000l
-
-#define IHT_LOGGER_NAME "bxilog.iht"
-
-#define READY_CTRL_MSG_REQ "BC->H: ready?"
-#define READY_CTRL_MSG_REP "H->BC: ready!"
-#define FLUSH_CTRL_MSG_REQ "BC->H: flush?"
-#define FLUSH_CTRL_MSG_REP "H->BC: flushed!"
-#define EXIT_CTRL_MSG_REQ "BC->H: exit?"
-#define EXIT_CTRL_MSG_REP "H->BC: exited!"
-
-
-
-
-//*********************************************************************************
-//********************************** Types ****************************************
-//*********************************************************************************
-
-
 /*
  * Finite State Machine.
  *
@@ -72,6 +38,12 @@
 typedef enum {
     UNSET, INITIALIZING, BROKEN, INITIALIZED, FINALIZING, FINALIZED, ILLEGAL, FORKED,
 } bxilog_state_e;
+
+
+//*********************************************************************************
+//********************************** Types ****************************************
+//*********************************************************************************
+
 
 typedef struct {
     bxilog_param_p param;
@@ -102,10 +74,10 @@ extern bxilog__core_globals_p BXILOG__GLOBALS;
 //*********************************************************************************
 //********************************** Interface         ****************************
 //*********************************************************************************
-bxierr_p bxilog__core_init_globals();
-void bxilog__core_display_err_msg(char* msg);
-void bxilog__core_wipeout();
-bxierr_p bxilog__core_finalize(void);
-bxierr_p bxilog__core_start_handlers(void);
-bxierr_p bxilog__core_stop_handlers(void);
+bxierr_p bxilog__init_globals();
+void bxilog__display_err_msg(char* msg);
+void bxilog__wipeout();
+bxierr_p bxilog__finalize(void);
+bxierr_p bxilog__start_handlers(void);
+bxierr_p bxilog__stop_handlers(void);
 #endif

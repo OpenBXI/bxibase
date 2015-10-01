@@ -28,10 +28,10 @@
 
 #include "bxi/base/log.h"
 
-#include "core.h"
-#include "handler.h"
+#include "handler_impl.h"
+#include "log_impl.h"
 
-#include "bxi/base/log_console_handler.h"
+#include "bxi/base/log/console_handler.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -172,7 +172,7 @@ bxierr_p _process_exit(bxilog_console_handler_param_p data) {
                                 "\tNumber of reported distinct errors: %zu\n",
                                 data->lost_logs,
                                 data->errset->errors_nb);
-        bxilog__core_display_err_msg(str);
+        bxilog__display_err_msg(str);
         BXIFREE(str);
     }
 

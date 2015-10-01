@@ -671,9 +671,21 @@ bxierr_p _zocket_create(void * const ctx, const int type, void ** result) {
     void * socket = zmq_socket(ctx, type);
     if (socket == NULL) return bxierr_errno("Can't create a zmq socket of type %d", type);
 
+    int linger = 500;
+
+    int rc = zmq_setsockopt(socket, ZMQ_LINGER, &linger, sizeof(linger));
+    if (rc != 0) {
+        err2 = bxierr_errno("Can't set option ZMQ_LINGER=%d "
+                "on zmq socket", linger);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(socket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
     int _hwm = 0 ;
     errno = 0;
-    int rc = zmq_setsockopt(socket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
+    rc = zmq_setsockopt(socket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
     if (rc != 0) {
         err2 = bxierr_errno("Can't set option ZMQ_RCVHWM=%d "
                             "on zmq socket", _hwm);
