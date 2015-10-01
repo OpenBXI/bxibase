@@ -38,8 +38,6 @@ char * FULLFILENAME = NULL;
 int ARGC;
 char ** ARGV = NULL;
 
-bxilog_param_p LOGPARAM;
-
 // Actual test functions are separated into their respective test file.
 // However, to prevent defining related .h, we define all functions here
 
@@ -78,9 +76,8 @@ void test_config_parser(void);
  */
 int init_suite_logger(void) {
     bxierr_p err = BXIERR_OK, err2;
-    err2 = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true, &LOGPARAM);
-    bxiassert(bxierr_isok(err2));
-    err2 = bxilog_init(LOGPARAM);
+    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    err2 = bxilog_init(config);
     BXIERR_CHAIN(err, err2);
     err2 = bxilog_install_sighandler();
     BXIERR_CHAIN(err, err2);
@@ -101,7 +98,6 @@ int clean_suite_logger(void) {
         bxierr_report(err, STDERR_FILENO);
         exit(1);
     }
-    bxilog_param_destroy(&LOGPARAM);
     return 0;
 }
 
@@ -241,7 +237,7 @@ int main(int argc, char * argv[]) {
 
     /* Run all tests using the automated interface */
     CU_set_output_filename("./report/cunit");
-//    CU_automated_run_tests();
+    CU_automated_run_tests();
     CU_list_tests_to_file();
 
     int rc = _handle_rc_code();

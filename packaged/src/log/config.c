@@ -65,41 +65,35 @@ static char * _LOG_LEVEL_NAMES[] = {
 //*********************************************************************************
 
 
-bxierr_p bxilog_basic_config(const char * const progname,
+bxilog_config_p bxilog_basic_config(const char * const progname,
                              const char * const filename,
-                             bool append,
-                             bxilog_param_p *result) {
+                             bool append) {
 
-    bxilog_param_p param = bxilog_param_new(progname);
+    bxilog_config_p config = bxilog_config_new(progname);
 
     // TODO: default configuration for the moment is compatible with old
     // behaviour. This will change soon.
-//    bxilog_param_add(param, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
-    bxilog_param_add(param, BXILOG_FILE_HANDLER, progname, filename, append);
+//    bxilog_config_add(param, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, progname, filename, append);
 
-    *result = param;
-
-    return BXIERR_OK;
+    return config;
 }
 
-bxierr_p bxilog_unit_test_config(const char * const progname,
-                                 const char * const filename,
-                                 bool append,
-                                 bxilog_param_p *result) {
+bxilog_config_p bxilog_unit_test_config(const char * const progname,
+                                        const char * const filename,
+                                        bool append) {
 
-    bxilog_param_p param = bxilog_param_new(progname);
+    bxilog_config_p config = bxilog_config_new(progname);
 
     // Use 2 loggers to ensure multiple handlers works
-    bxilog_param_add(param, BXILOG_FILE_HANDLER, progname, filename, append);
-    bxilog_param_add(param, BXILOG_FILE_HANDLER, progname, "/dev/null", append);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, progname, filename, append);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, progname, "/dev/null", append);
 
-    *result = param;
-
-    return BXIERR_OK;
+    return config;
 }
 
-bxilog_param_p bxilog_param_new(const char * const progname) {
-    bxilog_param_p param = bximem_calloc(sizeof(*param));
+bxilog_config_p bxilog_config_new(const char * const progname) {
+    bxilog_config_p param = bximem_calloc(sizeof(*param));
     param->progname = progname;
     param->tsd_log_buf_size = 128;
     param->handlers_nb = 0;
@@ -107,7 +101,7 @@ bxilog_param_p bxilog_param_new(const char * const progname) {
     return param;
 }
 
-void bxilog_param_add(bxilog_param_p self, bxilog_handler_p handler, ...) {
+void bxilog_config_add_handler(bxilog_config_p self, bxilog_handler_p handler, ...) {
     size_t new_size = self->handlers_nb + 1;
     self->handlers = bximem_realloc(self->handlers,
                                     self->handlers_nb * sizeof(*self->handlers),
@@ -125,21 +119,21 @@ void bxilog_param_add(bxilog_param_p self, bxilog_handler_p handler, ...) {
     self->handlers_nb++;
 }
 
-bxierr_p bxilog_param_destroy(bxilog_param_p * param_p) {
+bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
     bxierr_group_p errlist = bxierr_group_new();
-    bxilog_param_p param = *param_p;
+    bxilog_config_p config = *config_p;
 
-    for (size_t i = 0; i < param->handlers_nb; i++) {
-        bxilog_handler_param_p handler_param = param->handlers_params[i];
+    for (size_t i = 0; i < config->handlers_nb; i++) {
+        bxilog_handler_param_p handler_param = config->handlers_params[i];
 
-        if (NULL != param->handlers[i]->param_destroy) {
-            bxierr_p err = param->handlers[i]->param_destroy(&handler_param);
+        if (NULL != config->handlers[i]->param_destroy) {
+            bxierr_p err = config->handlers[i]->param_destroy(&handler_param);
             if (bxierr_isko(err)) bxierr_list_append(errlist, err);
         }
     }
-    BXIFREE(param->handlers);
-    BXIFREE(param->handlers_params);
-    bximem_destroy((char**) param_p);
+    BXIFREE(config->handlers);
+    BXIFREE(config->handlers_params);
+    bximem_destroy((char**) config_p);
     if (errlist->errors_nb > 0) {
         return bxierr_from_group(BXIERR_GROUP_CODE, errlist,
                                  "Errors encountered while destroying logging parameters");

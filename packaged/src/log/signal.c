@@ -184,15 +184,15 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     if (FATAL_ERROR_IN_PROGRESS) {
         error(signum, 0,
               "(%s#tid-%u) %s. Already handling a signal... Exiting",
-              BXILOG__GLOBALS->param->progname, tid, sigstr);
+              BXILOG__GLOBALS->config->progname, tid, sigstr);
     }
     FATAL_ERROR_IN_PROGRESS = 1;
     char * str;
     if (SIGINT == signum || SIGTERM == signum) {
-        str = bxistr_new("%s: %s", BXILOG__GLOBALS->param->progname, sigstr);
+        str = bxistr_new("%s: %s", BXILOG__GLOBALS->config->progname, sigstr);
     } else {
         char * trace = bxierr_backtrace_str();
-        str = bxistr_new("%s: %s - %s", BXILOG__GLOBALS->param->progname, sigstr, trace);
+        str = bxistr_new("%s: %s - %s", BXILOG__GLOBALS->config->progname, sigstr, trace);
         BXIFREE(trace);
     }
     BXIFREE(sigstr);

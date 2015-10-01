@@ -21,21 +21,21 @@
 // *********************************************************************************
 
 /**
- * A logger configuration item.
+ * A filter.
  *
  * @see bxilog_cfg_registered()
  */
 typedef struct bxilog_cfg_item_s {
     const char * prefix;             //!< logger name prefix
     bxilog_level_e level;            //!< the level to set each matching logger to
-} bxilog_cfg_item_s;
+} bxilog_filter_s;
 
 /**
  * A logger configuration item.
  *
  * @see bxilog_cfg_registered()
  */
-typedef bxilog_cfg_item_s * bxilog_cfg_item_p;
+typedef bxilog_filter_s * bxilog_filter_p;
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
@@ -55,7 +55,7 @@ typedef bxilog_cfg_item_s * bxilog_cfg_item_p;
  *
  * @param[in] logger the logger to register with.
  */
-void bxilog_register(bxilog_p logger);
+void bxilog_registry_add(bxilog_p logger);
 
 /**
  * Unregister the current logger.
@@ -64,7 +64,7 @@ void bxilog_register(bxilog_p logger);
  *
  * @param[in] logger the logger to unregister with.
  */
-void bxilog_unregister(bxilog_p logger);
+void bxilog_registry_del(bxilog_p logger);
 
 /**
  * Get the logger with the given name.
@@ -82,7 +82,7 @@ void bxilog_unregister(bxilog_p logger);
  *
  * @see SET_LOGGER
  */
-bxierr_p bxilog_get(const char * logger_name, bxilog_p * result);
+bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result);
 
 /**
  * Return  a copy of all registered loggers.
@@ -102,7 +102,12 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result);
  * @see bxilog_register()
  * @see bxilog_unregister()
  */
-size_t bxilog_get_registered(bxilog_p *loggers[]);
+size_t bxilog_registry_getall(bxilog_p *loggers[]);
+
+/**
+ * Reset the bxilog registry.
+ */
+void bxilog_registry_reset();
 
 /**
  * Configure all registered loggers with the given array of configuration items.
@@ -126,12 +131,8 @@ size_t bxilog_get_registered(bxilog_p *loggers[]);
  *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[]);
+bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s filters[]);
 
-/**
- * Reset the bxilog configuration.
- */
-void bxilog_reset_registry();
 
 /**
  * Configure registered loggers using a string.
@@ -151,10 +152,7 @@ void bxilog_reset_registry();
  * @return BXIERR_OK on success, anything else on error.
  *
  */
-bxierr_p bxilog_cfg_parse(char * format);
-
-
-void bxilog__cfg_release_loggers();
+bxierr_p bxilog_registry_parse_set_filters(char * format);
 
 
 #endif /* BXILOG_H_ */

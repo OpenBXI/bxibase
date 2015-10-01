@@ -88,12 +88,12 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
     tsd = bximem_calloc(sizeof(*tsd));
     tsd->min_log_size = SIZE_MAX;
 
-    bxiassert(NULL != BXILOG__GLOBALS->param->handlers);
-    bxiassert(0 < BXILOG__GLOBALS->param->tsd_log_buf_size);
-    tsd->log_buf = bximem_calloc(BXILOG__GLOBALS->param->tsd_log_buf_size);
+    bxiassert(NULL != BXILOG__GLOBALS->config->handlers);
+    bxiassert(0 < BXILOG__GLOBALS->config->tsd_log_buf_size);
+    tsd->log_buf = bximem_calloc(BXILOG__GLOBALS->config->tsd_log_buf_size);
     bxierr_group_p errlist = bxierr_group_new();
-    for (size_t i = 0; i < BXILOG__GLOBALS->param->handlers_nb; i++) {
-        char * url = BXILOG__GLOBALS->param->handlers_params[i]->data_url;
+    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+        char * url = BXILOG__GLOBALS->config->handlers_params[i]->data_url;
         bxiassert(NULL != url);
         bxierr_p err = BXIERR_OK, err2;
 
@@ -107,11 +107,11 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
 
         err2 = bxizmq_zocket_setopt(tsd->data_channel,
                                     ZMQ_SNDHWM,
-                                    &BXILOG__GLOBALS->param->data_hwm,
+                                    &BXILOG__GLOBALS->config->data_hwm,
                                     sizeof(int));
         BXIERR_CHAIN(err, err2);
 
-        url = BXILOG__GLOBALS->param->handlers_params[i]->ctrl_url,
+        url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url,
         err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
                                      ZMQ_REQ,
                                      url,
@@ -122,7 +122,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
 
         err2 = bxizmq_zocket_setopt(tsd->ctrl_channel,
                                     ZMQ_SNDHWM,
-                                    &BXILOG__GLOBALS->param->ctrl_hwm,
+                                    &BXILOG__GLOBALS->config->ctrl_hwm,
                                     sizeof(int));
         BXIERR_CHAIN(err, err2);
 
@@ -134,7 +134,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
                                  errlist,
                                  "At least one error occured "
                                  "while connecting to one of %zu handlers",
-                                 BXILOG__GLOBALS->param->handlers_nb);
+                                 BXILOG__GLOBALS->config->handlers_nb);
     }
     bxierr_group_destroy(&errlist);
 

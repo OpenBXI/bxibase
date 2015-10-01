@@ -148,9 +148,9 @@
  *
  * @return BXIERR_OK on success, anything else on error.
  *
- * @see bxilog_param_p
+ * @see bxilog_config_p
  */
-bxierr_p bxilog_init(bxilog_param_p param);
+bxierr_p bxilog_init(bxilog_config_p param);
 
 /**
  * Release all resources used by the logging system. After this call,

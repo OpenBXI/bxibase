@@ -53,10 +53,9 @@ bxierr_p bar_raise(void) {
 
 int main(int argc, char** argv) {
     // Produce logs on stdout, and '/dev/null'
-    bxilog_param_p param;
-    bxierr_p err = bxilog_basic_config(argv[0], "/dev/null", false, &param);
-    bxierr_report(err, STDERR_FILENO); // Report on stderr
-    err = bxilog_init(param);
+
+    bxilog_config_p config = bxilog_basic_config(argv[0], "/dev/null", false);
+    bxierr_p err = bxilog_init(config);
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
     bxierr_report(err, STDERR_FILENO);

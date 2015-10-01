@@ -150,7 +150,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
     // We start in the thread local buffer
 
     char * logmsg = tsd->log_buf;
-    size_t logmsg_len = BXILOG__GLOBALS->param->tsd_log_buf_size;
+    size_t logmsg_len = BXILOG__GLOBALS->config->tsd_log_buf_size;
     bool logmsg_allocated = false; // When true,  means that a new special buffer has been
                                    // allocated -> it will have to be freed
     while(true) {

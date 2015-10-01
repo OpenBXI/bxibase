@@ -30,10 +30,8 @@ void display_loggers(size_t n, bxilog_p loggers[n]) {
 
 int main(int argc, char** argv) {
     // Produce logs on stdout/stderr, and also in /tmp/foo.log (append=false)
-    bxilog_param_p param;
-    bxierr_p err = bxilog_basic_config(argv[0], "/tmp/foo.log", false, &param);
-    bxierr_report(err, STDERR_FILENO); // Report error on stderr
-    err = bxilog_init(param);
+    bxilog_config_p config = bxilog_basic_config(argv[0], "/tmp/foo.log", false);
+    bxierr_p err = bxilog_init(config);
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
     bxierr_report(err, STDERR_FILENO);
@@ -48,7 +46,7 @@ int main(int argc, char** argv) {
 
     // Fetching all registered loggers
     bxilog_p *loggers = {NULL};
-    n = bxilog_get_registered(&loggers);
+    n = bxilog_registry_getall(&loggers);
     BXIASSERT(MY_LOGGER, n>0 && NULL != loggers);
 
     OUT(MY_LOGGER, "Before configuration:");
@@ -57,11 +55,11 @@ int main(int argc, char** argv) {
     log_stuff(LOGGER_AB);
     log_stuff(LOGGER_AC);
 
-    bxilog_cfg_item_s cfg[] = {{.prefix="", .level=BXILOG_LOWEST},
-                               {.prefix="a", .level=BXILOG_OUTPUT},
-                               {.prefix="a.b", .level=BXILOG_WARNING},
+    bxilog_filter_s filters[] = {{.prefix="", .level=BXILOG_LOWEST},
+                                 {.prefix="a", .level=BXILOG_OUTPUT},
+                                 {.prefix="a.b", .level=BXILOG_WARNING},
     };
-    bxilog_cfg_registered(3, cfg);
+    bxilog_registry_set_filters(3, filters);
     OUT(MY_LOGGER, "After configuration:");
     display_loggers(n, loggers);
     log_stuff(LOGGER_A);

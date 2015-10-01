@@ -25,6 +25,7 @@
 #include "bxi/base/log.h"
 
 #include "log_impl.h"
+#include "registry_impl.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -69,7 +70,7 @@ static size_t CFG_ITEMS_NB = 0;
 /**
  * Current configuration.
  */
-static bxilog_cfg_item_s * CFG_ITEMS = NULL;
+static bxilog_filter_s * CFG_ITEMS = NULL;
 
 static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 
@@ -78,7 +79,7 @@ static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 //*********************************************************************************
 
 
-void bxilog_register(bxilog_p logger) {
+void bxilog_registry_add(bxilog_p logger) {
     bxiassert(logger != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
@@ -127,7 +128,7 @@ void bxilog_register(bxilog_p logger) {
     bxiassert(0 == rc);
 }
 
-void bxilog_unregister(bxilog_p logger) {
+void bxilog_registry_del(bxilog_p logger) {
     bxiassert(logger != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
@@ -164,7 +165,7 @@ void bxilog_unregister(bxilog_p logger) {
 }
 
 
-bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
+bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result) {
     *result = NULL;
 
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
@@ -188,7 +189,7 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
         self->name = strdup(logger_name);
         self->name_length = strlen(logger_name) + 1;
         self->level = BXILOG_LOWEST;
-        bxilog_register(self);
+        bxilog_registry_add(self);
         *result = self;
     }
 //    fprintf(stderr, "Returning %s %d\n", (*result)->name, (*result)->level);
@@ -196,7 +197,7 @@ bxierr_p bxilog_get(const char * logger_name, bxilog_p * result) {
 }
 
 
-size_t bxilog_get_registered(bxilog_p *loggers[]) {
+size_t bxilog_registry_getall(bxilog_p *loggers[]) {
     bxiassert(loggers != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
@@ -213,7 +214,7 @@ size_t bxilog_get_registered(bxilog_p *loggers[]) {
 }
 
 
-void bxilog_reset_registry() {
+void bxilog_registry_reset() {
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
@@ -221,7 +222,7 @@ void bxilog_reset_registry() {
     bxiassert(0 == rc);
 }
 
-bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
+bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s cfg[n]) {
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
@@ -243,7 +244,7 @@ bxierr_p bxilog_cfg_registered(size_t n, bxilog_cfg_item_s cfg[n]) {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog_cfg_parse(char * str) {
+bxierr_p bxilog_registry_parse_set_filters(char * str) {
     bxiassert(NULL != str);
 
     str = strdup(str); // Required because str might not be allocated on the heap
@@ -251,7 +252,7 @@ bxierr_p bxilog_cfg_parse(char * str) {
     char *saveptr1 = NULL;
     char *str1 = str;
     size_t cfg_items_nb = 20;
-    bxilog_cfg_item_s * cfg_items = bximem_calloc(cfg_items_nb * sizeof(*cfg_items));
+    bxilog_filter_s * cfg_items = bximem_calloc(cfg_items_nb * sizeof(*cfg_items));
     size_t next_idx = 0;
     for (size_t j = 0; ; j++, str1 = NULL) {
         char * token = strtok_r(str1, ",", &saveptr1);
@@ -307,7 +308,7 @@ bxierr_p bxilog_cfg_parse(char * str) {
         }
     }
 
-    err2 = bxilog_cfg_registered(next_idx, cfg_items);
+    err2 = bxilog_registry_set_filters(next_idx, cfg_items);
     BXIERR_CHAIN(err, err2);
 QUIT:
     for (size_t i = 0; i < next_idx; i++) {

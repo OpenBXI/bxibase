@@ -51,6 +51,7 @@
 #include "log/config_impl.h"
 #include "log/handler_impl.h"
 #include "log/fork_impl.h"
+#include "log/registry_impl.h"
 
 #include "log/log_impl.h"
 
@@ -71,7 +72,7 @@
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-static void _check_set_params(bxilog_param_p param);
+static void _check_set_params(bxilog_config_p config);
 static bxierr_p _reset_globals();
 static bxierr_p _cleanup(void);
 
@@ -105,7 +106,7 @@ bxilog__core_globals_p BXILOG__GLOBALS = &BXILOG__CORE_GLOBALS_S;
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxierr_p bxilog_init(bxilog_param_p param) {
+bxierr_p bxilog_init(bxilog_config_p config) {
     bxierr_p err = BXIERR_OK;
     int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) {
@@ -129,7 +130,7 @@ bxierr_p bxilog_init(bxilog_param_p param) {
                          BXILOG__GLOBALS->state);
         goto UNLOCK;
     }
-    _check_set_params(param);
+    _check_set_params(config);
 
     BXILOG__GLOBALS->state = INITIALIZING;
 
@@ -205,7 +206,16 @@ bxierr_p bxilog_finalize(bool flush) {
         goto UNLOCK;
     }
     bxiassert(FINALIZING == BXILOG__GLOBALS->state);
+
+    err2 = bxilog__config_destroy(&BXILOG__GLOBALS->config);
+    BXIERR_CHAIN(err, err2);
+
+    if (bxierr_isko(err)) {
+        BXILOG__GLOBALS->state = BROKEN;
+        goto UNLOCK;
+    }
     BXILOG__GLOBALS->state = FINALIZED;
+
 UNLOCK:
     rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) {
@@ -227,7 +237,11 @@ bxierr_p bxilog_flush(void) {
     if (bxierr_isko(err)) return err;
     void * ctl_channel = tsd->ctrl_channel;
     bxierr_group_p errlist = bxierr_group_new();
-    for (size_t i = 0; i < BXILOG__GLOBALS->param->handlers_nb; i++) {
+    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+
+        int ret = pthread_kill(BXILOG__GLOBALS->internal_handlers[i], 0);
+        if (ESRCH == ret) continue;
+
         err = bxizmq_str_snd(FLUSH_CTRL_MSG_REQ, ctl_channel, 0, 0, 0);
         if (bxierr_isko(err)) {
             bxierr_list_append(errlist, err);
@@ -254,10 +268,10 @@ bxierr_p bxilog_flush(void) {
                                  errlist,
                                  "At least one error occured while "
                                  "flushing %zu handlers.",
-                                 BXILOG__GLOBALS->param->handlers_nb);
+                                 BXILOG__GLOBALS->config->handlers_nb);
     }
     DEBUG(LOGGER, "flush() done succesfully on all %zu handlers",
-          BXILOG__GLOBALS->param->handlers_nb);
+          BXILOG__GLOBALS->config->handlers_nb);
 
     bxierr_group_destroy(&errlist);
     return BXIERR_OK;
@@ -272,7 +286,7 @@ void bxilog_display_loggers() {
         fprintf(stderr, "\t%zu\t = %s\n", n, level_names[n]);
     }
     bxilog_p * loggers;
-    n = bxilog_get_registered(&loggers);
+    n = bxilog_registry_getall(&loggers);
     fprintf(stderr, "Loggers name:\n");
     while(n-- > 0) {
         fprintf(stderr, "\t%s\n", loggers[n]->name);
@@ -283,7 +297,7 @@ void bxilog_display_loggers() {
 
 void bxilog__wipeout() {
     // Remove allocated configuration
-    bxilog_reset_registry();
+    bxilog_registry_reset();
 
     // Remove allocated loggers
     bxilog__cfg_release_loggers();
@@ -303,7 +317,7 @@ void bxilog__wipeout() {
 bxierr_p bxilog__init_globals() {
 
     BXILOG__GLOBALS->pid = getpid();
-    pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->param->handlers_nb * sizeof(*threads));
+    pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->config->handlers_nb * sizeof(*threads));
     BXILOG__GLOBALS->internal_handlers = threads;
     BXILOG__GLOBALS->internal_handlers_nb = 0;
 
@@ -342,26 +356,26 @@ bxierr_p bxilog__start_handlers(void) {
     bxierr_group_p errlist = bxierr_group_new();
 
     // Starting handlers
-    for (size_t i = 0; i < BXILOG__GLOBALS->param->handlers_nb; i++) {
-        bxilog_handler_p handler = BXILOG__GLOBALS->param->handlers[i];
+    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+        bxilog_handler_p handler = BXILOG__GLOBALS->config->handlers[i];
         if (NULL == handler) {
             bxierr_p ierr = bxierr_gen("Handler %zu is NULL!", i);
             bxierr_list_append(errlist, ierr);
             continue;
         }
-        BXILOG__GLOBALS->param->handlers_params[i]->zmq_context = BXILOG__GLOBALS->zmq_ctx;
+        BXILOG__GLOBALS->config->handlers_params[i]->zmq_context = BXILOG__GLOBALS->zmq_ctx;
         bxierr_p ierr = BXIERR_OK, ierr2;
 
         ierr2 = _start_handler_thread(handler,
-                                      BXILOG__GLOBALS->param->handlers_params[i]);
+                                      BXILOG__GLOBALS->config->handlers_params[i]);
         BXIERR_CHAIN(ierr, ierr2);
 
         if (bxierr_isko(ierr)) bxierr_list_append(errlist, ierr);
     }
 
     // Synchronizing handlers
-    for (size_t i = 0; i < BXILOG__GLOBALS->param->handlers_nb; i++) {
-        bxilog_handler_p handler = BXILOG__GLOBALS->param->handlers[i];
+    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+        bxilog_handler_p handler = BXILOG__GLOBALS->config->handlers[i];
         if (NULL == handler) {
             bxierr_p ierr = bxierr_gen("Handler %zu is NULL!", i);
             bxierr_list_append(errlist, ierr);
@@ -400,6 +414,7 @@ bxierr_p bxilog__finalize(void) {
 
     err2 = _cleanup();
     BXIERR_CHAIN(err, err2);
+
     return err;
 }
 
@@ -409,12 +424,12 @@ bxierr_p bxilog__stop_handlers(void) {
     bxierr_p err = BXIERR_OK, err2;
     bxierr_group_p errlist = bxierr_group_new();
 
-    for (size_t i = 0; i < BXILOG__GLOBALS->param->handlers_nb; i++) {
+    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
 
         int ret = pthread_kill(BXILOG__GLOBALS->internal_handlers[i], 0);
         if (ESRCH == ret) continue;
 
-        char * url = BXILOG__GLOBALS->param->handlers_params[i]->ctrl_url;
+        char * url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url;
         bxiassert(NULL != url);
 
         void * zocket = NULL;
@@ -544,11 +559,11 @@ bxierr_p _cleanup(void) {
     return _reset_globals();
 }
 
-void _check_set_params(bxilog_param_p param) {
-    bxiassert(NULL != param->progname);
-    bxiassert(0 < param->tsd_log_buf_size);
+void _check_set_params(bxilog_config_p config) {
+    bxiassert(NULL != config->progname);
+    bxiassert(0 < config->tsd_log_buf_size);
 
-    BXILOG__GLOBALS->param = param;
+    BXILOG__GLOBALS->config = config;
 }
 
 

@@ -174,7 +174,7 @@ Default configuration items.
 
 @see ::basicConfig()
 """
-DEFAULT_CFG_ITEMS = [('', __BXIBASE_CAPI__.BXILOG_LOWEST)]
+DEFAULT_FILTERS = [('', __BXIBASE_CAPI__.BXILOG_LOWEST)]
 
 
 def _findCaller():
@@ -196,24 +196,23 @@ def _findCaller():
         break
     return rv
 
-
-def parse_cfg_items(cfgitems):
+def parse_filters(filters):
     """
     Return a list of tuples (prefix, level)
     from a string representation of the logging system configuration items.
-
-    @param[in] cfgitems a string reprenting a list of configuration items such as:
+ 
+    @param[in] filters a string reprenting a list of configuration items such as:
                ':output,bxi.log:debug'
     @return a list of tuples (prefix, level)
     @exception ValueError if the string cannot be parsed according to the
                           bxi logging configuration items format
     """
     result = []
-
-    for item in cfgitems.split(','):
+ 
+    for item in filters.split(','):
         if ':' not in item:
             raise ValueError("Bad logging configuration pattern, ':' expected in %s" %
-                             cfgitems)
+                             filters)
         prefix, level = item.split(':')
         result.append((prefix, level))
     return result
@@ -236,9 +235,9 @@ def basicConfig(**kwargs):
         - `'console'`: None or a list of console handler arguments
         - `'filename'`: None or a list of file handler arguments 
         - `'setsighandler'`: if True, set signal handlers
-        - `'cfg_items'`: either a string or a list of tuples (prefix, level).
-                         If 'cfg_items' is a string, it must follow the bxi
-                         logging configuration format as described in parse_cfg_items
+        - `'filters'`: either a string or a list of tuples (prefix, level).
+                         If 'filters' is a string, it must follow the bxi
+                         filters format described in parse_filters
 
     @param[in] kwargs named parameters as described above
 
@@ -269,14 +268,14 @@ def basicConfig(**kwargs):
         # accordingly
         kwargs['console'] = None
 
-    if 'cfg_items' not in kwargs:
-        kwargs['cfg_items'] = DEFAULT_CFG_ITEMS
+    if 'filters' not in kwargs:
+        kwargs['filters'] = DEFAULT_FILTERS
     else:
-        passed = kwargs['cfg_items']
-        cfg_items = parse_cfg_items(passed) if isinstance(passed, basestring) else passed
+        passed = kwargs['filters']
+        filters = parse_filters(passed) if isinstance(passed, basestring) else passed
         # Sort all items in lexical order in order to configure most generic
         # loggers first
-        kwargs['cfg_items'] = sorted(cfg_items)
+        kwargs['filters'] = sorted(filters)
 
     if 'setsighandler' not in kwargs:
         kwargs['setsighandler'] = True
@@ -284,28 +283,28 @@ def basicConfig(**kwargs):
     _CONFIG = kwargs
 
 
-def _configure_loggers(cfg_items):
+def _set_filters(filters):
     """
-    Configure all loggers with the given configuration items.
+    Set filters on all registered loggers.
 
-    @param[in] cfg_items a list of tuple (prefix, level)
+    @param[in] filters a list of tuple (prefix, level)
     @return
     """
-    cffi_items = __FFI__.new('bxilog_cfg_item_s[%d]' % len(cfg_items))
-    prefixes = [None] * len(cfg_items)
-    for i in xrange(len(cfg_items)):
-        # cffi_items[i].prefix = __FFI__.new('char[]', cfg_items[i][0])
-        prefixes[i] = __FFI__.new('char[]', cfg_items[i][0])
+    cffi_items = __FFI__.new('bxilog_filter_s[%d]' % len(filters))
+    prefixes = [None] * len(filters)
+    for i in xrange(len(filters)):
+        # cffi_items[i].prefix = __FFI__.new('char[]', filters[i][0])
+        prefixes[i] = __FFI__.new('char[]', filters[i][0])
         cffi_items[i].prefix = prefixes[i]
         try:
-            cffi_items[i].level = int(cfg_items[i][1])
+            cffi_items[i].level = int(filters[i][1])
         except (TypeError, ValueError):
             level_p = __FFI__.new('bxilog_level_e[1]')
-            bxierr_p = __BXIBASE_CAPI__.bxilog_get_level_from_str(cfg_items[i][1], level_p)
+            bxierr_p = __BXIBASE_CAPI__.bxilog_get_level_from_str(filters[i][1], level_p)
             BXICError.raise_if_ko(bxierr_p)
             cffi_items[i].level = level_p[0]
 
-    bxierr_p = __BXIBASE_CAPI__.bxilog_cfg_registered(len(cfg_items), cffi_items)
+    bxierr_p = __BXIBASE_CAPI__.bxilog_registry_set_filters(len(filters), cffi_items)
     BXICError.raise_if_ko(bxierr_p)
     prefixes = None
 
@@ -327,14 +326,14 @@ def _init():
         # accordingly
         _CONFIG = {'console': None,
                    'filename': None,
-                   'cfg_items': DEFAULT_CFG_ITEMS,
+                   'filters': DEFAULT_FILTERS,
                    'setsighandler': True,
                    }
     # Configure loggers first, since init() produces logs that the user
     # might not want to see
-    _configure_loggers(_CONFIG['cfg_items'])
+    _set_filters(_CONFIG['filters'])
 
-    param = __BXIBASE_CAPI__.bxilog_param_new(sys.argv[0]);
+    config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0]);
     
     console_handler_args = _CONFIG.get('console', None)
     file_handler_args = _CONFIG.get('filename', None)
@@ -343,24 +342,25 @@ def _init():
         if not isinstance(console_handler_args, tuple):
             raise ValueError("Tuple expected! Got: %s" % console_handler_args)
             
-        __BXIBASE_CAPI__.bxilog_param_add(param, 
-                                          __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER, 
-                                          __FFI__.cast('int', console_handler_args[0]));
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+                                                   __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER, 
+                                                   __FFI__.cast('int', console_handler_args[0]));
     if file_handler_args is not None:
         if isinstance(file_handler_args, str):
             file_handler_args = (file_handler_args, True)
 
-        __BXIBASE_CAPI__.bxilog_param_add(param, 
-                                          __BXIBASE_CAPI__.BXILOG_FILE_HANDLER, 
-                                          __FFI__.new('char[]', sys.argv[0]), 
-                                          __FFI__.new('char[]', file_handler_args[0]),
-                                          __FFI__.cast('bool', file_handler_args[1]));
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+                                                   __BXIBASE_CAPI__.BXILOG_FILE_HANDLER, 
+                                                   __FFI__.new('char[]', sys.argv[0]), 
+                                                   __FFI__.new('char[]', file_handler_args[0]),
+                                                   __FFI__.cast('bool', file_handler_args[1]));
 
-    if param.handlers_nb == 0:
+    if config.handlers_nb == 0:
         print("Warning: no handler defined in bxi logging library configuration!")
-        __BXIBASE_CAPI__.bxilog_param_add(param, __BXIBASE_CAPI__.BXILOG_NULL_HANDLER);
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+                                                   __BXIBASE_CAPI__.BXILOG_NULL_HANDLER);
                                           
-    bxierr_p = __BXIBASE_CAPI__.bxilog_init(param)
+    bxierr_p = __BXIBASE_CAPI__.bxilog_init(config)
     BXICError.raise_if_ko(bxierr_p)
     atexit.register(cleanup)
     _INITIALIZED = True
@@ -390,7 +390,7 @@ def get_logger(name):
             return logger
 
     logger_p = __FFI__.new('bxilog_p[1]')
-    bxierr_p = __BXIBASE_CAPI__.bxilog_get(name, logger_p)
+    bxierr_p = __BXIBASE_CAPI__.bxilog_registry_get(name, logger_p)
     BXICError.raise_if_ko(bxierr_p)
 
     return BXILogger(logger_p[0])
@@ -443,7 +443,7 @@ def get_all_loggers_iter():
     @return
     """
     loggers = __FFI__.new("bxilog_p **")
-    nb = __BXIBASE_CAPI__.bxilog_get_registered(loggers)
+    nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
     for i in xrange(nb):
         yield BXILogger(loggers[0][i])
 

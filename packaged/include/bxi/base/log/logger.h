@@ -102,10 +102,10 @@
     };\
     static bxilog_p const variable_name = &variable_name ## _s;\
     static __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
-        bxilog_register(variable_name);\
+        bxilog_registry_add(variable_name);\
     }\
     static __attribute__((destructor)) void __bxilog_unregister_log__ ## variable_name(void) {\
-        bxilog_unregister(variable_name);\
+        bxilog_registry_del(variable_name);\
     }
 #else
 #ifdef BXICFFI
@@ -127,10 +127,10 @@
     };\
     static bxilog_p const variable_name = &variable_name ## _s;\
     static __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
-        bxilog_register(variable_name);\
+        bxilog_registry_add(variable_name);\
     }\
     static __attribute__((destructor)) void __bxilog_unregister_log__ ## variable_name(void) {\
-         bxilog_unregister(variable_name);\
+         bxilog_registry_del(variable_name);\
     }
 #endif
 #endif

@@ -323,7 +323,7 @@ bxierr_p _process_err(bxierr_p *err, bxilog_file_handler_param_p data) {
     bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An error occured: %s", str);
 
     if (bxierr_isko(fatal)) {
-        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, NULL, NULL, NULL, fatal,
+        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
                             "Fatal: error while processing error: %s", str);
     } else {
         bxierr_destroy(err);
@@ -383,6 +383,10 @@ bxierr_p _log_single_line(char * line,
     ssize_t written = write(data->fd, msg, (size_t) loglen);
 
     if (0 >= written) {
+        if (EPIPE == errno) return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
+                                                "Exiting. Some messages will be lost.",
+                                                data->fd, data->filename);
+
         bxierr_p bxierr = bxierr_errno("Calling write(fd=%d, name=%s) "
                 "failed (written=%d)",
                 data->fd, data->filename, written);

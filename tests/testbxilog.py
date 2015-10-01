@@ -42,7 +42,7 @@ def do_some_logs_multiprocessing(again):
     bxilog.basicConfig(console=None,
                        filename=FILENAME,
                        setsighandler=True,
-                       cfg_items=[('', 'lowest')])
+                       filters=[('', 'lowest')])
     while again.value:
         bxilog.out("Doing a simple log: %s", again)
         time.sleep(0.1)
@@ -55,7 +55,7 @@ def threads_in_process(again):
     bxilog.basicConfig(console=None,
                        filename=FILENAME,
                        setsighandler=True,
-                       cfg_items=[('', 'lowest')])
+                       filters=[('', 'lowest')])
     threads = []
     for i in xrange(multiprocessing.cpu_count()):
         thread = threading.Thread(target=do_some_logs_threading)
@@ -94,7 +94,7 @@ class BXILogTest(unittest.TestCase):
         bxilog.basicConfig(console=None,
                            filename=FILENAME,
                            setsighandler=True,
-                           cfg_items=[('', 'lowest')])
+                           filters=[('', 'lowest')])
  
     def tearDown(self):
         """Cleaning up for each test.
@@ -249,9 +249,9 @@ class BXILogTest(unittest.TestCase):
  
         bxilog.basicConfig(console=None, 
                            filename=FILENAME,
-                           cfg_items=[('','output'),
-                                      ('foo', 'debug'),
-                                      ('foo.bar','trace')])
+                           filters=[('','output'),
+                                    ('foo', 'debug'),
+                                    ('foo.bar','trace')])
          
         foo = bxilog.getLogger('foo')
         bar = bxilog.getLogger('foo.bar')

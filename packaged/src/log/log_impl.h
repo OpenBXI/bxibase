@@ -46,7 +46,7 @@ typedef enum {
 
 
 typedef struct {
-    bxilog_param_p param;
+    bxilog_config_p config;
 
     void * zmq_ctx;
     pid_t pid;
