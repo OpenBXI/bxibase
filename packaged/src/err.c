@@ -120,6 +120,8 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
     const char * cause_str;
     if (NULL == self->cause) {
         cause_str = bxistr_new("%s", "");
+    } else if (self == self->cause) {
+        cause_str = bxistr_new("%s", "Loop detected on error");
     } else if (2 > depth) {
         size_t remaining = bxierr_get_depth(self->cause);
         cause_str = bxistr_new("...<%zu more causes>", remaining);
