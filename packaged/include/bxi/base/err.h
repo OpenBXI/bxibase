@@ -571,16 +571,21 @@ inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
             assert(NULL != (*err));
             assert(NULL != (*tmp));
             if (bxierr_isko((*tmp)) && bxierr_isko((*err))) {
-                if (NULL != (*tmp)->cause) {
-                    assert((*tmp)->last_cause->cause == NULL);
-                    (*tmp)->last_cause->cause = (*err);
+                if (*err == *tmp) {
+                    bxierr_p loop_err = bxierr_gen("Loop detected on BXIERR_CHAIN");
+                    bxierr_report(loop_err, STDERR_FILENO);
                 } else {
-                    (*tmp)->cause = (*err);
-                }
-                if ((*err)->last_cause != NULL) {
-                    (*tmp)->last_cause = (*err)->last_cause;
-                } else {
-                    (*tmp)->last_cause = (*err);
+                    if (NULL != (*tmp)->cause) {
+                        assert((*tmp)->last_cause->cause == NULL);
+                        (*tmp)->last_cause->cause = (*err);
+                    } else {
+                        (*tmp)->cause = (*err);
+                    }
+                    if ((*err)->last_cause != NULL) {
+                        (*tmp)->last_cause = (*err)->last_cause;
+                    } else {
+                        (*tmp)->last_cause = (*err);
+                    }
                 }
             }
             (*err) = bxierr_isko((*tmp)) ? (*tmp) : (*err);

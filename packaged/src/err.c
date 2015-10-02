@@ -105,7 +105,8 @@ bxierr_p bxierr_new(int code,
 void bxierr_free(bxierr_p self) {
     if (NULL == self) return;
     if (!self->allocated) return;
-    if (NULL != self->cause) bxierr_destroy(&(self->cause));
+    if (NULL != self->cause &&
+        self->cause != self) bxierr_destroy(&(self->cause));
     if (NULL != self->free_fn) {
         self->free_fn(self->data);
         self->data = NULL;

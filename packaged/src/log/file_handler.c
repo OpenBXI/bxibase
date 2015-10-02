@@ -282,7 +282,7 @@ inline bxierr_p _process_explicit_flush(bxilog_file_handler_param_p data) {
     BXIERR_CHAIN(err, err2);
 
 //    err2 = _ilog(BXILOG_TRACE, data, "Flushed");
-    BXIERR_CHAIN(err, err2);
+//    BXIERR_CHAIN(err, err2);
 
     return err;
 }
