@@ -121,6 +121,7 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 #%{_libdir}/lib*
 %{_includedir}/bxi/base/*.h
+%{_includedir}/bxi/base/log/*.h
 %{target_lib_dir}/lib*
 %{target_python_lib_dir}/*
 
