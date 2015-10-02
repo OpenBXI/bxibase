@@ -34,8 +34,12 @@
  */
 #define BXILOG_HANDLER_EXIT_CODE 41322811
 
-
+#if defined(__x86_64__)  || defined(__aarch64__)
 #define TIMESPEC_SIZE 16
+#elif defined(__i386__) || defined(__arm__)
+#define TIMESPEC_SIZE 8
+#endif
+
 #ifndef BXICFFI
 BXIERR_CASSERT(timespec_size, TIMESPEC_SIZE == sizeof(struct timespec));
 #endif
