@@ -81,7 +81,8 @@ Basic C modules including the high performance BXI logging library.
 #%setup -q -n %{name}
 test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %setup
-%configure --disable-debug --with-python-execprefix=lib --with-python-prefix=lib
+#TODO put the doc again when working
+%configure --disable-debug --disable-doc --with-python-execprefix=lib --with-python-prefix=lib
 
 ###############################################################################
 # The current directory is the one main directory of the tar
