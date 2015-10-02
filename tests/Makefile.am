@@ -8,8 +8,16 @@ check-local:
 		nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS}
 endif
 
-TESTS = unit_t
-check_PROGRAMS= unit_t
+TESTS = \
+		unit_t\
+		../packaged/doc/examples/bxilog_err\
+		../packaged/doc/examples/bxilog_cfg
+
+check_PROGRAMS= \
+				unit_t\
+				../packaged/doc/examples/bxilog_err\
+				../packaged/doc/examples/bxilog_cfg
+
 unit_t_CFLAGS =\
 			   -I$(top_srcdir)/packaged/include\
 			   -I$(top_srcdir)/packaged/src\
@@ -55,3 +63,19 @@ DISTCLEANFILES=\
 			   lt-unit_t.bxilog\
 			   report/${PACKAGE_NAME}-Results.xml\
 			   report/${PACKAGE_NAME}-Listing.xml
+
+EXTRA_DIST=\
+		   ../packaged/doc/examples/bxilog_err.c\
+		   ../packaged/doc/examples/bxilog_cfg.c
+
+
+
+___packaged_doc_examples_bxilog_err_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
+___packaged_doc_examples_bxilog_cfg_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
+
+___packaged_doc_examples_bxilog_err_CFLAGS=\
+										   -I$(top_srcdir)/packaged/include
+
+
+___packaged_doc_examples_bxilog_cfg_CFLAGS=\
+										   -I$(top_srcdir)/packaged/include
