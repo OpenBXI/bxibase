@@ -38,3 +38,11 @@ lib_libbxibase_la_LIBADD=$(LIB_LIBS)
 
 SUBDIRS=include lib doc
 
+EXTRA_DIST=\
+		   src/log/config_impl.h\
+		   src/log/fork_impl.h\
+		   src/log/handler_impl.h\
+		   src/log/log_impl.h\
+		   src/log/registry_impl.h\
+		   src/log/tsd_impl.h
+
