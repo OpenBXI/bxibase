@@ -247,7 +247,7 @@ char * bxierr_backtrace_str(void) {
     const char * const truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
 
     fprintf(faked_file,
-            ERR_BT_PREFIX"Backtrace of tid %u: %d function calls %s\n",
+            ERR_BT_PREFIX"Backtrace of tid %d: %d function calls %s\n",
             tid, c, truncated);
     for(int i = 0; i < c; i++) {
         fprintf(faked_file, ERR_BT_PREFIX"[%02d] %s\n", i,
