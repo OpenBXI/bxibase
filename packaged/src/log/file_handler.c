@@ -141,7 +141,7 @@ static ssize_t _mkmsg(const size_t n, char buf[n],
                       const char * const loggername,
                       const char * const logmsg);
 
-static bxierr_p _sync();
+static bxierr_p _sync(bxilog_file_handler_param_p data);
 
 static bxierr_p _internal_log_func(bxilog_level_e level,
                                    bxilog_file_handler_param_p data,
@@ -233,7 +233,7 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
 bxierr_p _process_exit(bxilog_file_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 = _sync();
+    err2 = _sync(data);
     BXIERR_CHAIN(err, err2);
     errno = 0;
     if (STDOUT_FILENO != data->fd && STDERR_FILENO != data->fd && 0 < data->fd) {
@@ -267,8 +267,7 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
 }
 
 inline bxierr_p _process_implicit_flush(bxilog_file_handler_param_p data) {
-    UNUSED(data);
-    return _sync();
+    return _sync(data);
 }
 
 inline bxierr_p _process_explicit_flush(bxilog_file_handler_param_p data) {
