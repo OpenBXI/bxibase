@@ -23,11 +23,13 @@ AC_CHECK_LIB([rt], [clock_gettime], [],
 AC_CHECK_LIB([backtrace], [backtrace_full], [], 
              [AC_MSG_ERROR([Could not find backtrace library])])
 
-
 PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
                   [
                    AC_CHECK_LIB([zmq], [zmq_msg_init], [], [AC_MSG_ERROR([Could not find zmq library])])
                   ])
+AC_CHECK_LIB([netsnmp], [netsnmp_ds_toggle_boolean], [],
+             [AC_MSG_ERROR([Could not find netsnmp library])])
+
 
 LDFLAGS+=" $ZMQ_LIBS $BACKTRACE_LIBS "
 

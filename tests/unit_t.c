@@ -67,7 +67,7 @@ void test_logger_non_existing_dir(void);
 void test_logger_fork(void);
 void test_logger_signal(void);
 void test_single_logger_instance(void);
-void test_config(void);
+void test_registry(void);
 void test_config_parser(void);
 
 
@@ -226,7 +226,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
         || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
         || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
-        || (NULL == CU_add_test(bxilog_suite, "test logger config", test_config))
+        || (NULL == CU_add_test(bxilog_suite, "test logger config", test_registry))
         || (NULL == CU_add_test(bxilog_suite, "test logger config parser", test_config_parser))
 //        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
 ////        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))

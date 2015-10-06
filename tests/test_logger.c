@@ -324,7 +324,7 @@ void test_single_logger_instance(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 
-void test_config(void) {
+void test_registry(void) {
     bxilog_registry_reset();
     bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);

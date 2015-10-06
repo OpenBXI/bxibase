@@ -22,6 +22,7 @@
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/syslog_handler.h"
+#include "bxi/base/log/snmplog_handler.h"
 
 #include "config_impl.h"
 #include "log_impl.h"
@@ -103,8 +104,20 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
 //                                  LOG_LOCAL0,
 //                                  BXILOG_WARNING);
 
+
     return config;
 }
+
+bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
+
+    const char * basename = bxistr_rfind(progname, strlen(progname), '/');
+    bxilog_config_p config = bxilog_config_new(basename);
+    // Use 2 loggers to ensure multiple handlers works
+    bxilog_config_add_handler(config, BXILOG_SNMPLOG_HANDLER, basename);
+
+    return config;
+}
+
 
 bxilog_config_p bxilog_config_new(const char * const progname) {
     bxilog_config_p param = bximem_calloc(sizeof(*param));

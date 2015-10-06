@@ -32,6 +32,7 @@ nobase_include_HEADERS = \
 						 bxi/base/log/file_handler.h\
 						 bxi/base/log/console_handler.h\
 						 bxi/base/log/syslog_handler.h\
+						 bxi/base/log/snmplog_handler.h\
 						 bxi/base/log/null_handler.h
 
 
