@@ -198,7 +198,7 @@ bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result) {
 
 
 size_t bxilog_registry_getall(bxilog_p *loggers[]) {
-    bxiassert(loggers != NULL);
+    bxiassert(NULL != loggers);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     bxilog_p * result = bximem_calloc(REGISTERED_LOGGERS_NB * sizeof(*result));

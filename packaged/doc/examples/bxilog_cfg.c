@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     bxierr_p err = bxilog_init(config);
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     if (argc != 1) exit(EX_SOFTWARE);
 
     // Fetching log level names
@@ -69,6 +69,8 @@ int main(int argc, char** argv) {
     err = bxilog_finalize(true);
     // Again, the logging library is not in a normal state,
     // use bxierr_report()
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
+
+    BXIFREE(loggers);
     return 0;
 }

@@ -454,8 +454,9 @@ bxierr_p bxierr_get_ok();
  *
  * @see BXILOG_REPORT()
  */
-void bxierr_report(bxierr_p self, int fd);
+void bxierr_report(bxierr_p *self, int fd);
 
+void bxierr_report_keep(bxierr_p self, int fd);
 
 /**
  * Display an assertion failed message with a stack trace and exit.
@@ -573,7 +574,7 @@ inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
             if (bxierr_isko((*tmp)) && bxierr_isko((*err))) {
                 if (*err == *tmp) {
                     bxierr_p loop_err = bxierr_gen("Loop detected on BXIERR_CHAIN");
-                    bxierr_report(loop_err, STDERR_FILENO);
+                    bxierr_report(&loop_err, STDERR_FILENO);
                 } else {
                     if (NULL != (*tmp)->cause) {
                         assert((*tmp)->last_cause->cause == NULL);
@@ -601,7 +602,7 @@ inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
  */
 inline void bxierr_abort_ifko(bxierr_p fatal_err) {
     if (bxierr_isko(fatal_err)) {
-        bxierr_report(fatal_err, STDERR_FILENO);
+        bxierr_report(&fatal_err, STDERR_FILENO);
         abort();
     }
 }

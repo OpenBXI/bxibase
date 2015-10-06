@@ -239,7 +239,7 @@ bxierr_p bxilog_flush(void) {
     bxierr_group_p errlist = bxierr_group_new();
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
 
-        int ret = pthread_kill(BXILOG__GLOBALS->internal_handlers[i], 0);
+        int ret = pthread_kill(BXILOG__GLOBALS->handlers_threads[i], 0);
         if (ESRCH == ret) continue;
 
         err = bxizmq_str_snd(FLUSH_CTRL_MSG_REQ, ctl_channel, 0, 0, 0);
@@ -318,7 +318,7 @@ bxierr_p bxilog__init_globals() {
 
     BXILOG__GLOBALS->pid = getpid();
     pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->config->handlers_nb * sizeof(*threads));
-    BXILOG__GLOBALS->internal_handlers = threads;
+    BXILOG__GLOBALS->handlers_threads = threads;
     BXILOG__GLOBALS->internal_handlers_nb = 0;
 
     bxiassert(NULL == BXILOG__GLOBALS->zmq_ctx);
@@ -425,8 +425,9 @@ bxierr_p bxilog__stop_handlers(void) {
     bxierr_group_p errlist = bxierr_group_new();
 
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+        pthread_t handler_thread = BXILOG__GLOBALS->handlers_threads[i];
+        int ret = pthread_kill(handler_thread, 0);
 
-        int ret = pthread_kill(BXILOG__GLOBALS->internal_handlers[i], 0);
         if (ESRCH == ret) continue;
 
         char * url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url;
@@ -443,6 +444,21 @@ bxierr_p bxilog__stop_handlers(void) {
 
         err2 = bxizmq_str_snd(EXIT_CTRL_MSG_REQ, zocket, 0, 0, 0);
         BXIERR_CHAIN(err, err2);
+
+        char * msg = NULL;
+        errno = 0;
+        err2 = bxizmq_str_rcv(zocket, 0, 0, &msg);
+        BXIERR_CHAIN(err, err2);
+
+        if (0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
+            // We just notify the end user there is a minor problem, but
+            // returning such an error is useless at this point, we want to exit.
+            bxierr_p tmp = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, NULL,
+                                      "Wrong message received. Expected: %s, received: %s",
+                                      EXIT_CTRL_MSG_REP, msg);
+            bxierr_report(&tmp, STDERR_FILENO);
+        }
+        BXIFREE(msg);
 
         bxierr_p handler_err;
         err2 = _join_handler(i, &handler_err);
@@ -506,16 +522,13 @@ bxierr_p bxilog__stop_handlers(void) {
 }
 
 
-void bxilog__display_err_msg(char* msg) {
+void bxilog_rawprint(char* msg, int fd) {
     // TODO: use a better format?
-    ssize_t n = write(STDERR_FILENO, msg, strlen(msg) + 1);
+    ssize_t n = write(fd, msg, strlen(msg) + 1);
     // Just don't care on error, the end-user might have redirected
     // the stderr stream to a non-writable place (such as a broken pipe after a
     // command such as 'cmd 2>&1 |head')...
     // bxiassert(n > 0);
-    UNUSED(n);
-    const char details_msg[] = "\nSee bxilog for details.\n";
-    n = write(STDERR_FILENO, details_msg, ARRAYLEN(details_msg));
     UNUSED(n);
 }
 
@@ -542,7 +555,7 @@ bxierr_p _reset_globals() {
     pthread_key_delete(BXILOG__GLOBALS->tsd_key);
     // Nothing to do on pthread_key_delete() see man page
     BXILOG__GLOBALS->tsd_key_once = PTHREAD_ONCE_INIT;
-    BXIFREE(BXILOG__GLOBALS->internal_handlers);
+    BXIFREE(BXILOG__GLOBALS->handlers_threads);
     BXILOG__GLOBALS->internal_handlers_nb = 0;
 
     return err;
@@ -592,7 +605,7 @@ bxierr_p _start_handler_thread(bxilog_handler_p handler, bxilog_handler_param_p 
                               "Calling pthread_attr_init() failed (rc=%d)", rc);
         BXIERR_CHAIN(err, err2);
     } else {
-        BXILOG__GLOBALS->internal_handlers[BXILOG__GLOBALS->internal_handlers_nb] = thread;
+        BXILOG__GLOBALS->handlers_threads[BXILOG__GLOBALS->internal_handlers_nb] = thread;
         BXILOG__GLOBALS->internal_handlers_nb++;
     }
     return err;
@@ -630,7 +643,7 @@ bxierr_p _sync_handler(size_t handler_rank) {
         if (retry == 0) break;
         bxierr_destroy(&err2);
         err2  = bxitime_sleep(CLOCK_MONOTONIC_COARSE, 0, 1000);
-        bxierr_report(err2, STDERR_FILENO);
+        bxierr_report(&err2, STDERR_FILENO);
         retry--;
     }
     BXIERR_CHAIN(err, err2);
@@ -658,7 +671,7 @@ bxierr_p _sync_handler(size_t handler_rank) {
 
 
 bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err) {
-    int rc = pthread_join(BXILOG__GLOBALS->internal_handlers[handler_rank],
+    int rc = pthread_join(BXILOG__GLOBALS->handlers_threads[handler_rank],
                           (void**) handler_err);
 
     if (0 != rc) return bxierr_fromidx(rc, NULL,

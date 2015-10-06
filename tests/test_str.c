@@ -137,3 +137,41 @@ void test_bxistr_join(void) {
     BXIFREE(result);
 
 }
+
+void test_bxistr_rfind(void) {
+
+    char * path = "foo";
+    const char * s = bxistr_rfind(path, strlen(path), '/');
+    CU_ASSERT_STRING_EQUAL(s, path);
+    const char * t = bxistr_rfind(s, strlen(s), '/');
+    CU_ASSERT_STRING_EQUAL(t, s);
+    t = bxistr_rfind(t, strlen(t), '/');
+    CU_ASSERT_STRING_EQUAL(s, t);
+
+    path = "foo/";
+    s = bxistr_rfind(path, strlen(path), '/');
+    CU_ASSERT_STRING_EQUAL(s, "")
+    t = bxistr_rfind(s, strlen(s), '/');
+    CU_ASSERT_PTR_NULL(t);
+    t = bxistr_rfind(t, 0, '/');
+    CU_ASSERT_PTR_NULL(t);
+
+    path = "bar/foo";
+    s = bxistr_rfind(path, strlen(path), '/');
+    CU_ASSERT_STRING_EQUAL(s, "foo");
+    t = bxistr_rfind(s, strlen(s), '/');
+    CU_ASSERT_STRING_EQUAL(t, s);
+    t = bxistr_rfind(t, strlen(t), '/');
+    CU_ASSERT_STRING_EQUAL(s, t);;
+
+    path = "/boo/bar/foo";
+    size_t size = strlen(path);
+    s = bxistr_rfind(path, strlen(path), '/');
+    CU_ASSERT_STRING_EQUAL(s, "foo");
+    t = bxistr_rfind(s, strlen(s), '/');
+    CU_ASSERT_STRING_EQUAL(t, s);
+    t = bxistr_rfind(t, strlen(t), '/');
+    CU_ASSERT_STRING_EQUAL(s, t);
+    CU_ASSERT_EQUAL(strlen(path), size);
+
+}

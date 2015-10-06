@@ -182,6 +182,17 @@ bxierr_p bxilog_flush(void);
  */
 void bxilog_display_loggers();
 
+/**
+ * Display a message on a file descriptor.
+ *
+ * @note: do not use unless you implement a new bxilog handler or implement a new
+ * bxilog feature.
+ *
+ * @param[in] msg a message
+ * @param[in] fd an open file descriptor
+ *
+ */
+void bxilog_rawprint(char* msg, int fd);
 
 /**
  * @example bxilog_err.c

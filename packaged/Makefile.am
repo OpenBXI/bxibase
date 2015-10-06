@@ -21,6 +21,7 @@ lib_libbxibase_la_SOURCES=\
 		  src/log/registry.c\
 		  src/log/file_handler.c\
 		  src/log/console_handler.c\
+		  src/log/syslog_handler.c\
 		  src/log/null_handler.c
 
 lib_libbxibase_la_LDFLAGS=\

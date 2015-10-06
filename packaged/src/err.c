@@ -105,8 +105,7 @@ bxierr_p bxierr_new(int code,
 void bxierr_free(bxierr_p self) {
     if (NULL == self) return;
     if (!self->allocated) return;
-    if (NULL != self->cause &&
-        self->cause != self) bxierr_destroy(&(self->cause));
+    if (NULL != self->cause) bxierr_destroy(&(self->cause));
     if (NULL != self->free_fn) {
         self->free_fn(self->data);
         self->data = NULL;
@@ -121,8 +120,6 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
     const char * cause_str;
     if (NULL == self->cause) {
         cause_str = bxistr_new("%s", "");
-    } else if (self == self->cause) {
-        cause_str = bxistr_new("%s", "Loop detected on error");
     } else if (2 > depth) {
         size_t remaining = bxierr_get_depth(self->cause);
         cause_str = bxistr_new("...<%zu more causes>", remaining);
@@ -154,14 +151,18 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
     return result;
 }
 
-void bxierr_report(bxierr_p self, int fd) {
+void bxierr_report(bxierr_p * self, int fd) {
+    bxierr_report_keep(*self, fd);
+    bxierr_destroy(self);
+}
+
+void bxierr_report_keep(bxierr_p self, int fd) {
     if (bxierr_isok(self)) return;
 
     char * errstr = bxierr_str(self);
     ssize_t count = write(fd, errstr, strlen(errstr));
     bxiassert(0 < count);
     BXIFREE(errstr);
-    bxierr_destroy(&self);
 }
 
 bxierr_p bxierr_get_ok() { return BXIERR_OK; }
@@ -275,7 +276,7 @@ void bxierr_assert_fail(const char *assertion, const char *file,
                               "%s:%d - %s(): wrong assertion: %s"\
                               BXIBUG_STD_MSG,
                               file, line, function, assertion);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     abort();
 }
 
@@ -290,7 +291,7 @@ void bxierr_unreachable_statement(const char *file,
                               "Unreachable statement reached at %s:%d in %s()."\
                               BXIBUG_STD_MSG,
                               file, line, function);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     abort();
 }
 

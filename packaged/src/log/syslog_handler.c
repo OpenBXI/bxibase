@@ -14,12 +14,9 @@
 #include <unistd.h>
 #include <syscall.h>
 #include <string.h>
-#include <pthread.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
+#include <pthread.h>
+#include <syslog.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
@@ -28,32 +25,38 @@
 
 #include "bxi/base/log.h"
 
-#include "bxi/base/log/console_handler.h"
+#include "bxi/base/log/syslog_handler.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
 
-#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.console"
+#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.syslog"
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 //*********************************************************************************
 //********************************** Types ****************************************
 //*********************************************************************************
-typedef struct bxilog_console_handler_param_s_f * bxilog_console_handler_param_p;
-typedef struct bxilog_console_handler_param_s_f {
+typedef struct bxilog_syslog_handler_param_s_f * bxilog_syslog_handler_param_p;
+typedef struct bxilog_syslog_handler_param_s_f {
     bxilog_handler_param_s generic;
+
+    bxilog_level_e threshold;
+    int option;
+    int facility;
+    char * ident;
 
     pid_t pid, tid;
     uint16_t thread_rank;
 
-    bxilog_level_e stderr_level;
     bxierr_group_p errset;
-    size_t lost_logs;
-} bxilog_console_handler_param_s;
+    size_t error_nb;
+    size_t error_limit;
+
+} bxilog_syslog_handler_param_s;
 
 typedef struct {
-    const bxilog_console_handler_param_p data;
+    const bxilog_syslog_handler_param_p data;
     const bxilog_record_p record;
     const char * filename;
     const char *funcname;
@@ -67,34 +70,38 @@ typedef log_single_line_param_s * log_single_line_param_p;
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap);
-static bxierr_p _init(bxilog_console_handler_param_p data);
+static bxierr_p _init(bxilog_syslog_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
                              char * filename,
                              char * funcname,
                              char * loggername,
                              char * logmsg,
-                             bxilog_console_handler_param_p data);
-static bxierr_p _process_err(bxierr_p * err, bxilog_console_handler_param_p data);
-static bxierr_p _process_implicit_flush(bxilog_console_handler_param_p data);
-static bxierr_p _process_explicit_flush(bxilog_console_handler_param_p data);
-static bxierr_p _process_exit(bxilog_console_handler_param_p data);
-static bxierr_p _process_cfg(bxilog_console_handler_param_p data);
-static bxierr_p _param_destroy(bxilog_console_handler_param_p *data_p);
+                             bxilog_syslog_handler_param_p data);
+static bxierr_p _process_err(bxierr_p * err, bxilog_syslog_handler_param_p data);
+static bxierr_p _process_implicit_flush(bxilog_syslog_handler_param_p data);
+static bxierr_p _process_explicit_flush(bxilog_syslog_handler_param_p data);
+static bxierr_p _process_exit(bxilog_syslog_handler_param_p data);
+static bxierr_p _process_cfg(bxilog_syslog_handler_param_p data);
+static bxierr_p _param_destroy(bxilog_syslog_handler_param_p *data_p);
 
-static bxierr_p _sync(bxilog_console_handler_param_p data);
+static bxierr_p _sync(bxilog_syslog_handler_param_p data);
 
 static bxierr_p _internal_log_func(bxilog_level_e level,
-                                   bxilog_console_handler_param_p data,
+                                   bxilog_syslog_handler_param_p data,
                                    const char * funcname,
                                    size_t funclen,
                                    int line_nb,
                                    const char * fmt, ...);
+static bxierr_p _log_single_line(char * line,
+                          size_t line_len,
+                          bool last,
+                          log_single_line_param_p param);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
 
-static const bxilog_handler_s BXILOG_CONSOLE_HANDLER_S = {
-                  .name = "BXI Logging Console Handler",
+static const bxilog_handler_s BXILOG_SYSLOG_HANDLER_S = {
+                  .name = "BXI Logging Syslog Handler",
                   .param_new = _param_new,
                   .init = (bxierr_p (*) (bxilog_handler_param_p)) _init,
                   .process_log = (bxierr_p (*)(bxilog_record_p record,
@@ -110,22 +117,30 @@ static const bxilog_handler_s BXILOG_CONSOLE_HANDLER_S = {
                   .process_cfg = (bxierr_p (*) (bxilog_handler_param_p)) _process_cfg,
                   .param_destroy = (bxierr_p (*) (bxilog_handler_param_p*)) _param_destroy,
 };
-const bxilog_handler_p BXILOG_CONSOLE_HANDLER = (bxilog_handler_p) &BXILOG_CONSOLE_HANDLER_S;
+const bxilog_handler_p BXILOG_SYSLOG_HANDLER = (bxilog_handler_p) &BXILOG_SYSLOG_HANDLER_S;
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
 bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
-    bxiassert(BXILOG_CONSOLE_HANDLER == self);
+    bxiassert(BXILOG_SYSLOG_HANDLER == self);
 
-    bxilog_level_e level = (bxilog_level_e) va_arg(ap, int);
+    const char * ident = va_arg(ap, char *);
+    const int option = va_arg(ap, int);
+    const int facility = va_arg(ap, int);
+    const int threshold = va_arg(ap, int);
     va_end(ap);
 
-    bxilog_console_handler_param_p result = bximem_calloc(sizeof(*result));
+    bxiassert(threshold >= BXILOG_EMERGENCY && threshold < BXILOG_LOWEST);
+
+    bxilog_syslog_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, &result->generic);
 
-    result->stderr_level = level;
+    result->ident = strdup(bxistr_rfind(ident, strlen(ident), '/'));
+    result->option = option;
+    result->facility = facility;
+    result->threshold = threshold;
 
     return (bxilog_handler_param_p) result;
 }
@@ -134,54 +149,44 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
 
-bxierr_p _init(bxilog_console_handler_param_p data) {
-    bxierr_p err = BXIERR_OK, err2;
+bxierr_p _init(bxilog_syslog_handler_param_p data) {
 
     data->pid = getpid();
- #ifdef __linux__
-     data->tid = (pid_t) syscall(SYS_gettid);
- #endif
-     // TODO: find something better for the rank of the IHT
-     // Maybe, define already the related string instead of
-     // a rank number?
-     data->thread_rank = (uint16_t) pthread_self();
-
-    if (data->stderr_level > BXILOG_LOWEST) {
-        err2 = bxierr_gen("Bad stderr level value '%d', must be between [%d, %d]",
-                          data->stderr_level, BXILOG_PANIC, BXILOG_LOWEST);
-        BXIERR_CHAIN(err, err2);
-    }
+#ifdef __linux__
+    data->tid = (pid_t) syscall(SYS_gettid);
+#endif
+    // TODO: find something better for the rank of the IHT
+    // Maybe, define already the related string instead of
+    // a rank number?
+    data->thread_rank = (uint16_t) pthread_self();
     data->errset = bxierr_group_new();
-    data->lost_logs = 0;
+    data->error_nb = 0;
+    data->error_limit = 10;
 
-    return err;
+    openlog(data->ident, data->option, data->facility);
+
+    return BXIERR_OK;
 }
 
-bxierr_p _process_exit(bxilog_console_handler_param_p data) {
+bxierr_p _process_exit(bxilog_syslog_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
     err2 = _sync(data);
     BXIERR_CHAIN(err, err2);
 
-    if (data->lost_logs > 0) {
-        char * str = bxistr_new("BXI Log File Handler Error Summary:\n"
-                                "\tNumber of lost log lines: %zu\n"
-                                "\tNumber of reported distinct errors: %zu\n",
-                                data->lost_logs,
-                                data->errset->errors_nb);
-        bxilog_rawprint(str, STDERR_FILENO);
-        BXIFREE(str);
-    }
+    closelog();
+
+    bxierr_group_destroy(&data->errset);
 
     return err;
 }
 
-inline bxierr_p _process_implicit_flush(bxilog_console_handler_param_p data) {
+inline bxierr_p _process_implicit_flush(bxilog_syslog_handler_param_p data) {
     UNUSED(data);
     return _sync(data);
 }
 
-inline bxierr_p _process_explicit_flush(bxilog_console_handler_param_p data) {
+inline bxierr_p _process_explicit_flush(bxilog_syslog_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
 //    err2 = _ilog(BXILOG_TRACE, data, "Flushing requested");
@@ -201,86 +206,88 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * funcname,
                              char * loggername,
                              char * logmsg,
-                             bxilog_console_handler_param_p data) {
+                             bxilog_syslog_handler_param_p data) {
 
-    UNUSED(filename);
-    UNUSED(funcname);
-    UNUSED(loggername);
+    const char * fn = bxistr_rfind(filename, record->filename_len, '/');
 
-    FILE * out = (record->level > data->stderr_level) ? stdout : stderr;
+    log_single_line_param_s param = {
+                                     .data = data,
+                                     .record = record,
+                                     .filename = fn,
+                                     .funcname = funcname,
+                                     .loggername = loggername,
+                                     .logmsg = logmsg,
+    };
 
-    errno = 0;
-    int rc = fprintf(out, "%s\n", logmsg);
-    if (rc < 0) {
-        return bxierr_errno("Calling fprintf() failed");
-    }
-
-    return BXIERR_OK;
-}
-
-
-bxierr_p _process_err(bxierr_p *err, bxilog_console_handler_param_p data) {
-    bxierr_p result = BXIERR_OK;
-
-    if (bxierr_isok(*err)) return *err;
-
-    char * str = bxierr_str(*err);
-    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An error occured: %s", str);
-
-    if (bxierr_isko(fatal)) {
-        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
-                            "Fatal: error while processing error: %s", str);
-    } else {
-        bxierr_destroy(err);
-    }
-    BXIFREE(str);
-
-    return result;
-}
-
-
-bxierr_p _process_cfg(bxilog_console_handler_param_p data) {
-    UNUSED(data);
-    bxiunreachable_statement;
-    return BXIERR_OK;
-}
-
-inline bxierr_p _param_destroy(bxilog_console_handler_param_p * data_p) {
-    bxilog_console_handler_param_p data = *data_p;
-
-    bxilog_handler_clean_param(&data->generic);
-
-    bxierr_group_destroy(&data->errset);
-    bximem_destroy((char**) data_p);
-    return BXIERR_OK;
-}
-
-
-bxierr_p _sync(bxilog_console_handler_param_p data) {
-    UNUSED(data);
-
-    bxierr_p err = BXIERR_OK, err2;
-
-    errno = 0;
-    int rc = fflush(stderr);
-    if (0 != rc) {
-        err2 = bxierr_errno("Calling fflush(stderr) failed");
-        BXIERR_CHAIN(err, err2);
-    }
-
-    errno = 0;
-    rc = fflush(stdout);
-    if (0 != rc) {
-        err2 = bxierr_errno("Calling fflush(stdout) failed");
-        BXIERR_CHAIN(err, err2);
-    }
+    bxierr_p err = bxistr_apply_lines(logmsg,
+                                      (bxierr_p (*)(char*, size_t, bool, void*)) _log_single_line,
+                                      &param);
 
     return err;
 }
 
 
+bxierr_p _process_err(bxierr_p *err, bxilog_syslog_handler_param_p data) {
+    bxierr_p result = BXIERR_OK;
+
+    if (bxierr_isok(*err)) return *err;
+
+    data->error_nb++;
+    bool new = bxierr_set_add(data->errset, err);
+    // Only report newly detected errors
+    char * err_str = NULL;
+    if (new) {
+        char * err_str = bxierr_str(*err);
+        result  = _ilog(BXILOG_ERROR, data, "An error occured.\n%s\n"
+                        "This is the first time an error with code %d is reported "
+                        "and it will be the last time.\n"
+                        "An error reporting summary should be "
+                        "available in your program if it uses the full BXI "
+                        "high performance logging library.\n",
+                        err_str, (*err)->code);
+    }
+
+    if (bxierr_isko(result)) {
+        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, result, NULL, NULL, NULL,
+                            "Fatal: error while processing error: %s", err_str);
+        BXIFREE(err_str);
+    } else if (data->error_nb >= data->error_limit) {
+        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, NULL, NULL, NULL, NULL,
+                            "Fatal: too many errors (%zu distinct errors/%zu total errors)",
+                            data->errset->errors_nb, data->error_nb);
+    }
+
+    return result;
+}
+
+
+bxierr_p _process_cfg(bxilog_syslog_handler_param_p data) {
+    UNUSED(data);
+    bxiunreachable_statement;
+    return BXIERR_OK;
+}
+
+inline bxierr_p _param_destroy(bxilog_syslog_handler_param_p * data_p) {
+    bxilog_syslog_handler_param_p data = *data_p;
+
+    bxilog_handler_clean_param(&data->generic);
+
+    bxierr_group_destroy(&data->errset);
+    BXIFREE((*data_p)->ident);
+    bximem_destroy((char**) data_p);
+    return BXIERR_OK;
+}
+
+
+bxierr_p _sync(bxilog_syslog_handler_param_p data) {
+    UNUSED(data);
+
+    return BXIERR_OK;
+}
+
+
 bxierr_p _internal_log_func(bxilog_level_e level,
-                            bxilog_console_handler_param_p data,
+                            bxilog_syslog_handler_param_p data,
                             const char * funcname,
                             size_t funclen,
                             int line_nb,
@@ -306,7 +313,7 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     record.pid = data->pid;
 #ifdef __linux__
     record.tid = data->tid;
-//    size_t thread_name_len
+    //    size_t thread_name_len
 #endif
     record.thread_rank = data->thread_rank;
     record.line_nb = line_nb;
@@ -316,9 +323,9 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     record.logname_len = ARRAYLEN(INTERNAL_LOGGER_NAME);
     record.logmsg_len = msg_len;
     record.variable_len = record.filename_len + \
-                          record.funcname_len + \
-                          record.logname_len + \
-                          record.logmsg_len;
+            record.funcname_len + \
+            record.logname_len + \
+            record.logmsg_len;
 
     err2 = _process_log(&record,
                         (char *) filename,
@@ -331,4 +338,21 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     BXIFREE(msg);
 
     return err;
+}
+
+bxierr_p _log_single_line(char * line,
+                          size_t line_len,
+                          bool last,
+                          log_single_line_param_p param) {
+
+    UNUSED(last);
+    UNUSED(line_len);
+    bxilog_syslog_handler_param_p data = param->data;
+    bxilog_record_p record = param->record;
+
+    if (record->level > data->threshold) return BXIERR_OK;
+
+    syslog(record->level, "%s", line);
+
+    return BXIERR_OK;
 }

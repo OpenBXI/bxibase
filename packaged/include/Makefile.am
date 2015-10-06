@@ -7,6 +7,7 @@ cffi_files=\
 			 bxi/base/log.h\
 			 bxi/base/log/file_handler.h\
 			 bxi/base/log/null_handler.h\
+			 bxi/base/log/syslog_handler.h\
 			 bxi/base/log/console_handler.h
 			 
 #file to be install
@@ -30,6 +31,7 @@ nobase_include_HEADERS = \
 						 bxi/base/log/registry.h\
 						 bxi/base/log/file_handler.h\
 						 bxi/base/log/console_handler.h\
+						 bxi/base/log/syslog_handler.h\
 						 bxi/base/log/null_handler.h
 
 

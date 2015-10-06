@@ -89,7 +89,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p 
     param->data_hwm = 65536;
     param->ctrl_hwm = 100;
     param->connect_timeout_s = 1.0;
-    param->poll_timeout_ms = 100;
+    param->poll_timeout_ms = 1000;
 
     // Use the param pointer to guarantee a unique URL name for different instances of
     // the same handler
@@ -129,7 +129,7 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     BXIFREE(bundle);
 
     bxierr_p eerr = BXIERR_OK, eerr2; // External errors
-    bxierr_p ierr = BXIERR_OK, ierr2; // Internal errors
+    bxierr_p ierr = BXIERR_OK;        // Internal errors
     handler_data_s data;
     memset(&data, 0, sizeof(data));
 
@@ -146,25 +146,21 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     BXIERR_CHAIN(eerr, eerr2);
     // Do not quit immediately, we need to send a ready message to BC.
 
-    ierr2 = _set_zmq_ctx(handler, param, &data);
-    BXIERR_CHAIN(ierr, ierr2);
+    ierr = _set_zmq_ctx(handler, param, &data);
     eerr2 = _process_err(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
-    ierr2 = _create_zockets(handler, param, &data);
-    BXIERR_CHAIN(ierr, ierr2);
+    ierr = _create_zockets(handler, param, &data);
     eerr2 = _process_err(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
     if (param->mask_signals) {
-        ierr2 = _mask_signals(handler);
-        BXIERR_CHAIN(ierr, ierr2);
+        ierr = _mask_signals(handler);
         eerr2 = _process_err(handler, param, ierr);
         BXIERR_CHAIN(eerr, eerr2);
     }
 
-    ierr2 = _send_ready_status(handler, param, &data, eerr);
-    BXIERR_CHAIN(ierr, ierr2);
+    ierr = _send_ready_status(handler, param, &data, eerr);
     eerr2 = _process_err(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
@@ -172,14 +168,17 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     // no need to go in the loop, just cleanup and exit.
     if (bxierr_isko(eerr)) goto CLEANUP;
 
-    ierr2 = _loop(handler, param, &data);
-    BXIERR_CHAIN(ierr, ierr2);
+    ierr = _loop(handler, param, &data);
 
 CLEANUP:
     eerr2 = _process_err(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
-    eerr2 = _cleanup(handler, param, &data);
+    ierr = _cleanup(handler, param, &data);
+    eerr2 = _process_err(handler, param, ierr);
+    BXIERR_CHAIN(eerr, eerr2);
+
+    eerr2 = _process_exit(handler, param, &data);
     BXIERR_CHAIN(eerr, eerr2);
 
     return eerr;
@@ -374,6 +373,12 @@ bxierr_p _loop(bxilog_handler_p handler,
         if (-1 == rc) {
             if (EINTR == errno) continue; // One interruption happened
                                           // (e.g. with profiling)
+
+            int code = zmq_errno();
+            const char * msg = zmq_strerror(code);
+            err2 = bxierr_new(code, NULL, NULL, NULL, NULL,
+                              "Calling zmq_poll() failed: %s", msg);
+            BXIERR_CHAIN(err, err2);
             err2 = _process_implicit_flush(handler, param, data);
             BXIERR_CHAIN(err, err2);
             err = _process_err(handler, param, err);
@@ -412,6 +417,7 @@ bxierr_p _loop(bxilog_handler_p handler,
 bxierr_p _cleanup(bxilog_handler_p handler,
                   bxilog_handler_param_p param,
                   handler_data_p data) {
+    UNUSED(handler);
 
     bxierr_p err = BXIERR_OK, err2;
 
@@ -429,8 +435,6 @@ bxierr_p _cleanup(bxilog_handler_p handler,
             BXIERR_CHAIN(err, err2);
         }
     }
-    err2 = _process_exit(handler, param, data);
-    BXIERR_CHAIN(err, err2);
 
     return err;
 }
@@ -449,7 +453,10 @@ bxierr_p _internal_flush(bxilog_handler_p handler,
         if (-1 == rc) {
             if(EINTR == errno) continue; // One interruption happens
                                          // (e.g. when profiling)
-            err2 = bxierr_errno("%s: calling zmq_poll() failed", handler->name);
+            int code = zmq_errno();
+            const char * msg = zmq_strerror(code);
+            err2 = bxierr_new(code, NULL, NULL, NULL, NULL,
+                              "Calling zmq_poll() failed: %s", msg);
             BXIERR_CHAIN(err, err2);
             break;
         }
@@ -544,10 +551,10 @@ bxierr_p _process_ctrl_cmd(bxilog_handler_p handler,
         // Exit must exit as fast as possible.
         //        err2 = _process_flush_cmd(handler, data);
         //        BXIERR_CHAIN(err, err2);
-        //                size_t retries = bxizmq_str_snd(EXIT_CTRL_MSG_REP, control_channel,
-        //                                                0, RETRIES_MAX, RETRY_DELAY);
-        //                bxiassert(0 == retries);
-        return bxierr_new(BXILOG_HANDLER_EXIT_CODE, BXIERR_OK, NULL, NULL, NULL,
+        err2 = bxizmq_str_snd(EXIT_CTRL_MSG_REP, data->ctrl_zocket, 0, 0, 0);
+        BXIERR_CHAIN(err, err2);
+
+        return bxierr_new(BXILOG_HANDLER_EXIT_CODE, err, NULL, NULL, NULL,
                           "Exit requested");
     }
     err2 = bxierr_gen("%s: unknown control command: %s", handler->name, cmd);
@@ -597,8 +604,9 @@ bxierr_p _process_exit(bxilog_handler_p handler,
     UNUSED(handler);
     UNUSED(data);
 
-    return (NULL == handler->process_exit) ?  BXIERR_OK :
-                                              handler->process_exit(param);
+    return (NULL == handler->process_exit) ?
+            BXIERR_OK :
+            handler->process_exit(param);
 }
 
 bxierr_p _process_err(bxilog_handler_p handler,
@@ -610,7 +618,7 @@ bxierr_p _process_err(bxilog_handler_p handler,
     bxierr_p actual_err = err;
     if (BXILOG_HANDLER_EXIT_CODE == err->code) {
         bxiassert(NULL == err->cause);
-        actual_err = err->data;
+        actual_err = (NULL == err->data) ? BXIERR_OK : err->data;
         err->data = NULL;
         bxierr_destroy(&err);
     }

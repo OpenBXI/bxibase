@@ -15,10 +15,13 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
+#include <syslog.h>
 
+#include "bxi/base/str.h"
 #include "bxi/base/err.h"
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/console_handler.h"
+#include "bxi/base/log/syslog_handler.h"
 
 #include "config_impl.h"
 #include "log_impl.h"
@@ -66,15 +69,21 @@ static char * _LOG_LEVEL_NAMES[] = {
 
 
 bxilog_config_p bxilog_basic_config(const char * const progname,
-                             const char * const filename,
-                             bool append) {
+                                    const char * const filename,
+                                    bool append) {
 
+    const char * basename = bxistr_rfind(progname, strlen(progname), '/');
     bxilog_config_p config = bxilog_config_new(progname);
-
     // TODO: default configuration for the moment is compatible with old
     // behaviour. This will change soon.
-//    bxilog_config_add(param, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, progname, filename, append);
+//    bxilog_config_add_handler(config, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, append);
+    // Bull default to LOG_LOCAL0
+//    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,
+//                              basename,
+//                              LOG_CONS | LOG_PID,
+//                              LOG_LOCAL0,
+//                              BXILOG_WARNING);
 
     return config;
 }
@@ -83,11 +92,16 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
                                         const char * const filename,
                                         bool append) {
 
-    bxilog_config_p config = bxilog_config_new(progname);
-
+    const char * basename = bxistr_rfind(progname, strlen(progname), '/');
+    bxilog_config_p config = bxilog_config_new(basename);
     // Use 2 loggers to ensure multiple handlers works
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, progname, filename, append);
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, progname, "/dev/null", append);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, append);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, "/dev/null", append);
+//    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,
+//                                  basename,
+//                                  LOG_CONS | LOG_PID,
+//                                  LOG_LOCAL0,
+//                                  BXILOG_WARNING);
 
     return config;
 }

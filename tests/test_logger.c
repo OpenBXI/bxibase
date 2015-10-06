@@ -38,19 +38,16 @@ SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
 SET_LOGGER(BAD_LOGGER1, "test.bad.logger");
 SET_LOGGER(BAD_LOGGER2, "test.bad.logger");
 
-extern char * FULLPROGNAME;
-extern char * BXILOG__CORE_PROGNAME;
+extern char * PROGNAME;
 extern char * FULLFILENAME;
-extern int ARGC;
-extern char ** ARGV;
 
 /*
  *  Check logger initialization
  */
 void test_logger_levels(void) {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report_keep(err, STDERR_FILENO);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
 
@@ -141,9 +138,9 @@ void test_logger_levels(void) {
 }
 
 void test_logger_init() {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
@@ -182,17 +179,17 @@ static long _get_filesize(char* name) {
     errno = 0;
     int rc = stat(name, &info);
     if (-1 == rc) {
-        bxierr_report(bxierr_errno("Calling stat(%s) failed", name),
-                      STDERR_FILENO);
+        bxierr_p err = bxierr_errno("Calling stat(%s) failed", name);
+        bxierr_report(&err, STDERR_FILENO);
         return -1;
     }
     return info.st_size;
 }
 
 void test_logger_existing_file(void) {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
@@ -206,7 +203,7 @@ void test_logger_existing_file(void) {
     CU_ASSERT_TRUE_FATAL(0 == _get_filesize(name));
     close(fd);
 
-    bxilog_config_p new_config = bxilog_unit_test_config(ARGV[0],
+    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME,
                                                          name, true);
     err = bxilog_init(new_config);
 
@@ -221,9 +218,9 @@ void test_logger_existing_file(void) {
 }
 
 void test_logger_non_existing_file(void) {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
@@ -239,9 +236,9 @@ void test_logger_non_existing_file(void) {
     int rc = unlink(name);
     bxiassert(0 == rc);
 
-    bxilog_config_p new_config = bxilog_unit_test_config(ARGV[0], name, true);
+    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME, name, true);
     err = bxilog_init(new_config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report_keep(err, STDERR_FILENO);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "One log on file: %s", name);
     err = bxilog_finalize(true);
@@ -253,9 +250,9 @@ void test_logger_non_existing_file(void) {
 }
 
 void test_logger_non_existing_dir(void) {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     char * template = strdup("test_logger_XXXXXX");
@@ -270,7 +267,7 @@ void test_logger_non_existing_dir(void) {
     bxiassert(0 == rc);
 
 
-    bxilog_config_p new_config = bxilog_unit_test_config(ARGV[0], name, true);
+    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME, name, true);
     // Failed because the directory does not exist
     err = bxilog_init(new_config);
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
@@ -297,9 +294,9 @@ static bool _is_logger_in_registered(bxilog_p logger) {
 }
 
 void test_single_logger_instance(void) {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 
@@ -329,9 +326,9 @@ void test_single_logger_instance(void) {
 
 void test_config(void) {
     bxilog_registry_reset();
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
 
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -382,9 +379,9 @@ void test_config(void) {
 void test_config_parser(void) {
     bxilog_registry_reset();
 
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
 
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -434,12 +431,11 @@ void _fork_childs(size_t n) {
     }
     case 0: { // In the child
         n--;
-        char * child_progname = bxistr_new("%s.%zu", ARGV[0], n);
-        snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
-        BXIFREE(child_progname);
-        bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+        char * child_progname = bxistr_new("%s.%zu", PROGNAME, n);
+        bxilog_config_p config = bxilog_unit_test_config(child_progname,
+                                                         FULLFILENAME, true);
         bxierr_p err = bxilog_init(config);
-        bxierr_report(err, STDERR_FILENO);
+        bxierr_report_keep(err, STDERR_FILENO);
         BXIASSERT(TEST_LOGGER, bxierr_isok(err));
         // Check that logging works as expected in the child too
         CRITICAL(TEST_LOGGER, "Child #%zu: One log line", n);
@@ -456,8 +452,8 @@ void _fork_childs(size_t n) {
                   "Calling bxilog_finalize(true) failed in child #%zu: %s",
                   n, bxierr_str(err));
         }
+        BXIFREE(child_progname);
         BXIFREE(FULLFILENAME);
-        BXIFREE(FULLPROGNAME);
         exit(EXIT_SUCCESS);
         break;
     }
@@ -487,9 +483,9 @@ void _fork_childs(size_t n) {
 }
 
 void test_logger_fork(void) {
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
     bxierr_p err = bxilog_init(config);
-    bxierr_report(err, STDERR_FILENO);
+    bxierr_report(&err, STDERR_FILENO);
 
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -541,7 +537,7 @@ void test_logger_fork(void) {
 //        rc = close(fd);
 //        bxiassert(0 == rc);
 //        char * child_progname = bxistr_new("%s-sig-%d.child", BXILOG__CORE_PROGNAME, signum);
-//        snprintf(ARGV[0], strlen(ARGV[0]), "%s", child_progname);
+//        snprintf(PROGNAME, strlen(PROGNAME), "%s", child_progname);
 ////        bxierr_p err = bxilog_init(child_progname, FULLFILENAME);
 //        bxierr_p err = bxilog_init(NULL);
 //        BXIASSERT(TEST_LOGGER, bxierr_isok(err));

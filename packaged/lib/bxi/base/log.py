@@ -234,6 +234,7 @@ def basicConfig(**kwargs):
     Parameter kwargs can contain following parameters:
         - `'console'`: None or a list of console handler arguments
         - `'filename'`: None or a list of file handler arguments 
+        - `'syslog'`: None or a list of syslog handler arguments
         - `'setsighandler'`: if True, set signal handlers
         - `'filters'`: either a string or a list of tuples (prefix, level).
                          If 'filters' is a string, it must follow the bxi
@@ -276,7 +277,13 @@ def basicConfig(**kwargs):
         # Sort all items in lexical order in order to configure most generic
         # loggers first
         kwargs['filters'] = sorted(filters)
-
+    
+    if 'syslog' not in kwargs:
+#         import syslog
+#         kwargs['syslog'] = (syslog.LOG_PID | syslog.LOG_CONS, 
+#                             syslog.LOG_LOCAL0, WARNING)
+        pass
+    
     if 'setsighandler' not in kwargs:
         kwargs['setsighandler'] = True
 
@@ -327,6 +334,7 @@ def _init():
         _CONFIG = {'console': None,
                    'filename': None,
                    'filters': DEFAULT_FILTERS,
+                   'syslog': None,
                    'setsighandler': True,
                    }
     # Configure loggers first, since init() produces logs that the user
@@ -337,23 +345,42 @@ def _init():
     
     console_handler_args = _CONFIG.get('console', None)
     file_handler_args = _CONFIG.get('filename', None)
+    syslog_handler_args = _CONFIG.get('syslog', None)
         
     if console_handler_args is not None:
         if not isinstance(console_handler_args, tuple):
             raise ValueError("Tuple expected! Got: %s" % console_handler_args)
-            
+
+        stderr_level = __FFI__.cast('int', console_handler_args[0])
         __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
                                                    __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER, 
-                                                   __FFI__.cast('int', console_handler_args[0]));
+                                                   stderr_level);
     if file_handler_args is not None:
         if isinstance(file_handler_args, str):
             file_handler_args = (file_handler_args, True)
-
+            
+        progname = __FFI__.new('char[]', sys.argv[0])
+        filename = __FFI__.new('char[]', file_handler_args[0])
+        append = __FFI__.cast('bool', file_handler_args[1])
+        
         __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
                                                    __BXIBASE_CAPI__.BXILOG_FILE_HANDLER, 
-                                                   __FFI__.new('char[]', sys.argv[0]), 
-                                                   __FFI__.new('char[]', file_handler_args[0]),
-                                                   __FFI__.cast('bool', file_handler_args[1]));
+                                                   progname, 
+                                                   filename,
+                                                   append);
+
+    if syslog_handler_args is not None:
+        ident =  __FFI__.new('char[]', sys.argv[0])
+        option = __FFI__.cast('int', syslog_handler_args[0])
+        facility = __FFI__.cast('int', syslog_handler_args[1])
+        threshold = __FFI__.cast('int', syslog_handler_args[2])
+ 
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+                                                   __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,
+                                                   ident,
+                                                   option,
+                                                   facility,
+                                                   threshold)
 
     if config.handlers_nb == 0:
         print("Warning: no handler defined in bxi logging library configuration!")
@@ -361,9 +388,9 @@ def _init():
                                                    __BXIBASE_CAPI__.BXILOG_NULL_HANDLER);
                                           
     bxierr_p = __BXIBASE_CAPI__.bxilog_init(config)
+    _INITIALIZED = True
     BXICError.raise_if_ko(bxierr_p)
     atexit.register(cleanup)
-    _INITIALIZED = True
     if _CONFIG['setsighandler']:
         bxierr_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
         BXICError.raise_if_ko(bxierr_p)

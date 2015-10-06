@@ -197,7 +197,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     }
     BXIFREE(sigstr);
 
-    bxilog__display_err_msg(str);
+    bxilog_rawprint(str, STDERR_FILENO);
 
     CRITICAL(LOGGER, "%s", str);
     BXIFREE(str);
@@ -211,7 +211,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
         char * err_str = bxierr_str(err);
         char * str = bxistr_new("Error while processing signal - %s\n",
                                 err_str);
-        bxilog__display_err_msg(str);
+        bxilog_rawprint(str, STDERR_FILENO);
         BXIFREE(str);
         BXIFREE(err_str);
     }
@@ -235,7 +235,7 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     rc = sigfillset(&mask);
     bxiassert(0 == rc);
     rc = pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
-    if (-1 == rc) bxilog__display_err_msg("Calling pthread_sigmask() failed\n");
+    if (-1 == rc) bxilog_rawprint("Calling pthread_sigmask() failed\n", STDERR_FILENO);
     rc = pthread_kill(pthread_self(), signum);
     if (0 != rc) {
         error(128 + signum, errno, "Calling pthread_kill(self, %d) failed", signum);

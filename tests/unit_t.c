@@ -33,7 +33,7 @@
 SET_LOGGER(TEST_LOGGER, "test.bxibase");
 
 char * FULLPROGNAME = NULL;
-char * BXILOG__CORE_PROGNAME = NULL;
+char * PROGNAME = NULL;
 char * FULLFILENAME = NULL;
 int ARGC;
 char ** ARGV = NULL;
@@ -49,6 +49,7 @@ void test_free();
 void test_bxistr_apply_lines();
 void test_bxistr_prefix_lines();
 void test_bxistr_join();
+void test_bxistr_rfind(void);
 
 // From test_err.c
 void test_bxierr();
@@ -82,7 +83,7 @@ int init_suite_logger(void) {
     err2 = bxilog_install_sighandler();
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) {
-        bxierr_report(err, STDERR_FILENO);
+        bxierr_report(&err, STDERR_FILENO);
         exit(1);
     }
     return 0;
@@ -95,7 +96,7 @@ int init_suite_logger(void) {
 int clean_suite_logger(void) {
     bxierr_p err = bxilog_finalize(true);
     if (bxierr_isko(err)) {
-        bxierr_report(err, STDERR_FILENO);
+        bxierr_report(&err, STDERR_FILENO);
         exit(1);
     }
     return 0;
@@ -128,8 +129,8 @@ int main(int argc, char * argv[]) {
     ARGC = argc;
     ARGV = argv;
     FULLPROGNAME = strdup(argv[0]);
-    BXILOG__CORE_PROGNAME = basename(FULLPROGNAME);
-    char * filename = bxistr_new("%s%s", BXILOG__CORE_PROGNAME, ".bxilog");
+    PROGNAME = basename(FULLPROGNAME);
+    char * filename = bxistr_new("%s%s", PROGNAME, ".bxilog");
     char cwd[PATH_MAX];
     char * res = getcwd(cwd, PATH_MAX);
     bxiassert(NULL != res);
@@ -169,6 +170,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxistr_suite, "test bxistr_apply_lines", test_bxistr_apply_lines))
         || (NULL == CU_add_test(bxistr_suite, "test bxistr_prefix_lines", test_bxistr_prefix_lines))
         || (NULL == CU_add_test(bxistr_suite, "test bxistr_join", test_bxistr_join))
+        || (NULL == CU_add_test(bxistr_suite, "test bxistr_rfind", test_bxistr_rfind))
         || false) {
         CU_cleanup_registry();
         return (CU_get_error());
@@ -226,7 +228,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger config", test_config))
         || (NULL == CU_add_test(bxilog_suite, "test logger config parser", test_config_parser))
-        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
+//        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
 ////        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
 
 

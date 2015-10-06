@@ -61,7 +61,7 @@ void bxilog__tsd_free(void * const data) {
         BXIERR_CHAIN(err, err2);
         err2 = bxizmq_zocket_destroy(tsd->ctrl_channel);
         BXIERR_CHAIN(err, err2);
-        if (bxierr_isko(err)) bxierr_report(err, STDERR_FILENO);
+        if (bxierr_isko(err)) bxierr_report(&err, STDERR_FILENO);
     }
     BXIFREE(tsd->log_buf);
     BXIFREE(tsd);

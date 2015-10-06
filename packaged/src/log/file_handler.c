@@ -250,7 +250,7 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
                                 "\tNumber of reported distinct errors: %zu\n",
                                 data->lost_logs,
                                 data->errset->errors_nb);
-        bxilog__display_err_msg(str);
+        bxilog_rawprint(str, STDERR_FILENO);
         BXIFREE(str);
     }
 
@@ -319,7 +319,7 @@ bxierr_p _process_err(bxierr_p *err, bxilog_file_handler_param_p data) {
     if (bxierr_isok(*err)) return *err;
 
     char * str = bxierr_str(*err);
-    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An error occured: %s", str);
+    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An internal error occured: %s", str);
 
     if (bxierr_isko(fatal)) {
         result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
@@ -404,7 +404,7 @@ bxierr_p _log_single_line(char * line,
                     "available in your program if it uses the full bxi "
                     "high performance logging library.\n",
                     data->filename, err_str);
-            bxilog__display_err_msg(str);
+            bxilog_rawprint(str, STDERR_FILENO);
             BXIFREE(err_str);
             BXIFREE(str);
         } else {

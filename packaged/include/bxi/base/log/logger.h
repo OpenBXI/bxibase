@@ -81,7 +81,7 @@
                                                        (funcname), (funcname_len),      \
                                                        (line), __VA_ARGS__);            \
             if (bxierr_isko(__err__)) {                                                 \
-                bxierr_report(__err__, STDOUT_FILENO);                                  \
+                bxierr_report(&__err__, STDOUT_FILENO);                                  \
             }                                                                           \
         }                                                                               \
     } while(false);

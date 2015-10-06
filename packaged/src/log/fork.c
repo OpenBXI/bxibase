@@ -80,7 +80,7 @@ void _parent_before_fork(void) {
                                 "some logs might have been missed. "
                                 "Detailed error is - %s",
                                 err_str);
-        bxilog__display_err_msg(msg);
+        bxilog_rawprint(msg, STDERR_FILENO);
         BXIFREE(msg);
         BXIFREE(err_str);
         bxierr_destroy(&err);

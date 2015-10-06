@@ -18,9 +18,6 @@
 
 #include "bxi/base/log.h"
 
-#include "handler_impl.h"
-#include "log_impl.h"
-
 #include "bxi/base/log/null_handler.h"
 
 //*********************************************************************************

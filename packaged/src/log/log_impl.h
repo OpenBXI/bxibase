@@ -60,7 +60,7 @@ typedef struct {
     pthread_once_t tsd_key_once;
 
     size_t internal_handlers_nb;
-    pthread_t *internal_handlers;
+    pthread_t *handlers_threads;
 } bxilog__core_globals_s;
 
 typedef bxilog__core_globals_s * bxilog__core_globals_p;
@@ -75,7 +75,6 @@ extern bxilog__core_globals_p BXILOG__GLOBALS;
 //********************************** Interface         ****************************
 //*********************************************************************************
 bxierr_p bxilog__init_globals();
-void bxilog__display_err_msg(char* msg);
 void bxilog__wipeout();
 bxierr_p bxilog__finalize(void);
 bxierr_p bxilog__start_handlers(void);

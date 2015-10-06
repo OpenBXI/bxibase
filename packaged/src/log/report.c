@@ -103,6 +103,6 @@ void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
                                               "%s: %s", msg, err_str);
     BXIFREE(msg);
     BXIFREE(err_str);
-    bxierr_report(logerr, STDERR_FILENO);
+    bxierr_report(&logerr, STDERR_FILENO);
 }
 
