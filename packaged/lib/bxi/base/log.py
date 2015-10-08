@@ -117,7 +117,7 @@ ALERT = __BXIBASE_CAPI__.BXILOG_ALERT  # #!< See foo.
 # # @see ::BXILOG_CRITICAL
 CRITICAL = __BXIBASE_CAPI__.BXILOG_CRITICAL
 
-# # @see ::BXILOG_CRITICAL
+# # @see ::BXILOG_ERROR
 ERROR = __BXIBASE_CAPI__.BXILOG_ERROR
 
 # # @see ::BXILOG_WARNING
@@ -657,7 +657,7 @@ def lowest(msg, *args, **kwargs):
     _get_default_logger().lowest(msg, *args, **kwargs)
 
 
-def exception(msg="", *args, **kwargs):
+def exception(msg="", level=ERROR, *args, **kwargs):
     """
     Log the current exception at the ::ERROR logging level.
 
@@ -668,7 +668,7 @@ def exception(msg="", *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().exception(msg, *args, **kwargs)
+    _get_default_logger().exception(msg, level, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
@@ -916,7 +916,7 @@ class BXILogger(object):
         """
         self.log(LOWEST, msg, *args, **kwargs)
 
-    def exception(self, msg, *args, **kwargs):
+    def exception(self, msg, level=ERROR, *args, **kwargs):
         """
         Log the current exception with the given message at the ERROR level.
 
@@ -927,7 +927,7 @@ class BXILogger(object):
 
         """
         kwargs['exc_info'] = True
-        self.log(ERROR, msg, *args, **kwargs)
+        self.log(level, msg, *args, **kwargs)
 
     @staticmethod
     def flush():
