@@ -13,13 +13,13 @@ SET_LOGGER(LOGGER_AC, "a.c.logger");
 
 char ** LEVEL_NAMES = NULL;
 
-void log_stuff(bxilog_p logger) {
+void log_stuff(bxilog_logger_p logger) {
     WARNING(logger, "A message");
     OUT(logger, "A message");
     DEBUG(logger, "A message");
 }
 
-void display_loggers(size_t n, bxilog_p loggers[n]) {
+void display_loggers(size_t n, bxilog_logger_p loggers[n]) {
 
     for (size_t i = 0; i < n; i++) {
         OUT(MY_LOGGER, "%s: %s",
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
     BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
 
     // Fetching all registered loggers
-    bxilog_p *loggers = {NULL};
+    bxilog_logger_p *loggers = {NULL};
     n = bxilog_registry_getall(&loggers);
     BXIASSERT(MY_LOGGER, n>0 && NULL != loggers);
 

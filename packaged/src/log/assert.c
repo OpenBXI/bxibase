@@ -47,7 +47,7 @@
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-void bxilog_assert(bxilog_p logger, bool result,
+void bxilog_assert(bxilog_logger_p logger, bool result,
                    char * file, size_t filelen,
                    const char * func, size_t funclen,
                    int line, char * expr) {

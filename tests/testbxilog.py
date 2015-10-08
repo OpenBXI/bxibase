@@ -115,16 +115,19 @@ class BXILogTest(unittest.TestCase):
              
         self._check_log_produced(FILENAME, 
                                  bxilog.exception,
+                                 bxilog.WARNING,
                                  "When no exception was raised - inner message: '%s'",
                                 "Who care?")
         self._check_log_produced(FILENAME, 
                                  bxilog.exception,
+                                 bxilog.DEBUG,
                                  "When no exception was raised - special char but no args: '%s'")
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      bxilog.exception,
+                                     bxilog.CRITICAL,
                                      "Exception catched: inner message: '%s'",
                                      "Kilroy was here")
          
@@ -133,6 +136,7 @@ class BXILogTest(unittest.TestCase):
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      bxilog.exception,
+                                     bxilog.CRITICAL,
                                      "Exception catched - special char but no args: '%s'")
          
  
@@ -160,11 +164,13 @@ class BXILogTest(unittest.TestCase):
          
         self._check_log_produced(FILENAME, 
                                  logger1.exception,
+                                 bxilog.ERROR,
                                  "When no exception was raised - inner message: '%s'",
                                  "Who care?")
          
         self._check_log_produced(FILENAME, 
                                  logger1.exception,
+                                 bxilog.ERROR,
                                  "When no exception was raised - special char but no args: '%s'")
              
         try:
@@ -172,6 +178,7 @@ class BXILogTest(unittest.TestCase):
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      logger1.exception,
+                                     bxilog.ERROR,
                                      "Exception catched: inner message: '%s'",
                                      "Kilroy was here")
              
@@ -180,6 +187,7 @@ class BXILogTest(unittest.TestCase):
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      logger1.exception,
+                                     bxilog.CRITICAL,
                                      "Exception catched - special char but no args: '%s'")
          
  

@@ -33,32 +33,37 @@
  *
  * ### Overview
  *
- * This module provides a high performance logging library (>500k logs/s),
+ * This module provides a high performance logging library,
  * for heavy multi-threaded processes, while supporting fork() system call,
- * and signal handling. It provides convenient functions to deal with:
+ * and signal handling. It provides:
  *
- * - logging at various log levels: `::bxilog_level_e`,
- * - logging configuration: `bxilog_cfg_registered()`,
- * - error reporting: `BXILOG_REPORT()`,
- * - assertion: `BXIASSERT()` and `BXIUNREACHABLE_STATEMENT()`,
- * - exiting: `::BXIEXIT`,
+ * - loggers: `::bxilog_logger_p`
+ * - logging levels: `::bxilog_level_e`,
+ * - filtering: `::bxilog_filter_p`
+ * - configuration: `::bxilog_config_p`,
+ * - error reporting functions: `::BXILOG_REPORT()`,
+ * - assertion function: `::BXIASSERT()` and `::BXIUNREACHABLE_STATEMENT()`,
+ * - exiting function: `::BXIEXIT()`,
  * - signal handling set-up: `bxilog_install_sighandler()`
+ * - log handlers: `::bxilog_hanler_p`
  *
- * ### Basic 4-steps usage
+ * ### Basic 5-steps usage
  *
- * 1. use macro `SET_LOGGER()` at the beginning of each C module (in .c, not in .h)
- * 2. in the same source file, use `DEBUG()`, `INFO()`, `WARNING()`, `ERROR()`, ...
- * 3. call `bxilog_init()` (in your `main()`) to initialize the whole module
- * 4. call `bxilog_finalize()` (in your `main()`) otherwise *your program won't terminate*!
+ * 1. use `SET_LOGGER()` at the beginning of each C module (in .c, not in .h);
+ * 2. use `DEBUG()`, `INFO()`, `WARNING()`, `ERROR()`, ..., in your source file at will;
+ * 3. use bxilog_basic_config() to create a new basic configuration;
+ * 4. call `bxilog_init()` (in your `main()`) to initialize the whole module;
+ * 5. call `bxilog_finalize()` (in your `main()`) otherwise *your program won't terminate*!
  *
  * ### Notes
  *
- * - `OUT()` should be seen as a replacement for `printf()`
- * - Loggers created with `SET_LOGGER()` are automatically registered with the library
- * - Dynamically created loggers with `bxilog_get()` (such as from higher level languages)
- *   can be registered with `bxilog_register()`
- * - Default level of each logger is `BXILOG_LOWEST`. Use `bxilog_cfg_registered()`
- *   to configure all registered loggers.
+ * - `OUT()` should be seen as a replacement for `printf()`;
+ * - Loggers statically created with `SET_LOGGER()` or dynamically created
+ *   with `bxilog_registry_get()` (such as from higher level languages)
+ *   are automatically registered.
+ * - Remember to use `bxilog_registry_set_filters()` or
+ *   `bxilog_registry_parse_set_filters()` to define the logging level of all loggers.
+ *   Default is `BXILOG_LOWEST`.
  * - Use `BXIASSERT()` instead of `assert()` and `BXIEXIT()` instead of `exit()`
  *   to guarantee that logs are flushed before exiting the process.
  * - For the same reason, you might need the installation of a signal handler in order
@@ -134,23 +139,26 @@
  *
  * WARNING: this function should be called once only (from the `main()` usually).
  *
- * If program_name is NULL, a name will be generated somehow. ;-)
- *
  * Note: `bxilog_init()` does not set any signal handler.
- *
- * Most of the time, you want to guarantee that bxilog_finalize() will be called
- * before exiting whatever the reason is to prevent log lost.
- *
+ * Most of the time, you want to guarantee that bxilog_finalize() is called
+ * before exiting to prevent log lost.
  * This library provides `bxilog_install_sighandler()` that can be used for this
  * specific purpose. It should be called just after `bxilog_init()`.
  *
- * @param[in] param bxilog parameters
+ * @param[in] config the configuration to use
  *
- * @return BXIERR_OK on success, anything else on error.
+ * @return BXIERR_OK on success, anything else on error. On error, do not use
+ *         BXIREPORT, BXIEXIT or any other such functions that produce logs: since
+ *         the library has not been initialized correctly, result is undefined.
+ *         Use bxierr_report() in such a case.
  *
  * @see bxilog_config_p
+ * @see bxilog_basic_config()
+ * @see bxilog_config_new()
+ * @see bxierr_report()
+ *
  */
-bxierr_p bxilog_init(bxilog_config_p param);
+bxierr_p bxilog_init(bxilog_config_p config);
 
 /**
  * Release all resources used by the logging system. After this call,
@@ -161,7 +169,10 @@ bxierr_p bxilog_init(bxilog_config_p param);
  * `bxilog_init()` has not been called.
  *
  * @param[in] flush flush before exiting if true
- * @return BXIERR_OK on success, anything else on error.
+ * @return BXIERR_OK on success, anything else on error. On error, do not use
+ *         BXIREPORT, BXIEXIT or any other such functions that produce logs: since
+ *         the library has not been initialized correctly, result is undefined.
+ *         Use bxierr_report() in such a case.
  *
  */
 bxierr_p bxilog_finalize(bool flush);
@@ -180,7 +191,7 @@ bxierr_p bxilog_flush(void);
 /**
  * Display on stderr the loggers which can be configured.
  */
-void bxilog_display_loggers();
+void bxilog_display_loggers(int fd);
 
 /**
  * Display a message on a file descriptor.

@@ -42,7 +42,7 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 
-static void _configure(bxilog_p logger);
+static void _configure(bxilog_logger_p logger);
 static void _reset_config();
 
 //*********************************************************************************
@@ -56,7 +56,7 @@ static size_t REGISTERED_LOGGERS_ARRAY_SIZE = REGISTERED_LOGGERS_DEFAULT_ARRAY_S
 /**
  * The array of registered loggers.
  */
-static bxilog_p * REGISTERED_LOGGERS = NULL;
+static bxilog_logger_p * REGISTERED_LOGGERS = NULL;
 /**
  * Number of registered loggers.
  */
@@ -79,7 +79,7 @@ static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 //*********************************************************************************
 
 
-void bxilog_registry_add(bxilog_p logger) {
+void bxilog_registry_add(bxilog_logger_p logger) {
     bxiassert(logger != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
@@ -128,14 +128,14 @@ void bxilog_registry_add(bxilog_p logger) {
     bxiassert(0 == rc);
 }
 
-void bxilog_registry_del(bxilog_p logger) {
+void bxilog_registry_del(bxilog_logger_p logger) {
     bxiassert(logger != NULL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     bool found = false;
 //    fprintf(stderr, "Nb Registered loggers: %zu\n", REGISTERED_LOGGERS_NB);
     for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
-        bxilog_p current = REGISTERED_LOGGERS[i];
+        bxilog_logger_p current = REGISTERED_LOGGERS[i];
         if (NULL == current) continue;
 //        fprintf(stderr, "Logger[%zu]: %s\n", i, current->name);
         if (current == logger) {
@@ -165,14 +165,14 @@ void bxilog_registry_del(bxilog_p logger) {
 }
 
 
-bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result) {
+bxierr_p bxilog_registry_get(const char * logger_name, bxilog_logger_p * result) {
     *result = NULL;
 
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     if (0 != rc) return bxierr_errno("Call to pthread_mutex_lock() failed (rc=%d)", rc);
 
     for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
-        bxilog_p logger = REGISTERED_LOGGERS[i];
+        bxilog_logger_p logger = REGISTERED_LOGGERS[i];
         if (NULL == logger) continue;
         if (strncmp(logger->name, logger_name, logger->name_length) == 0) {
             *result = logger;
@@ -184,7 +184,7 @@ bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result) {
     if (0 != rc) return bxierr_errno("Call to pthread_mutex_unlock() failed (rc=%d)", rc);
 
     if (NULL == *result) { // Not found
-        bxilog_p self = bximem_calloc(sizeof(*self));
+        bxilog_logger_p self = bximem_calloc(sizeof(*self));
         self->allocated = true;
         self->name = strdup(logger_name);
         self->name_length = strlen(logger_name) + 1;
@@ -197,11 +197,11 @@ bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result) {
 }
 
 
-size_t bxilog_registry_getall(bxilog_p *loggers[]) {
+size_t bxilog_registry_getall(bxilog_logger_p *loggers[]) {
     bxiassert(NULL != loggers);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
-    bxilog_p * result = bximem_calloc(REGISTERED_LOGGERS_NB * sizeof(*result));
+    bxilog_logger_p * result = bximem_calloc(REGISTERED_LOGGERS_NB * sizeof(*result));
     size_t j = 0;
     for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
         if (NULL == REGISTERED_LOGGERS[i]) continue;
@@ -236,7 +236,7 @@ bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s cfg[n]) {
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
 //    fprintf(stderr, "Number of cfg items: %zd\n", n);
     for (size_t l = 0; l < REGISTERED_LOGGERS_ARRAY_SIZE; l++) {
-        bxilog_p logger = REGISTERED_LOGGERS[l];
+        bxilog_logger_p logger = REGISTERED_LOGGERS[l];
         if (NULL != logger) _configure(logger);
     }
     rc = pthread_mutex_unlock(&REGISTER_LOCK);
@@ -355,7 +355,7 @@ void _reset_config() {
     CFG_ITEMS_NB = 0;
 }
 
-void _configure(bxilog_p logger) {
+void _configure(bxilog_logger_p logger) {
     bxiassert(NULL != logger);
 
     for (size_t i = 0; i < CFG_ITEMS_NB; i++) {

@@ -278,18 +278,24 @@ bxierr_p bxilog_flush(void) {
 }
 
 
-void bxilog_display_loggers() {
+void bxilog_display_loggers(int fd) {
     char ** level_names;
     size_t n = bxilog_get_all_level_names(&level_names);
-    fprintf(stderr, "Log level names:\n");
+    char * TMP = "Log level names:\n";
+    write(fd, TMP, ARRAYLEN(TMP));
     while(n-- > 0) {
-        fprintf(stderr, "\t%zu\t = %s\n", n, level_names[n]);
+        TMP = bxistr_new("\t%zu\t = %s\n", n, level_names[n]);
+        write(fd, TMP, strlen(TMP) + 1);
+        BXIFREE(TMP);
     }
-    bxilog_p * loggers;
+    bxilog_logger_p * loggers;
     n = bxilog_registry_getall(&loggers);
-    fprintf(stderr, "Loggers name:\n");
+    TMP = "Loggers name:\n";
+    write(fd, TMP, ARRAYLEN(TMP));
     while(n-- > 0) {
-        fprintf(stderr, "\t%s\n", loggers[n]->name);
+        TMP = bxistr_new("\t%s\n", loggers[n]->name);
+        write(fd, TMP, strlen(TMP) + 1);
+        BXIFREE(TMP);
     }
     BXIFREE(loggers);
 }

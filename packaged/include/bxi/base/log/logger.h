@@ -94,13 +94,13 @@
  */
 #ifdef __cplusplus
 #define SET_LOGGER(variable_name, logger_name) \
-    static struct bxilog_s variable_name ## _s = { \
+    static struct bxilog_logger_s variable_name ## _s = { \
                                         false, \
                                         logger_name,\
                                         ARRAYLEN(logger_name),\
                                         BXILOG_LOWEST\
     };\
-    static bxilog_p const variable_name = &variable_name ## _s;\
+    static bxilog_logger_p const variable_name = &variable_name ## _s;\
     static __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
         bxilog_registry_add(variable_name);\
     }\
@@ -110,22 +110,22 @@
 #else
 #ifdef BXICFFI
 #define SET_LOGGER(variable_name, logger_name) \
-    static struct bxilog_s variable_name ## _s = { \
+    static struct bxilog_logger_ variable_name ## _s = { \
                                         .allocated = false, \
                                         .name = logger_name,\
                                         .name_length = ARRAYLEN(logger_name),\
                                         .level = BXILOG_LOWEST\
     };\
-    static bxilog_p const variable_name = &variable_name ## _s;
+    static bxilog_logger_p const variable_name = &variable_name ## _s;
 #else
 #define SET_LOGGER(variable_name, logger_name) \
-    static struct bxilog_s variable_name ## _s = { \
+    static struct bxilog_logger_s variable_name ## _s = { \
                                         .allocated = false, \
                                         .name = logger_name,\
                                         .name_length = ARRAYLEN(logger_name),\
                                         .level = BXILOG_LOWEST\
     };\
-    static bxilog_p const variable_name = &variable_name ## _s;\
+    static bxilog_logger_p const variable_name = &variable_name ## _s;\
     static __attribute__((constructor)) void __bxilog_register_log__ ## variable_name(void) {\
         bxilog_registry_add(variable_name);\
     }\
@@ -143,9 +143,9 @@
 /**
  * Data structure representing a logger.
  *
- * @see bxilog_p
+ * @see bxilog_logger_p
  */
-struct bxilog_s {
+struct bxilog_logger_s {
     bool allocated;                 //!< true if allocated on the heap, false otherwise
     const char * name;              //!< Logger name
     size_t name_length;             //!< Logger name length, including NULL ending byte
@@ -159,7 +159,7 @@ struct bxilog_s {
  * Use `SET_LOGGER()` to create one (or `bxilog_get()`
  * from a high level language).
  */
-typedef struct bxilog_s * bxilog_p;
+typedef struct bxilog_logger_s * bxilog_logger_p;
 
 
 // *********************************************************************************
@@ -177,7 +177,7 @@ typedef struct bxilog_s * bxilog_p;
  *
  * @param[in] self_p a pointer on a logger instance
  */
-void bxilog_destroy(bxilog_p * self_p);
+void bxilog_destroy(bxilog_logger_p * self_p);
 
 
 /**
@@ -204,7 +204,7 @@ void bxilog_destroy(bxilog_p * self_p);
  * @see bxilog_log()
  * @see bxierr_p
  */
-bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
+bxierr_p bxilog_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
                            char * filename, size_t filename_len,
                            const char * funcname, size_t funcname_len,
                            int line,
@@ -235,7 +235,7 @@ bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
  * @see bxilog_log()
  * @see bxierr_p
  */
-bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
+bxierr_p bxilog_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
                                  char * filename, size_t filename_len,
                                  const char * funcname, size_t funcname_len,
                                  int line,
@@ -264,7 +264,7 @@ bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e lev
  * @return BXIERR_OK on success, any other value is an error
  * @see bxilog_log_nolevelcheck
  */
-bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
+bxierr_p bxilog_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
                                   char * filename, size_t filename_len,
                                   const char * funcname, size_t funcname_len,
                                   const int line,
@@ -278,7 +278,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
  *
  * @return the given logger log level
  */
-bxilog_level_e bxilog_get_level(const bxilog_p logger);
+bxilog_level_e bxilog_get_level(const bxilog_logger_p logger);
 
 /**
  * Set the log level for the given logger.
@@ -286,7 +286,7 @@ bxilog_level_e bxilog_get_level(const bxilog_p logger);
  * @param[in] logger the logger instance
  * @param[in] level the log level
  */
-void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level);
+void bxilog_logger_et_level(const bxilog_logger_p logger, const bxilog_level_e level);
 
 /**
  * Return true if the given logger is enabled at the given log level.
@@ -297,12 +297,12 @@ void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level);
  * @return true if the given logger is enabled at the given log level.
  */
 #ifndef BXICFFI
-inline bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level) {
+inline bool bxilog_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level) {
     bxiassert(logger != NULL && level <= BXILOG_LOWEST);
     return level <= logger->level;
 }
 #else
-bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level);
+bool bxilog_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
 #endif
 
 

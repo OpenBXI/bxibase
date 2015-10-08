@@ -101,7 +101,7 @@
  *
  * @see BXILOG_REPORT
  */
-void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+void bxilog_report(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                    char * file, size_t filelen,
                    const char * func, size_t funclen,
                    int line,
@@ -129,7 +129,7 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
  *
  * @see BXILOG_REPORT_KEEP
  */
-void bxilog_report_keep(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+void bxilog_report_keep(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                         char * file, size_t filelen,
                         const char * func, size_t funclen,
                         int line,

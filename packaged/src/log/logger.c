@@ -67,7 +67,7 @@
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-static bxierr_p _send2handlers(const bxilog_p logger, const bxilog_level_e level,
+static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_e level,
                             void * log_channel,
 #ifdef __linux__
                             pid_t tid,
@@ -89,21 +89,21 @@ SET_LOGGER(LOGGER, "bxi.base.log.logger");
 //*********************************************************************************
 
 
-bxilog_level_e bxilog_get_level(const bxilog_p logger) {
+bxilog_level_e bxilog_get_level(const bxilog_logger_p logger) {
     bxiassert(NULL != logger);
     return logger->level;
 }
 
-void bxilog_set_level(const bxilog_p logger, const bxilog_level_e level) {
+void bxilog_set_level(const bxilog_logger_p logger, const bxilog_level_e level) {
     bxiassert(NULL != logger);
     bxiassert(BXILOG_LOWEST >= level);
     logger->level = level;
 }
 
 // Defined inline in bxilog.h
-extern bool bxilog_is_enabled_for(const bxilog_p logger, const bxilog_level_e level);
+extern bool bxilog_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
 
-void bxilog_destroy(bxilog_p * self_p) {
+void bxilog_destroy(bxilog_logger_p * self_p) {
     if (NULL == *self_p) return;
     if (!(*self_p)->allocated) return;
 
@@ -112,7 +112,7 @@ void bxilog_destroy(bxilog_p * self_p) {
 }
 
 
-bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
+bxierr_p bxilog_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
                            char * filename, size_t filename_len,
                            const char * funcname, size_t funcname_len,
                            int line,
@@ -134,7 +134,7 @@ bxierr_p bxilog_log_rawstr(const bxilog_p logger, const bxilog_level_e level,
     return err;
 }
 
-bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
+bxierr_p bxilog_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
                                   char * filename, size_t filename_len,
                                   const char * funcname, size_t funcname_len,
                                   const int line,
@@ -203,7 +203,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_p logger, const bxilog_level_e le
     return err;
 }
 
-bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e level,
+bxierr_p bxilog_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
                                  char * filename, size_t filename_len,
                                  const char * funcname, size_t funcname_len,
                                  const int line,
@@ -224,7 +224,7 @@ bxierr_p bxilog_log_nolevelcheck(const bxilog_p logger, const bxilog_level_e lev
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
 
-bxierr_p _send2handlers(const bxilog_p logger,
+bxierr_p _send2handlers(const bxilog_logger_p logger,
                         const bxilog_level_e level,
                         void * log_channel,
 #ifdef __linux__

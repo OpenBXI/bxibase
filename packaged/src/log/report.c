@@ -38,7 +38,7 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 
-static void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+static void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                         char * file, size_t filelen,
                         const char * func, size_t funclen,
                         int line,
@@ -52,7 +52,7 @@ static void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+void bxilog_report(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                    char * file, size_t filelen,
                    const char * func, size_t funclen,
                    int line,
@@ -66,7 +66,7 @@ void bxilog_report(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
     *err = BXIERR_OK;
 }
 
-void bxilog_report_keep(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+void bxilog_report_keep(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                         char * file, size_t filelen,
                         const char * func, size_t funclen,
                         int line,
@@ -84,7 +84,7 @@ void bxilog_report_keep(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
 
-void _report_err(bxilog_p logger, bxilog_level_e level, bxierr_p * err,
+void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                  char * file, size_t filelen,
                  const char * func, size_t funclen,
                  int line,

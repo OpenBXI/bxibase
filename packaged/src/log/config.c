@@ -77,7 +77,7 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
     bxilog_config_p config = bxilog_config_new(progname);
     // TODO: default configuration for the moment is compatible with old
     // behaviour. This will change soon.
-//    bxilog_config_add_handler(config, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
+    bxilog_config_add_handler(config, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
     bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, append);
     // Bull default to LOG_LOCAL0
 //    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,

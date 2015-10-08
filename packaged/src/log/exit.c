@@ -49,7 +49,7 @@
 
 void bxilog_exit(int exit_code,
                  bxierr_p err,
-                 bxilog_p logger,
+                 bxilog_logger_p logger,
                  bxilog_level_e level,
                  char * file,
                  size_t filelen,

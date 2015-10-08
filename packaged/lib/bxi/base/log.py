@@ -416,7 +416,7 @@ def get_logger(name):
         if __FFI__.string(logger.clogger.name) == name:
             return logger
 
-    logger_p = __FFI__.new('bxilog_p[1]')
+    logger_p = __FFI__.new('bxilog_logger_p[1]')
     bxierr_p = __BXIBASE_CAPI__.bxilog_registry_get(name, logger_p)
     BXICError.raise_if_ko(bxierr_p)
 
@@ -469,7 +469,7 @@ def get_all_loggers_iter():
 
     @return
     """
-    loggers = __FFI__.new("bxilog_p **")
+    loggers = __FFI__.new("bxilog_logger_p **")
     nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
     for i in xrange(nb):
         yield BXILogger(loggers[0][i])
@@ -657,7 +657,7 @@ def lowest(msg, *args, **kwargs):
     _get_default_logger().lowest(msg, *args, **kwargs)
 
 
-def exception(msg="", level=ERROR, *args, **kwargs):
+def exception(level=ERROR, msg="", *args, **kwargs):
     """
     Log the current exception at the ::ERROR logging level.
 
@@ -668,7 +668,7 @@ def exception(msg="", level=ERROR, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().exception(msg, level, *args, **kwargs)
+    _get_default_logger().exception(level, msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
@@ -761,7 +761,7 @@ class BXILogger(object):
         @see ::TRACE
         @see ::LOWEST
         """
-        __BXIBASE_CAPI__.bxilog_set_level(self.clogger, level)
+        __BXIBASE_CAPI__.bxilog_logger_set_level(self.clogger, level)
 
     def is_enabled_for(self, level):
         """
@@ -916,9 +916,9 @@ class BXILogger(object):
         """
         self.log(LOWEST, msg, *args, **kwargs)
 
-    def exception(self, msg, level=ERROR, *args, **kwargs):
+    def exception(self, level, msg, *args, **kwargs):
         """
-        Log the current exception with the given message at the ERROR level.
+        Log the current exception with the given message.
 
         @param[in] msg the message to log with the given exception
         @param[in] args an array of parameters for string substitution in msg

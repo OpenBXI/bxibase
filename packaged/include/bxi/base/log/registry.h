@@ -55,7 +55,7 @@ typedef bxilog_filter_s * bxilog_filter_p;
  *
  * @param[in] logger the logger to register with.
  */
-void bxilog_registry_add(bxilog_p logger);
+void bxilog_registry_add(bxilog_logger_p logger);
 
 /**
  * Unregister the current logger.
@@ -64,7 +64,7 @@ void bxilog_registry_add(bxilog_p logger);
  *
  * @param[in] logger the logger to unregister with.
  */
-void bxilog_registry_del(bxilog_p logger);
+void bxilog_registry_del(bxilog_logger_p logger);
 
 /**
  * Get the logger with the given name.
@@ -82,7 +82,7 @@ void bxilog_registry_del(bxilog_p logger);
  *
  * @see SET_LOGGER
  */
-bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result);
+bxierr_p bxilog_registry_get(const char * logger_name, bxilog_logger_p * result);
 
 /**
  * Return  a copy of all registered loggers.
@@ -102,7 +102,7 @@ bxierr_p bxilog_registry_get(const char * logger_name, bxilog_p * result);
  * @see bxilog_register()
  * @see bxilog_unregister()
  */
-size_t bxilog_registry_getall(bxilog_p *loggers[]);
+size_t bxilog_registry_getall(bxilog_logger_p *loggers[]);
 
 /**
  * Reset the bxilog registry.
