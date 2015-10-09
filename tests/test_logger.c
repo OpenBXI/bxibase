@@ -64,10 +64,10 @@ void test_logger_levels(void) {
                 buf[i] = (char) ('A' + (char) (rand()%50));
             }
             buf[len-1] = '\0';
-            bxilog_log(TEST_LOGGER, level,
-                       __FILE__, ARRAYLEN(__FILE__),
-                       __FUNCTION__, ARRAYLEN(__FUNCTION__),
-                       __LINE__, "One log line with some garbage: %s", buf);
+            bxilog_logger_log(TEST_LOGGER, level,
+                              __FILE__, ARRAYLEN(__FILE__),
+                              __FUNCTION__, ARRAYLEN(__FUNCTION__),
+                              __LINE__, "One log line with some garbage: %s", buf);
         }
     }
     // Random level order
@@ -82,10 +82,10 @@ void test_logger_levels(void) {
             buf[i] = (char) ('A' + (char) (rand()%50));
         }
         buf[len-1] = '\0';
-        bxilog_log(TEST_LOGGER, level,
-                   __FILE__, ARRAYLEN(__FILE__),
-                   __FUNCTION__, ARRAYLEN(__FUNCTION__),
-                   __LINE__, "One log line with some garbage: %s", buf);
+        bxilog_logger_log(TEST_LOGGER, level,
+                          __FILE__, ARRAYLEN(__FILE__),
+                          __FUNCTION__, ARRAYLEN(__FUNCTION__),
+                          __LINE__, "One log line with some garbage: %s", buf);
     }
 
     PANIC(TEST_LOGGER, "One log line");

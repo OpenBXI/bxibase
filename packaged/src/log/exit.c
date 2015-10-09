@@ -59,11 +59,11 @@ void bxilog_exit(int exit_code,
 
     bxiassert(NULL != logger);
     char * str = bxierr_str_limit(err, BXIERR_ALL_CAUSES);
-    bxilog_log(logger, level,
-               file, filelen,
-               func, funclen,
-               line,
-               "Exiting with code %d, Error is: %s", exit_code, str);
+    bxilog_logger_log(logger, level,
+                      file, filelen,
+                      func, funclen,
+                      line,
+                      "Exiting with code %d, Error is: %s", exit_code, str);
     bxierr_destroy(&err);
     err = bxitime_sleep(CLOCK_MONOTONIC, 0, 50000000);
     bxierr_destroy(&err);

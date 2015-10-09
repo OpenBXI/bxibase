@@ -84,6 +84,7 @@ void bxilog_registry_del(bxilog_logger_p logger);
  */
 bxierr_p bxilog_registry_get(const char * logger_name, bxilog_logger_p * result);
 
+
 /**
  * Return  a copy of all registered loggers.
  *

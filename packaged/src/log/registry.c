@@ -331,7 +331,7 @@ void bxilog__cfg_release_loggers() {
             //            fprintf(stderr, "loggers[%zu]: %s\n", i, REGISTERED_LOGGERS[i]->name);
             if (REGISTERED_LOGGERS[i]->allocated) {
                 //                fprintf(stderr, "[I] Destroying %s\n", REGISTERED_LOGGERS[i]->name);
-                bxilog_destroy(&REGISTERED_LOGGERS[i]);
+                bxilog_logger_destroy(&REGISTERED_LOGGERS[i]);
             }
             REGISTERED_LOGGERS[i] = NULL;
             REGISTERED_LOGGERS_NB--;

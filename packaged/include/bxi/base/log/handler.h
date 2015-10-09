@@ -28,29 +28,21 @@
  * @brief   Log Handler
  *
  *
- * ### Overview
- * A log handler processes logs as they are produced by business code threads.
+ * A log handler is basically a thread (or many...) that processes logs as they are
+ * produced by business code threads.
  *
  * Implementing a new log handler, is quite simple as it only requires the
  * implementation of few functions defined in bxilog_handler_p.
  *
- * Those functions are called following the finite state machine defined below.
  */
 
 
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
-#define READY_CTRL_MSG_REQ "BC->H: ready?"
-#define READY_CTRL_MSG_REP "H->BC: ready!"
-#define FLUSH_CTRL_MSG_REQ "BC->H: flush?"
-#define FLUSH_CTRL_MSG_REP "H->BC: flushed!"
-#define EXIT_CTRL_MSG_REQ "BC->H: exit?"
-#define EXIT_CTRL_MSG_REP "H->BC: exited!"
-
 
 /**
- *  Error code used by handlers to specify they must exit
+ *  Error code used by handlers to specify they must exit.
  */
 #define BXILOG_HANDLER_EXIT_CODE 41322811
 
@@ -68,52 +60,58 @@ BXIERR_CASSERT(timespec_size, TIMESPEC_SIZE == sizeof(struct timespec));
 // ********************************** Types   **************************************
 // *********************************************************************************
 
-// A bxilog record
+/**
+ * A bxilog record is received for each log produced by business code threads.
+ */
+typedef struct {
 // TODO: reorganize with most-often used data first
 // see cachegrind results.
-typedef struct {
-    bxilog_level_e level;           // log level
+    bxilog_level_e level;               //!< log level
 #ifndef BXICFFI
-    struct timespec detail_time;    // log timestamp
+    struct timespec detail_time;        //!< log timestamp
 #else
-    uint8_t detail_time[TIMESPEC_SIZE];
+    uint8_t detail_time[TIMESPEC_SIZE]; // fake for CFFI
 #endif
 #ifndef BXICFFI
-    pid_t pid;                      // process pid
+    pid_t pid;                          //!< process pid
 #ifdef __linux__
-    pid_t tid;                      // kernel thread id
-//    size_t thread_name_len        // Thread name (see pthread_getname_np())
+    pid_t tid;                          //!< kernel thread id
+//    size_t thread_name_len            //!< Thread name (see pthread_getname_np())
 #endif
 #else
-    int pid;
+    int pid;                            // fake for CFFI
 #ifdef __linux__
-    int tid;
+    int tid;                            // fake for CFFI
 #endif
 #endif
-    uint16_t thread_rank;           // user thread rank
-    int line_nb;                    // line nb
-    //  size_t progname_len;            // program name length
-    size_t filename_len;            // file name length
-    size_t funcname_len;            // function name length
-    size_t logname_len;             // logger name length
-    size_t variable_len;            // filename_len + funcname_len +
-                                    // logname_len
-    size_t logmsg_len;              // the logmsg length
+    uint16_t thread_rank;               //!< user thread rank
+    int line_nb;                        //!< line nb
+    //  size_t progname_len;            //!< program name length
+    size_t filename_len;                //!< file name length
+    size_t funcname_len;                //!< function name length
+    size_t logname_len;                 //!< logger name length
+    size_t variable_len;                //!< filename_len + funcname_len +
+                                        //!< logname_len
+    size_t logmsg_len;                  //!< the logmsg length
 } bxilog_record_s;
 
+/**
+ * A bxilog record object.
+ */
 typedef bxilog_record_s * bxilog_record_p;
 
+/**
+ * Log handler parameter.
+ */
 typedef struct {
-    bool mask_signals;
-    void * zmq_context;
-    int data_hwm;
-    int ctrl_hwm;
-    double connect_timeout_s;
-    long poll_timeout_ms;
-    size_t subscriptions_nb;
-    char **subscriptions;
-    char * data_url;
-    char * ctrl_url;
+    bool mask_signals;                  //!< if true, signals must be masked
+    void * zmq_context;                 //!< the ZMQ context to use, if NULL,
+                                        //!< a new one will be created
+    int data_hwm;                       //!< ZMQ High Water Mark for the data socket
+    int ctrl_hwm;                       //!< ZMQ High Water Mark for the control socket
+    long poll_timeout_ms;               //!< Polling timeout in milliseconds
+    char * data_url;                    //!< The data zocket URL
+    char * ctrl_url;                    //!< the control zocket URL
 } bxilog_handler_param_s;
 
 typedef bxilog_handler_param_s * bxilog_handler_param_p;

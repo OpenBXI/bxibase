@@ -710,7 +710,7 @@ class BXILogger(object):
         """
         if not _INITIALIZED:
             _init()
-        if __BXIBASE_CAPI__.bxilog_is_enabled_for(self.clogger, level):
+        if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
             exc_str = ''
             if 'exc_info' in kwargs:
                 ei = sys.exc_info()
@@ -723,15 +723,15 @@ class BXILogger(object):
                 exc_str = '- Exception: %s' % exc_s
             msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
             filename, lineno, funcname = _findCaller()
-            bxierr_p = __BXIBASE_CAPI__.bxilog_log_rawstr(self.clogger,
-                                                          level,
-                                                          filename,
-                                                          len(filename) + 1,
-                                                          funcname,
-                                                          len(funcname) + 1,
-                                                          lineno,
-                                                          msg_str,
-                                                          len(msg_str) + 1)
+            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
+                                                                 level,
+                                                                 filename,
+                                                                 len(filename) + 1,
+                                                                 funcname,
+                                                                 len(funcname) + 1,
+                                                                 lineno,
+                                                                 msg_str,
+                                                                 len(msg_str) + 1)
             BXICError.raise_if_ko(bxierr_p)
 
     @property
@@ -770,7 +770,7 @@ class BXILogger(object):
         @param[in] level the logging level to check against
         @return True if this logger is enabled for the given logging level.
         """
-        return __BXIBASE_CAPI__.bxilog_is_enabled_for(self.clogger, level)
+        return __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level)
 
     def panic(self, msg, *args, **kwargs):
         """

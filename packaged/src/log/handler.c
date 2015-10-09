@@ -88,7 +88,6 @@ void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p 
     param->zmq_context = NULL;
     param->data_hwm = 65536;
     param->ctrl_hwm = 100;
-    param->connect_timeout_s = 1.0;
     param->poll_timeout_ms = 1000;
 
     // Use the param pointer to guarantee a unique URL name for different instances of
@@ -102,22 +101,11 @@ void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p 
 
 //    param->ctrl_url = bxistr_new("ipc:///tmp/%s.ctrl", handler->name);
 //    param->data_url = bxistr_new("ipc:///tmp/%s.data", handler->name);
-
-    // Subscribe to all messages
-    param->subscriptions_nb = 1;
-    param->subscriptions = bximem_calloc(param->subscriptions_nb *\
-                                         sizeof(*param->subscriptions));
-    param->subscriptions[0] = strdup("");
-
 }
 
 void bxilog_handler_clean_param(bxilog_handler_param_p param) {
     BXIFREE(param->ctrl_url);
     BXIFREE(param->data_url);
-    for (size_t j = 0; j < param->subscriptions_nb; j++) {
-        BXIFREE(param->subscriptions[j]);
-    }
-    BXIFREE(param->subscriptions);
     // Do not free param since it has not been allocated by init()
     // BXIFREE(param);
  }
@@ -291,22 +279,9 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
 
 //    fprintf(stderr, "Binding %p to %s\n", data->data_zocket, param->data_url);
 
-    bxierr_group_p errlist = bxierr_group_new();
-    for (size_t i = 0; i < param->subscriptions_nb; i++) {
-        bxierr_p suberr = bxizmq_zocket_setopt(data->data_zocket,
-                                               ZMQ_SUBSCRIBE,
-                                               param->subscriptions[i],
-                                               strlen(param->subscriptions[i]));
-        if (bxierr_isko(suberr)) bxierr_list_append(errlist, suberr);
-    }
-    if (0 < errlist->errors_nb) {
-        err2 = bxierr_from_group(BXIERR_GROUP_CODE,
-                                 errlist,
-                                 "Error during zeromq subscriptions");
-        BXIERR_CHAIN(err, err2);
-    } else {
-        bxierr_group_destroy(&errlist);
-    }
+    // Subscribe to all
+    err2 = bxizmq_zocket_setopt(data->data_zocket, ZMQ_SUBSCRIBE, "", 0);
+    BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(data->data_zocket,
                                 ZMQ_RCVHWM,

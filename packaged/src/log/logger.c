@@ -89,21 +89,21 @@ SET_LOGGER(LOGGER, "bxi.base.log.logger");
 //*********************************************************************************
 
 
-bxilog_level_e bxilog_get_level(const bxilog_logger_p logger) {
+bxilog_level_e bxilog_logger_get_level(const bxilog_logger_p logger) {
     bxiassert(NULL != logger);
     return logger->level;
 }
 
-void bxilog_set_level(const bxilog_logger_p logger, const bxilog_level_e level) {
+void bxilog_logger_set_level(const bxilog_logger_p logger, const bxilog_level_e level) {
     bxiassert(NULL != logger);
     bxiassert(BXILOG_LOWEST >= level);
     logger->level = level;
 }
 
 // Defined inline in bxilog.h
-extern bool bxilog_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
+extern bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
 
-void bxilog_destroy(bxilog_logger_p * self_p) {
+void bxilog_logger_destroy(bxilog_logger_p * self_p) {
     if (NULL == *self_p) return;
     if (!(*self_p)->allocated) return;
 
@@ -112,7 +112,7 @@ void bxilog_destroy(bxilog_logger_p * self_p) {
 }
 
 
-bxierr_p bxilog_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
+bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
                            char * filename, size_t filename_len,
                            const char * funcname, size_t funcname_len,
                            int line,
@@ -134,7 +134,7 @@ bxierr_p bxilog_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e le
     return err;
 }
 
-bxierr_p bxilog_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
+bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
                                   char * filename, size_t filename_len,
                                   const char * funcname, size_t funcname_len,
                                   const int line,
@@ -203,7 +203,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_lev
     return err;
 }
 
-bxierr_p bxilog_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
+bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
                                  char * filename, size_t filename_len,
                                  const char * funcname, size_t funcname_len,
                                  const int line,
@@ -212,7 +212,7 @@ bxierr_p bxilog_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_leve
     bxierr_p err;
 
     va_start(ap, fmt);
-    err = bxilog_vlog_nolevelcheck(logger, level,
+    err = bxilog_logger_vlog_nolevelcheck(logger, level,
                                    filename, filename_len, funcname, funcname_len, line,
                                    fmt, ap);
     va_end(ap);

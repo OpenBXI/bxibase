@@ -92,12 +92,12 @@ void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
 
     if (*err == NULL) return;
     if (bxierr_isok(*err)) return;
-    if (!bxilog_is_enabled_for(logger, level)) return ;
+    if (!bxilog_logger_is_enabled_for(logger, level)) return ;
 
     char * msg;
     bxistr_vnew(&msg, fmt, arglist);
     char * err_str = bxierr_str(*err);;
-    bxierr_p logerr = bxilog_log_nolevelcheck(logger, level,
+    bxierr_p logerr = bxilog_logger_log_nolevelcheck(logger, level,
                                               file, filelen,
                                               func, funclen, line,
                                               "%s: %s", msg, err_str);

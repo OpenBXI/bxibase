@@ -20,8 +20,10 @@
  *         This is not Free or Open Source software.\n
  *         Please contact Bull SAS for details about its license.\n
  *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
- * @brief   Configuration of the High Performance Logging Module
+ * @brief  Configuration of the High Performance Logging Module
  *
+ * A bxilog configuration specifies various logging parameters, in particular
+ * the set of logging handlers that must be used and with which parameters.
  */
 
 // *********************************************************************************
@@ -62,11 +64,16 @@ typedef bxilog_config_s * bxilog_config_p;
 // *********************************************************************************
 
 /**
- * Create the default basic configuration.
+ * Create the default basic configuration consisting of a bxilog_console_handler_p and
+ * and a file_handler_p.
+ *
+ * @note if the given filename is NULL, the bxilog_file_handler_p is not installed.
  *
  * @param[in] progname the program name (usually argv[0])
- * @param[in] filename the full file name where the file handler must produce its output
- * @param[in] append if true, append to filename if it exists
+ * @param[in] filename if not NULL, the full file name where the bxilog_file_handler_p
+ *            must produce its output
+ * @param[in] append if true, append to filename if it exists (ignored when filename
+ *            is NULL).
  *
  * @return a new bxilog "standard" configuration
  *
@@ -79,7 +86,8 @@ bxilog_config_p bxilog_basic_config(const char *progname,
  * Create a configuration suitable for unit testing.
  *
  * @param[in] progname the program name (usually argv[0])
- * @param[in] filename the full file name where the file handler must produce its output
+ * @param[in] filename the full file name where the bxilog_file_handler_p
+ * must produce its output
  * @param[in] append if true, append to filename if it exists
  *
  * @return a new bxilog configuration

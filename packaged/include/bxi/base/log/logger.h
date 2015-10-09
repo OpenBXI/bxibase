@@ -19,51 +19,51 @@
 /**
  * Produce a log at the `BXILOG_LOWEST` level
  */
-#define LOWEST(logger, ...) bxilog_log(logger, BXILOG_LOWEST, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
+#define LOWEST(logger, ...) bxilog_logger_log(logger, BXILOG_LOWEST, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
 /**
  * Produce a log at the `BXILOG_TRACE` level
  */
-#define TRACE(logger, ...) bxilog_log(logger, BXILOG_TRACE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
+#define TRACE(logger, ...) bxilog_logger_log(logger, BXILOG_TRACE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
 /**
  * Produce a log at the `BXILOG_FINE` level
  */
-#define FINE(logger, ...) bxilog_log(logger, BXILOG_FINE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define FINE(logger, ...) bxilog_logger_log(logger, BXILOG_FINE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_DEBUG` level
  */
-#define DEBUG(logger, ...) bxilog_log(logger, BXILOG_DEBUG, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define DEBUG(logger, ...) bxilog_logger_log(logger, BXILOG_DEBUG, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_INFO` level
  */
-#define INFO(logger, ...)  bxilog_log(logger, BXILOG_INFO, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define INFO(logger, ...)  bxilog_logger_log(logger, BXILOG_INFO, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_OUTPUT` level
  */
-#define OUT(logger, ...)   bxilog_log(logger, BXILOG_OUTPUT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define OUT(logger, ...)   bxilog_logger_log(logger, BXILOG_OUTPUT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_NOTICE` level
  */
-#define NOTICE(logger, ...)  bxilog_log(logger, BXILOG_NOTICE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define NOTICE(logger, ...)  bxilog_logger_log(logger, BXILOG_NOTICE, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_WARNING` level
  */
-#define WARNING(logger, ...)  bxilog_log(logger, BXILOG_WARNING, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define WARNING(logger, ...)  bxilog_logger_log(logger, BXILOG_WARNING, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_ERROR` level
  */
-#define ERROR(logger, ...)   bxilog_log(logger, BXILOG_ERROR, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define ERROR(logger, ...)   bxilog_logger_log(logger, BXILOG_ERROR, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_CRITICAL` level
  */
-#define CRITICAL(logger, ...)  bxilog_log(logger, BXILOG_CRITICAL, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define CRITICAL(logger, ...)  bxilog_logger_log(logger, BXILOG_CRITICAL, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_ALERT` level
  */
-#define ALERT(logger, ...)  bxilog_log(logger, BXILOG_ALERT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define ALERT(logger, ...)  bxilog_logger_log(logger, BXILOG_ALERT, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 /**
  * Produce a log at the `BXILOG_PANIC` level
  */
-#define PANIC(logger, ...)  bxilog_log(logger, BXILOG_PANIC, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+#define PANIC(logger, ...)  bxilog_logger_log(logger, BXILOG_PANIC, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 
 
 
@@ -74,14 +74,14 @@
  */
 // TODO: do log the actual log also with the same format than the actual log instead
 // of throwing it away
-#define bxilog_log(logger, lvl, filename, filename_len, funcname, funcname_len, line, ...) do {\
-        if (bxilog_is_enabled_for((logger), (lvl))) {                                   \
-            bxierr_p __err__ = bxilog_log_nolevelcheck((logger), (lvl),                 \
+#define bxilog_logger_log(logger, lvl, filename, filename_len, funcname, funcname_len, line, ...) do {\
+        if (bxilog_logger_is_enabled_for((logger), (lvl))) {                            \
+            bxierr_p __err__ = bxilog_logger_log_nolevelcheck((logger), (lvl),          \
                                                        (filename), (filename_len),      \
                                                        (funcname), (funcname_len),      \
                                                        (line), __VA_ARGS__);            \
             if (bxierr_isko(__err__)) {                                                 \
-                bxierr_report(&__err__, STDOUT_FILENO);                                  \
+                bxierr_report(&__err__, STDOUT_FILENO);                                 \
             }                                                                           \
         }                                                                               \
     } while(false);
@@ -175,10 +175,12 @@ typedef struct bxilog_logger_s * bxilog_logger_p;
 /**
  * Destroy the given logger.
  *
+ * @note: this is mainly for internal purpose, do not use unless you understand the
+ * relationship with logging registry.
+ *
  * @param[in] self_p a pointer on a logger instance
  */
-void bxilog_destroy(bxilog_logger_p * self_p);
-
+void bxilog_logger_destroy(bxilog_logger_p * self_p);
 
 /**
  * Create a log unconditionally without formatting. This is mainly used for
@@ -201,21 +203,21 @@ void bxilog_destroy(bxilog_logger_p * self_p);
  *
  * @return BXIERR_OK on success, any other value is an error
  *
- * @see bxilog_log()
+ * @see bxilog_logger_log()
  * @see bxierr_p
  */
-bxierr_p bxilog_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
-                           char * filename, size_t filename_len,
-                           const char * funcname, size_t funcname_len,
-                           int line,
-                           const char * rawstr, size_t rawstr_len);
+bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
+                                  char * filename, size_t filename_len,
+                                  const char * funcname, size_t funcname_len,
+                                  int line,
+                                  const char * rawstr, size_t rawstr_len);
 
 
 /**
  * Create a log unconditionally. This is mainly used by macros defined above
  * that already check the logger level, removing the useless function call.
  *
- * If you need the check, either do it manually, or use the `bxilog_log()` macro.
+ * If you need the check, either do it manually, or use the `bxilog_logger_log()` macro.
  *
  * WARNING: the `filename_len` and `funcname_len` should include the NULL
  * terminated string. Use strlen(s) + 1 for dynamic strings,
@@ -232,18 +234,18 @@ bxierr_p bxilog_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e le
  *
  * @return BXIERR_OK on success, any other value is an error
  *
- * @see bxilog_log()
+ * @see bxilog_logger_log()
  * @see bxierr_p
  */
-bxierr_p bxilog_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
-                                 char * filename, size_t filename_len,
-                                 const char * funcname, size_t funcname_len,
-                                 int line,
-                                 const char * fmt, ...)
+bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
+                                        char * filename, size_t filename_len,
+                                        const char * funcname, size_t funcname_len,
+                                        int line,
+                                        const char * fmt, ...)
 #ifndef BXICFFI
-                                __attribute__ ((format (printf, 8, 9)))
+                                        __attribute__ ((format (printf, 8, 9)))
 #endif
-    ;
+                                        ;
 
 
 #ifndef BXICFFI
@@ -262,13 +264,13 @@ bxierr_p bxilog_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_leve
  * @param[in] arglist the va_list of all parameters for the given format string 'fmt'
  *
  * @return BXIERR_OK on success, any other value is an error
- * @see bxilog_log_nolevelcheck
+ * @see bxilog_logger_log_nolevelcheck
  */
-bxierr_p bxilog_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
-                                  char * filename, size_t filename_len,
-                                  const char * funcname, size_t funcname_len,
-                                  const int line,
-                                  const char * fmt, va_list arglist);
+bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
+                                         char * filename, size_t filename_len,
+                                         const char * funcname, size_t funcname_len,
+                                         const int line,
+                                         const char * fmt, va_list arglist);
 #endif
 
 /**
@@ -278,7 +280,7 @@ bxierr_p bxilog_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_lev
  *
  * @return the given logger log level
  */
-bxilog_level_e bxilog_get_level(const bxilog_logger_p logger);
+bxilog_level_e bxilog_logger_get_level(const bxilog_logger_p logger);
 
 /**
  * Set the log level for the given logger.
@@ -297,12 +299,14 @@ void bxilog_logger_set_level(const bxilog_logger_p logger, const bxilog_level_e 
  * @return true if the given logger is enabled at the given log level.
  */
 #ifndef BXICFFI
-inline bool bxilog_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level) {
+inline bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger,
+                                         const bxilog_level_e level) {
+
     bxiassert(logger != NULL && level <= BXILOG_LOWEST);
     return level <= logger->level;
 }
 #else
-bool bxilog_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
+bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
 #endif
 
 
