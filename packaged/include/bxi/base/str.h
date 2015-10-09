@@ -25,7 +25,7 @@
 /**
  * @file    str.h
  * @brief   String Handling Module
- *
+
  */
 
 // *********************************************************************************
@@ -42,16 +42,27 @@
 // ********************************** Types   **************************************
 // *********************************************************************************
 
+/**
+ * A prefixer structure.
+ */
 typedef struct {
-    bool allocated;
-    size_t lines_nb;
-    size_t allocated_lines_nb;
-    size_t prefix_len;
-    char * prefix;
-    char ** lines;
-    size_t * lines_len;
+    bool allocated;                 //!< if true, the structure has been mallocated
+    size_t lines_nb;                //!< number of lines
+    size_t allocated_lines_nb;      //!< number of allocated lines
+    size_t prefix_len;              //!< prefix length
+    char * prefix;                  //!< prefix
+    char ** lines;                  //!< the list of lines to be prefixed
+    size_t * lines_len;             //!< the list of line length
 } bxistr_prefixer_s;
 
+/**
+ * A prefixer object.
+ *
+ * @see bxistr_prefixer_new
+ * @see bxistr_prefixer_init
+ * @see bxistr_prefixer_destroy
+ * @see bxistr_prefixer_cleanup
+ */
 typedef bxistr_prefixer_s * bxistr_prefixer_p;
 
 // *********************************************************************************
@@ -105,15 +116,19 @@ size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
  *
  * The string parsing stops as soon as the given function returns an error.
  *
- * @note the given string is modified while parsing. If you don't want such a behavior,
- *       duplicate your string before calling this function.
+ * The function `f()` is passed the current line in the string that must be processed,
+ * its length, a boolean `last`, that when true means the line is the last one in the
+ * string, and the parameter `param` passed to `bxistr_apply_lines()`.
+ *
+ * @note the given string `str` is modified while parsing. If you don't want such a
+ *       behavior, duplicate your string before calling this function.
  *
  * @param[inout] str the string to parse
  * @param[in] f the function to apply for each line found
  * @param[in] param a parameter that will be given to f for each line found
  *
  *
- * @return the first error returned by f.
+ * @return the first error returned by `f()`.
  */
 bxierr_p bxistr_apply_lines(char * str,
                             bxierr_p (*f)(char * line,
@@ -122,9 +137,25 @@ bxierr_p bxistr_apply_lines(char * str,
                                           void *param),
                             void * param);
 
-
+/**
+ * Allocate, initialize and return a new bxistr_prefixer_p object.
+ *
+ * @param[in] prefix a string representing the prefix
+ * @param[in] prefix_len the length of the prefix string
+ *
+ * @return a new bxistr_prefixer_p object
+ *
+ * @see bxistr_prefixer_init
+ */
 bxistr_prefixer_p bxistr_prefixer_new(char* prefix, size_t prefix_len);
 
+/**
+ * Initialize a bxistr_prefixer_p object.
+ *
+ * @param[in] self a prefixer object
+ * @param[in] prefix the prefix to use
+ * @param[in] prefix_len the length of the prefix string
+ */
 void bxistr_prefixer_init(bxistr_prefixer_p self,
                           char* prefix, size_t prefix_len);
 
@@ -133,17 +164,9 @@ void bxistr_prefixer_init(bxistr_prefixer_p self,
  *
  * @note: this function should not be used directly. Instead, use it in combination
  * with bxistr_apply_lines such as in the following code snippet:
+ * @snippet bxistr_examples.c Multi-line prefixer
  *
- * ~~~~~~~{.c}
- * bxistr_prefixer_s prefixer;
- * bxistr_prefixer_init(&prefixer, "*prefix*", ARRAYLEN("*prefix*") - 1);
- * char * s = strdup("One\nTwo\nThree");
- * bxistr_apply_lines(s, bxistr_prefixer_line, &prefixer);
- * for(size_t i = 0; i < prefixer->lines_nb; i++) {
- *      printf("%s", prefixer->lines[i]);
- * }
- * bxistr_prefixer_cleanup(&prefixer);
- * ~~~~~~~
+ *
  */
 bxierr_p bxistr_prefixer_line(char * line, size_t line_len, bool last, void * param);
 
@@ -161,5 +184,13 @@ size_t bxistr_join(char * sep, size_t sep_len,
 const char * bxistr_rfind(const char * const str,
                           const size_t str_len,
                           const char c);
+
+
+/**
+ * @example bxistr_examples.c
+ * Examples of the bxistr.h module. Compile with `-lbxibase`.
+ *
+ */
+
 
 #endif /* BXISTR_H_ */

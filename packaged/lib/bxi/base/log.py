@@ -657,9 +657,9 @@ def lowest(msg, *args, **kwargs):
     _get_default_logger().lowest(msg, *args, **kwargs)
 
 
-def exception(level=ERROR, msg="", *args, **kwargs):
+def exception(msg="", *args, **kwargs):
     """
-    Log the current exception at the ::ERROR logging level.
+    Log the current exception.
 
     @param[in] msg a message to display before the exception itself
     @param[in] args the message arguments if any
@@ -668,7 +668,7 @@ def exception(level=ERROR, msg="", *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().exception(level, msg, *args, **kwargs)
+    _get_default_logger().exception(msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
@@ -916,7 +916,7 @@ class BXILogger(object):
         """
         self.log(LOWEST, msg, *args, **kwargs)
 
-    def exception(self, level, msg, *args, **kwargs):
+    def exception(self, msg, *args, **kwargs):
         """
         Log the current exception with the given message.
 
@@ -927,6 +927,11 @@ class BXILogger(object):
 
         """
         kwargs['exc_info'] = True
+        if 'level' in kwargs:
+            level = kwargs['level']
+            del kwargs['level']
+        else: 
+            level = ERROR
         self.log(level, msg, *args, **kwargs)
 
     @staticmethod

@@ -10,11 +10,13 @@ endif
 
 TESTS = \
 		unit_t\
+		../packaged/doc/examples/bxistr_examples\
 		../packaged/doc/examples/bxilog_err\
 		../packaged/doc/examples/bxilog_cfg
 
 check_PROGRAMS= \
 				unit_t\
+				../packaged/doc/examples/bxistr_examples\
 				../packaged/doc/examples/bxilog_err\
 				../packaged/doc/examples/bxilog_cfg
 
@@ -65,13 +67,18 @@ DISTCLEANFILES=\
 			   report/${PACKAGE_NAME}-Listing.xml
 
 EXTRA_DIST=\
+		   ../packaged/doc/examples/bxistr_examples.c\
 		   ../packaged/doc/examples/bxilog_err.c\
 		   ../packaged/doc/examples/bxilog_cfg.c
 
 
-
+___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
 ___packaged_doc_examples_bxilog_err_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
 ___packaged_doc_examples_bxilog_cfg_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
+
+___packaged_doc_examples_bxistr_examples_CFLAGS=\
+										   -I$(top_srcdir)/packaged/include
+
 
 ___packaged_doc_examples_bxilog_err_CFLAGS=\
 										   -I$(top_srcdir)/packaged/include

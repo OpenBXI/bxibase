@@ -79,9 +79,9 @@ class BXILogTest(unittest.TestCase):
     """Unit tests for the BXILog
     """
  
-    def _check_log_produced(self, file, log_f, *args):
+    def _check_log_produced(self, file, log_f, *args, **kwargs):
         old_size = os.stat(file).st_size if os.path.exists(file) else 0
-        log_f(*args)
+        log_f(*args, **kwargs)
         bxilog.flush()
         new_size = os.stat(file).st_size
         self.assertTrue(new_size > old_size, 
@@ -115,29 +115,29 @@ class BXILogTest(unittest.TestCase):
              
         self._check_log_produced(FILENAME, 
                                  bxilog.exception,
-                                 bxilog.WARNING,
                                  "When no exception was raised - inner message: '%s'",
-                                "Who care?")
+                                "Who care?", level=bxilog.WARNING)
         self._check_log_produced(FILENAME, 
                                  bxilog.exception,
-                                 bxilog.DEBUG,
-                                 "When no exception was raised - special char but no args: '%s'")
+                                 "When no exception was raised - special char"\
+                                 "but no args: '%s'",
+                                 level=bxilog.DEBUG)
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      bxilog.exception,
-                                     bxilog.CRITICAL,
                                      "Exception catched: inner message: '%s'",
-                                     "Kilroy was here")
+                                     "Kilroy was here",
+                                     level=bxilog.CRITICAL)
          
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what again?")
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      bxilog.exception,
-                                     bxilog.CRITICAL,
-                                     "Exception catched - special char but no args: '%s'")
+                                     "Exception catched - special char but no args: '%s'",
+                                     level=bxilog.CRITICAL)
          
  
     def test_basic_log(self):
@@ -164,31 +164,31 @@ class BXILogTest(unittest.TestCase):
          
         self._check_log_produced(FILENAME, 
                                  logger1.exception,
-                                 bxilog.ERROR,
                                  "When no exception was raised - inner message: '%s'",
-                                 "Who care?")
+                                 "Who care?",
+                                 level=bxilog.ERROR)
          
         self._check_log_produced(FILENAME, 
                                  logger1.exception,
-                                 bxilog.ERROR,
-                                 "When no exception was raised - special char but no args: '%s'")
+                                 "When no exception was raised - special char but no args: '%s'",
+                                 level=bxilog.ERROR)
              
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      logger1.exception,
-                                     bxilog.ERROR,
                                      "Exception catched: inner message: '%s'",
-                                     "Kilroy was here")
+                                     "Kilroy was here",
+                                     level=bxilog.ERROR)
              
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what again?")
         except ValueError as ve:
             self._check_log_produced(FILENAME, 
                                      logger1.exception,
-                                     bxilog.CRITICAL,
-                                     "Exception catched - special char but no args: '%s'")
+                                     "Exception catched - special char but no args: '%s'",
+                                     level=bxilog.CRITICAL)
          
  
  
