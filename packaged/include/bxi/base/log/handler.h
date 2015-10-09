@@ -114,19 +114,63 @@ typedef struct {
     char * ctrl_url;                    //!< the control zocket URL
 } bxilog_handler_param_s;
 
+/**
+ * The log handler parameter object.
+ */
 typedef bxilog_handler_param_s * bxilog_handler_param_p;
 
+/**
+ * A log handler.
+ */
 typedef struct bxilog_handler_s_f bxilog_handler_s;
+
+/**
+ * A log handler.
+ */
 typedef bxilog_handler_s * bxilog_handler_p;
+
+/** A log handler.
+ *
+ */
 struct bxilog_handler_s_f {
-    char * name;
-    bxilog_handler_param_p (*param_new)(bxilog_handler_p,
+    char * name;                                            //!< Log handler name
+
+    /**
+     * This function is called automatically by bxilog_config_add_handler(). The
+     * arguments passed to this last function are passed into the va_list structure.
+     *
+     * @param[in] handler the log handler
+     * @param[in] param_list a list of parameters as given in the
+     * bxilog_config_add_handler()
+     *
+     * @return the parameters to be used by the logging handler.
+     */
+    bxilog_handler_param_p (*param_new)(bxilog_handler_p handler,
 #ifndef BXICFFI
-            va_list);
+            va_list param_list);
 #else
             void *);
 #endif
+    /**
+     * This function is called during initialization of the log handler.
+     *
+     * @param[in] param the log handler parameter as returned by param_new()
+     *
+     * @return if not BXIERR_OK, the log handler thread will exit.
+     */
     bxierr_p (*init)(bxilog_handler_param_p param);
+
+    /**
+     * This function is called each time a log is produced.
+     *
+     * This is the main purpose of a log handler: this function defines what the log
+     * handler does with a log. It can discard it, displays on the console, in a file,
+     * send it to another process such as syslog, or even send it to another logging
+     * backend such as netsnmp-log.
+     *
+     * @param[in] record a logging record
+     * @param[in] filename the filename
+     */
     bxierr_p (*process_log)(bxilog_record_p record,
                             char * filename,
                             char * funcname,

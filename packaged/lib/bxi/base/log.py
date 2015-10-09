@@ -86,12 +86,13 @@ for details on those levels.
 
 
 import atexit
-from cStringIO import StringIO
-import cStringIO
+import cStringIO as StringIO
 import os
 import sys
 import traceback
 import warnings
+import unittest
+import tempfile
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
@@ -395,7 +396,7 @@ def _init():
         bxierr_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
         BXICError.raise_if_ko(bxierr_p)
 
-    sio = StringIO()
+    sio = StringIO.StringIO()
     traceback.print_stack(file=sio)
     _INIT_CALLER = sio.getvalue()
     sio.close()
@@ -714,7 +715,7 @@ class BXILogger(object):
             exc_str = ''
             if 'exc_info' in kwargs:
                 ei = sys.exc_info()
-                sio = cStringIO.StringIO()
+                sio = StringIO.StringIO()
                 traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
                 exc_s = sio.getvalue()
                 sio.close()
@@ -988,3 +989,19 @@ def captureWarnings(capture):
         if _warnings_showwarning is not None:
             warnings.showwarning = _warnings_showwarning
             _warnings_showwarning = None
+
+
+class TestCase(unittest.TestCase):
+    BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
+                                   "%s.bxilog" % os.path.basename(sys.argv[0]))
+
+    @classmethod
+    def setUpClass(cls):
+        basicConfig(console=None,
+                    filename=(cls.BXILOG_FILENAME, False),
+                    filters=':lowest,bxibase.log:output')
+
+    @classmethod
+    def tearDownClass(cls):
+        cleanup()
+
