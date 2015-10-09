@@ -166,24 +166,75 @@ void bxistr_prefixer_init(bxistr_prefixer_p self,
  * with bxistr_apply_lines such as in the following code snippet:
  * @snippet bxistr_examples.c Multi-line prefixer
  *
+ * @param[in] line the line to prefix
+ * @param[in] line_len the length of the line
+ * @param[in] last if true, line is the last one
+ * @param[in] param the parameter given to bxistr_apply_lines()
+ *
+ * @return if not BXIERR_OK, ask the caller bxistr_apply_lines() to stop.
+ *
+ * @see bxistr_apply_lines()
  *
  */
 bxierr_p bxistr_prefixer_line(char * line, size_t line_len, bool last, void * param);
 
-void bxistr_prefixer_destroy(bxistr_prefixer_p *self);
+/**
+ * Destroy the given prefixer.
+ *
+ * @note the given pointer is nullified.
+ *
+ * @param[inout] self_p a pointer on the prefixer to destroy
+ *
+ */
+void bxistr_prefixer_destroy(bxistr_prefixer_p *self_p);
 
+/**
+ * Cleanup the given prefixer so it can be reinitialized with bxistr_prefixer_init().
+ *
+ * @note: this not equivalent to a free(). Use bxistr_prefixer_destroy() for this purpose.
+ *
+ * @param[in] self the prefixer to cleanup
+ *
+ */
 void bxistr_prefixer_cleanup(bxistr_prefixer_p self);
 
 /**
- * Join
+ * Join the given lines with the given separator.
+ *
+ * @note: the resulting string will have to be freed. Use BXIFREE() for this purpose.
+ *
+ * @param[in] sep the separator string
+ * @param[in] sep_len the length of the separotor string
+ * @param[in] lines the lines to join together
+ * @param[in] lines_len the array of lines length
+ * @param[in] lines_nb the number of elements in both lines and lines_len arrays
+ * @param[out] result a pointer on the resulting string
+ *
+ * @return the length of the resulting string
+ *
+ *
  */
 size_t bxistr_join(char * sep, size_t sep_len,
                    char ** lines, size_t *lines_len, size_t lines_nb,
                    char** result);
 
-const char * bxistr_rfind(const char * const str,
-                          const size_t str_len,
-                          const char c);
+/**
+ * Return the substring in `str` that starts by `c` starting from the end.
+ *
+ * @note: the returned substring share its memory with `str`. Freeing it using either
+ * free() or BXIFREE() is undefined. Also, if you free `str` the returned pointer
+ * becomes invalid immediately. If this is not what you want, use strdup(str) before
+ * calling this function.
+ *
+ * @param[in] str the string
+ * @param[in] str_len the length of the string
+ * @param[in] c the character the substring must start after
+ *
+ * @return the substring found or NULL if none exists
+ */
+const char * bxistr_rsub(const char * const str,
+                         const size_t str_len,
+                         const char c);
 
 
 /**

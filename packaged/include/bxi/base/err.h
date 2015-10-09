@@ -227,9 +227,36 @@
  */
 #define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, NULL, __VA_ARGS__)
 
-#define bxierr_from_group(code, errgroup, ...) \
-    bxierr_new(code, errgroup, (void (*) (void*)) bxierr_group_free, bxierr_group_str,\
+/**
+ * Define an error with the given code and the given error list.
+ *
+ * @see bxierr_list_p
+ */
+#define bxierr_from_list(code, errlist, ...) \
+    bxierr_new(code, errlist, (void (*) (void*)) bxierr_list_free, bxierr_list_str,\
                NULL, __VA_ARGS__)
+
+/**
+ * Transform a bxierr_p with a bxierr_set_p in its data field into a string.
+ *
+ * @note this function main purpose is to be used as an argument of bxierr_new().
+ *
+ * @param[in] err the error
+ * @param[in] depth the number of error causes to transform to string
+ *
+ * @see bxierr_new
+ */
+#define bxierr_set_str bxierr_list_str
+
+/**
+ * Define an error with the given code and the given error set.
+ *
+ * @see bxierr_set_p
+ */
+#define bxierr_from_set(code, errset, ...) \
+    bxierr_new(code, errset, (void (*) (void*)) bxierr_set_free, bxierr_set_str,\
+               NULL, __VA_ARGS__)
+
 /**
  * Define a new static error.
  *
@@ -319,18 +346,43 @@ struct bxierr_s {
 
 
 /**
- * An error set
+ * An error list
+ *
+ * @see bxierr_list_new
+ * @see bxierr_list_append
+ * @see bxierr_list_destroy
+ *
  */
 typedef struct {
     size_t errors_nb;              //!< Number of errors in the group
     size_t errors_size;            //!< Size of the errors array
     bxierr_p * errors;             //!< The list of errors
-} bxierr_group_s;
+} bxierr_list_s;
 
 /**
- * A simple set of several errors.
+ * A simple list of errors.
  */
-typedef bxierr_group_s * bxierr_group_p;
+typedef bxierr_list_s * bxierr_list_p;
+
+/**
+ * A set of distinct errors.
+ *
+ * @see bxierr_set_new
+ * @see bxierr_set_add
+ * @see bxierr_set_destroy
+ */
+typedef struct {
+    bxierr_list_s distinct_err;     //!< used for distinct errors storage
+    size_t * seen_nb;               //!< for each distinct error, count the number of
+                                    //!< time it has been seen.
+    size_t total_seen_nb;           //!< total number of seen errors
+} bxierr_set_s;
+
+/**
+ * A simple set of distinct errors.
+ */
+typedef bxierr_set_s * bxierr_set_p;
+
 
 /**
  * The single instance meaning OK.
@@ -404,8 +456,8 @@ void bxierr_free(bxierr_p self);
  *
  * The returned string *must* be freed. Use `BXIFREE()`.
  *
- * @param self the error
- * @param depth the maximum depth at which the processing must stop
+ * @param[in] self the error
+ * @param[in] depth the maximum depth at which the processing must stop
  *
  * @return a human string representation of the given error
  *
@@ -420,7 +472,8 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth);
  * The depth is defined as the number of causes in the whole chain starting from
  * the given error.
  *
- * @param self the error
+ * @param[in] self the error
+ *
  * @return the error depth
  */
 size_t bxierr_get_depth(bxierr_p self);
@@ -449,13 +502,22 @@ bxierr_p bxierr_get_ok();
  *
  * @note the given error will be destroyed.
  *
- * @param self the error to report
- * @param fd a file descriptor where the error will be reported
+ * @param[inout] self the error to report
+ * @param[in] fd a file descriptor where the error will be reported
  *
  * @see BXILOG_REPORT()
  */
 void bxierr_report(bxierr_p *self, int fd);
 
+/**
+ * Report the given error on the given file descriptor and keep the error.
+ *
+ * @note normally, a reported error should be destroyed, since it has been dealt with.
+ * Use bxierr_report() instead or even better BXILOG_REPORT().
+ *
+ * @param[in] self the error to report
+ * @param[in] fd the file descriptor to use (e.g: STDERR_FILENO)
+ */
 void bxierr_report_keep(bxierr_p self, int fd);
 
 /**
@@ -678,39 +740,131 @@ char * bxierr_backtrace_str(void);
  * @param[in] line the line in file in which the failed assertion was seen
  * @param[in] function the function in file in which the failed assertion was seen
  */
-void bxierr_unreachable_statement(const char *__file,
-                                  unsigned int __line, const char *__function)
+void bxierr_unreachable_statement(const char *file,
+                                  unsigned int line, const char *function)
 #ifndef BXICFFI
                                   __attribute__ ((__noreturn__))
 #endif
                                   ;
 
-bxierr_group_p bxierr_group_new();
-
-void bxierr_group_free(bxierr_group_p group);
-
-#ifndef BXICFFI
-inline void bxierr_group_destroy(bxierr_group_p * group_p) {
-    bxiassert(NULL != group_p);
-
-    bxierr_group_free(*group_p);
-
-    *group_p = NULL;
-}
-#else
-void bxierr_group_destroy(bxierr_group_p * group_p);
-#endif
-
-char * bxierr_group_str(bxierr_p err, uint64_t depth);
+/**
+ * Create a new bxierr_list_p object.
+ *
+ * @return a new bxierr_list_p
+ */
+bxierr_list_p bxierr_list_new();
 
 /**
- * Add the given error in the set if no error with the same code exists.
+ * Free a bxierr_list_p object.
+ *
+ * @note the pointer is not nullified. Use bxierr_list_destroy() instead.
+ *
+ * @param[inout] errlist the bxierr_list_p to free
+ *
+ * @see bxierr_list_destroy()
  */
-bool bxierr_set_add(bxierr_group_p set, bxierr_p * err);
+void bxierr_list_free(bxierr_list_p errlist);
+
+#ifndef BXICFFI
+/**
+ * Destroy a bxierr_list_p object.
+ *
+ * @note: the pointer is nullified.
+ *
+ * @param[inout] errlist_p the bxierr_list_p to destroy
+ *
+ */
+inline void bxierr_list_destroy(bxierr_list_p * errlist_p) {
+    bxiassert(NULL != errlist_p);
+
+    bxierr_list_free(*errlist_p);
+
+    *errlist_p = NULL;
+}
+#else
+void bxierr_list_destroy(bxierr_list_p * group_p);
+#endif
+
 
 /**
  * Append the given error in the list.
+ *
+ * @param[inout] list an error list
+ * @param[in] err an error
+ *
  */
-void bxierr_list_append(bxierr_group_p list, bxierr_p err);
+void bxierr_list_append(bxierr_list_p list, bxierr_p err);
+
+/**
+ * Transform a bxierr_p with a bxierr_list_p in its data field into a string.
+ *
+ * @note this function main purpose is to be used as an argument of bxierr_new().
+ *
+ * @param[in] err the error
+ * @param[in] depth the number of error causes to transform to string
+ *
+ * @return a string representation of the given error
+ *
+ * @see bxierr_new()
+ */
+char * bxierr_list_str(bxierr_p err, uint64_t depth);
+
+
+/**
+ * Create a new bxierr_set_p object.
+ *
+ * @return a new bxierr_set_p
+ */
+bxierr_set_p bxierr_set_new();
+
+/**
+ * Free a bxierr_set_p object.
+ *
+ * @note the pointer is not nullified. Use bxierr_set_destroy() instead.
+ *
+ * @param[inout] errset the bxierr_set_p to free
+ *
+ * @see bxierr_set_destroy()
+ */
+void bxierr_set_free(bxierr_set_p errset);
+
+#ifndef BXICFFI
+
+/**
+ * Destroy a bxierr_set_p object.
+ *
+ * @note: the pointer is nullified.
+ *
+ * @param[inout] errset_p the bxierr_set_p to destroy
+ */
+inline void bxierr_set_destroy(bxierr_set_p * errset_p) {
+    bxiassert(NULL != errset_p);
+
+    bxierr_set_free(*errset_p);
+
+    *errset_p = NULL;
+}
+#else
+void bxierr_set_destroy(bxierr_set_p * errset_p);
+#endif
+
+
+/**
+ * Add the given error in the set if no error with the same code exists.
+ *
+ * @note: the given error `*err` is destroyed if an other error with the same code
+ * already exists in the given error set.
+ *
+ * @param[inout] set the error set
+ * @param[inout] err a pointer on the error to store in the given set if it does not
+ * exist or to destroy otherwise.
+ *
+ * @return true if the given error has been added, false otherwise, meaning the given
+ * error has been destroyed using bxierr_destroy().
+ *
+ * @see bxierr_set_p
+ */
+bool bxierr_set_add(bxierr_set_p set, bxierr_p * err);
+
 
 #endif /* BXIERR_H_ */

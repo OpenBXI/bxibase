@@ -49,7 +49,7 @@ typedef struct bxilog_syslog_handler_param_s_f {
     pid_t pid, tid;
     uint16_t thread_rank;
 
-    bxierr_group_p errset;
+    bxierr_set_p errset;
     size_t error_nb;
     size_t error_limit;
 
@@ -137,7 +137,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     bxilog_syslog_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, &result->generic);
 
-    result->ident = strdup(bxistr_rfind(ident, strlen(ident), '/'));
+    result->ident = strdup(bxistr_rsub(ident, strlen(ident), '/'));
     result->option = option;
     result->facility = facility;
     result->threshold = (bxilog_level_e) threshold;
@@ -159,7 +159,7 @@ bxierr_p _init(bxilog_syslog_handler_param_p data) {
     // Maybe, define already the related string instead of
     // a rank number?
     data->thread_rank = (uint16_t) pthread_self();
-    data->errset = bxierr_group_new();
+    data->errset = bxierr_set_new();
     data->error_nb = 0;
     data->error_limit = 10;
 
@@ -176,7 +176,7 @@ bxierr_p _process_exit(bxilog_syslog_handler_param_p data) {
 
     closelog();
 
-    bxierr_group_destroy(&data->errset);
+    bxierr_set_destroy(&data->errset);
 
     return err;
 }
@@ -208,7 +208,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * logmsg,
                              bxilog_syslog_handler_param_p data) {
 
-    const char * fn = bxistr_rfind(filename, record->filename_len, '/');
+    const char * fn = bxistr_rsub(filename, record->filename_len, '/');
 
     log_single_line_param_s param = {
                                      .data = data,
@@ -254,7 +254,7 @@ bxierr_p _process_err(bxierr_p *err, bxilog_syslog_handler_param_p data) {
     } else if (data->error_nb >= data->error_limit) {
         result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, NULL, NULL, NULL, NULL,
                             "Fatal: too many errors (%zu distinct errors/%zu total errors)",
-                            data->errset->errors_nb, data->error_nb);
+                            data->errset->distinct_err.errors_nb, data->error_nb);
     }
 
     return result;
@@ -272,7 +272,7 @@ inline bxierr_p _param_destroy(bxilog_syslog_handler_param_p * data_p) {
 
     bxilog_handler_clean_param(&data->generic);
 
-    bxierr_group_destroy(&data->errset);
+    bxierr_set_destroy(&data->errset);
     BXIFREE((*data_p)->ident);
     bximem_destroy((char**) data_p);
     return BXIERR_OK;
@@ -302,7 +302,7 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     size_t msg_len = bxistr_vnew(&msg, fmt, ap);
     va_end(ap);
 
-    const char * filename = bxistr_rfind(__FILE__, ARRAYLEN(__FILE__) - 1, '/');
+    const char * filename = bxistr_rsub(__FILE__, ARRAYLEN(__FILE__) - 1, '/');
 
     bxilog_record_s record;
     record.level = level;

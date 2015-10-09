@@ -20,6 +20,7 @@ nobase_include_HEADERS = \
 						 bxi/base/time.h\
 						 bxi/base/log.h\
 						 bxi/base/log/level.h\
+						 bxi/base/log/filter.h\
 						 bxi/base/log/logger.h\
 						 bxi/base/log/assert.h\
 						 bxi/base/log/config.h\

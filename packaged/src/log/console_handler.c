@@ -48,7 +48,7 @@ typedef struct bxilog_console_handler_param_s_f {
     uint16_t thread_rank;
 
     bxilog_level_e stderr_level;
-    bxierr_group_p errset;
+    bxierr_list_p errset;
     size_t lost_logs;
 } bxilog_console_handler_param_s;
 
@@ -151,7 +151,7 @@ bxierr_p _init(bxilog_console_handler_param_p data) {
                           data->stderr_level, BXILOG_PANIC, BXILOG_LOWEST);
         BXIERR_CHAIN(err, err2);
     }
-    data->errset = bxierr_group_new();
+    data->errset = bxierr_list_new();
     data->lost_logs = 0;
 
     return err;
@@ -250,7 +250,7 @@ inline bxierr_p _param_destroy(bxilog_console_handler_param_p * data_p) {
 
     bxilog_handler_clean_param(&data->generic);
 
-    bxierr_group_destroy(&data->errset);
+    bxierr_list_destroy(&data->errset);
     bximem_destroy((char**) data_p);
     return BXIERR_OK;
 }
@@ -295,7 +295,7 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     size_t msg_len = bxistr_vnew(&msg, fmt, ap);
     va_end(ap);
 
-    const char * filename = bxistr_rfind(__FILE__, ARRAYLEN(__FILE__) - 1, '/');
+    const char * filename = bxistr_rsub(__FILE__, ARRAYLEN(__FILE__) - 1, '/');
 
     bxilog_record_s record;
     record.level = level;

@@ -19,6 +19,7 @@
 #include "bxi/base/log/exit.h"
 #include "bxi/base/log/signal.h"
 #include "bxi/base/log/thread.h"
+#include "bxi/base/log/filter.h"
 #include "bxi/base/log/registry.h"
 
 
@@ -45,7 +46,7 @@
  * - assertion function: `::BXIASSERT()` and `::BXIUNREACHABLE_STATEMENT()`,
  * - exiting function: `::BXIEXIT()`,
  * - signal handling set-up: `bxilog_install_sighandler()`
- * - log handlers: `::bxilog_hanler_p`
+ * - log handlers: `::bxilog_handler_p`
  *
  * ### Basic 5-steps usage
  *
@@ -189,7 +190,10 @@ bxierr_p bxilog_flush(void);
 
 
 /**
- * Display on stderr the loggers which can be configured.
+ * Write the set of registered loggers along with the list of bxilog_level_e to
+ * the given file descriptor.
+ *
+ * @param[in] fd a file descriptor (e.g: STDERR_FILENO)
  */
 void bxilog_display_loggers(int fd);
 

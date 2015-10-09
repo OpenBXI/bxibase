@@ -12,6 +12,17 @@
 
 #include "bxi/base/log.h"
 
+/**
+ * @file    registry.h
+ * @authors Pierre Vignéras <pierre.vigneras@bull.net>
+ * @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+ *         This is not Free or Open Source software.\n
+ *         Please contact Bull SAS for details about its license.\n
+ *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+ * @brief  BXI Logging Registry and filters.
+ *
+ */
+
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
@@ -20,27 +31,10 @@
 // ********************************** Types   **************************************
 // *********************************************************************************
 
-/**
- * A filter.
- *
- * @see bxilog_cfg_registered()
- */
-typedef struct bxilog_cfg_item_s {
-    const char * prefix;             //!< logger name prefix
-    bxilog_level_e level;            //!< the level to set each matching logger to
-} bxilog_filter_s;
-
-/**
- * A logger configuration item.
- *
- * @see bxilog_cfg_registered()
- */
-typedef bxilog_filter_s * bxilog_filter_p;
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
-
 
 
 // *********************************************************************************
@@ -114,9 +108,9 @@ void bxilog_registry_reset();
  * Configure all registered loggers with the given array of configuration items.
  *
  * For each registered logger, a check is performed to know if its `bxilog_p.name`
- * matches one of the given configuration item `bxilog_cfg_item_p.prefix`.
+ * matches one of the given configuration item `bxilog_filter_p.prefix`.
  * If this is the case, its level is set to the related configuration
- * item `bxilog_cfg_item_p.level`.
+ * item `bxilog_filter_p.level`.
  *
  * Note: the algorithm scan the configuration items in order. Therefore, the usual case
  * is to specify configuration items from the most generic one to the most specific one.
@@ -127,8 +121,8 @@ void bxilog_registry_reset();
  * See @link bxilog_cfg.c bxilog_cfg.c for a full running example@endlink
  *
  *
- * @param[in] n the number of configuration items in the `cfg` array
- * @param[in] cfg an array of configuration items
+ * @param[in] n the number of configuration items in the `filters` array
+ * @param[in] filters an array of configuration items
  *
  * @return BXIERR_OK on success, anything else on error.
  */

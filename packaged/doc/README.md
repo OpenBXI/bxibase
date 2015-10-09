@@ -70,7 +70,7 @@ actually *nullify* the given pointer as shown in the following example:
 
 Note also that objects are always refered to through pointers and 
 their type name always ends with an '_p' to clearly state it. See for example:
-`::bxierr_p`, `::bxilog_p`. Therefore, instantiating a BXI object, using it
+`::bxierr_p`, `::bxilog_logger_p`. Therefore, instantiating a BXI object, using it
 and destroying it, always look like the following code snippet: 
 
     bxifoo_p object = bxifoo_new(...);

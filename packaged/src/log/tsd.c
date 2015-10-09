@@ -91,7 +91,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
     bxiassert(NULL != BXILOG__GLOBALS->config->handlers);
     bxiassert(0 < BXILOG__GLOBALS->config->tsd_log_buf_size);
     tsd->log_buf = bximem_calloc(BXILOG__GLOBALS->config->tsd_log_buf_size);
-    bxierr_group_p errlist = bxierr_group_new();
+    bxierr_list_p errlist = bxierr_list_new();
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
         char * url = BXILOG__GLOBALS->config->handlers_params[i]->data_url;
         bxiassert(NULL != url);
@@ -130,13 +130,13 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
     }
     if (0 < errlist->errors_nb) {
         *result = tsd;
-        return bxierr_from_group(BXIERR_GROUP_CODE,
+        return bxierr_from_list(BXIERR_GROUP_CODE,
                                  errlist,
                                  "At least one error occured "
                                  "while connecting to one of %zu handlers",
                                  BXILOG__GLOBALS->config->handlers_nb);
     }
-    bxierr_group_destroy(&errlist);
+    bxierr_list_destroy(&errlist);
 
 #ifdef __linux__
     tsd->tid = (pid_t) syscall(SYS_gettid);

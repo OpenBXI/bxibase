@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
 
 //! [Thread-safe basename() equivalent function]
     const char * prog = strdup(argv[0]);
-    const char * progname = bxistr_rfind(prog, strlen(prog), '/');
+    const char * progname = bxistr_rsub(prog, strlen(prog), '/');
     char * filename = bxistr_new("/tmp/%s.bxilog", progname);
 //! [Thread-safe basename() equivalent function]
 

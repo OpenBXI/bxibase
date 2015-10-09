@@ -226,7 +226,7 @@ size_t bxistr_join(char * sep, size_t sep_len,
     return len;
 }
 
-const char * bxistr_rfind(const char * const str,
+const char * bxistr_rsub(const char * const str,
                           const size_t str_len,
                           const char c) {
 

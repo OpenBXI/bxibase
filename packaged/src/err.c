@@ -42,6 +42,7 @@
 // *********************************************************************************
 // **************************** Static function declaration ************************
 // *********************************************************************************
+static void _err_list_init(bxierr_list_p errlist);
 static int _bt_full_cb(void *data, uintptr_t pc,
                        const char *filename, int lineno, const char *function);
 static void _bt_error_cb(void *data, const char *msg, int errnum);
@@ -59,7 +60,8 @@ struct backtrace_state * BT_STATE = NULL;
 // ********************************** Implementation   *****************************
 // *********************************************************************************
 // Inline functions defined in the .h
-extern void bxierr_group_destroy(bxierr_group_p * group_p);
+extern void bxierr_list_destroy(bxierr_list_p * group_p);
+extern void bxierr_set_destroy(bxierr_set_p * group_p);
 extern void bxierr_destroy(bxierr_p * self_p);
 extern void bxierr_abort_ifko(bxierr_p fatal_err);
 extern bool bxierr_isok(bxierr_p self);
@@ -295,29 +297,44 @@ void bxierr_unreachable_statement(const char *file,
     abort();
 }
 
-bxierr_group_p bxierr_group_new() {
-    bxierr_group_p result = bximem_calloc(sizeof(*result));
 
-    result->errors_size = 16;
-    result->errors = bximem_calloc(result->errors_size * sizeof(*result->errors));
+bxierr_list_p bxierr_list_new() {
+    bxierr_list_p result = bximem_calloc(sizeof(*result));
+
+    _err_list_init(result);
+
     return result;
 }
 
-void bxierr_group_free(bxierr_group_p group) {
-    if (NULL == group) return;
+void bxierr_list_free(bxierr_list_p errlist) {
+    if (NULL == errlist) return;
 
-    for (size_t i = 0; i < group->errors_size; i++) {
-        bxierr_p err = group->errors[i];
+    for (size_t i = 0; i < errlist->errors_size; i++) {
+        bxierr_p err = errlist->errors[i];
         if (NULL == err) continue;
         bxierr_destroy(&err);
     }
-    BXIFREE(group->errors);
-    BXIFREE(group);
+    BXIFREE(errlist->errors);
+    BXIFREE(errlist);
 }
 
-char * bxierr_group_str(bxierr_p err, uint64_t depth) {
+void bxierr_list_append(bxierr_list_p list, bxierr_p err) {
+    if (list->errors_nb >= list->errors_size) {
+        // Not enough space, allocate some new
+        // Add one to prevent product with zero!
+        size_t new_len = (list->errors_size + 1) * 2;
+        list->errors = bximem_realloc(list->errors,
+                                      list->errors_size*sizeof(*list->errors),
+                                      new_len*sizeof(*list->errors));
+        list->errors_size = new_len;
+    }
+    list->errors[list->errors_nb] = err;
+    list->errors_nb++;
+}
+
+char * bxierr_list_str(bxierr_p err, uint64_t depth) {
     char * str = bxierr_str_limit(err, depth);
-    bxierr_group_p group = err->data;
+    bxierr_list_p group = err->data;
     char ** ierr_lines = bximem_calloc(group->errors_nb * sizeof(*ierr_lines));
     size_t * ierr_lines_len = bximem_calloc(group->errors_nb * sizeof(*ierr_lines_len));
     size_t current = 0;
@@ -352,48 +369,69 @@ char * bxierr_group_str(bxierr_p err, uint64_t depth) {
     return result;
 }
 
-bool bxierr_set_add(bxierr_group_p set, bxierr_p * err) {
+bxierr_set_p bxierr_set_new() {
+    bxierr_set_p result = bximem_calloc(sizeof(*result));
+
+    _err_list_init(&result->distinct_err);
+
+    result->seen_nb = bximem_calloc(result->distinct_err.errors_size * sizeof(*result->seen_nb));
+
+    return result;
+}
+
+void bxierr_set_free(bxierr_set_p errset) {
+    if (NULL == errset) return;
+
+    BXIFREE(errset->seen_nb);
+    bxierr_list_free(&errset->distinct_err);
+}
+
+bool bxierr_set_add(bxierr_set_p set, bxierr_p * err) {
+    bxiassert(NULL != set);
+    bxiassert(NULL != err);
+    bxiassert(NULL != *err);
+
+    set->total_seen_nb++;
     size_t i = 0;
     bxierr_p slot = NULL;
-    for (; i < set->errors_size; i++) {
-        slot = set->errors[i];
+    for (; i < set->distinct_err.errors_size; i++) {
+        slot = set->distinct_err.errors[i];
         if (NULL == slot) break;
         if (slot->code == (*err)->code) {
             // An error with same code is already recorded, delete the new one.
             bxierr_destroy(err);
+            set->seen_nb[i]++;
             return false;
         }
     }
-    if (i >= set->errors_size) {
+    if (i >= set->distinct_err.errors_size) {
         // Not enough space, allocate some new
-        size_t new_len = set->errors_size * 2;
-        set->errors = bximem_realloc(set->errors,
-                                     set->errors_size * sizeof(*set->errors),
-                                     new_len*sizeof(*set->errors));
-        set->errors_size = new_len;
+        size_t old_len = set->distinct_err.errors_size;
+        size_t new_len = set->distinct_err.errors_size * 2;
+        set->distinct_err.errors = bximem_realloc(set->distinct_err.errors,
+                                                  old_len * sizeof(*set->distinct_err.errors),
+                                                  new_len*sizeof(*set->distinct_err.errors));
+        set->seen_nb = bximem_realloc(set->seen_nb,
+                                              old_len * sizeof(*set->seen_nb),
+                                              new_len*sizeof(*set->seen_nb));
+        set->distinct_err.errors_size = new_len;
     }
-    if (slot == NULL) set->errors[i] = *err;
-    set->errors_nb++;
+    bxiassert(NULL == slot);
+    set->distinct_err.errors[i] = *err;
+    set->distinct_err.errors_nb++;
+    set->seen_nb[i]++;
     return true;
 }
 
-void bxierr_list_append(bxierr_group_p list, bxierr_p err) {
-    if (list->errors_nb >= list->errors_size) {
-        // Not enough space, allocate some new
-        // Add one to prevent product with zero!
-        size_t new_len = (list->errors_size + 1) * 2;
-        list->errors = bximem_realloc(list->errors,
-                                      list->errors_size*sizeof(*list->errors),
-                                      new_len*sizeof(*list->errors));
-        list->errors_size = new_len;
-    }
-    list->errors[list->errors_nb] = err;
-    list->errors_nb++;
-}
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
+void _err_list_init(bxierr_list_p errlist) {
+
+    errlist->errors_size = 16;
+    errlist->errors = bximem_calloc(errlist->errors_size * sizeof(*errlist->errors));
+}
 
 
 char** _pretty_backtrace(void* addresses[], int array_size) {
@@ -438,3 +476,4 @@ int _bt_full_cb(void *data, uintptr_t pc,
     }
     return 0;
 }
+

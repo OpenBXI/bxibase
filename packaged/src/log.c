@@ -230,7 +230,7 @@ bxierr_p bxilog_flush(void) {
     bxierr_p err = bxilog__tsd_get(&tsd);
     if (bxierr_isko(err)) return err;
     void * ctl_channel = tsd->ctrl_channel;
-    bxierr_group_p errlist = bxierr_group_new();
+    bxierr_list_p errlist = bxierr_list_new();
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
 
         int ret = pthread_kill(BXILOG__GLOBALS->handlers_threads[i], 0);
@@ -258,7 +258,7 @@ bxierr_p bxilog_flush(void) {
         BXIFREE(reply);
     }
     if (errlist->errors_nb != 0) {
-        return bxierr_from_group(BXILOG_FLUSH_ERR,
+        return bxierr_from_list(BXILOG_FLUSH_ERR,
                                  errlist,
                                  "At least one error occured while "
                                  "flushing %zu handlers.",
@@ -267,7 +267,7 @@ bxierr_p bxilog_flush(void) {
     DEBUG(LOGGER, "flush() done succesfully on all %zu handlers",
           BXILOG__GLOBALS->config->handlers_nb);
 
-    bxierr_group_destroy(&errlist);
+    bxierr_list_destroy(&errlist);
     return BXIERR_OK;
 }
 
@@ -359,7 +359,7 @@ bxierr_p bxilog__init_globals() {
 bxierr_p bxilog__start_handlers(void) {
     bxiassert(INITIALIZING == BXILOG__GLOBALS->state);
     bxierr_p err = BXIERR_OK;
-    bxierr_group_p errlist = bxierr_group_new();
+    bxierr_list_p errlist = bxierr_list_new();
 
     // Starting handlers
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
@@ -392,12 +392,12 @@ bxierr_p bxilog__start_handlers(void) {
     }
 
     if (0 < errlist->errors_nb) {
-        err = bxierr_from_group(BXIERR_GROUP_CODE,
+        err = bxierr_from_list(BXIERR_GROUP_CODE,
                                 errlist,
                                 "Starting bxilog handlers yield %zu errors",
                                 errlist->errors_nb);
     } else {
-        bxierr_group_destroy(&errlist);
+        bxierr_list_destroy(&errlist);
     }
 
     return err;
@@ -428,7 +428,7 @@ bxierr_p bxilog__stop_handlers(void) {
     // TODO: hack around zeromq issue
     // https://github.com/zeromq/libzmq/issues/1590
     bxierr_p err = BXIERR_OK, err2;
-    bxierr_group_p errlist = bxierr_group_new();
+    bxierr_list_p errlist = bxierr_list_new();
 
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
         pthread_t handler_thread = BXILOG__GLOBALS->handlers_threads[i];
@@ -477,13 +477,13 @@ bxierr_p bxilog__stop_handlers(void) {
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
     }
     if (0 < errlist->errors_nb) {
-        err2 = bxierr_from_group(BXIERR_GROUP_CODE, errlist,
+        err2 = bxierr_from_list(BXIERR_GROUP_CODE, errlist,
                                  "Some errors occurred in at least"
                                  " one of %zu internal handlers.",
                                  BXILOG__GLOBALS->internal_handlers_nb);
         BXIERR_CHAIN(err, err2);
     } else {
-        bxierr_group_destroy(&errlist);
+        bxierr_list_destroy(&errlist);
     }
 
     return err;

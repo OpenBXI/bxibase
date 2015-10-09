@@ -73,7 +73,7 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
                                     const char * const filename,
                                     bool append) {
 
-    const char * basename = bxistr_rfind(progname, strlen(progname), '/');
+    const char * basename = bxistr_rsub(progname, strlen(progname), '/');
     bxilog_config_p config = bxilog_config_new(progname);
 
     bxilog_config_add_handler(config, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
@@ -95,7 +95,7 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
                                         const char * const filename,
                                         bool append) {
 
-    const char * basename = bxistr_rfind(progname, strlen(progname), '/');
+    const char * basename = bxistr_rsub(progname, strlen(progname), '/');
     bxilog_config_p config = bxilog_config_new(basename);
     // Use 2 loggers to ensure multiple handlers works
     bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, append);
@@ -112,7 +112,7 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
 
 bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
 
-    const char * basename = bxistr_rfind(progname, strlen(progname), '/');
+    const char * basename = bxistr_rsub(progname, strlen(progname), '/');
     bxilog_config_p config = bxilog_config_new(basename);
     // Use 2 loggers to ensure multiple handlers works
     bxilog_config_add_handler(config, BXILOG_SNMPLOG_HANDLER, basename);
@@ -149,7 +149,7 @@ void bxilog_config_add_handler(bxilog_config_p self, bxilog_handler_p handler, .
 }
 
 bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
-    bxierr_group_p errlist = bxierr_group_new();
+    bxierr_list_p errlist = bxierr_list_new();
     bxilog_config_p config = *config_p;
 
     for (size_t i = 0; i < config->handlers_nb; i++) {
@@ -164,10 +164,10 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
     BXIFREE(config->handlers_params);
     bximem_destroy((char**) config_p);
     if (errlist->errors_nb > 0) {
-        return bxierr_from_group(BXIERR_GROUP_CODE, errlist,
+        return bxierr_from_list(BXIERR_GROUP_CODE, errlist,
                                  "Errors encountered while destroying logging parameters");
     } else {
-        bxierr_group_destroy(&errlist);
+        bxierr_list_destroy(&errlist);
     }
     return BXIERR_OK;
 }
