@@ -225,7 +225,7 @@ bxierr_p _process_err(bxierr_p *err, bxilog_console_handler_param_p data) {
     if (bxierr_isok(*err)) return *err;
 
     char * str = bxierr_str(*err);
-    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An error occured: %s", str);
+    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An error occured:\n %s", str);
 
     if (bxierr_isko(fatal)) {
         result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,

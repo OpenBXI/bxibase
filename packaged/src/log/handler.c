@@ -546,11 +546,10 @@ bxierr_p _process_ctrl_cmd(bxilog_handler_p handler,
     }
     if (0 == strncmp(EXIT_CTRL_MSG_REQ, cmd, ARRAYLEN(EXIT_CTRL_MSG_REQ))) {
         BXIFREE(cmd);
-        // Flushing must be asked explicitly.
-        // Therefore, there is nothing to flush on exit.
-        // Exit must exit as fast as possible.
-        //        err2 = _process_flush_cmd(handler, data);
-        //        BXIERR_CHAIN(err, err2);
+
+        err2 = _process_implicit_flush(handler, param, data);
+        BXIERR_CHAIN(err, err2);
+
         err2 = bxizmq_str_snd(EXIT_CTRL_MSG_REP, data->ctrl_zocket, 0, 0, 0);
         BXIERR_CHAIN(err, err2);
 

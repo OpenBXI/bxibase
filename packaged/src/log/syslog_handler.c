@@ -140,7 +140,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     result->ident = strdup(bxistr_rfind(ident, strlen(ident), '/'));
     result->option = option;
     result->facility = facility;
-    result->threshold = threshold;
+    result->threshold = (bxilog_level_e) threshold;
 
     return (bxilog_handler_param_p) result;
 }

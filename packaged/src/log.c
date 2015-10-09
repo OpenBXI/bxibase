@@ -172,6 +172,7 @@ UNLOCK:
 }
 
 bxierr_p bxilog_finalize(bool flush) {
+    UNUSED(flush);
     bxierr_p err = BXIERR_OK;
     int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) {
@@ -193,22 +194,17 @@ bxierr_p bxilog_finalize(bool flush) {
         goto UNLOCK;
     }
     DEBUG(LOGGER, "Exiting bxilog");
-    bxierr_p err2;
-    if (flush) {
-        err2 = bxilog_flush();
-        BXIERR_CHAIN(err, err2);
-    }
 
-    err2 = bxilog__finalize();
-    BXIERR_CHAIN(err, err2);
+
+    err = bxilog__finalize();
+
     if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = BROKEN;
         goto UNLOCK;
     }
     bxiassert(FINALIZING == BXILOG__GLOBALS->state);
 
-    err2 = bxilog__config_destroy(&BXILOG__GLOBALS->config);
-    BXIERR_CHAIN(err, err2);
+    err = bxilog__config_destroy(&BXILOG__GLOBALS->config);
 
     if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = BROKEN;
@@ -220,10 +216,8 @@ UNLOCK:
     rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) {
         BXILOG__GLOBALS->state = ILLEGAL;
-        err2 = bxierr_fromidx(rc, NULL,
-                              "Calling pthread_mutex_unlock() failed (rc=%d)",
-                              rc);
-        BXIERR_CHAIN(err, err2);
+        bxierr_p tmp = bxierr_errno("Calling pthread_mutex_unlock() failed (rc=%d)", rc);
+        bxierr_report(&tmp, STDERR_FILENO);
     }
 
     return err;

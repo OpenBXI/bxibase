@@ -286,7 +286,7 @@ bxilog_level_e bxilog_get_level(const bxilog_logger_p logger);
  * @param[in] logger the logger instance
  * @param[in] level the log level
  */
-void bxilog_logger_et_level(const bxilog_logger_p logger, const bxilog_level_e level);
+void bxilog_logger_set_level(const bxilog_logger_p logger, const bxilog_level_e level);
 
 /**
  * Return true if the given logger is enabled at the given log level.
