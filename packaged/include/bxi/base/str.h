@@ -120,7 +120,7 @@ size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
  * its length, a boolean `last`, that when true means the line is the last one in the
  * string, and the parameter `param` passed to `bxistr_apply_lines()`.
  *
- * @note the given string `str` is modified while parsing. If you don't want such a
+ * @note the given string `str` is not modified while parsing. If you don't want such a
  *       behavior, duplicate your string before calling this function.
  *
  * @param[inout] str the string to parse
@@ -235,6 +235,12 @@ size_t bxistr_join(char * sep, size_t sep_len,
 const char * bxistr_rsub(const char * const str,
                          const size_t str_len,
                          const char c);
+
+
+/**
+ * Return the number of digits in the given number.
+ */
+size_t bxistr_digits_nb(int32_t n);
 
 
 /**

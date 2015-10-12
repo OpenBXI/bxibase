@@ -41,7 +41,6 @@ typedef struct bxilog_syslog_handler_param_s_f * bxilog_syslog_handler_param_p;
 typedef struct bxilog_syslog_handler_param_s_f {
     bxilog_handler_param_s generic;
 
-    bxilog_level_e threshold;
     int option;
     int facility;
     char * ident;
@@ -129,10 +128,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     const char * ident = va_arg(ap, char *);
     const int option = va_arg(ap, int);
     const int facility = va_arg(ap, int);
-    const int threshold = va_arg(ap, int);
     va_end(ap);
-
-    bxiassert(threshold >= BXILOG_EMERGENCY && threshold < BXILOG_LOWEST);
 
     bxilog_syslog_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, &result->generic);
@@ -140,7 +136,6 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     result->ident = strdup(bxistr_rsub(ident, strlen(ident), '/'));
     result->option = option;
     result->facility = facility;
-    result->threshold = (bxilog_level_e) threshold;
 
     return (bxilog_handler_param_p) result;
 }
@@ -347,10 +342,9 @@ bxierr_p _log_single_line(char * line,
 
     UNUSED(last);
     UNUSED(line_len);
-    bxilog_syslog_handler_param_p data = param->data;
-    bxilog_record_p record = param->record;
 
-    if (record->level > data->threshold) return BXIERR_OK;
+//    bxilog_syslog_handler_param_p data = param->data;
+    bxilog_record_p record = param->record;
 
     syslog(record->level, "%s", line);
 

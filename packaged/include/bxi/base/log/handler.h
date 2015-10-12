@@ -86,7 +86,6 @@ typedef struct {
 #endif
     uint16_t thread_rank;               //!< user thread rank
     int line_nb;                        //!< line nb
-    //  size_t progname_len;            //!< program name length
     size_t filename_len;                //!< file name length
     size_t funcname_len;                //!< function name length
     size_t logname_len;                 //!< logger name length

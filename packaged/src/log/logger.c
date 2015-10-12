@@ -213,8 +213,10 @@ bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxil
 
     va_start(ap, fmt);
     err = bxilog_logger_vlog_nolevelcheck(logger, level,
-                                   filename, filename_len, funcname, funcname_len, line,
-                                   fmt, ap);
+                                          filename, filename_len,
+                                          funcname, funcname_len,
+                                          line,
+                                          fmt, ap);
     va_end(ap);
 
     return err;

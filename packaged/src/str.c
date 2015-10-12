@@ -118,7 +118,6 @@ bxierr_p bxistr_apply_lines(char * str,
         while(true) {
             if ('\0' == *next) return f(s, len, true, param);
             if ('\n' == *next) {
-                *next = '\0';
                 bxierr_p err = f(s, len, false, param);
                 if (bxierr_isko(err)) return err;
                 len = 0;
@@ -241,7 +240,30 @@ const char * bxistr_rsub(const char * const str,
         }
         i--;
     }
+
     return str + i;
+}
+
+
+size_t bxistr_digits_nb(int32_t n) {
+    // This implementation has been proven to be very fast.
+    // See: http://stackoverflow.com/questions/1068849/how-do-i-determine-the-number-of-digits-of-an-integer-in-c
+    // Note that since this function target number of digits of line numbers,
+    // the chance line numbers are small is high, therefore we start from
+    // small numbers.
+    if (n < 0) n = (n == INT32_MIN) ? INT32_MAX : -n;
+    if (n < 10) return 1;
+    if (n < 100) return 2;
+    if (n < 1000) return 3;
+    if (n < 10000) return 4;
+    if (n < 100000) return 5;
+    if (n < 1000000) return 6;
+    if (n < 10000000) return 7;
+    if (n < 100000000) return 8;
+    if (n < 1000000000) return 9;
+    /*      2147483647 is 2^31-1 - add more ifs as needed
+        and adjust this final return as well. */
+    return 10;
 }
 
 // *********************************************************************************

@@ -293,12 +293,12 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * logmsg,
                              bxilog_file_handler_param_p data) {
 
-    const char * fn = bxistr_rsub(filename, record->filename_len, '/');
+//    const char * fn = bxistr_rsub(filename, record->filename_len, '/');
 
     log_single_line_param_s param = {
                                      .data = data,
                                      .record = record,
-                                     .filename = fn,
+                                     .filename = filename,
                                      .funcname = funcname,
                                      .loggername = loggername,
                                      .logmsg = logmsg,
@@ -361,8 +361,13 @@ bxierr_p _log_single_line(char * line,
     bxilog_record_p record = param->record;
 
     const size_t size = FIXED_LOG_SIZE + \
-            data->progname_len + \
-            record->variable_len + line_len + 1;
+            // Exclude NULL terminating byte from preprocessed length
+            data->progname_len - 1 + \
+            record->filename_len -1 + \
+            record->funcname_len - 1 + \
+            record->logname_len - 1 + \
+            bxistr_digits_nb(record->line_nb) + \
+            line_len + 1;
     char msg[size];
     const ssize_t loglen = _mkmsg(size, msg,
                                   LOG_LEVEL_STR[param->record->level],
@@ -379,7 +384,10 @@ bxierr_p _log_single_line(char * line,
                                   param->loggername,
                                   line);
     errno = 0;
-    ssize_t written = write(data->fd, msg, (size_t) loglen);
+//    ssize_t written = write(data->fd, msg, (size_t) loglen);
+    UNUSED(loglen);
+    // Do not write more bytes than expected.
+    ssize_t written = write(data->fd, msg, size);
 
     if (0 >= written) {
         if (EPIPE == errno) return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
@@ -456,17 +464,12 @@ ssize_t _mkmsg(const size_t n, char buf[n],
                            logmsg);
 
 
-    // Truncation must never occur
-    // If it happens, it means the size given was just plain wrong
-//    bxiassert(written < (int)n);
-    // For debugging in case the previous condition does not hold,
-    // comment previous line, and uncomment lines below.
-    if (written >= (int) n) {
-        fprintf(stderr, "******** ERROR: FIXED_LOG_SIZE=%d, "
-                    "written = %d >= %zu = n\nbuf(%zu)=%s\nlogmsg(%zu)=%s\n",
-                    FIXED_LOG_SIZE, written, n ,
-                    strlen(buf), buf, strlen(logmsg), logmsg);
-    }
+    // WARNING: Truncation can happen if the logmsg is part of a larger string.
+    // Therefore the assertion below might not be true.
+    // If we want to guarantee that no truncation can happen, the logmsg in the
+    // original record string must be copied, and each '\n' might then be replaced by
+    // an '\0'. For speed reason, we don't do that: no copy -> faster.
+    //    bxiassert(written < (int)n);
 
     bxiassert(written >= 0);
     return written;

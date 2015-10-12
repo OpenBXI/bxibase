@@ -46,13 +46,20 @@
  * - assertion function: `::BXIASSERT()` and `::BXIUNREACHABLE_STATEMENT()`,
  * - exiting function: `::BXIEXIT()`,
  * - signal handling set-up: `bxilog_install_sighandler()`
- * - log handlers: `::bxilog_handler_p`
+ * - log handlers specification: `::bxilog_handler_p`
+ * - several logging handlers:
+ *      - `::BXILOG_CONSOLE_HANDLER`: log to standard output and standard error;
+ *      - `::BXILOG_FILE_HANDLER`: log to a file;
+ *      - `::BXILOG_SYSLOG_HANDLER`: log to syslog;
+ *      - `::BXILOG_SNMPLOG_HANDLER`: redirect bxilogs to the net-snmp logging library
  *
  * ### Basic 5-steps usage
  *
  * 1. use `SET_LOGGER()` at the beginning of each C module (in .c, not in .h);
  * 2. use `DEBUG()`, `INFO()`, `WARNING()`, `ERROR()`, ..., in your source file at will;
- * 3. use bxilog_basic_config() to create a new basic configuration;
+ * 3. use bxilog_basic_config() to create a new basic configuration or
+ *    use bxilog_config_new() and bxilog_config_add_handler() to create your own
+ *    configuration;
  * 4. call `bxilog_init()` (in your `main()`) to initialize the whole module;
  * 5. call `bxilog_finalize()` (in your `main()`) otherwise *your program won't terminate*!
  *

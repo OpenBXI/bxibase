@@ -16,6 +16,17 @@
 
 #include "bxi/base/log.h"
 
+/**
+ * @file    syslog_handler.h
+ * @authors Pierre Vignéras <pierre.vigneras@bull.net>
+ * @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+ *         This is not Free or Open Source software.\n
+ *         Please contact Bull SAS for details about its license.\n
+ *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+ * @brief  The Syslog Logging Handler
+ *
+ * The syslog handler writes logs to syslog (see: man 3 syslog).
+ */
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
@@ -29,6 +40,17 @@
 //********************************** Global Variables  ****************************
 //*********************************************************************************
 #ifndef BXICFFI
+/**
+ * The Syslog Handler.
+ *
+ * Parameters for the ::bxilog_handler_p.param_new() function are given below:
+ *
+ * @param[in] ident a `char *` string; the identity
+ * @param[in] option an `int`; options of openlog()
+ * @param[in] facility an `int`; default facility
+ *
+ * @note See syslog(3) (e.g. man 3 syslog) for details on those parameters
+ */
 extern const bxilog_handler_p BXILOG_SYSLOG_HANDLER;
 #else
 extern bxilog_handler_p BXILOG_SYSLOG_HANDLER;

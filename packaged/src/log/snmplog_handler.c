@@ -177,12 +177,12 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * logmsg,
                              bxilog_snmplog_handler_param_p data) {
 
-    const char * fn = bxistr_rsub(filename, record->filename_len, '/');
+//    const char * fn = bxistr_rsub(filename, record->filename_len, '/');
 
     log_single_line_param_s param = {
                                      .data = data,
                                      .record = record,
-                                     .filename = fn,
+                                     .filename = filename,
                                      .funcname = funcname,
                                      .loggername = loggername,
                                      .logmsg = logmsg,

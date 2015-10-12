@@ -69,6 +69,7 @@ void test_logger_signal(void);
 void test_single_logger_instance(void);
 void test_registry(void);
 void test_config_parser(void);
+void test_handlers(void);
 
 
 /* The suite initialization function.
@@ -228,7 +229,8 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger config", test_registry))
         || (NULL == CU_add_test(bxilog_suite, "test logger config parser", test_config_parser))
-//        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
+        || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
+        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
 ////        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
 
 

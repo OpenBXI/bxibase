@@ -17,6 +17,18 @@
 #include "bxi/base/err.h"
 #include "bxi/base/log.h"
 
+
+/**
+ * @file    file_handler.h
+ * @authors Pierre Vignéras <pierre.vigneras@bull.net>
+ * @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+ *         This is not Free or Open Source software.\n
+ *         Please contact Bull SAS for details about its license.\n
+ *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+ * @brief  The File Logging Handler
+ *
+ * The file handler writes logs to a file.
+ */
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
@@ -30,6 +42,15 @@
 //********************************** Global Variables  ****************************
 //*********************************************************************************
 #ifndef BXICFFI
+/**
+ * The File Handler.
+ *
+ * Parameters for the ::bxilog_handler_p.param_new() function are given below:
+ *
+ * @param[in] progname a `char *` string; the program name (argv[0])
+ * @param[in] filename a `char *` string; where logs must be must be written
+ * @param[in] append a `bool` value; append to the file when true, overwrite when false
+ */
 extern const bxilog_handler_p BXILOG_FILE_HANDLER;
 #else
 extern bxilog_handler_p BXILOG_FILE_HANDLER;
