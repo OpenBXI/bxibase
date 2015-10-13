@@ -203,6 +203,7 @@ bxierr_p bxierr_vfromidx(const int erridx,
     char buf[ERR2STR_MAX_SIZE];
     if (erridx2str != NULL) {
         strncpy(buf, erridx2str[erridx], ERR2STR_MAX_SIZE);
+        buf[ERR2STR_MAX_SIZE - 1] = '\0';
         errmsg = buf;
     } else {
 #ifdef _GNU_SOURCE

@@ -117,7 +117,7 @@ bxierr_p bxilog_init(bxilog_config_p config) {
     // Ok, the user wants to retry...
     if (BROKEN == BXILOG__GLOBALS->state) {
         err = _cleanup();
-        if (bxierr_isko(err)) return err; // Stay in the BROKEN state
+        if (bxierr_isko(err)) goto UNLOCK; // Stay in the BROKEN state
         BXILOG__GLOBALS->state = UNSET;
     }
 
@@ -278,22 +278,22 @@ void bxilog_display_loggers(int fd) {
     ssize_t rc;
     size_t n = bxilog_get_all_level_names(&level_names);
     char * TMP = "Log level names:\n";
-    rc = write(fd, TMP, ARRAYLEN(TMP));
+    rc = write(fd, TMP, strlen(TMP));
     bxiassert(-1 != rc);
     while(n-- > 0) {
         TMP = bxistr_new("\t%zu\t = %s\n", n, level_names[n]);
-        rc = write(fd, TMP, strlen(TMP) + 1);
+        rc = write(fd, TMP, strlen(TMP));
         bxiassert(-1 != rc);
         BXIFREE(TMP);
     }
     bxilog_logger_p * loggers;
     n = bxilog_registry_getall(&loggers);
     TMP = "Loggers name:\n";
-    rc = write(fd, TMP, ARRAYLEN(TMP));
+    rc = write(fd, TMP, strlen(TMP));
     bxiassert(-1 != rc);
     while(n-- > 0) {
         TMP = bxistr_new("\t%s\n", loggers[n]->name);
-        rc = write(fd, TMP, strlen(TMP) + 1);
+        rc = write(fd, TMP, strlen(TMP));
         bxiassert(-1 != rc);
         BXIFREE(TMP);
     }

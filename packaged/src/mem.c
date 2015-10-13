@@ -56,6 +56,7 @@ void * bximem_realloc(void* ptr, const size_t old_size, const size_t new_size) {
         fprintf(stderr, "%s", str);
         BXIFREE(str);
         bxierr_destroy(&err);
+        return NULL;
     }
     if (old_size > 0) {
         bxiassert(old_size < new_size);
