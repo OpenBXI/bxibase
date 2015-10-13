@@ -150,7 +150,7 @@ void test_logger_levels(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
 
-    produce_logs(TEST_LOGGER, err);
+    produce_logs();
     err = bxilog_finalize(true);
     bxierr_abort_ifko(err);
 }

@@ -241,6 +241,10 @@ size_t bxistr_rsub(const char * const str,
 
 /**
  * Return the number of digits in the given number.
+ *
+ * @param[in] n a number
+ *
+ * @return the number of digits in that number.
  */
 size_t bxistr_digits_nb(int32_t n);
 
