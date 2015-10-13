@@ -366,6 +366,11 @@ char * bxierr_list_str(bxierr_p err, uint64_t depth) {
     char * result = bxistr_new("%s%s", str, final_s);
     BXIFREE(str);
     BXIFREE(final_s);
+    for (size_t i = 0; i < group->errors_nb; i++) {
+        BXIFREE(ierr_lines[i]);
+    }
+    BXIFREE(ierr_lines);
+    BXIFREE(ierr_lines_len);
     return result;
 }
 
