@@ -385,7 +385,7 @@ bxierr_p _log_single_line(char * line,
 //    ssize_t written = write(data->fd, msg, (size_t) loglen);
     UNUSED(loglen);
     // Do not write more bytes than expected.
-    ssize_t written = write(data->fd, msg, size);
+    ssize_t written = write(data->fd, msg, size - 1); // Exclude the terminal NULL byte
 
     if (0 >= written) {
         if (EPIPE == errno) return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
