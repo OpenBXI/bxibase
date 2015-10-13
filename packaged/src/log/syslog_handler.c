@@ -133,7 +133,9 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     bxilog_syslog_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, &result->generic);
 
-    result->ident = strdup(bxistr_rsub(ident, strlen(ident), '/'));
+    const char * basename;
+    bxistr_rsub(ident, strlen(ident), '/', &basename);
+    result->ident = strdup(basename);
     result->option = option;
     result->facility = facility;
 
@@ -203,12 +205,10 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * logmsg,
                              bxilog_syslog_handler_param_p data) {
 
-    const char * fn = bxistr_rsub(filename, record->filename_len, '/');
-
     log_single_line_param_s param = {
                                      .data = data,
                                      .record = record,
-                                     .filename = fn,
+                                     .filename = filename,
                                      .funcname = funcname,
                                      .loggername = loggername,
                                      .logmsg = logmsg,
@@ -297,7 +297,8 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     size_t msg_len = bxistr_vnew(&msg, fmt, ap);
     va_end(ap);
 
-    const char * filename = bxistr_rsub(__FILE__, ARRAYLEN(__FILE__) - 1, '/');
+    const char * filename;
+    size_t filename_len = bxistr_rsub(__FILE__, ARRAYLEN(__FILE__) - 1, '/', &filename);
 
     bxilog_record_s record;
     record.level = level;
@@ -313,14 +314,10 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     record.thread_rank = data->thread_rank;
     record.line_nb = line_nb;
     //  size_t progname_len;            // program name length
-    record.filename_len = strlen(filename) + 1;
+    record.filename_len = filename_len + 1;
     record.funcname_len = funclen;
     record.logname_len = ARRAYLEN(INTERNAL_LOGGER_NAME);
     record.logmsg_len = msg_len;
-    record.variable_len = record.filename_len + \
-            record.funcname_len + \
-            record.logname_len + \
-            record.logmsg_len;
 
     err2 = _process_log(&record,
                         (char *) filename,

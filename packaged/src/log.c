@@ -193,6 +193,7 @@ bxierr_p bxilog_finalize(bool flush) {
                          "Illegal state: %d", BXILOG__GLOBALS->state);
         goto UNLOCK;
     }
+
     DEBUG(LOGGER, "Exiting bxilog");
 
 

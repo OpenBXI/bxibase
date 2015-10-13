@@ -269,7 +269,8 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     size_t msg_len = bxistr_vnew(&msg, fmt, ap);
     va_end(ap);
 
-    const char * filename = bxistr_rsub(__FILE__, ARRAYLEN(__FILE__) - 1, '/');
+    const char * filename;
+    size_t filename_len = bxistr_rsub(__FILE__, ARRAYLEN(__FILE__) - 1, '/', &filename);
 
     bxilog_record_s record;
     record.level = level;
@@ -285,14 +286,10 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     record.thread_rank = data->thread_rank;
     record.line_nb = line_nb;
     //  size_t progname_len;            // program name length
-    record.filename_len = strlen(filename) + 1;
+    record.filename_len = filename_len + 1;
     record.funcname_len = funclen;
     record.logname_len = ARRAYLEN(INTERNAL_LOGGER_NAME);
     record.logmsg_len = msg_len;
-    record.variable_len = record.filename_len + \
-            record.funcname_len + \
-            record.logname_len + \
-            record.logmsg_len;
 
     err2 = _process_log(&record,
                         (char *) filename,

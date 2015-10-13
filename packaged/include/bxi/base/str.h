@@ -229,12 +229,14 @@ size_t bxistr_join(char * sep, size_t sep_len,
  * @param[in] str the string
  * @param[in] str_len the length of the string
  * @param[in] c the character the substring must start after
+ * @param[out] result a pointer on the result
  *
- * @return the substring found or NULL if none exists
+ * @return the length of the substring found
  */
-const char * bxistr_rsub(const char * const str,
-                         const size_t str_len,
-                         const char c);
+size_t bxistr_rsub(const char * const str,
+                   const size_t str_len,
+                   const char c,
+                   const char ** result);
 
 
 /**

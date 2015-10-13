@@ -225,11 +225,16 @@ size_t bxistr_join(char * sep, size_t sep_len,
     return len;
 }
 
-const char * bxistr_rsub(const char * const str,
-                          const size_t str_len,
-                          const char c) {
+size_t bxistr_rsub(const char * const str,
+                   const size_t str_len,
+                   const char c,
+                   const char ** result) {
+    bxiassert(NULL != result);
 
-    if (NULL == str || 0 == str_len) return NULL;
+    if (NULL == str || 0 == str_len) {
+        *result = NULL;
+        return 0;
+    }
 
     // start from last character
     size_t i = str_len - 1;
@@ -241,7 +246,9 @@ const char * bxistr_rsub(const char * const str,
         i--;
     }
 
-    return str + i;
+    *result = str + i;
+
+    return str_len - i;
 }
 
 

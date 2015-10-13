@@ -73,7 +73,7 @@ static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_
                             pid_t tid,
 #endif
                             uint16_t thread_rank,
-                            char * filename, size_t filename_len,
+                            char * fullfilename, size_t filename_len,
                             const char * funcname, size_t funcname_len,
                             int line,
                             const char * rawstr, size_t rawstr_len);
@@ -233,13 +233,16 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
                         pid_t tid,
 #endif
                         uint16_t thread_rank,
-                        char * filename, size_t filename_len,
+                        char * fullfilename, size_t fullfilename_len,
                         const char * funcname, size_t funcname_len,
                         int line,
                         const char * rawstr, size_t rawstr_len) {
 
     bxilog_record_p record;
     char * data;
+
+    const char * filename;
+    size_t filename_len = bxistr_rsub(fullfilename, fullfilename_len, '/', &filename);
 
     size_t var_len = filename_len\
             + funcname_len\
@@ -268,7 +271,6 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
     record->filename_len = filename_len;
     record->funcname_len = funcname_len;
     record->logname_len = logger->name_length;
-    record->variable_len = var_len;
     record->logmsg_len = rawstr_len;
 
     // Now copy the rest after the record

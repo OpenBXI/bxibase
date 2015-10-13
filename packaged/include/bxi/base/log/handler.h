@@ -89,8 +89,6 @@ typedef struct {
     size_t filename_len;                //!< file name length
     size_t funcname_len;                //!< function name length
     size_t logname_len;                 //!< logger name length
-    size_t variable_len;                //!< filename_len + funcname_len +
-                                        //!< logname_len
     size_t logmsg_len;                  //!< the logmsg length
 } bxilog_record_s;
 

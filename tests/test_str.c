@@ -141,37 +141,59 @@ void test_bxistr_join(void) {
 void test_bxistr_rfind(void) {
 
     char * path = "foo";
-    const char * s = bxistr_rsub(path, strlen(path), '/');
+    const char * s;
+    const char * t;
+
+    size_t len = bxistr_rsub(path, strlen(path), '/', &s);
     CU_ASSERT_STRING_EQUAL(s, path);
-    const char * t = bxistr_rsub(s, strlen(s), '/');
+    CU_ASSERT_EQUAL(len, strlen(s));
+
+    len = bxistr_rsub(s, strlen(s), '/', &t);
     CU_ASSERT_STRING_EQUAL(t, s);
-    t = bxistr_rsub(t, strlen(t), '/');
+    CU_ASSERT_EQUAL(len, strlen(t));
+
+    len = bxistr_rsub(t, strlen(t), '/', &t);
     CU_ASSERT_STRING_EQUAL(s, t);
+    CU_ASSERT_EQUAL(len, strlen(t));
 
     path = "foo/";
-    s = bxistr_rsub(path, strlen(path), '/');
+    len = bxistr_rsub(path, strlen(path), '/', &s);
     CU_ASSERT_STRING_EQUAL(s, "")
-    t = bxistr_rsub(s, strlen(s), '/');
+    CU_ASSERT_EQUAL(len, strlen(s));
+
+    len = bxistr_rsub(s, strlen(s), '/', &t);
     CU_ASSERT_PTR_NULL(t);
-    t = bxistr_rsub(t, 0, '/');
+
+    len = bxistr_rsub(t, 0, '/', &t);
     CU_ASSERT_PTR_NULL(t);
 
     path = "bar/foo";
-    s = bxistr_rsub(path, strlen(path), '/');
+    len = bxistr_rsub(path, strlen(path), '/', &s);
     CU_ASSERT_STRING_EQUAL(s, "foo");
-    t = bxistr_rsub(s, strlen(s), '/');
+    CU_ASSERT_EQUAL(len, strlen(s));
+
+    len = bxistr_rsub(s, strlen(s), '/', &t);
     CU_ASSERT_STRING_EQUAL(t, s);
-    t = bxistr_rsub(t, strlen(t), '/');
-    CU_ASSERT_STRING_EQUAL(s, t);;
+    CU_ASSERT_EQUAL(len, strlen(t));
+
+    len = bxistr_rsub(t, strlen(t), '/', &t);
+    CU_ASSERT_STRING_EQUAL(s, t);
+    CU_ASSERT_EQUAL(len, strlen(t));
 
     path = "/boo/bar/foo";
     size_t size = strlen(path);
-    s = bxistr_rsub(path, strlen(path), '/');
+    len = bxistr_rsub(path, strlen(path), '/', &s);
     CU_ASSERT_STRING_EQUAL(s, "foo");
-    t = bxistr_rsub(s, strlen(s), '/');
+    CU_ASSERT_EQUAL(len, strlen(s));
+
+    len = bxistr_rsub(s, strlen(s), '/', &t);
     CU_ASSERT_STRING_EQUAL(t, s);
-    t = bxistr_rsub(t, strlen(t), '/');
+    CU_ASSERT_EQUAL(len, strlen(t));
+
+    len = bxistr_rsub(t, strlen(t), '/', &t);
     CU_ASSERT_STRING_EQUAL(s, t);
+    CU_ASSERT_EQUAL(len, strlen(t));
+
     CU_ASSERT_EQUAL(strlen(path), size);
 
 }
