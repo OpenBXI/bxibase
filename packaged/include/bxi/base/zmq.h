@@ -38,6 +38,7 @@
 #define BXIZMQ_RETRIES_MAX_ERR 1
 #define BXIZMQ_FSM_ERR 2
 #define BXIZMQ_MISSING_FRAME_ERR 3
+#define BXIZMQ_PUBSUB_SYNC_HEADER ".bxizmq/sync"
 
 /**
  * The bxierr code for protocol error

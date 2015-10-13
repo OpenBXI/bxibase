@@ -31,7 +31,6 @@
 #define DEFAULT_CLOSING_LINGER 1000u
 #define MAX_CONNECTION_TIMEOUT 1.0     // seconds
 #define INPROC_PROTO "inproc"
-#define PUBSUB_SYNC_HEADER ".bxizmq/sync"
 
 
 // *********************************************************************************
@@ -573,7 +572,7 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
 
     while(true) {
         // First frame: the SYNC header
-        err2 = bxizmq_str_snd(PUBSUB_SYNC_HEADER, pub_zocket, ZMQ_SNDMORE, 0, 0);
+        err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_HEADER, pub_zocket, ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, err2);
 
         // Second frame: the sync socket URL
@@ -586,6 +585,8 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
 
         // Ok we received the synced message
         if (NULL != synced) {
+            err2 = bxizmq_str_snd(synced, sync_zocket, 0, 0, 0);
+            BXIERR_CHAIN(err, err2);
             // Check it is the expected one
             if (strncmp(sync_url, synced, sync_url_len) == 0) {
                 BXIFREE(synced);
@@ -621,17 +622,24 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_SUBSCRIBE,
-                                PUBSUB_SYNC_HEADER, ARRAYLEN(PUBSUB_SYNC_HEADER));
+                                BXIZMQ_PUBSUB_SYNC_HEADER, ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
     BXIERR_CHAIN(err, err2);
 
     char * sync_url = NULL;
+    char * key = NULL;
     while(true) {
 
-        err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
+        err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
         BXIERR_CHAIN(err, err2);
 
-        // We received something
-        if (NULL != sync_url) break;
+        if (NULL != key && strcmp(key, BXIZMQ_PUBSUB_SYNC_HEADER) == 0) {
+
+            err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
+            BXIERR_CHAIN(err, err2);
+
+            // We received something
+            if (NULL != sync_url) break;
+        }
 
         // Check the timeout did not expire
         double delay;
@@ -644,7 +652,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
                                                  timeout_s, delay);
     }
 
-    void * sync_zocket;
+    void * sync_zocket = NULL;
     err2 = bxizmq_zocket_connect(zmq_ctx, ZMQ_REQ, sync_url, &sync_zocket);
     BXIERR_CHAIN(err, err2);
 
@@ -652,8 +660,35 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_UNSUBSCRIBE,
-                                PUBSUB_SYNC_HEADER, ARRAYLEN(PUBSUB_SYNC_HEADER));
+                                BXIZMQ_PUBSUB_SYNC_HEADER, ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
+
+    zmq_pollitem_t poll_set[] = {
+        { sync_zocket, 0, ZMQ_POLLIN, 0 },};
+
+    while(true) {
+        int rc = zmq_poll(poll_set, 1, 2000);
+        if (-1 == rc) {
+            err2 = bxierr_errno("Calling zmq_poll() failed, rc=%d", rc);
+            BXIERR_CHAIN(err, err2);
+            break;
+        }
+
+        key = NULL;
+        err2 = bxizmq_str_rcv(sync_zocket, 0, false, &key);
+        BXIERR_CHAIN(err, err2);
+        break;
+    }
+
+    do {
+        key = NULL;
+        err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
+        BXIERR_CHAIN(err, err2);
+    } while(key != NULL);
+
     BXIERR_CHAIN(err, err2);
+    err2 = bxizmq_zocket_destroy(sync_zocket);
+    BXIERR_CHAIN(err, err2);
+
     return err;
 }
 
