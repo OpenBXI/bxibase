@@ -5,6 +5,7 @@
 
 #ifndef BXICFFI
 #include <stdbool.h>
+#include <fcntl.h>
 #endif
 
 #include "bxi/base/mem.h"
@@ -28,6 +29,23 @@
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
+/**
+ * Convenience macro for specifying append mode in ::bxilog_basic_config() and
+ * ::bxilog_unit_test_config()
+ *
+ * @see bxilog_basic_config()
+ * @see bxilog_unit_test_config()
+ */
+#define BXI_APPEND_OPEN_FLAGS O_CLOEXEC | O_CREAT | O_APPEND
+
+/**
+ * Convenience macro for specifying truncate mode in ::bxilog_basic_config() and
+ * ::bxilog_unit_test_config()
+ *
+ * @see bxilog_basic_config()
+ * @see bxilog_unit_test_config()
+ */
+#define BXI_TRUNC_OPEN_FLAGS O_CLOEXEC | O_CREAT | O_TRUNC
 
 // *********************************************************************************
 // ********************************** Types   **************************************
@@ -75,6 +93,9 @@ typedef bxilog_config_s * bxilog_config_p;
  *
  * @return a new bxilog "standard" configuration
  *
+ * @see BXI_APPEND_OPEN_FLAGS
+ * @see BXI_TRUNC_OPEN_FLAGS
+ *
  */
 bxilog_config_p bxilog_basic_config(const char *progname,
                                     const char * filename,
@@ -89,6 +110,9 @@ bxilog_config_p bxilog_basic_config(const char *progname,
  * @param[in] open_flags the flags to give to open() (man 2 open).
  *
  * @return a new bxilog configuration
+ *
+ * @see BXI_APPEND_OPEN_FLAGS
+ * @see BXI_TRUNC_OPEN_FLAGS
  */
 bxilog_config_p bxilog_unit_test_config(const char *progname,
                                         const char * filename,
