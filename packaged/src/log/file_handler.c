@@ -76,7 +76,7 @@
 typedef struct bxilog_file_handler_param_s_f * bxilog_file_handler_param_p;
 typedef struct bxilog_file_handler_param_s_f {
     bxilog_handler_param_s generic;
-    bool append;
+    int open_flags;
     char * filename;
     char * progname;
     size_t progname_len;
@@ -192,14 +192,14 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
 
     char * progname = va_arg(ap, char *);
     char * filename = va_arg(ap, char *);
-    bool append = (bool) va_arg(ap, int);
+    int open_flags = va_arg(ap, int);
     va_end(ap);
 
     bxilog_file_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, &result->generic);
 
     result->filename = strdup(filename);
-    result->append = append;
+    result->open_flags = open_flags;
     result->progname = strdup(progname);
     result->progname_len = strlen(progname) + 1; // Include the NULL terminal byte
 
@@ -482,7 +482,7 @@ bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {
     } else {
         errno = 0;
         data->fd = open(data->filename,
-                        O_WRONLY | O_CREAT | (data->append ? O_APPEND : O_TRUNC) | O_CLOEXEC,
+                        O_WRONLY | data->open_flags,
                         S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
         if (-1 == data->fd) return bxierr_errno("Can't open %s", data->filename);
     }

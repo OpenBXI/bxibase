@@ -71,15 +71,14 @@ typedef bxilog_config_s * bxilog_config_p;
  * @param[in] progname the program name (usually argv[0])
  * @param[in] filename if not NULL, the full file name where the bxilog_file_handler_p
  *            must produce its output
- * @param[in] append if true, append to filename if it exists (ignored when filename
- *            is NULL).
+ * @param[in] open_flags the flags to give to open() (man 2 open).
  *
  * @return a new bxilog "standard" configuration
  *
  */
 bxilog_config_p bxilog_basic_config(const char *progname,
                                     const char * filename,
-                                    bool append);
+                                    int open_flags);
 
 /**
  * Create a configuration suitable for unit testing.
@@ -87,13 +86,13 @@ bxilog_config_p bxilog_basic_config(const char *progname,
  * @param[in] progname the program name (usually argv[0])
  * @param[in] filename the full file name where the bxilog_file_handler_p
  * must produce its output
- * @param[in] append if true, append to filename if it exists
+ * @param[in] open_flags the flags to give to open() (man 2 open).
  *
  * @return a new bxilog configuration
  */
 bxilog_config_p bxilog_unit_test_config(const char *progname,
                                         const char * filename,
-                                        bool append);
+                                        int open_flags);
 
 /**
  * Create a configuration suitable for being used with the net-snmp logging library.

@@ -14,6 +14,8 @@
 #ifndef BXILOG_FILE_HANDLER_H_
 #define BXILOG_FILE_HANDLER_H_
 
+#include <fcntl.h>
+
 #include "bxi/base/err.h"
 #include "bxi/base/log.h"
 
@@ -32,6 +34,8 @@
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
+#define BXI_APPEND_OPEN_FLAGS O_CLOEXEC | O_CREAT | O_APPEND
+#define BXI_TRUNC_OPEN_FLAGS O_CLOEXEC | O_CREAT | O_TRUNC
 
 //*********************************************************************************
 //********************************** Types ****************************************
@@ -49,7 +53,10 @@
  *
  * @param[in] progname a `char *` string; the program name (argv[0])
  * @param[in] filename a `char *` string; where logs must be must be written
- * @param[in] append a `bool` value; append to the file when true, overwrite when false
+ * @param[in] open_flags an `int` value; as defined by open() (man 2 open)
+ *
+ * @note for your convenience macros ::BXI_APPEND_OPEN_FLAGS/::BXI_TRUNC_OPEN_FLAGS
+ *       are specified for appending/truncating the file respectively.
  */
 extern const bxilog_handler_p BXILOG_FILE_HANDLER;
 #else

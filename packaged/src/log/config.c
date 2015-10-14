@@ -24,6 +24,8 @@
 #include "bxi/base/log/syslog_handler.h"
 #include "bxi/base/log/snmplog_handler.h"
 
+#include "bxi/base/log/config.h"
+
 #include "config_impl.h"
 #include "log_impl.h"
 
@@ -71,7 +73,7 @@ static char * _LOG_LEVEL_NAMES[] = {
 
 bxilog_config_p bxilog_basic_config(const char * const progname,
                                     const char * const filename,
-                                    bool append) {
+                                    int open_flags) {
 
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
@@ -80,7 +82,7 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
     bxilog_config_add_handler(config, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
     if (NULL != filename) {
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
-                                  basename, filename, append);
+                                  basename, filename, open_flags);
     }
     // Bull default to LOG_LOCAL0
 //    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,
@@ -94,14 +96,14 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
 
 bxilog_config_p bxilog_unit_test_config(const char * const progname,
                                         const char * const filename,
-                                        bool append) {
+                                        int open_flags) {
 
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
     // Use 2 loggers to ensure multiple handlers works
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, append);
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, "/dev/null", append);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, open_flags);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, "/dev/null", O_APPEND);
 //    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,
 //                                  basename,
 //                                  LOG_CONS | LOG_PID,

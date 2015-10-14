@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <libgen.h>
+#include <fcntl.h>
 
 #include <sched.h>
 
@@ -78,7 +79,9 @@ void test_handlers(void);
  */
 int init_suite_logger(void) {
     bxierr_p err = BXIERR_OK, err2;
-    bxilog_config_p config = bxilog_unit_test_config(ARGV[0], FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(ARGV[0],
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     err2 = bxilog_init(config);
     BXIERR_CHAIN(err, err2);
     err2 = bxilog_install_sighandler();
@@ -109,8 +112,8 @@ int _handle_rc_code(){
         return 99;
     } else {
         fprintf(stderr, "CU_get_number_of_suites_failed %d, "
-                "CU_get_number_of_tests_failed %d,"
-                "  CU_get_number_of_failures %d\n",
+                "CU_get_number_of_tests_failed %d, "
+                "CU_get_number_of_failures %d\n",
                 CU_get_number_of_suites_failed(),
                 CU_get_number_of_tests_failed(),
                 CU_get_number_of_failures());

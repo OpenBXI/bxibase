@@ -144,7 +144,9 @@ void produce_logs() {
  *  Check logger initialization
  */
 void test_logger_levels(void) {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report_keep(err, STDERR_FILENO);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -156,7 +158,9 @@ void test_logger_levels(void) {
 }
 
 void test_logger_init() {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
@@ -205,7 +209,9 @@ static long _get_filesize(char* name) {
 }
 
 void test_logger_existing_file(void) {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
@@ -222,7 +228,8 @@ void test_logger_existing_file(void) {
     close(fd);
 
     bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME,
-                                                         name, true);
+                                                         name,
+                                                         BXI_APPEND_OPEN_FLAGS);
     err = bxilog_init(new_config);
 
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -236,7 +243,9 @@ void test_logger_existing_file(void) {
 }
 
 void test_logger_non_existing_file(void) {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
@@ -254,7 +263,9 @@ void test_logger_non_existing_file(void) {
     int rc = unlink(name);
     bxiassert(0 == rc);
 
-    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME, name, true);
+    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME,
+                                                         name,
+                                                         BXI_APPEND_OPEN_FLAGS);
     err = bxilog_init(new_config);
     bxierr_report_keep(err, STDERR_FILENO);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
@@ -268,7 +279,9 @@ void test_logger_non_existing_file(void) {
 }
 
 void test_logger_non_existing_dir(void) {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
@@ -285,7 +298,9 @@ void test_logger_non_existing_dir(void) {
     bxiassert(0 == rc);
 
 
-    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME, name, true);
+    bxilog_config_p new_config = bxilog_unit_test_config(PROGNAME,
+                                                         name,
+                                                         BXI_APPEND_OPEN_FLAGS);
     // Failed because the directory does not exist
     err = bxilog_init(new_config);
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
@@ -312,7 +327,9 @@ static bool _is_logger_in_registered(bxilog_logger_p logger) {
 }
 
 void test_single_logger_instance(void) {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
     err = bxilog_install_sighandler();
@@ -344,7 +361,9 @@ void test_single_logger_instance(void) {
 
 void test_registry(void) {
     bxilog_registry_reset();
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
 
@@ -397,7 +416,9 @@ void test_registry(void) {
 void test_config_parser(void) {
     bxilog_registry_reset();
 
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
 
@@ -451,7 +472,8 @@ void _fork_childs(size_t n) {
         n--;
         char * child_progname = bxistr_new("%s.%zu", PROGNAME, n);
         bxilog_config_p config = bxilog_unit_test_config(child_progname,
-                                                         FULLFILENAME, true);
+                                                         FULLFILENAME,
+                                                         BXI_APPEND_OPEN_FLAGS);
         bxierr_p err = bxilog_init(config);
         bxierr_report_keep(err, STDERR_FILENO);
         BXIASSERT(TEST_LOGGER, bxierr_isok(err));
@@ -501,7 +523,9 @@ void _fork_childs(size_t n) {
 }
 
 void test_logger_fork(void) {
-    bxilog_config_p config = bxilog_unit_test_config(PROGNAME, FULLFILENAME, true);
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
 
@@ -527,7 +551,7 @@ void test_handlers(void) {
                               BXILOG_SNMPLOG_HANDLER);
     bxilog_config_add_handler(config,
                               BXILOG_FILE_HANDLER,
-                              PROGNAME, FULLFILENAME, true);
+                              PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
 
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);

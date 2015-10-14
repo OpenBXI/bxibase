@@ -264,11 +264,7 @@ def basicConfig(**kwargs):
     global _CONFIG
     
     if 'console' not in kwargs:
-        #kwargs['console'] = (WARNING,)
-        # TODO: Default to no console for the moment so we keep the previous behavior
-        # on all bxi projects. This will change soon, projects will have to adapt 
-        # accordingly
-        kwargs['console'] = None
+        kwargs['console'] = (WARNING,)
 
     if 'filters' not in kwargs:
         kwargs['filters'] = DEFAULT_FILTERS
@@ -362,13 +358,13 @@ def _init():
             
         progname = __FFI__.new('char[]', sys.argv[0])
         filename = __FFI__.new('char[]', file_handler_args[0])
-        append = __FFI__.cast('bool', file_handler_args[1])
-        
+        open_flags = __FFI__.cast('int', os.O_CREAT | \
+                                 (os.O_APPEND if file_handler_args[1] else os.O_TRUNC))
         __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
                                                    __BXIBASE_CAPI__.BXILOG_FILE_HANDLER, 
                                                    progname, 
                                                    filename,
-                                                   append);
+                                                   open_flags);
 
     if syslog_handler_args is not None:
         ident =  __FFI__.new('char[]', sys.argv[0])
