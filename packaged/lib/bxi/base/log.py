@@ -177,6 +177,15 @@ Default configuration items.
 """
 DEFAULT_FILTERS = ':lowest'
 
+"""
+Default configuration of the console handler
+
+@see ::basicConfig()
+@see ::bxilog_handler_p
+@see ::BXILOG_CONSOLE_HANDLER
+"""
+DEFAULT_CONSOLE_OPTIONS = (':output', WARNING)
+
 
 def _findCaller():
     """Find caller filename, linenumber and function name.
@@ -242,7 +251,7 @@ def basicConfig(**kwargs):
     global _CONFIG
     
     if 'console' not in kwargs:
-        kwargs['console'] = (':output', WARNING,)
+        kwargs['console'] = DEFAULT_CONSOLE_OPTIONS
 
     if 'filters' not in kwargs:
         kwargs['filters'] = DEFAULT_FILTERS
@@ -258,6 +267,20 @@ def basicConfig(**kwargs):
 
     _CONFIG = kwargs
 
+def parse_filters(filter_str):
+    """
+    Parse the given string and return the corresponding set of filters as 
+    a bxilog_filter_p* array
+    
+    @param[in] filters_str a string representing filters as defined in ::bxilog_filters_parse()
+    
+    @return a list of filters as a ::bxilog_filter_p* 
+    """
+    filters_p = __FFI__.new('bxilog_filter_p*[1]')
+    n_p = __FFI__.new('size_t[1]')
+    err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, n_p, filters_p)
+    BXICError.raise_if_ko(err)
+    return filters_p[0]
 
 def _init():
     """
@@ -270,7 +293,7 @@ def _init():
     global _INIT_CALLER
 
     if _CONFIG is None:
-        _CONFIG = {'console': (':output', WARNING),
+        _CONFIG = {'console': DEFAULT_CONSOLE_OPTIONS,
                    'filename': None,
                    'filters': DEFAULT_FILTERS,
                    'syslog': None,
@@ -283,12 +306,12 @@ def _init():
     
     config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0]);
     
-    console_handler_args = _CONFIG.get('console', (':output', WARNING))
+    console_handler_args = _CONFIG.get('console', DEFAULT_CONSOLE_OPTIONS)
     file_handler_args = _CONFIG.get('filename', None)
     syslog_handler_args = _CONFIG.get('syslog', None)
         
     if console_handler_args is not None:
-        filters = __BXIBASE_CAPI__.bxilog_filter_parse(console_handler_args[0])
+        filters = parse_filters(console_handler_args[0])
         stderr_level = __FFI__.cast('int', console_handler_args[1])
         __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
                                                    __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
@@ -299,22 +322,19 @@ def _init():
             file_handler_args = (':lowest', file_handler_args, True)
             
         progname = __FFI__.new('char[]', sys.argv[0])
-        filters_p = __FFI__.new('bxilog_filter_p*[1]')
-        n_p = __FFI__.new('size_t[1]')
-        err = __BXIBASE_CAPI__.bxilog_filters_parse(file_handler_args[0], n_p, filters_p)
-        BXICError.raise_if_ko(err)
+        filters = parse_filters(file_handler_args[0])
         filename = __FFI__.new('char[]', file_handler_args[1])
         open_flags = __FFI__.cast('int', os.O_CREAT | \
                                  (os.O_APPEND if file_handler_args[2] else os.O_TRUNC))
         __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
                                                    __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
-                                                   filters_p[0], 
+                                                   filters, 
                                                    progname, 
                                                    filename,
                                                    open_flags);
 
     if syslog_handler_args is not None:
-        filters = __BXIBASE_CAPI__.bxilog_filter_parse(syslog_handler_args[0])
+        filters = parse_filters(syslog_handler_args[0])
         ident =  __FFI__.new('char[]', sys.argv[0])
         option = __FFI__.cast('int', syslog_handler_args[1])
         facility = __FFI__.cast('int', syslog_handler_args[2])
