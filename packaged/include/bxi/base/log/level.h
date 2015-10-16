@@ -36,6 +36,7 @@
  */
 typedef enum {
     // Note: first letter of a log level name should be unique
+    BXILOG_OFF,                             //!< no log
     BXILOG_PANIC,                           //!< system is unusable
     BXILOG_ALERT,                           //!< action must be taken immediately
     BXILOG_CRITICAL,                        //!< critical conditions

@@ -34,7 +34,9 @@
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-static bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap);
+static bxilog_handler_param_p _param_new(bxilog_handler_p self,
+                                         bxilog_filter_p * filters,
+                                         va_list ap);
 static bxierr_p _init(bxilog_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
                              char * filename,
@@ -71,12 +73,15 @@ const bxilog_handler_p BXILOG_NULL_HANDLER = (bxilog_handler_p) &BXILOG_NULL_HAN
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
+bxilog_handler_param_p _param_new(bxilog_handler_p self,
+                                  bxilog_filter_p * filters,
+                                  va_list ap) {
+
     bxiassert(BXILOG_NULL_HANDLER == self);
     UNUSED(ap);
 
     bxilog_handler_param_p result = bximem_calloc(sizeof(*result));
-    bxilog_handler_init_param(self, result);
+    bxilog_handler_init_param(self, filters, result);
 
     return result;
 }

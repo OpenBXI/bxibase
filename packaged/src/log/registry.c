@@ -65,12 +65,12 @@ static size_t REGISTERED_LOGGERS_NB = 0;
 /**
  * Number of items in the current configuration.
  */
-static size_t CFG_ITEMS_NB = 0;
+static size_t FILTERS_NB = 0;
 
 /**
  * Current configuration.
  */
-static bxilog_filter_s * CFG_ITEMS = NULL;
+static bxilog_filter_s * FILTERS = NULL;
 
 static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 
@@ -222,16 +222,16 @@ void bxilog_registry_reset() {
     bxiassert(0 == rc);
 }
 
-bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s cfg[n]) {
+bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_p filters[n]) {
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
-    CFG_ITEMS = bximem_calloc(n * sizeof(*CFG_ITEMS));
+    FILTERS = bximem_calloc(n * sizeof(*FILTERS));
     for (size_t i = 0; i < n; i++) {
-        CFG_ITEMS[i].level = cfg[i].level;
-        CFG_ITEMS[i].prefix = strdup(cfg[i].prefix);
+        FILTERS[i].level = filters[i]->level;
+        FILTERS[i].prefix = strdup(filters[i]->prefix);
     }
-    CFG_ITEMS_NB = n;
+    FILTERS_NB = n;
 
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
 //    fprintf(stderr, "Number of cfg items: %zd\n", n);
@@ -246,76 +246,18 @@ bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s cfg[n]) {
 
 bxierr_p bxilog_registry_parse_set_filters(char * str) {
     bxiassert(NULL != str);
+    bxierr_p err = BXIERR_OK, err2;
 
-    str = strdup(str); // Required because str might not be allocated on the heap
-    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
-    char *saveptr1 = NULL;
-    char *str1 = str;
-    size_t cfg_items_nb = 20;
-    bxilog_filter_s * cfg_items = bximem_calloc(cfg_items_nb * sizeof(*cfg_items));
-    size_t next_idx = 0;
-    for (size_t j = 0; ; j++, str1 = NULL) {
-        char * token = strtok_r(str1, ",", &saveptr1);
-        if (NULL == token) break;
-        char * sep = strchr(token, ':');
-        if (sep == NULL) {
-            err2 = bxierr_gen("Expected ':' in log level configuration: %s", token);
-            BXIERR_CHAIN(err, err2);
-            goto QUIT;
-        }
-
-        *sep = '\0';
-        char * prefix = token;
-        char * level_str = sep + 1;
-        bxilog_level_e level;
-        unsigned long tmp;
-        errno = 0;
-
-        char * endptr;
-        tmp = strtoul(level_str, &endptr, 10);
-        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
-        if (endptr == level_str) {
-            err2 = bxilog_get_level_from_str(level_str, &level);
-            BXIERR_CHAIN(err, err2);
-            if (bxierr_isko(err)) {
-                goto QUIT;
-            }
-        } else if (*endptr != '\0') {
-            err = bxierr_errno("Error while parsing number: '%s' doesn't contain only "
-                               "a number or a level", level_str);
-            BXIERR_CHAIN(err, err2);
-            goto QUIT;
-        } else {
-            if (tmp > BXILOG_LOWEST) {
-                err2 = bxierr_new(BXILOG_BADLVL_ERR,
-                                  (void*) tmp, NULL, NULL, NULL,
-                                  "Bad log level: %lu, using %d instead",
-                                  tmp, BXILOG_LOWEST);
-                BXIERR_CHAIN(err, err2);
-                tmp = BXILOG_LOWEST;
-            }
-            level = (bxilog_level_e) tmp;
-        }
-        cfg_items[next_idx].prefix = strdup(prefix);
-        cfg_items[next_idx].level = level;
-        next_idx++;
-        if (next_idx >= cfg_items_nb) {
-            size_t new_size = cfg_items_nb * 2;
-            cfg_items = bximem_realloc(cfg_items,
-                                       cfg_items_nb,
-                                       new_size);
-            cfg_items_nb = new_size;
-        }
-    }
-
-    err2 = bxilog_registry_set_filters(next_idx, cfg_items);
+    bxilog_filter_p * filters = NULL;
+    size_t n = 0;
+    err2 = bxilog_filters_parse(str, &n, &filters);
     BXIERR_CHAIN(err, err2);
-QUIT:
-    for (size_t i = 0; i < next_idx; i++) {
-        BXIFREE(cfg_items[i].prefix);
-    }
-    BXIFREE(cfg_items);
-    BXIFREE(str);
+
+    err2 = bxilog_registry_set_filters(n, filters);
+    BXIERR_CHAIN(err, err2);
+
+    BXIFREE(filters);
+
     return err;
 }
 
@@ -348,26 +290,26 @@ void bxilog__cfg_release_loggers() {
 //*********************************************************************************
 
 void _reset_config() {
-    for (size_t i = 0; i < CFG_ITEMS_NB; i++) {
-        BXIFREE(CFG_ITEMS[i].prefix);
+    for (size_t i = 0; i < FILTERS_NB; i++) {
+        BXIFREE(FILTERS[i].prefix);
     }
-    BXIFREE(CFG_ITEMS);
-    CFG_ITEMS_NB = 0;
+    BXIFREE(FILTERS);
+    FILTERS_NB = 0;
 }
 
 void _configure(bxilog_logger_p logger) {
     bxiassert(NULL != logger);
 
-    for (size_t i = 0; i < CFG_ITEMS_NB; i++) {
-        if (NULL == CFG_ITEMS[i].prefix) continue;
+    for (size_t i = 0; i < FILTERS_NB; i++) {
+        if (NULL == FILTERS[i].prefix) continue;
 
-        size_t len = strlen(CFG_ITEMS[i].prefix);
-        if (0 == strncmp(CFG_ITEMS[i].prefix, logger->name, len)) {
+        size_t len = strlen(FILTERS[i].prefix);
+        if (0 == strncmp(FILTERS[i].prefix, logger->name, len)) {
             // We have a prefix, configure it
 //            fprintf(stderr, "Prefix: '%s' match logger '%s': level: %d -> %d\n",
 //                    CFG_ITEMS[i].prefix, logger->name,
 //                    logger->level, CFG_ITEMS[i].level);
-            logger->level = CFG_ITEMS[i].level;
+            logger->level = FILTERS[i].level;
         }
 //        else {
 //            fprintf(stderr, "Mismatch: %s %s\n", CFG_ITEMS[i].prefix, logger->name);

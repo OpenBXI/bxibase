@@ -68,7 +68,9 @@ typedef log_single_line_param_s * log_single_line_param_p;
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-static bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap);
+static bxilog_handler_param_p _param_new(bxilog_handler_p self,
+                                         bxilog_filter_p * filters,
+                                         va_list ap);
 static bxierr_p _init(bxilog_syslog_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
                              char * filename,
@@ -122,7 +124,10 @@ const bxilog_handler_p BXILOG_SYSLOG_HANDLER = (bxilog_handler_p) &BXILOG_SYSLOG
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
+bxilog_handler_param_p _param_new(bxilog_handler_p self,
+                                  bxilog_filter_p * filters,
+                                  va_list ap) {
+
     bxiassert(BXILOG_SYSLOG_HANDLER == self);
 
     const char * ident = va_arg(ap, char *);
@@ -131,7 +136,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     va_end(ap);
 
     bxilog_syslog_handler_param_p result = bximem_calloc(sizeof(*result));
-    bxilog_handler_init_param(self, &result->generic);
+    bxilog_handler_init_param(self, filters, &result->generic);
 
     const char * basename;
     bxistr_rsub(ident, strlen(ident), '/', &basename);
@@ -343,7 +348,8 @@ bxierr_p _log_single_line(char * line,
 //    bxilog_syslog_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
-    syslog(record->level, "%s", line);
+    int priority = (int) record->level + 1;
+    syslog(priority, "%s", line);
 
     return BXIERR_OK;
 }

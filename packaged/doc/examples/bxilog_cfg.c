@@ -55,11 +55,7 @@ int main(int argc, char** argv) {
     log_stuff(LOGGER_AB);
     log_stuff(LOGGER_AC);
 
-    bxilog_filter_s filters[] = {{.prefix="", .level=BXILOG_LOWEST},
-                                 {.prefix="a", .level=BXILOG_OUTPUT},
-                                 {.prefix="a.b", .level=BXILOG_WARNING},
-    };
-    bxilog_registry_set_filters(3, filters);
+    bxilog_registry_parse_set_filters(":lowest,a:output,a.b:warning");
     OUT(MY_LOGGER, "After configuration:");
     display_loggers(n, loggers);
     log_stuff(LOGGER_A);

@@ -126,7 +126,7 @@ void bxilog_registry_reset();
  *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s filters[]);
+bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_p filters[]);
 
 
 /**
@@ -148,6 +148,5 @@ bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_s filters[]);
  *
  */
 bxierr_p bxilog_registry_parse_set_filters(char * format);
-
 
 #endif /* BXILOG_H_ */

@@ -377,11 +377,14 @@ void test_registry(void) {
     OUT(TEST_LOGGER, "Logger %s level: %d", logger_a->name, logger_a->level);
     CU_ASSERT_NOT_EQUAL(logger_a->level, BXILOG_OUTPUT);
 
-    bxilog_filter_s cfg[] = {{.prefix="", .level=BXILOG_DEBUG},
-                               {.prefix="a", .level=BXILOG_OUTPUT},
-                               {.prefix="a.b", .level=BXILOG_WARNING},
-    };
-    err = bxilog_registry_set_filters(3, cfg);
+    bxilog_filter_s all_debug = {.prefix="", .level=BXILOG_DEBUG};
+    bxilog_filter_s a_out = {.prefix="a", .level=BXILOG_OUTPUT};
+    bxilog_filter_s ab_out = {.prefix="a.b", .level=BXILOG_WARNING};
+
+
+    bxilog_filter_p filters[] = {&all_debug, &a_out, &ab_out, NULL};
+
+    err = bxilog_registry_set_filters(3, filters);
     CU_ASSERT_TRUE(bxierr_isok(err));
 
     CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
@@ -400,8 +403,8 @@ void test_registry(void) {
     CU_ASSERT_EQUAL(logger_ab->level, BXILOG_WARNING);
 
 
-    cfg[1].level = BXILOG_ALERT;
-    err = bxilog_registry_set_filters(3, cfg);
+    filters[1]->level = BXILOG_ALERT;
+    err = bxilog_registry_set_filters(3, filters);
     CU_ASSERT_TRUE(bxierr_isok(err));
 
     CU_ASSERT_EQUAL(logger_a->level, BXILOG_ALERT);
@@ -413,7 +416,7 @@ void test_registry(void) {
 }
 
 
-void test_config_parser(void) {
+void test_filter_parser(void) {
     bxilog_registry_reset();
 
     bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
@@ -431,8 +434,8 @@ void test_config_parser(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(logger_z);
     CU_ASSERT_NOT_EQUAL(logger_z->level, BXILOG_OUTPUT);
 
-    char cfg[] = ":debug,z:output,z.w:WARNING";
-    err = bxilog_registry_parse_set_filters(cfg);
+    char filters_format[] = ":debug,z:output,z.w:WARNING";
+    err = bxilog_registry_parse_set_filters(filters_format);
     CU_ASSERT_TRUE(bxierr_isok(err));
 
     CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
@@ -454,7 +457,6 @@ void test_config_parser(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     bxilog_registry_reset();
 }
-
 
 void _fork_childs(size_t n) {
     if (n == 0) return;
@@ -543,14 +545,18 @@ void test_handlers(void) {
 
     bxilog_config_add_handler(config,
                               BXILOG_CONSOLE_HANDLER,
+                              BXILOG_FILTERS_ALL_OFF,
                               BXILOG_WARNING);
     bxilog_config_add_handler(config,
                               BXILOG_SYSLOG_HANDLER,
+                              BXILOG_FILTERS_ALL_OFF,
                               PROGNAME, LOG_CONS | LOG_PERROR, LOG_LOCAL0);
     bxilog_config_add_handler(config,
-                              BXILOG_SNMPLOG_HANDLER);
+                              BXILOG_SNMPLOG_HANDLER,
+                              BXILOG_FILTERS_ALL_OFF);
     bxilog_config_add_handler(config,
                               BXILOG_FILE_HANDLER,
+                              BXILOG_FILTERS_ALL_LOWEST,
                               PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
 
     bxierr_p err = bxilog_init(config);

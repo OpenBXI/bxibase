@@ -79,9 +79,13 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
 
-    bxilog_config_add_handler(config, BXILOG_CONSOLE_HANDLER, BXILOG_WARNING);
+    bxilog_config_add_handler(config,
+                              BXILOG_CONSOLE_HANDLER,
+                              BXILOG_FILTERS_ALL_OUTPUT,
+                              BXILOG_WARNING);
     if (NULL != filename) {
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
+                                  BXILOG_FILTERS_ALL_LOWEST,
                                   basename, filename, open_flags);
     }
     // Bull default to LOG_LOCAL0
@@ -102,8 +106,13 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
     // Use 2 loggers to ensure multiple handlers works
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, filename, open_flags);
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER, basename, "/dev/null", O_APPEND);
+    bxilog_config_add_handler(config,
+                              BXILOG_FILE_HANDLER,
+                              BXILOG_FILTERS_ALL_LOWEST,
+                              basename, filename, open_flags);
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
+                              BXILOG_FILTERS_ALL_OFF,
+                              basename, "/dev/null", O_APPEND);
 //    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,
 //                                  basename,
 //                                  LOG_CONS | LOG_PID,
@@ -120,7 +129,10 @@ bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
     // Use 2 loggers to ensure multiple handlers works
-    bxilog_config_add_handler(config, BXILOG_SNMPLOG_HANDLER, basename);
+    bxilog_config_add_handler(config,
+                              BXILOG_SNMPLOG_HANDLER,
+                              BXILOG_FILTERS_ALL_OUTPUT,
+                              basename);
 
     return config;
 }
@@ -135,7 +147,11 @@ bxilog_config_p bxilog_config_new(const char * const progname) {
     return param;
 }
 
-void bxilog_config_add_handler(bxilog_config_p self, bxilog_handler_p handler, ...) {
+void bxilog_config_add_handler(bxilog_config_p self,
+                               bxilog_handler_p handler,
+                               bxilog_filter_p *filters,
+                               ...) {
+
     size_t new_size = self->handlers_nb + 1;
     self->handlers = bximem_realloc(self->handlers,
                                     self->handlers_nb * sizeof(*self->handlers),
@@ -146,8 +162,8 @@ void bxilog_config_add_handler(bxilog_config_p self, bxilog_handler_p handler, .
     self->handlers[self->handlers_nb] = handler;
 
     va_list ap;
-    va_start(ap, handler);
-    self->handlers_params[self->handlers_nb] = handler->param_new(handler, ap);
+    va_start(ap, filters);
+    self->handlers_params[self->handlers_nb] = handler->param_new(handler, filters, ap);
     va_end(ap);
 
     self->handlers_nb++;

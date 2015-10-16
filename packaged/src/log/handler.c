@@ -81,7 +81,9 @@ static bxierr_p _process_exit(bxilog_handler_p, bxilog_handler_param_p, handler_
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p param) {
+void bxilog_handler_init_param(bxilog_handler_p handler,
+                               bxilog_filter_p * filters,
+                               bxilog_handler_param_p param) {
     bxiassert(NULL != param);
 
     param->mask_signals = true;
@@ -89,6 +91,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p 
     param->data_hwm = 65536;
     param->ctrl_hwm = 100;
     param->poll_timeout_ms = 1000;
+    param->filters = filters;
 
     // Use the param pointer to guarantee a unique URL name for different instances of
     // the same handler
@@ -475,17 +478,27 @@ bxierr_p _process_log_record(bxilog_handler_p handler,
 //    bxiassert(received_size >= BXILOG__GLOBALS->RECORD_MINIMUM_SIZE);
 
     bxilog_record_s * record = zmq_msg_data(&zmsg);
+
     // Fetch other strings: filename, funcname, loggername, logmsg
     char * filename = (char *) record + sizeof(*record);
     char * funcname = filename + record->filename_len;
     char * loggername = funcname + record->funcname_len;
     char * logmsg = loggername + record->logname_len;
 
-    if (NULL != handler->process_log) {
-        err2 = handler->process_log(record,
-                                    filename, funcname, loggername, logmsg,
-                                    param);
-        BXIERR_CHAIN(err, err2);
+    bxilog_level_e filter_level = BXILOG_OFF;
+
+    for (size_t i = 0;; i++) {
+        bxilog_filter_p filter = param->filters[i];
+        if (NULL == filter) break;
+        if (0 == strncmp(filter->prefix, loggername, strlen(filter->prefix))) {
+            filter_level = filter->level;
+        }
+    }
+    if ((record->level <= filter_level) && (NULL != handler->process_log)) {
+            err2 = handler->process_log(record,
+                                        filename, funcname, loggername, logmsg,
+                                        param);
+            BXIERR_CHAIN(err, err2);
     }
 
     /* Release */

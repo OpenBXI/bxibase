@@ -17,6 +17,8 @@
 #include "bxi/base/mem.h"
 #include "bxi/base/err.h"
 
+#include "bxi/base/log/filter.h"
+
 
 /**
  * @file    handler.h
@@ -108,7 +110,8 @@ typedef struct {
     int ctrl_hwm;                       //!< ZMQ High Water Mark for the control socket
     long poll_timeout_ms;               //!< Polling timeout in milliseconds
     char * data_url;                    //!< The data zocket URL
-    char * ctrl_url;                    //!< the control zocket URL
+    char * ctrl_url;                    //!< The control zocket URL
+    bxilog_filter_p *filters;           //!< The list of filters
 } bxilog_handler_param_s;
 
 /**
@@ -137,16 +140,18 @@ struct bxilog_handler_s_f {
      * arguments passed to this last function are passed into the va_list structure.
      *
      * @param[in] handler the log handler
+     * @param[in] filters the list of filters to use
      * @param[in] param_list a list of parameters as given in the
      * bxilog_config_add_handler()
      *
      * @return the parameters to be used by the logging handler.
      */
     bxilog_handler_param_p (*param_new)(bxilog_handler_p handler,
+                                        bxilog_filter_p *filters,
 #ifndef BXICFFI
-            va_list param_list);
+                                        va_list param_list);
 #else
-            void *);
+                                        void *);
 #endif
     /**
      * This function is called during initialization of the log handler.
@@ -193,7 +198,9 @@ struct bxilog_handler_s_f {
 // ********************************** Interface ************************************
 // *********************************************************************************
 
-void bxilog_handler_init_param(bxilog_handler_p handler, bxilog_handler_param_p param);
+void bxilog_handler_init_param(bxilog_handler_p handler,
+                               bxilog_filter_p * filters,
+                               bxilog_handler_param_p param);
 void bxilog_handler_clean_param(bxilog_handler_param_p param);
 
 #endif /* BXILOG_H_ */

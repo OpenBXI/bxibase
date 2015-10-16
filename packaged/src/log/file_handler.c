@@ -104,7 +104,9 @@ typedef log_single_line_param_s * log_single_line_param_p;
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-static bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap);
+static bxilog_handler_param_p _param_new(bxilog_handler_p self,
+                                         bxilog_filter_p * filters,
+                                         va_list ap);
 static bxierr_p _init(bxilog_file_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
                              char * filename,
@@ -187,7 +189,10 @@ const bxilog_handler_p BXILOG_FILE_HANDLER = (bxilog_handler_p) &BXILOG_FILE_HAN
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
+bxilog_handler_param_p _param_new(bxilog_handler_p self,
+                                  bxilog_filter_p * filters,
+                                  va_list ap) {
+
     bxiassert(BXILOG_FILE_HANDLER == self);
 
     char * progname = va_arg(ap, char *);
@@ -196,7 +201,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self, va_list ap) {
     va_end(ap);
 
     bxilog_file_handler_param_p result = bximem_calloc(sizeof(*result));
-    bxilog_handler_init_param(self, &result->generic);
+    bxilog_handler_init_param(self, filters, &result->generic);
 
     result->filename = strdup(filename);
     result->open_flags = open_flags;
