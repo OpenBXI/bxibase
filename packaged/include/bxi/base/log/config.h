@@ -141,6 +141,7 @@ bxilog_config_p bxilog_config_new(const char * progname);
  *
  * @param[in] self a bxilog configuration
  * @param[in] handler a bxilog handler
+ * @param[in] filters a set of bxilog_filter_p terminated by NULL
  *
  */
 void bxilog_config_add_handler(bxilog_config_p self,
