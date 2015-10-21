@@ -566,18 +566,28 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
     bxiassert(0 <= timeout_s);
     bxierr_p err = BXIERR_OK, err2;
 
-    struct timespec now;
-    err2 = bxitime_get(CLOCK_MONOTONIC, &now);
+    struct timespec start, last_send = {0,0};
+    err2 = bxitime_get(CLOCK_MONOTONIC, &start);
     BXIERR_CHAIN(err, err2);
 
-    while(true) {
-        // First frame: the SYNC header
-        err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_HEADER, pub_zocket, ZMQ_SNDMORE, 0, 0);
-        BXIERR_CHAIN(err, err2);
+    double delay = 0.0;
+    double send_delay = timeout_s;
+    double nb_msg = 1000;
+    do {
 
-        // Second frame: the sync socket URL
-        err2 = bxizmq_str_snd(sync_url, pub_zocket, 0, 0, 0);
+        err2 = bxitime_duration(CLOCK_MONOTONIC, last_send, &send_delay);
         BXIERR_CHAIN(err, err2);
+        if (send_delay > (timeout_s / nb_msg)) {
+            // First frame: the SYNC header
+            err2 = bxitime_get(CLOCK_MONOTONIC, &last_send);
+            BXIERR_CHAIN(err, err2);
+            err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_HEADER, pub_zocket, ZMQ_SNDMORE, 0, 0);
+            BXIERR_CHAIN(err, err2);
+
+            // Second frame: the sync socket URL
+            err2 = bxizmq_str_snd(sync_url, pub_zocket, 0, 0, 0);
+            BXIERR_CHAIN(err, err2);
+        }
 
         char * synced = NULL;
         err2 = bxizmq_str_rcv(sync_zocket, ZMQ_DONTWAIT, false, &synced);
@@ -598,16 +608,15 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
         }
 
         // Check the timeout did not expire
-        double delay;
-        err2 = bxitime_duration(CLOCK_MONOTONIC, now, &delay);
+        err2 = bxitime_duration(CLOCK_MONOTONIC, start, &delay);
         BXIERR_CHAIN(err, err2);
-        if (delay > timeout_s) return bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
-                                                 err,
-                                                 "Timeout %f reached (%f) "
-                                                 "while syncing %s",
-                                                 timeout_s, delay, sync_url);
-    }
-    bxiunreachable_statement;
+    } while(delay < timeout_s);
+
+    return bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
+                      err,
+                      "Timeout %f reached (%f) "
+                      "while syncing %s",
+                      timeout_s, delay, sync_url);
 }
 
 bxierr_p bxizmq_sync_sub(void * zmq_ctx,
@@ -638,7 +647,9 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
             BXIERR_CHAIN(err, err2);
 
             // We received something
-            if (NULL != sync_url) break;
+            if (NULL != sync_url) {
+                break;
+            }
         }
 
         // Check the timeout did not expire
@@ -673,6 +684,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
             break;
         }
 
+        if (!(poll_set[0].revents & ZMQ_POLLIN)) continue;
         key = NULL;
         err2 = bxizmq_str_rcv(sync_zocket, 0, false, &key);
         BXIERR_CHAIN(err, err2);
@@ -685,7 +697,6 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
         BXIERR_CHAIN(err, err2);
     } while(key != NULL);
 
-    BXIERR_CHAIN(err, err2);
     err2 = bxizmq_zocket_destroy(sync_zocket);
     BXIERR_CHAIN(err, err2);
 
