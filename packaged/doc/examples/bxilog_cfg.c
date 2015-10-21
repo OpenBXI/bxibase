@@ -29,8 +29,9 @@ void display_loggers(size_t n, bxilog_logger_p loggers[n]) {
 }
 
 int main(int argc, char** argv) {
-    // Produce logs on stdout/stderr, and also in /tmp/foo.log (append=false)
-    bxilog_config_p config = bxilog_basic_config(argv[0], "/tmp/foo.log", false);
+    // Produce logs on stdout/stderr, and also in /tmp/foo.log
+    bxilog_config_p config = bxilog_basic_config(argv[0], "/tmp/foo.log",
+                                                 O_CREAT | O_TRUNC);
     bxierr_p err = bxilog_init(config);
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case

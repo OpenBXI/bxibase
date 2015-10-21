@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 //! [Thread-safe basename() equivalent function]
 
     // Produce logs on stdout/stderr, and also in filename (append=false)
-    bxilog_config_p config = bxilog_basic_config(argv[0], filename, false);
+    bxilog_config_p config = bxilog_basic_config(argv[0], filename, O_CREAT | O_TRUNC);
     bxierr_p err = bxilog_init(config);
     BXIFREE(filename);
 

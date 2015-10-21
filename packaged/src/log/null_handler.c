@@ -35,7 +35,7 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxilog_handler_param_p _param_new(bxilog_handler_p self,
-                                         bxilog_filter_p * filters,
+                                         bxilog_filters_p filters,
                                          va_list ap);
 static bxierr_p _init(bxilog_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
@@ -74,7 +74,7 @@ const bxilog_handler_p BXILOG_NULL_HANDLER = (bxilog_handler_p) &BXILOG_NULL_HAN
 //*********************************************************************************
 
 bxilog_handler_param_p _param_new(bxilog_handler_p self,
-                                  bxilog_filter_p * filters,
+                                  bxilog_filters_p filters,
                                   va_list ap) {
 
     bxiassert(BXILOG_NULL_HANDLER == self);

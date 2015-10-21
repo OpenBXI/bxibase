@@ -238,6 +238,7 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
                         int line,
                         const char * rawstr, size_t rawstr_len) {
 
+    bxierr_p err = BXIERR_OK, err2;
     bxilog_record_p record;
     char * data;
 
@@ -256,11 +257,18 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
     bxiassert(NULL != record);
     // Fill the buffer
     record->level = level;
-    bxierr_p err = bxitime_get(CLOCK_REALTIME, &record->detail_time);
-    // TODO: be smarter here, if the time can't be fetched, just fake it!
+
+
+    err2 = bxitime_get(CLOCK_REALTIME, &record->detail_time);
+    BXIERR_CHAIN(err, err2);
+
     if (bxierr_isko(err)) {
-        BXIFREE(record);
-        return err;
+        char * err_str = bxierr_str(err);
+        fprintf(stderr, "[W] Calling bxitime_get() failed: %s\n", err_str);
+        bxierr_destroy(&err);
+        BXIFREE(err_str);
+        record->detail_time.tv_sec = 0;
+        record->detail_time.tv_nsec = 0;
     }
     record->pid = BXILOG__GLOBALS->pid;
 #ifdef __linux__
@@ -283,23 +291,20 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
     data += logger->name_length;
     memcpy(data, rawstr, rawstr_len);
 
-    // Send the frame
-    // normal version if record comes from the stack 'buf'
-    //    size_t retries = bxizmq_snd_data(record, data_len,
-    //                                      _get_tsd()->zocket, ZMQ_DONTWAIT,
-    //                                      RETRIES_MAX, RETRY_DELAY);
+    for (size_t i = 0; i< BXILOG__GLOBALS->internal_handlers_nb; i++) {
+        // Send the frame
+        // normal version if record comes from the stack 'buf'
+        err2 = bxizmq_data_snd(record, data_len,
+                               log_channel, ZMQ_DONTWAIT,
+                               RETRIES_MAX, RETRY_DELAY);
 
-    // Zero-copy version (if record has been mallocated).
-    err = bxizmq_data_snd_zc(record, data_len,
-                             log_channel, ZMQ_DONTWAIT,
-                             RETRIES_MAX, RETRY_DELAY,
-                             bxizmq_data_free, NULL);
-    if (bxierr_isko(err)) {
-        if (BXIZMQ_RETRIES_MAX_ERR != err->code) return err;
-        // Recursive call!
-        WARNING(LOGGER,
-                "Sending last log required %lu retries", (long) err->data);
-        bxierr_destroy(&err);
+        // Zero-copy version (if record has been mallocated).
+//        err = bxizmq_data_snd_zc(record, data_len,
+//                                 log_channel, ZMQ_DONTWAIT,
+//                                 RETRIES_MAX, RETRY_DELAY,
+//                                 bxizmq_data_free, NULL);
+        BXIERR_CHAIN(err, err2);
     }
-    return BXIERR_OK;
+    BXIFREE(record);
+    return err;
 }

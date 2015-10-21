@@ -82,14 +82,14 @@ static bxierr_p _process_exit(bxilog_handler_p, bxilog_handler_param_p, handler_
 //*********************************************************************************
 
 void bxilog_handler_init_param(bxilog_handler_p handler,
-                               bxilog_filter_p * filters,
+                               bxilog_filters_p filters,
                                bxilog_handler_param_p param) {
     bxiassert(NULL != param);
 
     param->mask_signals = true;
     param->zmq_context = NULL;
-    param->data_hwm = 65536;
-    param->ctrl_hwm = 100;
+    param->data_hwm = 0;
+    param->ctrl_hwm = 0;
     param->poll_timeout_ms = 1000;
     param->filters = filters;
 
@@ -109,6 +109,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
 void bxilog_handler_clean_param(bxilog_handler_param_p param) {
     BXIFREE(param->ctrl_url);
     BXIFREE(param->data_url);
+    bxilog_filters_destroy(&param->filters);
     // Do not free param since it has not been allocated by init()
     // BXIFREE(param);
  }
@@ -274,7 +275,7 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
     bxierr_p err = BXIERR_OK, err2;
     int affected_port;
     err2 = bxizmq_zocket_bind(param->zmq_context,
-                              ZMQ_SUB,
+                              ZMQ_PULL,
                               param->data_url,
                               &affected_port,
                               &data->data_zocket);
@@ -283,8 +284,8 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
 //    fprintf(stderr, "Binding %p to %s\n", data->data_zocket, param->data_url);
 
     // Subscribe to all
-    err2 = bxizmq_zocket_setopt(data->data_zocket, ZMQ_SUBSCRIBE, "", 0);
-    BXIERR_CHAIN(err, err2);
+//    err2 = bxizmq_zocket_setopt(data->data_zocket, ZMQ_SUBSCRIBE, "", 0);
+//    BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(data->data_zocket,
                                 ZMQ_RCVHWM,
@@ -487,11 +488,19 @@ bxierr_p _process_log_record(bxilog_handler_p handler,
 
     bxilog_level_e filter_level = BXILOG_OFF;
 
-    for (size_t i = 0;; i++) {
-        bxilog_filter_p filter = param->filters[i];
+    for (size_t i = 0; i < param->filters->nb; i++) {
+        bxilog_filter_p filter = param->filters->list[i];
         if (NULL == filter) break;
+
         if (0 == strncmp(filter->prefix, loggername, strlen(filter->prefix))) {
             filter_level = filter->level;
+//            fprintf(stderr, "%d.%d: %s MATCH [%zu] %s:%d\n",
+//                                    record->pid, record->tid, loggername,
+//                                    i, filter->prefix, filter->level);
+        } else {
+//            fprintf(stderr, "%d.%d: %s MISMATCH [%zu] %s:%d\n",
+//                                                record->pid, record->tid, loggername,
+//                                                i, filter->prefix, filter->level);
         }
     }
     if ((record->level <= filter_level) && (NULL != handler->process_log)) {

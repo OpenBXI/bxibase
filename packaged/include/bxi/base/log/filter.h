@@ -31,38 +31,87 @@
 // ********************************** Types   **************************************
 // *********************************************************************************
 
+
+/**
+ * The filter structure.
+ */
+typedef struct bxilog_filter_s bxilog_filter_s;
+
+/**
+ * A filter instance.
+ */
+typedef bxilog_filter_s * bxilog_filter_p;
+
+typedef struct bxilog_filters_s bxilog_filters_s;
+
+/**
+ * Filters.
+ */
+typedef bxilog_filters_s * bxilog_filters_p;
+
+
 /**
  * A filter.
  *
  * @see bxilog_cfg_registered()
  */
-typedef struct bxilog_filter_s {
+struct bxilog_filter_s {
     const char * prefix;             //!< logger name prefix
     bxilog_level_e level;            //!< the level to set each matching logger to
-} bxilog_filter_s;
+};
 
 /**
- * A logger configuration item.
- *
- * @see bxilog_cfg_registered()
+ * The filters structure.
  */
-typedef bxilog_filter_s * bxilog_filter_p;
+struct bxilog_filters_s {
+    bool allocated;                 //!< If true, means it must be deallocated
+    size_t nb;                      //!< Number of filters in the list
+    size_t allocated_slots;         //!< Number of allocated slots in the list
+    bxilog_filter_p list[];         //!< The list of filter.
+};
+
+
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
 
-
-extern const bxilog_filter_p BXILOG_FILTER_ALL_OUTPUT;
-extern const bxilog_filter_p BXILOG_FILTER_ALL_LOWEST;
-
-extern bxilog_filter_p BXILOG_FILTERS_ALL_OFF[];
-extern bxilog_filter_p BXILOG_FILTERS_ALL_OUTPUT[];
-extern bxilog_filter_p BXILOG_FILTERS_ALL_LOWEST[];
+extern bxilog_filters_p BXILOG_FILTERS_ALL_OFF;
+extern bxilog_filters_p BXILOG_FILTERS_ALL_OUTPUT;
+extern bxilog_filters_p BXILOG_FILTERS_ALL_ALL;
 
 // *********************************************************************************
 // ********************************** Interface ************************************
 // *********************************************************************************
+
+/**
+ * Create new filters.
+ *
+ * @return an array of filter.
+ */
+bxilog_filters_p  bxilog_filters_new();
+
+/**
+ * Destroy filters
+ *
+ * @param[inout] filters_p a pointer on filters
+ */
+void bxilog_filters_destroy(bxilog_filters_p * filters_p);
+
+
+/**
+ * Add a new filter to the given set of filters.
+ *
+ * @param[inout] filters the filters to add new filter to
+ * @param[in] prefix the prefix to use
+ * @param[in] level the level if a match is found
+ *
+ *
+ *
+ */
+void bxilog_filters_add(bxilog_filters_p * filters,
+                        char * prefix, bxilog_level_e level);
+
 
 /**
  * Parse the filters format and return the corresponding list of filters.
@@ -77,12 +126,11 @@ extern bxilog_filter_p BXILOG_FILTERS_ALL_LOWEST[];
  *
  *
  * @param[in] format is a string containing the configuration for the loggers.
- * @param[out] n the number of filters found
- * @param[out] result the corresponding filters list (terminated by a NULL filter pointer)
+ * @param[out] result the corresponding filters
  *
  * @return BXIERR_OK on success, anything else on error.
  *
  */
-bxierr_p bxilog_filters_parse(char * format, size_t *n, bxilog_filter_p ** result);
+bxierr_p bxilog_filters_parse(char * format, bxilog_filters_p * result);
 
 #endif /* BXILOG_H_ */

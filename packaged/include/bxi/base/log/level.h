@@ -57,6 +57,9 @@ typedef enum {
     BXILOG_ERR = BXILOG_ERROR,      //!< alias for `BXILOG_ERR`
     BXILOG_WARN = BXILOG_WARNING,   //!< alias for `BXILOG_WARN`
     BXLOG_OUT = BXILOG_OUTPUT,      //!< alias for `BXILOG_OUT`
+    // If you change BXILOG_ALL, remember to also change the Python part,
+    // see log.py
+    BXILOG_ALL = BXILOG_LOWEST,     //!< convenience
 #endif
 } bxilog_level_e;
 

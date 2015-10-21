@@ -146,7 +146,7 @@ bxilog_config_p bxilog_config_new(const char * progname);
  */
 void bxilog_config_add_handler(bxilog_config_p self,
                                bxilog_handler_p handler,
-                               bxilog_filter_p * filters,
+                               bxilog_filters_p filters,
                                ...);
 
 

@@ -105,7 +105,7 @@ typedef log_single_line_param_s * log_single_line_param_p;
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxilog_handler_param_p _param_new(bxilog_handler_p self,
-                                         bxilog_filter_p * filters,
+                                         bxilog_filters_p filters,
                                          va_list ap);
 static bxierr_p _init(bxilog_file_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
@@ -156,7 +156,8 @@ static bxierr_p _internal_log_func(bxilog_level_e level,
 //*********************************************************************************
 
 // The various log levels specific characters
-static const char LOG_LEVEL_STR[] = { 'P', 'A', 'C', 'E', 'W', 'N', 'O', 'I', 'D', 'F', 'T', 'L'};
+static const char LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
+                                      'I', 'D', 'F', 'T', 'L'};
 // The log format used by the IHT when writing
 // WARNING: If you change this format, change also different #define above
 // along with FIXED_LOG_SIZE
@@ -190,7 +191,7 @@ const bxilog_handler_p BXILOG_FILE_HANDLER = (bxilog_handler_p) &BXILOG_FILE_HAN
 //*********************************************************************************
 
 bxilog_handler_param_p _param_new(bxilog_handler_p self,
-                                  bxilog_filter_p * filters,
+                                  bxilog_filters_p filters,
                                   va_list ap) {
 
     bxiassert(BXILOG_FILE_HANDLER == self);
@@ -231,7 +232,7 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
 
     err2 = _get_file_fd(data);
     BXIERR_CHAIN(err, err2);
-
+//    fprintf(stderr, "%d.%d: Initialization: ok\n", data->pid, data->tid);
     return err;
 }
 
@@ -268,6 +269,7 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
         bxierr_set_destroy(&data->errset);
     }
 
+//    fprintf(stderr, "%d.%d: process_exit: ok\n", data->pid, data->tid);
     return err;
 }
 
@@ -311,6 +313,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
                                       (bxierr_p (*)(char*, size_t, bool, void*)) _log_single_line,
                                       &param);
 //    fprintf(stderr, "Processed log\n");
+//    fprintf(stderr, "%d.%d: process_log of %d.%d: ok\n", data->pid, data->tid, record->pid, record->tid);
     return err;
 
 }
@@ -331,6 +334,7 @@ bxierr_p _process_err(bxierr_p *err, bxilog_file_handler_param_p data) {
         bxierr_destroy(err);
     }
     BXIFREE(str);
+//    fprintf(stderr, "%d.%d: process_err: ok\n", data->pid, data->tid);
 
     return result;
 }
@@ -506,6 +510,8 @@ bxierr_p _sync(bxilog_file_handler_param_p data) {
         // OK otherwise, it just means the given FD does not support synchronization
         // this is the case for example with stdout, stderr...
     }
+
+//    fprintf(stderr, "%d.%d: Sync: ok\n", data->pid, data->tid);
     return BXIERR_OK;
 }
 

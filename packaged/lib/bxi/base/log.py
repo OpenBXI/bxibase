@@ -109,6 +109,9 @@ __BXIBASE_CAPI__ = bxibase.get_capi()
 # normally, as other functions documentations) appears correctly in the doxygen generated
 # documentation.
 
+# # @see ::BXILOG_OFF
+OFF = __BXIBASE_CAPI__.BXILOG_OFF
+
 # # @see ::BXILOG_PANIC
 PANIC = __BXIBASE_CAPI__.BXILOG_PANIC
 
@@ -144,6 +147,9 @@ TRACE = __BXIBASE_CAPI__.BXILOG_TRACE
 
 # # @see ::BXILOG_LOWEST
 LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
+
+ALL = __BXIBASE_CAPI__.BXILOG_LOWEST    # The .h defines an alias but CFFI 
+                                        # does understand it
 
 #
 # _SRCFILE is used when walking the stack to check when we've got the first
@@ -276,9 +282,8 @@ def parse_filters(filter_str):
     
     @return a list of filters as a ::bxilog_filter_p* 
     """
-    filters_p = __FFI__.new('bxilog_filter_p*[1]')
-    n_p = __FFI__.new('size_t[1]')
-    err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, n_p, filters_p)
+    filters_p = __FFI__.new('bxilog_filters_p[1]')
+    err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
     BXICError.raise_if_ko(err)
     return filters_p[0]
 
@@ -452,6 +457,20 @@ def _get_default_logger():
     if _DEFAULT_LOGGER is None:
         _DEFAULT_LOGGER = getLogger(_ROOT_LOGGER_NAME)
     return _DEFAULT_LOGGER
+
+
+def off(msg, *args, **kwargs):
+    """
+    Do not log given message!
+    
+    @param[in] msg the message to log
+    @param[in] args the message arguments if any
+    @param[in] kwargs the message arguments if any
+
+    @return
+    @see get_default_logger
+    """
+    _get_default_logger().off(msg, *args, **kwargs)
 
 
 def panic(msg, *args, **kwargs):
@@ -738,6 +757,18 @@ class BXILogger(object):
         @return True if this logger is enabled for the given logging level.
         """
         return __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level)
+
+    def off(self, msg, *args, **kwargs):
+        """
+        Do not log the given message!
+
+        @param[in] msg the message to log
+        @param[in] args an array of parameters for string substitution in msg
+        @param[in] kwargs a dict of named parameters for string substitution in msg
+        @return
+        
+        """
+        self.log(OFF, msg, *args, **kwargs)
 
     def panic(self, msg, *args, **kwargs):
         """

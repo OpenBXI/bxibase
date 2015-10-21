@@ -51,19 +51,19 @@
 SET_LOGGER(LOGGER, "bxi.base.log.cfg");
 
 
-static char * _LOG_LEVEL_NAMES[] = {
-                                                "panic",
-                                                "alert",
-                                                "critical",
-                                                "error",
-                                                "warning",
-                                                "notice",
-                                                "output",
-                                                "info",
-                                                "debug",
-                                                "fine",
-                                                "trace",
-                                                "lowest"
+static char * _LOG_LEVEL_NAMES[] = { "off",
+                                     "panic",
+                                     "alert",
+                                     "critical",
+                                     "error",
+                                     "warning",
+                                     "notice",
+                                     "output",
+                                     "info",
+                                     "debug",
+                                     "fine",
+                                     "trace",
+                                     "lowest"
 };
 
 //*********************************************************************************
@@ -85,7 +85,7 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
                               BXILOG_WARNING);
     if (NULL != filename) {
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
-                                  BXILOG_FILTERS_ALL_LOWEST,
+                                  BXILOG_FILTERS_ALL_ALL,
                                   basename, filename, open_flags);
     }
     // Bull default to LOG_LOCAL0
@@ -108,7 +108,7 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
     // Use 2 loggers to ensure multiple handlers works
     bxilog_config_add_handler(config,
                               BXILOG_FILE_HANDLER,
-                              BXILOG_FILTERS_ALL_LOWEST,
+                              BXILOG_FILTERS_ALL_ALL,
                               basename, filename, open_flags);
     bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
@@ -139,17 +139,19 @@ bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
 
 
 bxilog_config_p bxilog_config_new(const char * const progname) {
-    bxilog_config_p param = bximem_calloc(sizeof(*param));
-    param->progname = progname;
-    param->tsd_log_buf_size = 128;
-    param->handlers_nb = 0;
+    bxilog_config_p config = bximem_calloc(sizeof(*config));
+    config->progname = progname;
+    config->tsd_log_buf_size = 128;
+    config->handlers_nb = 0;
+    config->ctrl_hwm = 0;
+    config->data_hwm = 0;
 
-    return param;
+    return config;
 }
 
 void bxilog_config_add_handler(bxilog_config_p self,
                                bxilog_handler_p handler,
-                               bxilog_filter_p *filters,
+                               bxilog_filters_p filters,
                                ...) {
 
     size_t new_size = self->handlers_nb + 1;

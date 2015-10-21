@@ -319,7 +319,7 @@ inline bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger,
                                          const bxilog_level_e level) {
 
     bxiassert(logger != NULL && level <= BXILOG_LOWEST);
-    return level <= logger->level;
+    return level <= logger->level && level != BXILOG_OFF;
 }
 #else
 bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);

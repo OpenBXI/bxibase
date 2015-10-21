@@ -44,12 +44,15 @@ SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
 SET_LOGGER(BAD_LOGGER1, "test.bad.logger");
 SET_LOGGER(BAD_LOGGER2, "test.bad.logger");
 
+
 extern char * PROGNAME;
 extern char * FULLFILENAME;
 
-void produce_logs() {
+size_t produce_simple_logs(bxilog_logger_p logger) {
     char ** level2str;
     bxilog_get_all_level_names(&level2str);
+
+    size_t logged_msg_nb = 0;
 
     // Log at all level, we use a loop here to generate many messages
     // and watch how post processing deal with them.
@@ -58,54 +61,64 @@ void produce_logs() {
     for (bxilog_level_e level = BXILOG_PANIC; level <= BXILOG_LOWEST; level++) {
         size_t n = (size_t)(rand()% 3 + 3);
         for (size_t i = 0; i < n; i++) {
-            bxilog_level_e len = (bxilog_level_e)(rand()% 18 + 2);
+            size_t len = (size_t) (rand() % 18 + 2);
             char buf[len];
             for (size_t i = 0; i < len; i++) {
                 buf[i] = (char) ('A' + (char) (rand()%50));
             }
             buf[len-1] = '\0';
-            bxilog_logger_log(TEST_LOGGER, level,
+            bxilog_logger_log(logger, level,
                               __FILE__, ARRAYLEN(__FILE__),
                               __FUNCTION__, ARRAYLEN(__FUNCTION__),
                               __LINE__, "One log line at level %s with some garbage: %s",
                               level2str[level], buf);
+            logged_msg_nb++;
         }
     }
     // Random level order
     size_t n = (size_t)(rand() % 3 + 3);
     for (size_t i = 0; i < n; i++) {
         bxilog_level_e level = (bxilog_level_e)(rand() % (BXILOG_LOWEST + 1
-                                                          - BXILOG_PANIC)
-                                                          + BXILOG_PANIC);
+                                                          - BXILOG_OFF)
+                                                          + BXILOG_OFF);
         size_t len = (size_t)(rand()% 18 + 2);
         char buf[len];
         for (size_t i = 0; i < len; i++) {
             buf[i] = (char) ('A' + (char) (rand()%50));
         }
         buf[len-1] = '\0';
-        bxilog_logger_log(TEST_LOGGER, level,
+        bxilog_logger_log(logger, level,
                           __FILE__, ARRAYLEN(__FILE__),
                           __FUNCTION__, ARRAYLEN(__FUNCTION__),
                           __LINE__,
                           "One log line at level %s with some garbage: %s",
                           level2str[level], buf);
+        if (BXILOG_OFF != level) logged_msg_nb++;
     }
 
-    PANIC(TEST_LOGGER, "One log line at PANIC level");
-    ALERT(TEST_LOGGER, "One log line at ALERT level");
-    CRITICAL(TEST_LOGGER, "One log line at CRITICAL level");
-    ERROR(TEST_LOGGER, "One log line at ERROR level");
-    WARNING(TEST_LOGGER, "One log line at WARNING level");
-    NOTICE(TEST_LOGGER, "One log line at NOTICE level");
-    OUT(TEST_LOGGER, "One log line at OUTPUT level");
-    INFO(TEST_LOGGER, "One log line at INFO level");
-    DEBUG(TEST_LOGGER, "One log line at DEBUG level");
-    FINE(TEST_LOGGER, "One log line at FINE level");
-    TRACE(TEST_LOGGER, "One log line at TRACE level");
-    LOWEST(TEST_LOGGER, "One log line at LOWEST level");
+    PANIC(logger, "One log line at PANIC level");
+    ALERT(logger, "One log line at ALERT level");
+    CRITICAL(logger, "One log line at CRITICAL level");
+    ERROR(logger, "One log line at ERROR level");
+    WARNING(logger, "One log line at WARNING level");
+    NOTICE(logger, "One log line at NOTICE level");
+    OUT(logger, "One log line at OUTPUT level");
+    INFO(logger, "One log line at INFO level");
+    DEBUG(logger, "One log line at DEBUG level");
+    FINE(logger, "One log line at FINE level");
+    TRACE(logger, "One log line at TRACE level");
+    LOWEST(logger, "One log line at LOWEST level");
+    logged_msg_nb += (BXILOG_LOWEST - BXILOG_PANIC + 1);
+
+    return logged_msg_nb;
+}
+
+size_t produce_complex_logs() {
+    size_t logged_msg_nb = 0;
 
     char* str = bxierr_backtrace_str();
     INFO(TEST_LOGGER, "One backtrace at level INFO: %s", str);
+    logged_msg_nb++;
     BXIFREE(str);
     char buf[2048];
     for (size_t i = 0;i < sizeof (buf);i++){
@@ -113,6 +126,7 @@ void produce_logs() {
     }
     buf[2047] = '\0';
     OUT(TEST_LOGGER, "One big log at level OUTPUT: %s", buf);
+    logged_msg_nb++;
 
     bxierr_p err = bxilog_flush();
     bxierr_abort_ifko(err);
@@ -121,10 +135,12 @@ void produce_logs() {
     BXILOG_REPORT_KEEP(TEST_LOGGER, BXILOG_OUTPUT, err,
                        "Don't worry, this is just a test for error reporting "
                        "at level OUTPUT");
+    logged_msg_nb++;
     CU_ASSERT_FALSE(bxierr_isok(err));
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT, err,
                   "Don't worry, this is just another test for error reporting "
                   "at level OUTPUT");
+    logged_msg_nb++;
     err2 = bxierr_gen("An error to report");
     err2->str = NULL;
     BXIERR_CHAIN(err, err2);
@@ -132,12 +148,17 @@ void produce_logs() {
     BXILOG_REPORT_KEEP(TEST_LOGGER, BXILOG_OUTPUT, err,
                        "Don't worry, this is just a test for error reporting "
                        "at level OUTPUT");
+    logged_msg_nb++;
     CU_ASSERT_FALSE(bxierr_isok(err));
     BXILOG_REPORT(TEST_LOGGER, BXILOG_OUTPUT, err,
                   "Don't worry, this is just another test for error reporting "
                   "at level OUTPUT");
+    logged_msg_nb++;
     CU_ASSERT_TRUE(bxierr_isok(err));
     OUT(TEST_LOGGER, "Ending test at level OUTPUT");
+    logged_msg_nb++;
+
+    return logged_msg_nb;
 }
 
 /*
@@ -152,7 +173,8 @@ void test_logger_levels(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
 
-    produce_logs();
+    produce_simple_logs(TEST_LOGGER);
+    produce_complex_logs();
     err = bxilog_finalize(true);
     bxierr_abort_ifko(err);
 }
@@ -377,15 +399,14 @@ void test_registry(void) {
     OUT(TEST_LOGGER, "Logger %s level: %d", logger_a->name, logger_a->level);
     CU_ASSERT_NOT_EQUAL(logger_a->level, BXILOG_OUTPUT);
 
-    bxilog_filter_s all_debug = {.prefix="", .level=BXILOG_DEBUG};
-    bxilog_filter_s a_out = {.prefix="a", .level=BXILOG_OUTPUT};
-    bxilog_filter_s ab_out = {.prefix="a.b", .level=BXILOG_WARNING};
+    bxilog_filters_p filters = bxilog_filters_new();
+    bxilog_filters_add(&filters, "", BXILOG_DEBUG);
+    bxilog_filters_add(&filters, "a", BXILOG_OUTPUT);
+    bxilog_filters_add(&filters, "a.b", BXILOG_WARNING);
 
-
-    bxilog_filter_p filters[] = {&all_debug, &a_out, &ab_out, NULL};
-
-    err = bxilog_registry_set_filters(3, filters);
+    err = bxilog_registry_set_filters(&filters);
     CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NULL(filters);
 
     CU_ASSERT_EQUAL(TEST_LOGGER->level, BXILOG_DEBUG);
     CU_ASSERT_EQUAL(logger_a->level, BXILOG_OUTPUT);
@@ -402,10 +423,14 @@ void test_registry(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(logger_ab);
     CU_ASSERT_EQUAL(logger_ab->level, BXILOG_WARNING);
 
+    filters = bxilog_filters_new();
+    bxilog_filters_add(&filters, "", BXILOG_DEBUG);
+    bxilog_filters_add(&filters, "a", BXILOG_ALERT);
+    bxilog_filters_add(&filters, "a.b", BXILOG_WARNING);
 
-    filters[1]->level = BXILOG_ALERT;
-    err = bxilog_registry_set_filters(3, filters);
+    err = bxilog_registry_set_filters(&filters);
     CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NULL(filters);
 
     CU_ASSERT_EQUAL(logger_a->level, BXILOG_ALERT);
     CU_ASSERT_EQUAL(logger_a2->level, BXILOG_ALERT);
@@ -413,6 +438,7 @@ void test_registry(void) {
 
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    bxilog_registry_reset();
 }
 
 
@@ -540,6 +566,141 @@ void test_logger_fork(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
 
+void * logging_thread(void * data) {
+    bxilog_logger_p logger = (bxilog_logger_p) data;
+
+    size_t loop_nb = 5;
+    size_t log_nb = 0;
+    for (size_t i = 0; i < loop_nb; i++) {
+        PANIC(logger, "One log line at PANIC level");
+        ALERT(logger, "One log line at ALERT level");
+        CRITICAL(logger, "One log line at CRITICAL level");
+        ERROR(logger, "One log line at ERROR level");
+        WARNING(logger, "One log line at WARNING level");
+        NOTICE(logger, "One log line at NOTICE level");
+        OUT(logger, "One log line at OUTPUT level");
+        INFO(logger, "One log line at INFO level");
+        DEBUG(logger, "One log line at DEBUG level");
+        FINE(logger, "One log line at FINE level");
+        TRACE(logger, "One log line at TRACE level");
+        LOWEST(logger, "One log line at LOWEST level");
+        log_nb += (BXILOG_LOWEST - BXILOG_PANIC + 1);
+
+        log_nb += produce_simple_logs(logger);
+    }
+    return (void *) log_nb;
+}
+
+void test_logger_threads(void) {
+    // Create N threads, each thread logs into its own logger
+    // Create N file handlers, one for each thread/logger
+    // Each thread do logs and returns the total number of logs produced
+    // We then count the number of lines in each file and compare with the returned value
+
+    size_t threads_nb = 3;
+    char * filenames[threads_nb];
+    size_t filenames_len[threads_nb];
+    int fds[threads_nb];
+    bxilog_logger_p loggers[threads_nb];
+    size_t logs_nb[threads_nb];
+
+    // Create files for each thread/console handler
+    for (size_t i = 0; i < threads_nb; i++) {
+        filenames[i] = strdup("/tmp/test_logger_threads.XXXXXX");
+        filenames_len[i] = strlen(filenames[i]);
+        fds[i] = mkstemp(filenames[i]);
+        bxiassert(0 < fds[i]);
+    }
+
+    // Create the normal configuration
+    bxilog_config_p config = bxilog_config_new(PROGNAME);
+    bxilog_config_add_handler(config,
+                              BXILOG_FILE_HANDLER,
+                              BXILOG_FILTERS_ALL_ALL,
+                              PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
+
+    // Create each thread/console handler config
+    for (size_t i = 0; i < threads_nb; i++) {
+        char * logger_name = bxistr_new("test.counting-%zu", i);
+        bxierr_p err = bxilog_registry_get(logger_name, &loggers[i]);
+        bxierr_abort_ifko(err);
+        bxilog_filters_p filters = bxilog_filters_new();
+        bxilog_filters_add(&filters, logger_name, BXILOG_ALL);
+        bxilog_config_add_handler(config,
+                                  BXILOG_FILE_HANDLER,
+                                  filters,
+                                  PROGNAME, filenames[i], BXI_APPEND_OPEN_FLAGS);
+        BXIFREE(logger_name);
+    }
+
+    // Init the library
+    bxierr_p err = bxilog_init(config);
+    bxierr_report(&err, STDERR_FILENO);
+
+    err = bxilog_install_sighandler();
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+    char * str;
+    bxistr_join(", ", strlen(", "), filenames, filenames_len, threads_nb, &str);
+    OUT(TEST_LOGGER, "Starting %zu threads, logger files: %s",
+        threads_nb, str);
+    BXIFREE(str);
+
+    // Start threads
+    pthread_t threads[threads_nb];
+    for (size_t i = 0; i < threads_nb; i++) {
+        int rc = pthread_create(&threads[i], NULL, logging_thread, loggers[i]);
+        CU_ASSERT_TRUE_FATAL(0 == rc);
+    }
+
+    // Join threads
+    size_t total_log_nb = 0;
+    for (size_t i = 0; i < threads_nb; i++) {
+        int rc = pthread_join(threads[i], (void**)&logs_nb[i]);
+        CU_ASSERT_TRUE_FATAL(0 == rc);
+        total_log_nb += logs_nb[i];
+    }
+
+    err = bxilog_flush();
+    bxierr_abort_ifko(err);
+
+    // Check the number of lines
+    size_t total_expected = 0;
+    size_t total_found = 0;
+    for (size_t i = 0; i < threads_nb; i++) {
+        size_t lines_nb = 0;
+        off_t rc = lseek(fds[i], 0, SEEK_SET);
+        bxiassert(0 == rc);
+        CU_ASSERT_TRUE_FATAL(0 < fds[i]);
+        while(true) {
+            char c;
+            ssize_t n = read(fds[i], &c, 1);
+            if (0 >= n) break;
+            if ('\n' == c) lines_nb++;
+        }
+        //    lines_nb++; // Consider the EOF as a new line.
+        OUT(TEST_LOGGER,
+            "Number of lines expected for logger %s in file %s: %zu, found: %zu",
+            loggers[i]->name, filenames[i], logs_nb[i], lines_nb);
+        CU_ASSERT_TRUE(lines_nb == logs_nb[i]);
+        total_expected += logs_nb[i];
+        total_found += lines_nb;
+    }
+
+    // This last check is not absolutely required. However, making it
+    // FATAL, prevent the files from being unlinked if the test fail.
+    // That will ease debugging!
+    CU_ASSERT_TRUE_FATAL(total_expected == total_found);
+
+    for (size_t i = 0; i < threads_nb; i++) {
+        unlink(filenames[i]);
+        BXIFREE(filenames[i]);
+    }
+    err = bxilog_finalize(true);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+}
+
 void test_handlers(void) {
     bxilog_config_p config = bxilog_config_new(PROGNAME);
 
@@ -556,7 +717,7 @@ void test_handlers(void) {
                               BXILOG_FILTERS_ALL_OFF);
     bxilog_config_add_handler(config,
                               BXILOG_FILE_HANDLER,
-                              BXILOG_FILTERS_ALL_LOWEST,
+                              BXILOG_FILTERS_ALL_ALL,
                               PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
 
     bxierr_p err = bxilog_init(config);
@@ -566,11 +727,12 @@ void test_handlers(void) {
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     
     OUT(TEST_LOGGER, "Starting test_handlers");
-    produce_logs();
+    produce_simple_logs(TEST_LOGGER);
 
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
 }
+
 
 //
 //static volatile bool _DUMMY_LOGGING = false;

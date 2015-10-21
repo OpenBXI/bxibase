@@ -98,7 +98,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         bxierr_p err = BXIERR_OK, err2;
 
         err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_PUB,
+                                     ZMQ_PUSH,
                                      url,
                                      &tsd->data_channel);
         BXIERR_CHAIN(err, err2);
@@ -127,6 +127,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         BXIERR_CHAIN(err, err2);
 
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
+
     }
     if (0 < errlist->errors_nb) {
         *result = tsd;
@@ -152,6 +153,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
     bxiassert(0 == rc);
 
     *result = tsd;
+
     return BXIERR_OK;
 }
 

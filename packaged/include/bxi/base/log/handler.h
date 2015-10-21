@@ -111,7 +111,7 @@ typedef struct {
     long poll_timeout_ms;               //!< Polling timeout in milliseconds
     char * data_url;                    //!< The data zocket URL
     char * ctrl_url;                    //!< The control zocket URL
-    bxilog_filter_p *filters;           //!< The list of filters
+    bxilog_filters_p filters;           //!< The filters
 } bxilog_handler_param_s;
 
 /**
@@ -147,7 +147,7 @@ struct bxilog_handler_s_f {
      * @return the parameters to be used by the logging handler.
      */
     bxilog_handler_param_p (*param_new)(bxilog_handler_p handler,
-                                        bxilog_filter_p *filters,
+                                        bxilog_filters_p filters,
 #ifndef BXICFFI
                                         va_list param_list);
 #else
@@ -199,7 +199,7 @@ struct bxilog_handler_s_f {
 // *********************************************************************************
 
 void bxilog_handler_init_param(bxilog_handler_p handler,
-                               bxilog_filter_p * filters,
+                               bxilog_filters_p filters,
                                bxilog_handler_param_p param);
 void bxilog_handler_clean_param(bxilog_handler_param_p param);
 

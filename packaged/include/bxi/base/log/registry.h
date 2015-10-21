@@ -105,28 +105,34 @@ size_t bxilog_registry_getall(bxilog_logger_p *loggers[]);
 void bxilog_registry_reset();
 
 /**
- * Configure all registered loggers with the given array of configuration items.
+ * Configure all registered loggers with the given filters.
  *
  * For each registered logger, a check is performed to know if its `bxilog_p.name`
- * matches one of the given configuration item `bxilog_filter_p.prefix`.
- * If this is the case, its level is set to the related configuration
- * item `bxilog_filter_p.level`.
+ * matches one of `bxilog_filter_p.prefix`. If this is the case, its level is set
+ * to `bxilog_filter_p.level`.
  *
- * Note: the algorithm scan the configuration items in order. Therefore, the usual case
- * is to specify configuration items from the most generic one to the most specific one.
- * In particular, the first item can be the empty string "" with the default level,
- * since all registered loggers will match. Then, other configuration items can be
+ * @note: the algorithm scan the configuration items in order. Therefore, the usual case
+ * is to specify filters from the most generic one to the most specific one.
+ * In particular, the first filter can be the empty string "" with the default level,
+ * since all registered loggers will match. Then, other filters can be
  * specified with other log levels.
+ *
+ * @warning: the given filters_p object is nullified after this call. You cannot use
+ * it anymore after this call (but you can create another filters object of course).
  *
  * See @link bxilog_cfg.c bxilog_cfg.c for a full running example@endlink
  *
  *
- * @param[in] n the number of configuration items in the `filters` array
- * @param[in] filters an array of configuration items
+ *
+ * @param[inout] filters_p a pointer on filters created by ::bxilog_filters_new() and
+ *                       configured with bxilog_filters_add().
  *
  * @return BXIERR_OK on success, anything else on error.
+ *
+ * @see bxilog_filters_new()
+ * @see bxilog_filters_add()
  */
-bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_p filters[]);
+bxierr_p bxilog_registry_set_filters(bxilog_filters_p * filters_p);
 
 
 /**

@@ -29,7 +29,6 @@
 //********************************** Types ****************************************
 //*********************************************************************************
 
-
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
@@ -39,35 +38,105 @@
 //********************************** Global Variables  ****************************
 //*********************************************************************************
 
-const bxilog_filter_s BXILOG_FILTER_ALL_LOWEST_S = {.prefix = "", .level = BXILOG_LOWEST};
-const bxilog_filter_p BXILOG_FILTER_ALL_LOWEST = (const bxilog_filter_p) &BXILOG_FILTER_ALL_LOWEST_S;
+const bxilog_filter_s BXILOG_FILTER_ALL_ALL_S = {.prefix = "", .level = BXILOG_ALL};
 const bxilog_filter_s BXILOG_FILTER_ALL_OUTPUT_S = {.prefix = "", .level = BXILOG_OUTPUT};
-const bxilog_filter_p BXILOG_FILTER_ALL_OUTPUT = (const bxilog_filter_p) &BXILOG_FILTER_ALL_OUTPUT_S;
 
-bxilog_filter_p BXILOG_FILTERS_ALL_OFF[] = {NULL};
-bxilog_filter_p BXILOG_FILTERS_ALL_OUTPUT[] = {(bxilog_filter_p) &BXILOG_FILTER_ALL_OUTPUT_S, NULL};
-bxilog_filter_p BXILOG_FILTERS_ALL_LOWEST[] = {(bxilog_filter_p) &BXILOG_FILTER_ALL_LOWEST_S, NULL};
+const bxilog_filter_s * BXILOG_FILTER_ALL_LOWEST = &BXILOG_FILTER_ALL_ALL_S;
+const bxilog_filter_s * BXILOG_FILTER_ALL_OUTPUT = &BXILOG_FILTER_ALL_OUTPUT_S;
 
+const bxilog_filters_s BXILOG_FILTERS_ALL_OFF_S = {.allocated=false,
+                                                   .nb=0,
+                                                   .allocated_slots=0,
+                                                   .list = {NULL},
+                                                  };
+const bxilog_filters_s BXILOG_FILTERS_ALL_OUTPUT_S = {.allocated=false,
+                                                      .nb=1,
+                                                      .allocated_slots=1,
+                                                      .list = {(bxilog_filter_p)
+                                                               &BXILOG_FILTER_ALL_OUTPUT_S},
+                                                     };
+const bxilog_filters_s BXILOG_FILTERS_ALL_ALL_S = { .allocated=false,
+                                                    .nb = 1,
+                                                    .allocated_slots = 1,
+                                                    .list = {(bxilog_filter_p)
+                                                             &BXILOG_FILTER_ALL_ALL_S},
+                                                  };
+
+bxilog_filters_p BXILOG_FILTERS_ALL_OFF = (bxilog_filters_p) &BXILOG_FILTERS_ALL_OFF_S;
+bxilog_filters_p BXILOG_FILTERS_ALL_OUTPUT = (bxilog_filters_p) &BXILOG_FILTERS_ALL_OUTPUT_S;
+bxilog_filters_p BXILOG_FILTERS_ALL_ALL = (bxilog_filters_p) &BXILOG_FILTERS_ALL_ALL_S;
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxierr_p bxilog_filters_parse(char * str, size_t * n, bxilog_filter_p ** result) {
-    bxiassert(NULL != str && NULL != n && NULL != result);
+
+bxilog_filters_p  bxilog_filters_new() {
+    size_t slots = 2;
+    bxilog_filters_p filters = bximem_calloc(sizeof(*filters) +\
+                                             slots*sizeof(filters->list[0]));
+    filters->allocated = true;
+    filters->nb = 0;
+    filters->allocated_slots = slots;
+
+    return filters;
+}
+
+void bxilog_filters_destroy(bxilog_filters_p * filters_p) {
+    bxiassert(NULL != filters_p);
+    bxilog_filters_p filters = *filters_p;
+    if (NULL == filters) return;
+    if (!filters->allocated) {
+        *filters_p = NULL;
+        return;
+    }
+
+    for (size_t i = 0; i < filters->nb; i++) {
+        BXIFREE(filters->list[i]->prefix);
+        BXIFREE(filters->list[i]);
+    }
+    bximem_destroy((char**)filters_p);
+}
+
+void bxilog_filters_add(bxilog_filters_p * filters_p,
+                        char * prefix, bxilog_level_e level) {
+
+    bxiassert(NULL != filters_p);
+    bxiassert(NULL != *filters_p);
+    bxiassert(NULL != prefix);
+
+    bxilog_filter_p filter = bximem_calloc(sizeof(*filter));
+    filter->prefix = strdup(prefix);
+    filter->level = level;
+
+    bxilog_filters_p filters = *filters_p;
+    filters->list[filters->nb] = filter;
+    filters->nb++;
+
+    if (filters->nb >= filters->allocated_slots) {
+        size_t old = filters->allocated_slots;
+        size_t new = old * 2;
+        filters = bximem_realloc(filters,
+                                 sizeof(*filters) + old*sizeof(filters->list[0]),
+                                 sizeof(*filters) + new*sizeof(filters->list[0]));
+        filters->allocated_slots = new;
+        *filters_p = filters;
+    }
+}
+
+
+bxierr_p bxilog_filters_parse(char * str, bxilog_filters_p * result) {
+    bxiassert(NULL != str);
+    bxiassert(NULL != result);
 
     str = strdup(str); // Required because str might not be allocated on the heap
     bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
 
-    *n = 0;
     *result = NULL;
     char *saveptr1 = NULL;
     char *str1 = str;
 
-    size_t filters_nb = 20;
-    bxilog_filter_p * filters = bximem_calloc(filters_nb * sizeof(*filters));
-
-    size_t next_idx = 0;
+    bxilog_filters_p filters = bxilog_filters_new();
 
     for (size_t j = 0; ; j++, str1 = NULL) {
         char * token = strtok_r(str1, ",", &saveptr1);
@@ -88,7 +157,8 @@ bxierr_p bxilog_filters_parse(char * str, size_t * n, bxilog_filter_p ** result)
 
         char * endptr;
         tmp = strtoul(level_str, &endptr, 10);
-        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'", level_str);
+        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'",
+                                            level_str);
         if (endptr == level_str) {
             err2 = bxilog_get_level_from_str(level_str, &level);
             BXIERR_CHAIN(err, err2);
@@ -111,18 +181,9 @@ bxierr_p bxilog_filters_parse(char * str, size_t * n, bxilog_filter_p ** result)
             }
             level = (bxilog_level_e) tmp;
         }
-        filters[next_idx] = bximem_calloc(sizeof(*filters[next_idx]));
-        filters[next_idx]->prefix = strdup(prefix);
-        filters[next_idx]->level = level;
-        next_idx++;
-        if (next_idx >= filters_nb) {
-            size_t new_size = filters_nb * 2;
-            filters = bximem_realloc(filters, filters_nb, new_size);
-            filters_nb = new_size;
-        }
+        bxilog_filters_add(&filters, prefix, level);
     }
 
-    *n = next_idx;
     *result = filters;
 
 QUIT:

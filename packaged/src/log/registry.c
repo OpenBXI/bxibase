@@ -63,14 +63,9 @@ static bxilog_logger_p * REGISTERED_LOGGERS = NULL;
 static size_t REGISTERED_LOGGERS_NB = 0;
 
 /**
- * Number of items in the current configuration.
+ * Current filters.
  */
-static size_t FILTERS_NB = 0;
-
-/**
- * Current configuration.
- */
-static bxilog_filter_s * FILTERS = NULL;
+static bxilog_filters_p FILTERS = NULL;
 
 static pthread_mutex_t REGISTER_LOCK = PTHREAD_MUTEX_INITIALIZER;
 
@@ -215,6 +210,7 @@ size_t bxilog_registry_getall(bxilog_logger_p *loggers[]) {
 
 
 void bxilog_registry_reset() {
+    if (0 != REGISTERED_LOGGERS_NB) bxilog_registry_set_filters(&BXILOG_FILTERS_ALL_ALL);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
@@ -222,16 +218,14 @@ void bxilog_registry_reset() {
     bxiassert(0 == rc);
 }
 
-bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_p filters[n]) {
+bxierr_p bxilog_registry_set_filters(bxilog_filters_p * filters_p) {
+    bxiassert(NULL != filters_p);
+    bxilog_filters_p filters = *filters_p;
+    bxiassert(NULL != filters);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
-    FILTERS = bximem_calloc(n * sizeof(*FILTERS));
-    for (size_t i = 0; i < n; i++) {
-        FILTERS[i].level = filters[i]->level;
-        FILTERS[i].prefix = strdup(filters[i]->prefix);
-    }
-    FILTERS_NB = n;
+    FILTERS = filters;
 
     // TODO: O(n*m) n=len(cfg) and m=len(loggers) -> be more efficient!
 //    fprintf(stderr, "Number of cfg items: %zd\n", n);
@@ -239,6 +233,7 @@ bxierr_p bxilog_registry_set_filters(size_t n, bxilog_filter_p filters[n]) {
         bxilog_logger_p logger = REGISTERED_LOGGERS[l];
         if (NULL != logger) _configure(logger);
     }
+    if (filters->allocated) *filters_p = NULL;
     rc = pthread_mutex_unlock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     return BXIERR_OK;
@@ -248,15 +243,12 @@ bxierr_p bxilog_registry_parse_set_filters(char * str) {
     bxiassert(NULL != str);
     bxierr_p err = BXIERR_OK, err2;
 
-    bxilog_filter_p * filters = NULL;
-    size_t n = 0;
-    err2 = bxilog_filters_parse(str, &n, &filters);
+    bxilog_filters_p filters = NULL;
+    err2 = bxilog_filters_parse(str, &filters);
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxilog_registry_set_filters(n, filters);
+    err2 = bxilog_registry_set_filters(&filters);
     BXIERR_CHAIN(err, err2);
-
-    BXIFREE(filters);
 
     return err;
 }
@@ -290,29 +282,28 @@ void bxilog__cfg_release_loggers() {
 //*********************************************************************************
 
 void _reset_config() {
-    for (size_t i = 0; i < FILTERS_NB; i++) {
-        BXIFREE(FILTERS[i].prefix);
-    }
-    BXIFREE(FILTERS);
-    FILTERS_NB = 0;
+    bxilog_filters_destroy(&FILTERS);
 }
 
 void _configure(bxilog_logger_p logger) {
     bxiassert(NULL != logger);
 
-    for (size_t i = 0; i < FILTERS_NB; i++) {
-        if (NULL == FILTERS[i].prefix) continue;
+    if (NULL != FILTERS) {
+        for (size_t i = 0; i < FILTERS->nb; i++) {
+            bxilog_filter_p filter = FILTERS->list[i];
+            if (NULL == filter->prefix) continue;
 
-        size_t len = strlen(FILTERS[i].prefix);
-        if (0 == strncmp(FILTERS[i].prefix, logger->name, len)) {
+            size_t len = strlen(filter->prefix);
+            if (0 == strncmp(filter->prefix, logger->name, len)) {
             // We have a prefix, configure it
 //            fprintf(stderr, "Prefix: '%s' match logger '%s': level: %d -> %d\n",
 //                    CFG_ITEMS[i].prefix, logger->name,
 //                    logger->level, CFG_ITEMS[i].level);
-            logger->level = FILTERS[i].level;
-        }
+                logger->level = filter->level;
+            }
 //        else {
 //            fprintf(stderr, "Mismatch: %s %s\n", CFG_ITEMS[i].prefix, logger->name);
 //        }
+        }
     }
 }
