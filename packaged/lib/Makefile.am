@@ -13,7 +13,9 @@ $(abs_builddir)/bxi/base/__init__.py: $(abs_builddir)/bxi/__init__.py
 
 # For installation
 nobase_nodist_python_PYTHON=\
+							bxi/base/version.py\
 							bxi/base/cffi_h.py
+
 nobase_python_PYTHON=\
                   bxi/ffi.py \
                   bxi/base/sign.py \
@@ -25,9 +27,14 @@ nobase_python_PYTHON=\
 bxibasedir=$(pythondir)/bxi/base
 nodist_bxibase_PYTHON=\
 			   $(srcdir)/bxi/base/__init__.py
+
 bxidir=$(pythondir)/bxi
 nodist_bxi_PYTHON=\
 				  $(srcdir)/bxi/__init__.py
+
+bxi/%/version.py:${abs_top_builddir}/version.py $(abs_top_builddir)/packaged/lib/bxi/base
+	cp $< $@
+BUILT_SOURCES=bxi/base/version.py
 
 dist-hook:
 		cp ${nodist_bxibase_PYTHON} $(distdir)/bxi/base/
