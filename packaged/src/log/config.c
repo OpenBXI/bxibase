@@ -123,6 +123,7 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
     return config;
 }
 
+#ifdef HAVE_LIBNETSNMP
 bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
 
     const char * basename;
@@ -136,6 +137,7 @@ bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
 
     return config;
 }
+#endif
 
 
 bxilog_config_p bxilog_config_new(const char * const progname) {

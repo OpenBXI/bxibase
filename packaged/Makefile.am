@@ -23,8 +23,13 @@ lib_libbxibase_la_SOURCES=\
 		  src/log/file_handler.c\
 		  src/log/console_handler.c\
 		  src/log/syslog_handler.c\
-		  src/log/snmplog_handler.c\
 		  src/log/null_handler.c
+
+if HAVE_SNMP_LOG
+lib_libbxibase_la_SOURCES+=\
+		  src/log/snmplog_handler.c
+
+endif
 
 lib_libbxibase_la_LDFLAGS=\
 					 $(ZMQ_LIBS)\

@@ -712,9 +712,11 @@ void test_handlers(void) {
                               BXILOG_SYSLOG_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
                               PROGNAME, LOG_CONS | LOG_PERROR, LOG_LOCAL0);
+#ifdef HAVE_LIBNETSNMP
     bxilog_config_add_handler(config,
                               BXILOG_SNMPLOG_HANDLER,
                               BXILOG_FILTERS_ALL_OFF);
+#endif
     bxilog_config_add_handler(config,
                               BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,

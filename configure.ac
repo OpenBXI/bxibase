@@ -27,8 +27,13 @@ PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
                   [
                    AC_CHECK_LIB([zmq], [zmq_msg_init], [], [AC_MSG_ERROR([Could not find zmq library])])
                   ])
+AC_ARG_ENABLE([net-snmp-handler], [AS_HELP_STRING([--enable-net-snmp-handler], [enable debugging, default: yes])])
+if test x"$enable_net_snmp_handler" != "xno"; then
 AC_CHECK_LIB([netsnmp], [netsnmp_ds_toggle_boolean], [],
              [AC_MSG_ERROR([Could not find netsnmp library])])
+fi
+AM_CONDITIONAL([HAVE_SNMP_LOG], [test "$enable_net_snmp_handler" != "no"])
+AC_SUBST([HAVE_SNMP_LOG])
 
 
 LDFLAGS+=" $ZMQ_LIBS $BACKTRACE_LIBS "

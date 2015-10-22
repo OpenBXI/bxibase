@@ -118,6 +118,7 @@ bxilog_config_p bxilog_unit_test_config(const char *progname,
                                         const char * filename,
                                         int open_flags);
 
+#ifdef HAVE_LIBNETSNMP
 /**
  * Create a configuration suitable for being used with the net-snmp logging library.
  *
@@ -126,6 +127,7 @@ bxilog_config_p bxilog_unit_test_config(const char *progname,
  * @return a new bxilog configuration
  */
 bxilog_config_p bxilog_netsnmp_config(const char * const progname);
+#endif
 
 /**
  * Create a new empty bxilog configuration.
