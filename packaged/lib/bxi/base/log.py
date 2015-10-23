@@ -988,6 +988,41 @@ def captureWarnings(capture):
             _warnings_showwarning = None
 
 
+class FileLike(object):
+    """
+    A file like object that can be used for writing backed by the logging api.
+    """
+    def __init__(self, logger, level=OUTPUT):
+        self.logger = logger
+        self.level = level
+        self.buf = None
+
+    def close(self):
+        self._newline()
+        self.flush()
+
+    def _newline(self):
+        if self.buf is not None:
+            self.logger.log(self.level, self.buf)
+            self.buf = None
+
+    def flush(self):
+        self.logger.flush()
+
+    def write(self, s):
+        if self.buf is None:
+            self.buf = s
+        else:
+            self.buf += s
+        if self.buf[-1] == '\n':
+            self.buf = self.buf[:-1]
+            self._newline()
+
+    def writelines(self, sequence):
+        for s in sequence:
+            self.write(s)
+
+
 class TestCase(unittest.TestCase):
     BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
                                    "%s.bxilog" % os.path.basename(sys.argv[0]))
