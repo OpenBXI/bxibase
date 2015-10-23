@@ -1013,6 +1013,14 @@ class FileLike(object):
         if self.buf is None:
             self.buf = s
         else:
+            # Yes, we use '+' instead of StringIO, format or other tuning
+            # since:
+            #        1. we do not expect *lots* of write() call without '\n' and
+            #           for such few number of operations, the difference is
+            #           between various technics is meaningless
+            #        2. benchmark shows quite good performance of the '+' operator
+            #           nowadays, except with Pypy. See the string_concat.py bench
+            #           for details 
             self.buf += s
         if self.buf[-1] == '\n':
             self.buf = self.buf[:-1]
