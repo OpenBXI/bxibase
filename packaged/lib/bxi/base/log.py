@@ -148,8 +148,9 @@ TRACE = __BXIBASE_CAPI__.BXILOG_TRACE
 # # @see ::BXILOG_LOWEST
 LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 
-ALL = __BXIBASE_CAPI__.BXILOG_LOWEST    # The .h defines an alias but CFFI 
-                                        # does understand it
+# The .h defines an alias but CFFI
+# does understand it
+ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
 #
 # _SRCFILE is used when walking the stack to check when we've got the first
@@ -193,22 +194,22 @@ Default configuration of the console handler
 DEFAULT_CONSOLE_OPTIONS = (':output', WARNING)
 
 
-def _findCaller():
+def _FindCaller():
     """Find caller filename, linenumber and function name.
 
     @return a triplet (file name, line number, function name)
     """
-    f = sys._getframe(0)
-    if f is not None:
-        f = f.f_back
+    frame = sys._getframe(0)
+    if frame is not None:
+        frame = frame.f_back
     rv = "(unknown file)", 0, "(unknown function)"
-    while hasattr(f, "f_code"):
-        co = f.f_code
+    while hasattr(frame, "f_code"):
+        co = frame.f_code
         filename = os.path.normcase(co.co_filename)
         if filename == _SRCFILE:
-            f = f.f_back
+            frame = frame.f_back
             continue
-        rv = (co.co_filename, f.f_lineno, co.co_name)
+        rv = (co.co_filename, frame.f_lineno, co.co_name)
         break
     return rv
 
@@ -228,7 +229,7 @@ def basicConfig(**kwargs):
 
     Parameter kwargs can contain following parameters:
         - `'console'`: None or a list of console handler arguments
-        - `'filename'`: None or a list of file handler arguments 
+        - `'filename'`: None or a list of file handler arguments
         - `'syslog'`: None or a list of syslog handler arguments
         - `'setsighandler'`: if True, set signal handlers
         - `'filters'`: a string following the bxi filters format
@@ -255,7 +256,7 @@ def basicConfig(**kwargs):
                                 "the first _init() call  was made:\n %s" % _INIT_CALLER,
                                 kwargs)
     global _CONFIG
-    
+
     if 'console' not in kwargs:
         kwargs['console'] = DEFAULT_CONSOLE_OPTIONS
 
@@ -263,29 +264,31 @@ def basicConfig(**kwargs):
         kwargs['filters'] = DEFAULT_FILTERS
 
     if 'syslog' not in kwargs:
-#         import syslog
-#         kwargs['syslog'] = (syslog.LOG_PID | syslog.LOG_CONS, 
-#                             syslog.LOG_LOCAL0, WARNING)
+        # import syslog
+        # kwargs['syslog'] = (syslog.LOG_PID | syslog.LOG_CONS,
+        #                     syslog.LOG_LOCAL0, WARNING)
         pass
-    
+
     if 'setsighandler' not in kwargs:
         kwargs['setsighandler'] = True
 
     _CONFIG = kwargs
 
+
 def parse_filters(filter_str):
     """
-    Parse the given string and return the corresponding set of filters as 
+    Parse the given string and return the corresponding set of filters as
     a bxilog_filter_p* array
-    
+
     @param[in] filters_str a string representing filters as defined in ::bxilog_filters_parse()
-    
-    @return a list of filters as a ::bxilog_filter_p* 
+
+    @return a list of filters as a ::bxilog_filter_p*
     """
     filters_p = __FFI__.new('bxilog_filters_p[1]')
     err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
     BXICError.raise_if_ko(err)
     return filters_p[0]
+
 
 def _init():
     """
@@ -303,49 +306,49 @@ def _init():
                    'filters': DEFAULT_FILTERS,
                    'syslog': None,
                    'setsighandler': True,
-                   }
+                  }
     # Configure loggers first, since init() produces logs that the user
     # might not want to see
     err = __BXIBASE_CAPI__.bxilog_registry_parse_set_filters(_CONFIG['filters'])
     BXICError.raise_if_ko(err)
-    
-    config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0]);
-    
+
+    config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
+
     console_handler_args = _CONFIG.get('console', DEFAULT_CONSOLE_OPTIONS)
     file_handler_args = _CONFIG.get('filename', None)
     syslog_handler_args = _CONFIG.get('syslog', None)
-        
+
     if console_handler_args is not None:
         filters = parse_filters(console_handler_args[0])
         stderr_level = __FFI__.cast('int', console_handler_args[1])
-        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
-                                                   filters, 
-                                                   stderr_level);
+                                                   filters,
+                                                   stderr_level)
     if file_handler_args is not None:
         if isinstance(file_handler_args, str):
             file_handler_args = (':lowest', file_handler_args, True)
-            
+
         progname = __FFI__.new('char[]', sys.argv[0])
         filters = parse_filters(file_handler_args[0])
         filename = __FFI__.new('char[]', file_handler_args[1])
-        open_flags = __FFI__.cast('int', os.O_CREAT | \
+        open_flags = __FFI__.cast('int', os.O_CREAT |
                                  (os.O_APPEND if file_handler_args[2] else os.O_TRUNC))
-        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
-                                                   filters, 
-                                                   progname, 
+                                                   filters,
+                                                   progname,
                                                    filename,
-                                                   open_flags);
+                                                   open_flags)
 
     if syslog_handler_args is not None:
         filters = parse_filters(syslog_handler_args[0])
-        ident =  __FFI__.new('char[]', sys.argv[0])
+        ident = __FFI__.new('char[]', sys.argv[0])
         option = __FFI__.cast('int', syslog_handler_args[1])
         facility = __FFI__.cast('int', syslog_handler_args[2])
         threshold = __FFI__.cast('int', syslog_handler_args[3])
- 
-        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,
                                                    filters,
                                                    ident,
@@ -355,10 +358,11 @@ def _init():
 
     if config.handlers_nb == 0:
         print("Warning: no handler defined in bxi logging library configuration!")
-        __BXIBASE_CAPI__.bxilog_config_add_handler(config, 
+        __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_NULL_HANDLER,
-                                                   __BXIBASE_CAPI__.BXILOG_FILTERS_ALL_OFF);
-                                          
+                                                   __BXIBASE_CAPI__.BXILOG_FILTERS_ALL_OFF
+                                                  )
+
     bxierr_p = __BXIBASE_CAPI__.bxilog_init(config)
     _INITIALIZED = True
     BXICError.raise_if_ko(bxierr_p)
@@ -462,7 +466,7 @@ def _get_default_logger():
 def off(msg, *args, **kwargs):
     """
     Do not log given message!
-    
+
     @param[in] msg the message to log
     @param[in] args the message arguments if any
     @param[in] kwargs the message arguments if any
@@ -708,7 +712,7 @@ class BXILogger(object):
                     exc_s = exc_s[:-1]
                 exc_str = '- Exception: %s' % exc_s
             msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
-            filename, lineno, funcname = _findCaller()
+            filename, lineno, funcname = _FindCaller()
             bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
                                                                  level,
                                                                  filename,
@@ -766,7 +770,7 @@ class BXILogger(object):
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
         @return
-        
+
         """
         self.log(OFF, msg, *args, **kwargs)
 
@@ -928,7 +932,7 @@ class BXILogger(object):
         if 'level' in kwargs:
             level = kwargs['level']
             del kwargs['level']
-        else: 
+        else:
             level = ERROR
         self.log(level, msg, *args, **kwargs)
 
@@ -967,8 +971,8 @@ def _showwarning(message, category, filename, lineno, _file=None, line=None):
         if _warnings_showwarning is not None:
             _warnings_showwarning(message, category, filename, lineno, _file, line)
     else:
-        s = warnings.formatwarning(message, category, filename, lineno, line)
-        getLogger("py.warnings").warning("%s", s)
+        warning_msg = warnings.formatwarning(message, category, filename, lineno, line)
+        getLogger("py.warnings").warning("%s", warning_msg)
 
 
 def captureWarnings(capture):
@@ -1020,15 +1024,15 @@ class FileLike(object):
             #           between various technics is meaningless
             #        2. benchmark shows quite good performance of the '+' operator
             #           nowadays, except with Pypy. See the string_concat.py bench
-            #           for details 
+            #           for details
             self.buf += s
         if self.buf[-1] == '\n':
             self.buf = self.buf[:-1]
             self._newline()
 
     def writelines(self, sequence):
-        for s in sequence:
-            self.write(s)
+        for line in sequence:
+            self.write(line)
 
 
 class TestCase(unittest.TestCase):
@@ -1044,4 +1048,3 @@ class TestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cleanup()
-
