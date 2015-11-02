@@ -113,19 +113,22 @@ bxierr_p bxistr_apply_lines(char * str,
                             void * param) {
 
         char * s = str;
-        char * next = s;
-        size_t len = 0;
-        while(true) {
-            if ('\0' == *next) return f(s, len, true, param);
-            if ('\n' == *next) {
-                bxierr_p err = f(s, len, false, param);
-                if (bxierr_isko(err)) return err;
-                len = 0;
-                s = next + 1;
-            } else {
-                len++;
-            }
-            next++;
+#ifndef _GNU_SOURCE
+        char * eol = strchr(s, '\0');
+#endif
+        while (true) {
+#ifdef _GNU_SOURCE
+            char * next = strchrnul(s, '\n');
+#else
+            char * next = strchr(s, '\n');
+            next = (NULL == next) ? eol : next;
+#endif
+            size_t len = (size_t) (next - s);
+            bool last = *next == '\0';
+            bxierr_p err = f(s, len, last, param);
+            if (bxierr_isko(err)) return err;
+            if (last) break;
+            s = next + 1;
         }
         return BXIERR_OK;
 }
@@ -236,19 +239,17 @@ size_t bxistr_rsub(const char * const str,
         return 0;
     }
 
-    // start from last character
-    size_t i = str_len - 1;
-    while(i > 0) {
-        if (str[i] == c) {
-            i++;
-            break;
-        }
-        i--;
+    const char * r = strrchr(str, c);
+
+    if (NULL == r) {
+        *result = str;
+    } else {
+        *result = r + 1;
     }
 
-    *result = str + i;
+    size_t pos = (size_t) (*result - str);
 
-    return str_len - i;
+    return str_len - pos;
 }
 
 

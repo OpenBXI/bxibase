@@ -145,8 +145,8 @@ bxilog_config_p bxilog_config_new(const char * const progname) {
     config->progname = progname;
     config->tsd_log_buf_size = 128;
     config->handlers_nb = 0;
-    config->ctrl_hwm = 0;
-    config->data_hwm = 0;
+    config->ctrl_hwm = 1000;
+    config->data_hwm = 1000;
 
     return config;
 }

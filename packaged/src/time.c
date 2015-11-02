@@ -109,6 +109,16 @@ bxierr_p bxitime_str(struct timespec * time, char ** result) {
 char * bxitime_duration_str(const double duration){
     long iduration = (long) duration;
     long double rest = (long double) duration - (long double) iduration;
+    if (0 == iduration) {
+        if (rest < 1e-6) {
+            return bxistr_new("%.0Lfns", rest * 1e9);
+        }
+        if (rest < 1e-3) {
+            return bxistr_new("%03.3Lfus", rest * 1e6);
+        }
+        return bxistr_new("%03.3Lfms", rest * 1e3);
+    }
+
     long seconds = iduration % 60;
     iduration /= 60;
     long minutes = iduration % 60;
@@ -116,12 +126,24 @@ char * bxitime_duration_str(const double duration){
     long hours = iduration % 24;
     iduration /=24;
     long days = iduration;
-    if(days > 99) {
+    if (days > 99) {
         return bxistr_new("More than %ld days", days);
-    } else {
+    }
+    if (days > 0) {
         return bxistr_new("P%02ldDT%02ldH%02ldM%02ld.%06.0LfS",
                           days, hours, minutes, seconds, rest * 1e6);
     }
+    if (hours > 0) {
+        return bxistr_new("PT%02ldH%02ldM%02ld.%06.0LfS",
+                          hours, minutes, seconds, rest * 1e6);
+    }
+    if (minutes > 0) {
+        return bxistr_new("PT%02ldM%02ld.%06.0LfS",
+                          minutes, seconds, rest * 1e6);
+    }
+
+    return bxistr_new("PT%02ld.%06.0LfS",
+                      seconds, rest * 1e6);
 }
 
 

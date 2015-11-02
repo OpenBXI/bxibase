@@ -88,8 +88,8 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
 
     param->mask_signals = true;
     param->zmq_context = NULL;
-    param->data_hwm = 0;
-    param->ctrl_hwm = 0;
+    param->data_hwm = 1000;
+    param->ctrl_hwm = 1000;
     param->poll_timeout_ms = 1000;
     param->filters = filters;
 

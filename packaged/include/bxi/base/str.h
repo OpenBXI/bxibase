@@ -219,7 +219,8 @@ size_t bxistr_join(char * sep, size_t sep_len,
                    char** result);
 
 /**
- * Return the substring in `str` that starts by `c` starting from the end.
+ * Return the substring in `str` that starts by `c` starting from the end or the
+ * `str` if not found.
  *
  * @note: the returned substring share its memory with `str`. Freeing it using either
  * free() or BXIFREE() is undefined. Also, if you free `str` the returned pointer
