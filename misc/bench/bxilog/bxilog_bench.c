@@ -80,7 +80,7 @@ static void * logging_thread(void * param) {
         char * min_str = bxitime_duration_str(stats->min_duration);
         char * max_str = bxitime_duration_str(stats->max_duration);
         char * avg_str = bxitime_duration_str(stats->total_duration / stats->n);
-        char * str = bxistr_new("Logging step %zu: min=%s max=%s average=%s",
+        char * str = bxistr_new("Logging step %zu: min=%s, max=%s, average=%s",
                                 stats->n,
                                 min_str,
                                 max_str,
@@ -96,10 +96,15 @@ static void * logging_thread(void * param) {
 
 int main(int argc, char * argv[]) {
     UNUSED(argc);
+
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s threads_nb seconds_to_run\n", basename(argv[0]));
+        exit(1);
+    }
+
     char * fullprogname = strdup(argv[0]);
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("/tmp/%s%s", progname, ".log");
-//    bxilog_config_p config = bxilog_basic_config(progname, filename, O_CREAT | O_TRUNC);
     bxilog_config_p config = bxilog_config_new(progname);
     bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
@@ -145,10 +150,13 @@ int main(int argc, char * argv[]) {
     char * min_str = bxitime_duration_str(global_stats.min_duration);
     char * max_str = bxitime_duration_str(global_stats.max_duration);
     char * avg_str = bxitime_duration_str(global_stats.total_duration / global_stats.n);
+    char * total_str = bxitime_duration_str(global_stats.total_duration);
 
     OUT(logger,
-        "Total number of logs: %zu: min=%s max=%s average=%s",
+        "Total %zu logs in %s: %g logs/s, min=%s/log, max=%s/log, average=%s/log",
         global_stats.n,
+        total_str,
+        global_stats.n / global_stats.total_duration,
         min_str,
         max_str,
         avg_str);
@@ -156,6 +164,7 @@ int main(int argc, char * argv[]) {
     BXIFREE(min_str);
     BXIFREE(max_str);
     BXIFREE(avg_str);
+    BXIFREE(total_str);
 
     bxierr = bxilog_finalize(false);
     if (!bxierr_isok(bxierr)) {
