@@ -70,6 +70,7 @@
 #endif
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
+
 //*********************************************************************************
 //********************************** Types ****************************************
 //*********************************************************************************
@@ -88,6 +89,7 @@ typedef struct bxilog_file_handler_param_s_f {
     uint16_t thread_rank;
     bxierr_set_p errset;
     size_t lost_logs;
+    size_t bytes_written;
 } bxilog_file_handler_param_s;
 
 typedef struct {
@@ -208,6 +210,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     result->open_flags = open_flags;
     result->progname = strdup(progname);
     result->progname_len = strlen(progname) + 1; // Include the NULL terminal byte
+    result->bytes_written = 0;
 
     return (bxilog_handler_param_p) result;
 }
@@ -238,6 +241,17 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
 
 bxierr_p _process_exit(bxilog_file_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
+
+    err2 = _ilog(BXILOG_TRACE, data,
+                 "Total of %zu bytes written (excluding this message)",
+                 data->bytes_written);
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) {
+        char * err_msg = bxierr_str(err);
+        bxilog_rawprint(err_msg, STDERR_FILENO);
+        BXIFREE(err_msg);
+        bxierr_destroy(&err);
+    }
 
     err2 = _sync(data);
     BXIERR_CHAIN(err, err2);
@@ -425,6 +439,8 @@ bxierr_p _log_single_line(char * line,
         } else {
             bxierr_destroy(&bxierr);
         }
+    } else {
+        data->bytes_written += (size_t) written;
     }
     return BXIERR_OK;
 }
