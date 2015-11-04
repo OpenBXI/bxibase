@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdio.h>
 
 
 #include "bxi/base/err.h"
@@ -37,7 +38,7 @@
 //********************************** Defines **************************************
 //*********************************************************************************
 
-#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.file"
+#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.file.stdio"
 
 // WARNING: highly dependent on the log format
 #define YEAR_SIZE 4
@@ -82,7 +83,7 @@ typedef struct bxilog_file_handler_param_s_f {
     char * progname;
     size_t progname_len;
     pid_t pid;
-    int fd;                         // the file descriptor where log must be produced
+    FILE * file;                         // the file where log must be produced
 #ifdef __linux__
     pid_t tid;
 #endif
@@ -130,21 +131,6 @@ static bxierr_p _log_single_line(char * line,
                              bool last,
                              log_single_line_param_p param);
 
-static ssize_t _mkmsg(const size_t n, char buf[n],
-                      const char level,
-                      const struct timespec * const detail_time,
-                      const pid_t pid,
-#ifdef __linux__
-                      const pid_t tid,
-#endif
-                      const uint16_t thread_rank,
-                      const char * const progname,
-                      const char * const filename,
-                      const int line_nb,
-                      const char * const funcname,
-                      const char * const loggername,
-                      const char * const logmsg);
-
 static bxierr_p _sync(bxilog_file_handler_param_p data);
 
 static bxierr_p _internal_log_func(bxilog_level_e level,
@@ -169,7 +155,7 @@ static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*u
 static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u:%s|%s:%d@%s|%s|%s\n";
 #endif
 
-static const bxilog_handler_s BXILOG_FILE_HANDLER_S = {
+static const bxilog_handler_s BXILOG_FILE_HANDLER_STDIO_S = {
                   .name = "BXI Logging File Handler",
                   .param_new = _param_new,
                   .init = (bxierr_p (*) (bxilog_handler_param_p)) _init,
@@ -186,7 +172,7 @@ static const bxilog_handler_s BXILOG_FILE_HANDLER_S = {
                   .process_cfg = (bxierr_p (*) (bxilog_handler_param_p)) _process_cfg,
                   .param_destroy = (bxierr_p (*) (bxilog_handler_param_p*)) _param_destroy,
 };
-const bxilog_handler_p BXILOG_FILE_HANDLER = (bxilog_handler_p) &BXILOG_FILE_HANDLER_S;
+const bxilog_handler_p BXILOG_FILE_HANDLER_STDIO = (bxilog_handler_p) &BXILOG_FILE_HANDLER_STDIO_S;
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -196,7 +182,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
                                   bxilog_filters_p filters,
                                   va_list ap) {
 
-    bxiassert(BXILOG_FILE_HANDLER == self);
+    bxiassert(BXILOG_FILE_HANDLER_STDIO == self);
 
     char * progname = va_arg(ap, char *);
     char * filename = va_arg(ap, char *);
@@ -242,12 +228,11 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
 bxierr_p _process_exit(bxilog_file_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    if (0 < data->fd) {
+    if (NULL != data->file) {
         err2 = _ilog(BXILOG_TRACE, data,
                      "Total of %zu bytes written (excluding this message)",
                      data->bytes_written);
         BXIERR_CHAIN(err, err2);
-
         if (bxierr_isko(err)) {
             char * err_msg = bxierr_str(err);
             bxilog_rawprint(err_msg, STDERR_FILENO);
@@ -258,8 +243,8 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
         err2 = _sync(data);
         BXIERR_CHAIN(err, err2);
         errno = 0;
-        if (STDOUT_FILENO != data->fd && STDERR_FILENO != data->fd) {
-            int rc = close(data->fd);
+        if (stdout != data->file && stderr != data->file) {
+            int rc = fclose(data->file);
             if (-1 == rc) {
                 err2 = bxierr_errno("Closing logging file '%s' failed", data->filename);
                 BXIERR_CHAIN(err, err2);
@@ -380,46 +365,51 @@ bxierr_p _log_single_line(char * line,
                           log_single_line_param_p param) {
 
     UNUSED(last);
+    UNUSED(line_len);
+
     bxilog_file_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
-    const size_t size = FIXED_LOG_SIZE + \
-            // Exclude NULL terminating byte from preprocessed length
-            data->progname_len - 1 + \
-            record->filename_len -1 + \
-            record->funcname_len - 1 + \
-            record->logname_len - 1 + \
-            bxistr_digits_nb(record->line_nb) + \
-            line_len + 1;
-    char msg[size];
-    const ssize_t loglen = _mkmsg(size, msg,
-                                  LOG_LEVEL_STR[param->record->level],
-                                  &param->record->detail_time,
-                                  param->record->pid,
-#ifdef __linux__
-                                  param->record->tid,
-#endif
-                                  record->thread_rank,
-                                  data->progname,
-                                  param->filename,
-                                  record->line_nb,
-                                  param->funcname,
-                                  param->loggername,
-                                  line);
     errno = 0;
-//    ssize_t written = write(data->fd, msg, (size_t) loglen);
-    UNUSED(loglen);
-    // Do not write more bytes than expected.
-    ssize_t written = write(data->fd, msg, size - 1); // Exclude the terminal NULL byte
+    struct tm dummy, *now;
+    now = localtime_r(&record->detail_time.tv_sec, &dummy);
+    bxiassert(NULL != now);
+    int written = fprintf(data->file, LOG_FMT,
+                          LOG_LEVEL_STR[record->level],
+                          YEAR_SIZE, now->tm_year + 1900,
+                          MONTH_SIZE, now->tm_mon + 1,
+                          DAY_SIZE, now->tm_mday,
+                          HOUR_SIZE, now->tm_hour,
+                          MINUTE_SIZE, now->tm_min,
+                          SECOND_SIZE, now->tm_sec,
+                          SUBSECOND_SIZE, record->detail_time.tv_nsec,
+                          PID_SIZE, record->pid,
+#ifdef __linux__
+                          TID_SIZE, record->tid,
+#endif
+                          THREAD_RANK_SIZE, record->thread_rank,
+                          data->progname,
+                          param->filename,
+                          record->line_nb,
+                          param->funcname,
+                          param->loggername,
+                          line);
+
+        // WARNING: Truncation can happen if the logmsg is part of a larger string.
+        // Therefore the assertion below might not be true.
+        // If we want to guarantee that no truncation can happen, the logmsg in the
+        // original record string must be copied, and each '\n' might then be replaced by
+        // an '\0'. For speed reason, we don't do that: no copy -> faster.
+        //    bxiassert(written < (int)n);
 
     if (0 >= written) {
-        if (EPIPE == errno) return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
+        if (EPIPE == errno) return bxierr_errno("Can't write to pipe (name=%s). "
                                                 "Exiting. Some messages will be lost.",
-                                                data->fd, data->filename);
+                                                data->filename);
 
-        bxierr_p bxierr = bxierr_errno("Calling write(fd=%d, name=%s) "
+        bxierr_p bxierr = bxierr_errno("Calling fprintf(name=%s) "
                 "failed (written=%d)",
-                data->fd, data->filename, written);
+                data->filename, written);
         data->lost_logs++;
         bool new = bxierr_set_add(data->errset, &bxierr);
         // Only report newly detected errors
@@ -447,71 +437,16 @@ bxierr_p _log_single_line(char * line,
     return BXIERR_OK;
 }
 
-
-ssize_t _mkmsg(const size_t n, char buf[n],
-               const char level,
-               const struct timespec * const detail_time,
-               const pid_t pid,
-#ifdef __linux__
-               const pid_t tid,
-#endif
-               const uint16_t thread_rank,
-               const char * const progname,
-               const char * const filename,
-               const int line_nb,
-               const char * const funcname,
-               const char * const loggername,
-               const char * const logmsg) {
-
-    errno = 0;
-    struct tm dummy, *now;
-    now = localtime_r(&detail_time->tv_sec, &dummy);
-    bxiassert(NULL != now);
-    int written = snprintf(buf, n, LOG_FMT,
-                           level,
-                           YEAR_SIZE, now->tm_year + 1900,
-                           MONTH_SIZE, now->tm_mon + 1,
-                           DAY_SIZE, now->tm_mday,
-                           HOUR_SIZE, now->tm_hour,
-                           MINUTE_SIZE, now->tm_min,
-                           SECOND_SIZE, now->tm_sec,
-                           SUBSECOND_SIZE, detail_time->tv_nsec,
-                           PID_SIZE, pid,
-#ifdef __linux__
-                           TID_SIZE, tid,
-#endif
-                           THREAD_RANK_SIZE, thread_rank,
-                           progname,
-                           filename,
-                           line_nb,
-                           funcname,
-                           loggername,
-                           logmsg);
-
-
-    // WARNING: Truncation can happen if the logmsg is part of a larger string.
-    // Therefore the assertion below might not be true.
-    // If we want to guarantee that no truncation can happen, the logmsg in the
-    // original record string must be copied, and each '\n' might then be replaced by
-    // an '\0'. For speed reason, we don't do that: no copy -> faster.
-    //    bxiassert(written < (int)n);
-
-    bxiassert(written >= 0);
-    return written;
-}
-
 bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {
     errno = 0;
     if (0 == strcmp(data->filename, "-")) {
-        data->fd = STDOUT_FILENO;
+        data->file = stdout;
     } else if (0 == strcmp(data->filename, "+")) {
-        data->fd = STDERR_FILENO;
+        data->file = stderr;
     } else {
         errno = 0;
-        data->fd = open(data->filename,
-                        O_WRONLY | data->open_flags,
-                        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-        if (-1 == data->fd) return bxierr_errno("Can't open %s", data->filename);
+        data->file = fopen(data->filename, "a");
+        if (NULL == data->file) return bxierr_errno("Can't open %s", data->filename);
     }
 
     return BXIERR_OK;
@@ -520,10 +455,10 @@ bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {
 bxierr_p _sync(bxilog_file_handler_param_p data) {
     errno = 0;
 
-    int rc = fdatasync(data->fd);
+    int rc = fflush(data->file);
     if (rc != 0) {
         if (EROFS != errno && EINVAL != errno) {
-            return bxierr_errno("Call to fdatasync() failed");
+            return bxierr_errno("Call to fflush() failed");
         }
         // OK otherwise, it just means the given FD does not support synchronization
         // this is the case for example with stdout, stderr...

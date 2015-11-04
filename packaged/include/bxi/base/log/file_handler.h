@@ -55,8 +55,10 @@
  *       are specified for appending/truncating the file respectively.
  */
 extern const bxilog_handler_p BXILOG_FILE_HANDLER;
+extern const bxilog_handler_p BXILOG_FILE_HANDLER_STDIO;
 #else
 extern bxilog_handler_p BXILOG_FILE_HANDLER;
+extern bxilog_handler_p BXILOG_FILE_HANDLER_STDIO;
 #endif
 
 //*********************************************************************************

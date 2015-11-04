@@ -721,6 +721,11 @@ void test_handlers(void) {
                               BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
                               PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
+    bxilog_config_add_handler(config,
+                              BXILOG_FILE_HANDLER_STDIO,
+                              BXILOG_FILTERS_ALL_ALL,
+                              PROGNAME, FULLFILENAME);
+
 
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);

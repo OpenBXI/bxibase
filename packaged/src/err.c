@@ -381,6 +381,7 @@ bxierr_set_p bxierr_set_new() {
     _err_list_init(&result->distinct_err);
 
     result->seen_nb = bximem_calloc(result->distinct_err.errors_size * sizeof(*result->seen_nb));
+    result->total_seen_nb = 0;
 
     return result;
 }
@@ -410,22 +411,21 @@ bool bxierr_set_add(bxierr_set_p set, bxierr_p * err) {
             return false;
         }
     }
+
     if (i >= set->distinct_err.errors_size) {
         // Not enough space, allocate some new
         size_t old_len = set->distinct_err.errors_size;
-        size_t new_len = set->distinct_err.errors_size * 2;
-        set->distinct_err.errors = bximem_realloc(set->distinct_err.errors,
-                                                  old_len * sizeof(*set->distinct_err.errors),
-                                                  new_len*sizeof(*set->distinct_err.errors));
+        // Add one to prevent product with zero!
+        size_t new_len = (set->distinct_err.errors_size + 1) * 2;
         set->seen_nb = bximem_realloc(set->seen_nb,
-                                              old_len * sizeof(*set->seen_nb),
-                                              new_len*sizeof(*set->seen_nb));
-        set->distinct_err.errors_size = new_len;
+                                      old_len * sizeof(*set->seen_nb),
+                                      new_len*sizeof(*set->seen_nb));
     }
+
     bxiassert(NULL == slot);
-    set->distinct_err.errors[i] = *err;
-    set->distinct_err.errors_nb++;
+    bxierr_list_append(&set->distinct_err, *err);
     set->seen_nb[i]++;
+
     return true;
 }
 
@@ -435,6 +435,7 @@ bool bxierr_set_add(bxierr_set_p set, bxierr_p * err) {
 //*********************************************************************************
 void _err_list_init(bxierr_list_p errlist) {
 
+    errlist->errors_nb = 0;
     errlist->errors_size = 16;
     errlist->errors = bximem_calloc(errlist->errors_size * sizeof(*errlist->errors));
 }
