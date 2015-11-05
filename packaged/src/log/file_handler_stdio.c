@@ -229,16 +229,16 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
     if (NULL != data->file) {
-        err2 = _ilog(BXILOG_TRACE, data,
-                     "Total of %zu bytes written (excluding this message)",
-                     data->bytes_written);
-        BXIERR_CHAIN(err, err2);
-        if (bxierr_isko(err)) {
-            char * err_msg = bxierr_str(err);
-            bxilog_rawprint(err_msg, STDERR_FILENO);
-            BXIFREE(err_msg);
-            bxierr_destroy(&err);
-        }
+//        err2 = _ilog(BXILOG_TRACE, data,
+//                     "Total of %zu bytes written (excluding this message)",
+//                     data->bytes_written);
+//        BXIERR_CHAIN(err, err2);
+//        if (bxierr_isko(err)) {
+//            char * err_msg = bxierr_str(err);
+//            bxilog_rawprint(err_msg, STDERR_FILENO);
+//            BXIFREE(err_msg);
+//            bxierr_destroy(&err);
+//        }
 
         err2 = _sync(data);
         BXIERR_CHAIN(err, err2);
