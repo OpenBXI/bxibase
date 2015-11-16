@@ -646,6 +646,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
             err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
             BXIERR_CHAIN(err, err2);
 
+            BXIFREE(key);
             // We received something
             if (NULL != sync_url) {
                 break;
@@ -669,6 +670,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
 
     err2 = bxizmq_str_snd(sync_url, sync_zocket, ZMQ_DONTWAIT, 0, 0);
     BXIERR_CHAIN(err, err2);
+    BXIFREE(sync_url);
 
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_UNSUBSCRIBE,
                                 BXIZMQ_PUBSUB_SYNC_HEADER, ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
@@ -677,25 +679,26 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
         { sync_zocket, 0, ZMQ_POLLIN, 0 },};
 
     while(true) {
-        int rc = zmq_poll(poll_set, 1, 2000);
+        int rc = zmq_poll(poll_set, 1, (long)timeout_s/10);
         if (-1 == rc) {
             err2 = bxierr_errno("Calling zmq_poll() failed, rc=%d", rc);
             BXIERR_CHAIN(err, err2);
             break;
         }
 
-        if (!(poll_set[0].revents & ZMQ_POLLIN)) continue;
+        if (!(poll_set[0].revents & ZMQ_POLLIN)) break;
         key = NULL;
         err2 = bxizmq_str_rcv(sync_zocket, 0, false, &key);
         BXIERR_CHAIN(err, err2);
         break;
     }
 
-    do {
+    while(key != NULL) {
+        BXIFREE(key);
         key = NULL;
         err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
         BXIERR_CHAIN(err, err2);
-    } while(key != NULL);
+    }
 
     err2 = bxizmq_zocket_destroy(sync_zocket);
     BXIERR_CHAIN(err, err2);
