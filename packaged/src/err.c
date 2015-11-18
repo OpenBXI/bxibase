@@ -350,11 +350,13 @@ char * bxierr_list_str(bxierr_p err, uint64_t depth) {
         char * prefix = bxistr_new("##egrp %zu", current);
         bxistr_prefixer_init(&prefixer, prefix, strlen(prefix));
         bxistr_apply_lines(s, bxistr_prefixer_line, &prefixer);
+        BXIFREE(s);
+        BXIFREE(prefix);
         // Join all lines
         ierr_lines_len[current] = bxistr_join("\n", ARRAYLEN("\n") - 1,
-                                         prefixer.lines, prefixer.lines_len,
-                                         prefixer.lines_nb,
-                                         &final_s);
+                                              prefixer.lines, prefixer.lines_len,
+                                              prefixer.lines_nb,
+                                              &final_s);
         ierr_lines[current] = final_s;
         bxistr_prefixer_cleanup(&prefixer);
         current++;

@@ -105,21 +105,18 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
-    // Use 2 loggers to ensure multiple handlers works
     bxilog_config_add_handler(config,
                               BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
                               basename, filename, open_flags);
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
-                              BXILOG_FILTERS_ALL_OFF,
-                              basename, "/dev/null", O_APPEND);
+//    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
+//                              BXILOG_FILTERS_ALL_OFF,
+//                              basename, "/dev/null", O_APPEND);
 //    bxilog_config_add_handler(config, BXILOG_SYSLOG_HANDLER,
 //                                  basename,
 //                                  LOG_CONS | LOG_PID,
 //                                  LOG_LOCAL0,
 //                                  BXILOG_WARNING);
-
-
     return config;
 }
 

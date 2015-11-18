@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 
 
 #include "bxi/base/err.h"
@@ -37,7 +38,10 @@
 //********************************** Defines **************************************
 //*********************************************************************************
 
+#define ERR_LOG_LIMIT 1061117   // Leet Speak
+
 #define INTERNAL_LOGGER_NAME "bxi.base.log.handler.file"
+#define DEFAULT_BLOCKS_NB 4
 
 // WARNING: highly dependent on the log format
 #define YEAR_SIZE 4
@@ -88,8 +92,12 @@ typedef struct bxilog_file_handler_param_s_f {
 #endif
     uint16_t thread_rank;
     bxierr_set_p errset;
-    size_t lost_logs;
+    bool dirty;
+    size_t bytes_lost;
     size_t bytes_written;
+    size_t next_char;
+    size_t buf_size;
+    char * buf;
 } bxilog_file_handler_param_s;
 
 typedef struct {
@@ -145,6 +153,7 @@ static ssize_t _mkmsg(const size_t n, char buf[n],
                       const char * const loggername,
                       const char * const logmsg);
 
+static bxierr_p _flush(bxilog_file_handler_param_p data);
 static bxierr_p _sync(bxilog_file_handler_param_p data);
 
 static bxierr_p _internal_log_func(bxilog_level_e level,
@@ -153,6 +162,7 @@ static bxierr_p _internal_log_func(bxilog_level_e level,
                                    size_t funclen,
                                    int line_nb,
                                    const char * fmt, ...);
+static void _record_new_error(bxilog_file_handler_param_p data, bxierr_p * err);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -230,11 +240,34 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
     // a rank number?
     data->thread_rank = (uint16_t) pthread_self();
     data->errset = bxierr_set_new();
-    data->lost_logs = 0;
+    data->bytes_lost = 0;
     data->bytes_written = 0;
+    data->dirty = false;
 
     err2 = _get_file_fd(data);
     BXIERR_CHAIN(err, err2);
+
+    errno = 0;
+    struct stat st;
+    int rc = fstat(data->fd, &st);
+    if (0 != rc) {
+        err2 = bxierr_errno("Calling fstat(%s) failed", data->filename);
+        BXIERR_CHAIN(err, err2);
+        data->buf_size = 4 * 1024  * sizeof(*data->buf) * DEFAULT_BLOCKS_NB;
+    } else {
+        data->buf_size = ((size_t) st.st_blksize) * sizeof(*data->buf) * DEFAULT_BLOCKS_NB;
+    }
+//    data->buf_size = 241 * sizeof(*data->buf) * DEFAULT_BLOCKS_NB;
+    size_t align = (size_t) sysconf(_SC_PAGESIZE);
+
+    errno = 0;
+    rc = posix_memalign((void**) &data->buf, align, data->buf_size);
+    if (0 != rc) {
+        err2 = bxierr_errno("Calling posix_memalign(%ld, %zu) failed",
+                            align, data->buf_size);
+        BXIERR_CHAIN(err, err2);
+    }
+
 //    fprintf(stderr, "%d.%d: Initialization: ok\n", data->pid, data->tid);
     return err;
 }
@@ -267,11 +300,13 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
         }
     }
 
-    if (data->lost_logs > 0) {
+    if (data->bytes_lost > 0) {
         char * str = bxistr_new("BXI Log File Handler Error Summary:\n"
-                                "\tNumber of lost log lines: %zu\n"
+                                "\tNumber of bytes written: %zu\n"
+                                "\tNumber of bytes lost: %zu\n"
                                 "\tNumber of reported distinct errors: %zu\n",
-                                data->lost_logs,
+                                data->bytes_written,
+                                data->bytes_lost,
                                 data->errset->distinct_err.errors_nb);
         bxilog_rawprint(str, STDERR_FILENO);
         BXIFREE(str);
@@ -279,19 +314,20 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
 
     if (0 < data->errset->distinct_err.errors_nb) {
         err2 = bxierr_from_set(BXIERR_GROUP_CODE, data->errset,
-                                 "Error Set (%zu distinct errors)",
-                                 data->errset->distinct_err.errors_nb);
+                               "Error Set (%zu distinct errors)",
+                               data->errset->distinct_err.errors_nb);
         BXIERR_CHAIN(err, err2);
     } else {
         bxierr_set_destroy(&data->errset);
     }
+    BXIFREE(data->buf);
 
 //    fprintf(stderr, "%d.%d: process_exit: ok\n", data->pid, data->tid);
     return err;
 }
 
 inline bxierr_p _process_implicit_flush(bxilog_file_handler_param_p data) {
-    return _sync(data);
+    return _flush(data);
 }
 
 inline bxierr_p _process_explicit_flush(bxilog_file_handler_param_p data) {
@@ -300,8 +336,11 @@ inline bxierr_p _process_explicit_flush(bxilog_file_handler_param_p data) {
 //    err2 = _ilog(BXILOG_TRACE, data, "Flushing requested");
 //    BXIERR_CHAIN(err, err2);
 //    fprintf(stderr, "Flushing\n");
-    err2 = _process_implicit_flush(data);
+    err2 = _flush(data);
 //    fprintf(stderr, "Flushed\n");
+    BXIERR_CHAIN(err, err2);
+
+    err2 = _sync(data);
     BXIERR_CHAIN(err, err2);
 
 //    err2 = _ilog(BXILOG_TRACE, data, "Flushed");
@@ -390,60 +429,45 @@ bxierr_p _log_single_line(char * line,
             record->funcname_len - 1 + \
             record->logname_len - 1 + \
             bxistr_digits_nb(record->line_nb) + \
-            line_len + 1;
-    char msg[size];
-    const ssize_t loglen = _mkmsg(size, msg,
-                                  LOG_LEVEL_STR[param->record->level],
-                                  &param->record->detail_time,
-                                  param->record->pid,
-#ifdef __linux__
-                                  param->record->tid,
-#endif
-                                  record->thread_rank,
-                                  data->progname,
-                                  param->filename,
-                                  record->line_nb,
-                                  param->funcname,
-                                  param->loggername,
+            line_len; // Exclude the NULL terminating byte
+
+    if (size > data->buf_size) {
+        bxierr_p err = bxierr_new(ERR_LOG_LIMIT, NULL, NULL, NULL, NULL,
+                                  "Following Log line requires %zu bytes, but buffer "
+                                  "size is %zu. Skipping. %s", size, data->buf_size,
                                   line);
-    errno = 0;
-//    ssize_t written = write(data->fd, msg, (size_t) loglen);
-    UNUSED(loglen);
-    // Do not write more bytes than expected.
-    ssize_t written = write(data->fd, msg, size - 1); // Exclude the terminal NULL byte
-
-    if (0 >= written) {
-        if (EPIPE == errno) return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
-                                                "Exiting. Some messages will be lost.",
-                                                data->fd, data->filename);
-
-        bxierr_p bxierr = bxierr_errno("Calling write(fd=%d, name=%s) "
-                "failed (written=%d)",
-                data->fd, data->filename, written);
-        data->lost_logs++;
-        bool new = bxierr_set_add(data->errset, &bxierr);
-        // Only report newly detected errors
-        if (new) {
-            char * err_str = bxierr_str(bxierr);
-            char * str = bxistr_new("[W] Can't write to '%s' - cause is %s\n"
-                    "This means "
-                    "at least one log line has been lost\n"
-                    "[W]This error might be caused by other errors.\n"
-                    "[W]This is the first time this cause has been"
-                    " reported however, and it will be the last time.\n"
-                    "[W]An error reporting summary should be "
-                    "available in your program if it uses the full bxi "
-                    "high performance logging library.\n",
-                    data->filename, err_str);
-            bxilog_rawprint(str, STDERR_FILENO);
-            BXIFREE(err_str);
-            BXIFREE(str);
-        } else {
-            bxierr_destroy(&bxierr);
-        }
-    } else {
-        data->bytes_written += (size_t) written;
+        _record_new_error(data, &err);
+        data->bytes_lost += size;
+        return BXIERR_OK;
     }
+
+    if (data->buf_size - data->next_char <= size) {
+        bxierr_p err = _flush(data);
+        bxierr_abort_ifko(err);
+    }
+
+    char * buf = data->buf + data->next_char;
+    // Include the NULL terminating byte in the size given to
+    // underlying snprintf() call, it is required.
+    const ssize_t written = _mkmsg(size + 1, buf,
+                                   LOG_LEVEL_STR[record->level],
+                                   &record->detail_time,
+                                   record->pid,
+#ifdef __linux__
+                                   record->tid,
+#endif
+                                   record->thread_rank,
+                                   data->progname,
+                                   param->filename,
+                                   record->line_nb,
+                                   param->funcname,
+                                   param->loggername,
+                                   line);
+    bxiassert(0 < written);
+    data->next_char += (size_t) size;
+    data->dirty = true;
+    bxiassert(data->next_char <= data->buf_size);
+
     return BXIERR_OK;
 }
 
@@ -517,6 +541,34 @@ bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {
     return BXIERR_OK;
 }
 
+
+bxierr_p _flush(bxilog_file_handler_param_p data) {
+    if (!data->dirty) return BXIERR_OK;
+
+    // Do not write more bytes than expected.
+    ssize_t written = write(data->fd, data->buf, data->next_char);
+
+    if (0 >= written) {
+        if (EPIPE == errno) {
+            return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
+                                "Exiting. Some messages will be lost.",
+                                data->fd, data->filename);
+        }
+
+        bxierr_p bxierr = bxierr_errno("Calling write(fd=%d, name=%s) "
+                                       "failed (written=%d)",
+                                       data->fd, data->filename, written);
+        data->bytes_lost += data->next_char;
+        _record_new_error(data, &bxierr);
+    } else {
+        data->bytes_written += (size_t) written;
+    }
+    data->next_char = 0;
+    data->dirty = false;
+    return BXIERR_OK;
+}
+
+
 bxierr_p _sync(bxilog_file_handler_param_p data) {
     errno = 0;
 
@@ -530,6 +582,7 @@ bxierr_p _sync(bxilog_file_handler_param_p data) {
     }
 
 //    fprintf(stderr, "%d.%d: Sync: ok\n", data->pid, data->tid);
+
     return BXIERR_OK;
 }
 
@@ -584,3 +637,27 @@ bxierr_p _internal_log_func(bxilog_level_e level,
 
     return err;
 }
+
+void _record_new_error(bxilog_file_handler_param_p data, bxierr_p * err) {
+    bool new = bxierr_set_add(data->errset, err);
+    // Only report newly detected errors
+    if (new) {
+        char * err_str = bxierr_str(*err);
+        char * str = bxistr_new("[W] Can't write to '%s' - cause is %s\n"
+                "This means "
+                "some log lines have been lost\n"
+                "[W]This error might be caused by other errors.\n"
+                "[W]This is the first time this cause has been"
+                " reported however, and it will be the last time.\n"
+                "[W]An error reporting summary should be "
+                "available in your program if it uses the full bxi "
+                "high performance logging library.\n",
+                data->filename, err_str);
+        bxilog_rawprint(str, STDERR_FILENO);
+        BXIFREE(err_str);
+        BXIFREE(str);
+    } else {
+        bxierr_destroy(err);
+    }
+}
+

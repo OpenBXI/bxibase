@@ -102,6 +102,7 @@ int clean_suite_logger(void) {
     bxierr_p err = bxilog_finalize(true);
     if (bxierr_isko(err)) {
         bxierr_report(&err, STDERR_FILENO);
+        fprintf(stderr, "Error while finalizing bxilog, EXITING!\n");
         exit(1);
     }
     return 0;
@@ -232,7 +233,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
         || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
-//        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
         || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
         || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
