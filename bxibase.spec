@@ -37,7 +37,7 @@
 %define target_conf_dir /etc/
 %define target_bin_dir /usr/bin
 %define target_lib_dir /usr/lib*
-%define target_python_lib_dir %{python2_sitelib}
+%define target_python_lib_dir %{python2_sitearch}
 %define target_man_dir %{_mandir}
 %define target_doc_dir /usr/share/doc/%{name}
 
@@ -88,7 +88,7 @@ Doxygen documentation of Bxi Basic library for high-level C programming
 test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %setup
 #TODO put the doc again when working
-%configure --disable-debug --with-python-execprefix=lib --with-python-prefix=lib
+%configure --disable-debug
 
 ###############################################################################
 # The current directory is the one main directory of the tar
