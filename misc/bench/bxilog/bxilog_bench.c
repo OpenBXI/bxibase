@@ -44,7 +44,7 @@ struct stats_s {
     size_t n;
 };
 
-static inline void * benched_log(bxilog_level_e level, char * str, struct stats_s *  stats) {
+static inline void benched_log(bxilog_level_e level, char * str, struct stats_s *  stats) {
 
     struct timespec start;
     bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
@@ -65,7 +65,7 @@ static inline void * benched_log(bxilog_level_e level, char * str, struct stats_
 }
 
 static void * logging_thread(void * param) {
-    assert(param != NULL );
+    UNUSED(param);
 
     struct stats_s * stats = bximem_calloc(sizeof(*stats));
     stats->min_duration = DBL_MAX;
@@ -127,7 +127,7 @@ int main(int argc, char * argv[]) {
     int n = atoi(argv[1]);
     pthread_t threads[n];
     for (int i = 0; i < n; i++) {
-        pthread_create(&threads[i], NULL, logging_thread, logger);
+        pthread_create(&threads[i], NULL, logging_thread, NULL);
     }
 
     sleep(atoi(argv[2]));
@@ -138,8 +138,13 @@ int main(int argc, char * argv[]) {
         pthread_join(threads[i], (void**)&stats);
         statss[i] = stats;
     }
-
-    bxilog_flush();
+    bxierr = bxilog_finalize(false);
+    if (!bxierr_isok(bxierr)) {
+        char * str = bxierr_str(bxierr);
+        fprintf(stderr, "WARNING: bxilog finalization returned: %s", str);
+        BXIFREE(str);
+        bxierr_destroy(&bxierr);
+    }
 
     struct stats_s global_stats = {.min_duration = DBL_MAX,
                                    .max_duration = DBL_MIN,
@@ -171,33 +176,22 @@ int main(int argc, char * argv[]) {
     size_t size;
     if (-1 == rc) {
         bxierr_p err = bxierr_errno("Calling stat(%s) failed", filename);
-        BXILOG_REPORT(logger, BXILOG_ERROR, err, "Can't report file size");
+        bxierr_report(&err, STDERR_FILENO);
         size = 0;
     } else {
         size = sb.st_size;
     }
 
-    OUT(logger,
-        "Total Time: %zu logs in %s - %g logs/s, min=%s/log, max=%s/log, average=%s/log",
-        global_stats.n, total_str, global_stats.n / global_stats.total_duration,
-        min_str, max_str, avg_str);
-    OUT(logger,
-        "Total Size: %zu bytes in (overall) %s: %.1f MB/s",
-        size, total_str, size/global_stats.total_duration/1024/1024);
+    printf("Total Time: %zu logs in %s - %g logs/s, min=%s/log, max=%s/log, average=%s/log\n",
+           global_stats.n, total_str, global_stats.n / global_stats.total_duration,
+           min_str, max_str, avg_str);
+    printf("Total Size: %zu bytes in (overall) %s: %.1f MB/s\n",
+           size, total_str, size/global_stats.total_duration/1024/1024);
 
     BXIFREE(min_str);
     BXIFREE(max_str);
     BXIFREE(avg_str);
     BXIFREE(total_str);
-
-    bxierr = bxilog_finalize(false);
-    if (!bxierr_isok(bxierr)) {
-        char * str = bxierr_str(bxierr);
-        fprintf(stderr, "WARNING: bxilog finalization returned: %s", str);
-        BXIFREE(str);
-        bxierr_destroy(&bxierr);
-    }
-
     BXIFREE(fullprogname);
     BXIFREE(filename);
 }
