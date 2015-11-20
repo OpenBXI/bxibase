@@ -68,6 +68,7 @@ static bxierr_p _cleanup(bxilog_handler_p, bxilog_handler_param_p, handler_data_
 static bxierr_p _internal_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
 static bxierr_p _process_err(bxilog_handler_p handler, bxilog_handler_param_p,  bxierr_p err);
 static bxierr_p _process_log_record(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
+static bxierr_p _process_log_zmsg(bxilog_handler_p handler, bxilog_handler_param_p param, zmq_msg_t zmsg);
 static bxierr_p _process_ctrl_cmd(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
 static bxierr_p _process_implicit_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
 static bxierr_p _process_explicit_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
@@ -382,6 +383,8 @@ bxierr_p _loop(bxilog_handler_p handler,
         }
         if (items[1].revents & ZMQ_POLLIN) {
             // Process data, this is the normal case
+
+
             err2 = _process_log_record(handler, param, data);
             BXIERR_CHAIN(err, err2);
             err = _process_err(handler, param, err);
@@ -422,30 +425,15 @@ bxierr_p _internal_flush(bxilog_handler_p handler,
                          bxilog_handler_param_p param,
                          handler_data_p data) {
 
-    bxierr_p err = BXIERR_OK, err2;
 
-    // Check that no new messages arrived in between
-    zmq_pollitem_t data_items[] = {{data->data_zocket, 0, ZMQ_POLLIN,0}};
+    bxierr_p err = BXIERR_OK;
     while(true) {
-        errno = 0;
-        int rc = zmq_poll(data_items, 1, 0); // 0 -> do not wait
-        if (-1 == rc) {
-            if(EINTR == errno) continue; // One interruption happens
-                                         // (e.g. when profiling)
-            int code = zmq_errno();
-            const char * msg = zmq_strerror(code);
-            err2 = bxierr_new(code, NULL, NULL, NULL, NULL,
-                              "Calling zmq_poll() failed: %s", msg);
-            BXIERR_CHAIN(err, err2);
-            break;
-        }
-        if (!(data_items[0].revents & ZMQ_POLLIN)) {
-            // No message are pending
-            break;
-        }
-        // Some messages are still pending
-        err2 = _process_log_record(handler, param, data);
-        BXIERR_CHAIN(err, err2);
+        err = _process_log_record(handler, param, data);
+        if (bxierr_isko(err)) break;
+    }
+    if (EAGAIN == err->code) {
+        bxierr_destroy(&err);
+        err = BXIERR_OK;
     }
 
     return err;
@@ -454,25 +442,35 @@ bxierr_p _internal_flush(bxilog_handler_p handler,
 bxierr_p _process_log_record(bxilog_handler_p handler,
                              bxilog_handler_param_p param,
                              handler_data_p data) {
-
-    bxierr_p err = BXIERR_OK, err2;
     zmq_msg_t zmsg;
     errno = 0;
     int rc = zmq_msg_init(&zmsg);
     bxiassert(0 == rc);
+
+    bxierr_p err = BXIERR_OK, err2;
+
     err2 = bxizmq_msg_rcv(data->data_zocket, &zmsg, ZMQ_DONTWAIT);
     BXIERR_CHAIN(err, err2);
+
     if (bxierr_isko(err)) {
-        // Nothing to process, this might happened if a flush has been asked
-        // and processed before this function call
         err2 = bxizmq_msg_close(&zmsg);
         BXIERR_CHAIN(err, err2);
-        if (EAGAIN == err->code) {
-            bxierr_destroy(&err);
-            return BXIERR_OK;
-        }
         return err;
     }
+
+    err2 = _process_log_zmsg(handler, param, zmsg);
+    BXIERR_CHAIN(err, err2);
+    /* Release */
+    err2 = bxizmq_msg_close(&zmsg);
+    BXIERR_CHAIN(err, err2);
+
+    return err;
+}
+
+bxierr_p _process_log_zmsg(bxilog_handler_p handler,
+                           bxilog_handler_param_p param,
+                           zmq_msg_t zmsg) {
+
 
     // bxiassert we received enough data
 //    const size_t received_size = zmq_msg_size(&zmsg);
@@ -503,16 +501,12 @@ bxierr_p _process_log_record(bxilog_handler_p handler,
 //                                                i, filter->prefix, filter->level);
         }
     }
+    bxierr_p err = BXIERR_OK;
     if ((record->level <= filter_level) && (NULL != handler->process_log)) {
-            err2 = handler->process_log(record,
-                                        filename, funcname, loggername, logmsg,
-                                        param);
-            BXIERR_CHAIN(err, err2);
+            err = handler->process_log(record,
+                                       filename, funcname, loggername, logmsg,
+                                       param);
     }
-
-    /* Release */
-    err2 = bxizmq_msg_close(&zmsg);
-    BXIERR_CHAIN(err, err2);
 
     return err;
 }

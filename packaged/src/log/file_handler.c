@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+#include <sys/mman.h>
 
 
 #include "bxi/base/err.h"
@@ -155,7 +156,7 @@ static ssize_t _mkmsg(const size_t n, char buf[n],
 
 static bxierr_p _flush(bxilog_file_handler_param_p data);
 static bxierr_p _sync(bxilog_file_handler_param_p data);
-
+static void _tune_io(bxilog_file_handler_param_p data);
 static bxierr_p _internal_log_func(bxilog_level_e level,
                                    bxilog_file_handler_param_p data,
                                    const char * funcname,
@@ -267,6 +268,8 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
                             align, data->buf_size);
         BXIERR_CHAIN(err, err2);
     }
+
+    _tune_io(data);
 
 //    fprintf(stderr, "%d.%d: Initialization: ok\n", data->pid, data->tid);
     return err;
@@ -541,6 +544,13 @@ bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {
     return BXIERR_OK;
 }
 
+void _tune_io(bxilog_file_handler_param_p data) {
+    int rc;
+    // We just tune, so we don't care on error
+    rc = posix_fadvise(data->fd, 0, 0, POSIX_FADV_DONTNEED);
+    rc = posix_madvise(data->buf, data->buf_size, POSIX_MADV_SEQUENTIAL);
+    UNUSED(rc);
+}
 
 bxierr_p _flush(bxilog_file_handler_param_p data) {
     if (!data->dirty) return BXIERR_OK;
@@ -572,14 +582,15 @@ bxierr_p _flush(bxilog_file_handler_param_p data) {
 bxierr_p _sync(bxilog_file_handler_param_p data) {
     errno = 0;
 
-    int rc = fdatasync(data->fd);
-    if (rc != 0) {
-        if (EROFS != errno && EINVAL != errno) {
-            return bxierr_errno("Call to fdatasync() failed");
-        }
-        // OK otherwise, it just means the given FD does not support synchronization
-        // this is the case for example with stdout, stderr...
-    }
+    UNUSED(data);
+//    int rc = fdatasync(data->fd);
+//    if (rc != 0) {
+//        if (EROFS != errno && EINVAL != errno) {
+//            return bxierr_errno("Call to fdatasync() failed");
+//        }
+//        // OK otherwise, it just means the given FD does not support synchronization
+//        // this is the case for example with stdout, stderr...
+//    }
 
 //    fprintf(stderr, "%d.%d: Sync: ok\n", data->pid, data->tid);
 

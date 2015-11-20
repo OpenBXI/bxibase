@@ -110,9 +110,14 @@ int main(int argc, char * argv[]) {
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("/tmp/%s%s", progname, ".log");
     bxilog_config_p config = bxilog_config_new(progname);
-    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER_STDIO,
+    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
-                              progname, filename);
+                              progname, filename, BXI_TRUNC_OPEN_FLAGS);
+
+//    bxilog_config_add_handler(config, BXILOG_FILE_HANDLER_STDIO,
+//                              BXILOG_FILTERS_ALL_ALL,
+//			      progname, filename);
+
 
     bxierr_p bxierr = bxilog_init(config);
     assert(bxierr_isok(bxierr));
