@@ -111,12 +111,12 @@ char * bxitime_duration_str(const double duration){
     long double rest = (long double) duration - (long double) iduration;
     if (0 == iduration) {
         if (rest < 1e-6) {
-            return bxistr_new("%.0Lfns", rest * 1e9);
+            return bxistr_new("%.0Lf ns", rest * 1e9);
         }
         if (rest < 1e-3) {
-            return bxistr_new("%03.3Lfus", rest * 1e6);
+            return bxistr_new("%03.3Lf us", rest * 1e6);
         }
-        return bxistr_new("%03.3Lfms", rest * 1e3);
+        return bxistr_new("%03.3Lf ms", rest * 1e3);
     }
 
     long seconds = iduration % 60;

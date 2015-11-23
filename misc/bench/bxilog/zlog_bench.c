@@ -192,6 +192,13 @@ int main(int argc, char * argv[]) {
     printf("Total Size: %zu bytes in (overall) %s: %.1f MB/s\n",
            size, total_str, size/global_stats.total_duration/1024/1024);
 
+    fprintf(stderr, "%zu\t%lf\t%.9lf\t%.9lf\t%.9zu\n",
+               global_stats.n,
+               global_stats.total_duration,
+               global_stats.min_duration,
+               global_stats.max_duration,
+               size);
+
     BXIFREE(min_str);
     BXIFREE(max_str);
     BXIFREE(avg_str);
