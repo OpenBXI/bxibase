@@ -121,7 +121,7 @@ int main(int argc, char * argv[]) {
 
     bxierr_p bxierr = bxilog_init(config);
     assert(bxierr_isok(bxierr));
-    logger->level = BXILOG_DEBUG;
+//    logger->level = BXILOG_DEBUG;
     //fprintf(stderr, "Logging to file: %s\n", filename);
 
     int n = atoi(argv[1]);
