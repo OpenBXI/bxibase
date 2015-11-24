@@ -33,6 +33,14 @@
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+
+#define TC_FG_RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
+#define TC_BG_RGB(r, g, b) "\033[48;2;" #r ";" #g ";" #b "m"
+
+#define RESET_COLORS "\033[0m"
 
 #define INTERNAL_LOGGER_NAME "bxi.base.log.handler.console"
 
@@ -41,6 +49,8 @@
 //********************************** Types ****************************************
 //*********************************************************************************
 typedef struct bxilog_console_handler_param_s_f * bxilog_console_handler_param_p;
+typedef struct log_single_line_param_s_f * log_single_line_param_p;
+
 typedef struct bxilog_console_handler_param_s_f {
     bxilog_handler_param_s generic;
 
@@ -50,18 +60,27 @@ typedef struct bxilog_console_handler_param_s_f {
     bxilog_level_e stderr_level;
     bxierr_list_p errset;
     size_t lost_logs;
+    char ** colors;
+    bxierr_p (*display_out) (char * line,
+                             size_t line_len,
+                             bool last,
+                             log_single_line_param_p param);
+    bxierr_p (*display_err) (char * line,
+                             size_t line_len,
+                             bool last,
+                             log_single_line_param_p param);
 } bxilog_console_handler_param_s;
 
-typedef struct {
+typedef struct log_single_line_param_s_f {
     const bxilog_console_handler_param_p data;
     const bxilog_record_p record;
     const char * filename;
     const char *funcname;
     const char * loggername;
     const char *logmsg;
+    FILE* out;
 } log_single_line_param_s;
 
-typedef log_single_line_param_s * log_single_line_param_p;
 
 //*********************************************************************************
 //********************************** Static Functions  ****************************
@@ -76,6 +95,14 @@ static bxierr_p _process_log(bxilog_record_p record,
                              char * loggername,
                              char * logmsg,
                              bxilog_console_handler_param_p data);
+static bxierr_p _display_color(char * line,
+                               size_t line_len,
+                               bool last,
+                               log_single_line_param_p param);
+static bxierr_p _display_nocolor(char * line,
+                                 size_t line_len,
+                                 bool last,
+                                 log_single_line_param_p param);
 static bxierr_p _process_err(bxierr_p * err, bxilog_console_handler_param_p data);
 static bxierr_p _process_implicit_flush(bxilog_console_handler_param_p data);
 static bxierr_p _process_explicit_flush(bxilog_console_handler_param_p data);
@@ -112,7 +139,104 @@ static const bxilog_handler_s BXILOG_CONSOLE_HANDLER_S = {
                   .process_cfg = (bxierr_p (*) (bxilog_handler_param_p)) _process_cfg,
                   .param_destroy = (bxierr_p (*) (bxilog_handler_param_p*)) _param_destroy,
 };
+
 const bxilog_handler_p BXILOG_CONSOLE_HANDLER = (bxilog_handler_p) &BXILOG_CONSOLE_HANDLER_S;
+
+//************************************************************************************
+//******************************** COLORS ********************************************
+//************************************************************************************
+// Creating new color theme is very simple:
+// Just create a new array with the corresponding ANSI color code
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+// Note that some terminals does not support all color code (namely rxvt and the like).
+
+
+// 6 × 6 × 6 = 216 colors: 16 + 36 × r + 6 × g + b (0 ≤ r, g, b ≤ 5)
+const bxilog_colors_p BXILOG_COLORS_216_DARK = {
+                             "\033[5m",                                     // OFF: Blink
+                             "\033[1m" "\033[38;5;207m",                                // PANIC
+                             "\033[1m" "\033[38;5;200m",                                // ALERT
+                             "\033[1m" "\033[38;5;198m",                                // CRITICAL
+                             "\033[22m" "\033[38;5;196m",                                // ERROR
+                             "\033[22m" "\033[38;5;226m",                                // WARNING
+                             "\033[22m" "\033[38;5;229m",                                // NOTIFY
+                             "\033[22m" "\033[38;5;231m",                                // OUTPUT
+                             "\033[2m" "\033[38;5;46m",                                 // INFO
+                             "\033[2m" "\033[38;5;83m",                                 // DEBUG
+                             "\033[2m" "\033[38;5;77m",                                 // FINE
+                             "\033[2m" "\033[38;5;71m",                                 // TRACE
+                             "\033[2m" "\033[38;5;65m",                                 // LOWEST
+};
+
+const bxilog_colors_p BXILOG_COLORS_TC_DARK = {
+                             "\033[5m",                                     // OFF: Blink
+                             "\033[1m" TC_FG_RGB(255,51,255),                               // PANIC
+                             "\033[1m" TC_FG_RGB(255,0,175),                                // ALERT
+                             "\033[1m" TC_FG_RGB(255,0,150),                                // CRITICAL
+                             "\033[22m" TC_FG_RGB(255,0,0),                                  // ERROR
+                             "\033[22m" TC_FG_RGB(255,255,0),                                // WARNING
+                             "\033[22m" TC_FG_RGB(255,255,153),                              // NOTIFY
+                             "\033[22m" TC_FG_RGB(255,255,255),                              // OUTPUT
+                             "\033[2m" TC_FG_RGB(0,255,0),                                  // INFO
+                             "\033[2m" TC_FG_RGB(51,255,51),                                // DEBUG
+                             "\033[2m" TC_FG_RGB(51,204,51),                                // FINE
+                             "\033[2m" TC_FG_RGB(51,153,51),                                // TRACE
+                             "\033[2m" TC_FG_RGB(51,102,51),                                // LOWEST
+};
+
+const bxilog_colors_p BXILOG_COLORS_TC_LIGHT = {
+                             "\033[5m",                                     // OFF: Blink
+                             "\033[1m" TC_FG_RGB(255,25,70),                                // PANIC
+                             "\033[1m" TC_FG_RGB(200,0,50),                                 // ALERT
+                             "\033[1m" TC_FG_RGB(175,0,0),                                  // CRITICAL
+                             "\033[22m" TC_FG_RGB(128,25,0),                                 // ERROR
+                             "\033[22m" TC_FG_RGB(128,75,0),                                 // WARNING
+                             "\033[22m" TC_FG_RGB(75,50,0),                                  // NOTIFY
+                             "\033[22m" TC_FG_RGB(0,0,0),                                    // OUTPUT
+                             "\033[2m" TC_FG_RGB(0,50,75),                                  // INFO
+                             "\033[2m" TC_FG_RGB(0,50,100),                                 // DEBUG
+                             "\033[2m" TC_FG_RGB(0,75,125),                                 // FINE
+                             "\033[2m" TC_FG_RGB(0,75,150),                                 // TRACE
+                             "\033[2m" TC_FG_RGB(0,100,175),                                // LOWEST
+};
+
+const bxilog_colors_p BXILOG_COLORS_TC_DARKGRAY = {
+                             "\033[5m",                                     // OFF: Blink
+                             "\033[1m" TC_FG_RGB(255,255,255),                                // PANIC
+                             "\033[1m" TC_FG_RGB(233,233,233),                                 // ALERT
+                             "\033[1m" TC_FG_RGB(212,212,212),                                  // CRITICAL
+                             "\033[22m" TC_FG_RGB(191,191,191),                                 // ERROR
+                             "\033[22m" TC_FG_RGB(170,170,170),                                 // WARNING
+                             "\033[22m" TC_FG_RGB(149,149,149),                                  // NOTIFY
+                             "\033[22m" TC_FG_RGB(128,128,128),                              // OUTPUT
+                             "\033[2m" TC_FG_RGB(113,113,113),                                  // INFO
+                             "\033[2m" TC_FG_RGB(98,98,98),                                 // DEBUG
+                             "\033[2m" TC_FG_RGB(83,83,83),                                 // FINE
+                             "\033[2m" TC_FG_RGB(68,68,68),                                 // TRACE
+                             "\033[2m" TC_FG_RGB(53,53,53),                                // LOWEST
+};
+
+const bxilog_colors_p BXILOG_COLORS_TC_LIGHTGRAY = {
+                             "\033[5m",                                     // OFF: Blink
+                             "\033[1m" TC_FG_RGB(38,38,38),                                // PANIC
+                             "\033[1m" TC_FG_RGB(53,53,53),                                 // ALERT
+                             "\033[1m" TC_FG_RGB(68,38,68),                                  // CRITICAL
+                             "\033[22m" TC_FG_RGB(83,83,83),                                 // ERROR
+                             "\033[22m" TC_FG_RGB(98,98,98),                                 // WARNING
+                             "\033[22m" TC_FG_RGB(113,113,113),                              // NOTIFY
+                             "\033[22m" TC_FG_RGB(128,128,128),                              // OUTPUT
+                             "\033[2m" TC_FG_RGB(149,149,149),                                  // INFO
+                             "\033[2m" TC_FG_RGB(170,170,170),                                 // DEBUG
+                             "\033[2m"TC_FG_RGB(191,191,191),                                 // FINE
+                             "\033[2m" TC_FG_RGB(202,202,202),                                 // TRACE
+                             "\033[2m" TC_FG_RGB(210,210,210),                                // LOWEST
+};
+
+const char ** BXILOG_COLORS_NONE = NULL;
+
+static const char LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
+                                      'I', 'D', 'F', 'T', 'L'};
+
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -125,12 +249,24 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxiassert(BXILOG_CONSOLE_HANDLER == self);
 
     bxilog_level_e level = (bxilog_level_e) va_arg(ap, int);
+    char ** colors = va_arg(ap, char **);
     va_end(ap);
 
     bxilog_console_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
     result->stderr_level = level;
+    result->colors = colors;
+
+    if (NULL != result->colors) {
+//        result->display_out = isatty(STDOUT_FILENO) ? _display_color : _display_nocolor;
+//        result->display_err = isatty(STDERR_FILENO) ? _display_color : _display_nocolor;
+        result->display_out = _display_color;
+        result->display_err = _display_color;
+    } else {
+        result->display_out = _display_nocolor;
+        result->display_err = _display_nocolor;
+    }
 
     return (bxilog_handler_param_p) result;
 }
@@ -208,21 +344,31 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * logmsg,
                              bxilog_console_handler_param_p data) {
 
-    UNUSED(filename);
-    UNUSED(funcname);
-    UNUSED(loggername);
+    log_single_line_param_s param = {
+                                     .data = data,
+                                     .record = record,
+                                     .filename = filename,
+                                     .funcname = funcname,
+                                     .loggername = loggername,
+                                     .logmsg = logmsg,
+    };
 
-    FILE * out = (record->level > data->stderr_level) ? stdout : stderr;
 
-    errno = 0;
-    int rc = fprintf(out, "%s\n", logmsg);
-    if (rc < 0) {
-        return bxierr_errno("Calling fprintf() failed");
+    bxierr_p err;
+    if (record->level > data->stderr_level) {
+        param.out = stdout;
+        err = bxistr_apply_lines(logmsg,
+                                 (bxierr_p (*)(char*, size_t, bool, void*)) data->display_out,
+                                 &param);
+    } else {
+        param.out = stderr;
+        err = bxistr_apply_lines(logmsg,
+                                 (bxierr_p (*)(char*, size_t, bool, void*)) data->display_err,
+                                 &param);
     }
 
-    return BXIERR_OK;
+    return err;
 }
-
 
 bxierr_p _process_err(bxierr_p *err, bxilog_console_handler_param_p data) {
     bxierr_p result = BXIERR_OK;
@@ -268,17 +414,22 @@ bxierr_p _sync(bxilog_console_handler_param_p data) {
 
     errno = 0;
     int rc = fflush(stderr);
-    if (0 != rc) {
-        err2 = bxierr_errno("Calling fflush(stderr) failed");
-        BXIERR_CHAIN(err, err2);
-    }
+    // We just don't care!
+//    if (0 != rc) {
+//        err2 = bxierr_errno("Calling fflush(stderr) failed");
+//        BXIERR_CHAIN(err, err2);
+//    }
 
     errno = 0;
     rc = fflush(stdout);
-    if (0 != rc) {
-        err2 = bxierr_errno("Calling fflush(stdout) failed");
-        BXIERR_CHAIN(err, err2);
-    }
+    // We just don't care!
+//    if (0 != rc) {
+//        err2 = bxierr_errno("Calling fflush(stdout) failed");
+//        BXIERR_CHAIN(err, err2);
+//    }
+
+    UNUSED(rc);
+    UNUSED(err2);
 
     return err;
 }
@@ -333,4 +484,68 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     BXIFREE(msg);
 
     return err;
+}
+
+
+inline bxierr_p _display_nocolor(char * line,
+                                 size_t line_len,
+                                 bool last,
+                                 log_single_line_param_p param) {
+
+    UNUSED(last);
+    bxilog_record_p record = param->record;
+
+    char buf[line_len + 1];
+    memcpy(buf, line, line_len);
+    buf[line_len] = '\0';
+
+    int rc;
+    if (BXILOG_OUTPUT != record->level) {
+        rc = fprintf(param->out, "[%c] %s\n",
+                     LOG_LEVEL_STR[record->level],
+                     buf);
+    } else {
+        rc = fprintf(param->out, "%s\n", buf);
+    }
+
+    UNUSED(rc);
+    // We just don't care!
+//    if (rc < 0) {
+//        return bxierr_errno("Calling fprintf() failed");
+//    }
+
+    return BXIERR_OK;
+}
+
+inline bxierr_p _display_color(char * line,
+                               size_t line_len,
+                               bool last,
+                               log_single_line_param_p param) {
+    UNUSED(last);
+    bxilog_console_handler_param_p data = param->data;
+    bxilog_record_p record = param->record;
+
+    char buf[line_len + 1];
+    memcpy(buf, line, line_len);
+    buf[line_len] = '\0';
+
+    errno = 0;
+    int rc;
+    if (BXILOG_OUTPUT != record->level) {
+        rc = fprintf(param->out, "%s[%c] %s\n" RESET_COLORS,
+                     data->colors[record->level],
+                     LOG_LEVEL_STR[record->level],
+                     buf);
+    } else {
+        rc = fprintf(param->out, "%s%s\n" RESET_COLORS,
+                     data->colors[record->level],
+                     buf);
+    }
+    UNUSED(rc);
+    // We just don't care!
+//    if (rc < 0) {
+//        return bxierr_errno("Calling fprintf() failed");
+//    }
+
+    return BXIERR_OK;
 }

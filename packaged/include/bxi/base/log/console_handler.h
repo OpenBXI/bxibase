@@ -36,6 +36,21 @@
 //*********************************************************************************
 //********************************** Types ****************************************
 //*********************************************************************************
+/**
+ * An ANSI color code.
+ *
+ * See: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+ */
+typedef const char const * ansi_color_code_p;
+
+#ifndef BXICFFI
+/**
+ * An array of string representing ANSI color code for each level
+ */
+typedef const ansi_color_code_p bxilog_colors_p[BXILOG_LOWEST + 1];
+#else
+typedef const char* bxilog_colors_p[];
+#endif
 
 
 //*********************************************************************************
@@ -50,11 +65,51 @@
  * @param[in] level a ::bxilog_level_e value; when a log is processed, if the log level
  *                  is less or equals to this level, the log is emitted on the standard
  *                  error, otherwise it is emitted on standard output.
+ * @param[in] colors a ::bxilog_colors_p value representing the colors to use
+ *                  according to different log levels
+ *
  */
 extern const bxilog_handler_p BXILOG_CONSOLE_HANDLER;
+
+/**
+ * A dark theme with 216 colors.
+ */
+extern const bxilog_colors_p BXILOG_COLORS_216_DARK;
+
+/**
+ * A dark theme using true color (24 bits).
+ */
+extern const bxilog_colors_p BXILOG_COLORS_TC_DARK;
+
+/**
+ * A dark gray-only theme using true color (24 bits).
+ */
+extern const bxilog_colors_p BXILOG_COLORS_TC_DARKGRAY;
+
+/**
+ * A light theme using true color (24 bits).
+ */
+extern const bxilog_colors_p BXILOG_COLORS_TC_LIGHT;
+
+/**
+ * A light gray-only theme using true color (24 bits).
+ */
+extern const bxilog_colors_p BXILOG_COLORS_TC_LIGHTGRAY;
+
+/**
+ * A theme that specifically defines no color.
+ */
+extern const char ** BXILOG_COLORS_NONE;
 #else
 extern bxilog_handler_p BXILOG_CONSOLE_HANDLER;
+extern bxilog_colors_p BXILOG_COLORS_216_DARK;
+extern bxilog_colors_p BXILOG_COLORS_TC_DARK;
+extern bxilog_colors_p BXILOG_COLORS_TC_DARKGRAY;
+extern bxilog_colors_p BXILOG_COLORS_TC_LIGHT;
+extern bxilog_colors_p BXILOG_COLORS_TC_LIGHTGRAY;
+extern char ** BXILOG_COLORS_NONE;
 #endif
+
 
 //*********************************************************************************
 //********************************** Interfaces        ****************************

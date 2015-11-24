@@ -177,6 +177,21 @@ _ROOT_LOGGER_NAME = ''
 # The default logger.
 _DEFAULT_LOGGER = None
 
+""" 
+Colors Theme.
+
+Defining new color themes is really very simple.
+
+See ::bxilog_colors_p for details.
+"""
+COLORS = {'none': __BXIBASE_CAPI__.BXILOG_COLORS_NONE,
+          '216_dark': __BXIBASE_CAPI__.BXILOG_COLORS_216_DARK,
+          'truecolor_dark': __BXIBASE_CAPI__.BXILOG_COLORS_TC_DARK,
+          'truecolor_light': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHT,
+          'truecolor_darkgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_DARKGRAY,
+          'truecolor_lightgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHTGRAY,
+          }
+
 """
 Default configuration items.
 
@@ -191,7 +206,7 @@ Default configuration of the console handler
 @see ::bxilog_handler_p
 @see ::BXILOG_CONSOLE_HANDLER
 """
-DEFAULT_CONSOLE_OPTIONS = (':output', WARNING)
+DEFAULT_CONSOLE_OPTIONS = (':output', WARNING, __BXIBASE_CAPI__.BXILOG_COLORS_216_DARK)
 
 
 def _FindCaller():
@@ -321,10 +336,14 @@ def _init():
     if console_handler_args is not None:
         filters = parse_filters(console_handler_args[0])
         stderr_level = __FFI__.cast('int', console_handler_args[1])
+        colors = console_handler_args[2]
+
         __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
                                                    filters,
-                                                   stderr_level)
+                                                   stderr_level,
+                                                   colors,
+                                                   )
     if file_handler_args is not None:
         if isinstance(file_handler_args, str):
             file_handler_args = (':lowest', file_handler_args, True)
@@ -451,7 +470,7 @@ def get_all_loggers_iter():
         yield BXILogger(loggers[0][i])
 
 
-def _get_default_logger():
+def get_default_logger():
     """
     Return the root logger.
 
@@ -474,7 +493,7 @@ def off(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().off(msg, *args, **kwargs)
+    get_default_logger().off(msg, *args, **kwargs)
 
 
 def panic(msg, *args, **kwargs):
@@ -488,7 +507,7 @@ def panic(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().panic(msg, *args, **kwargs)
+    get_default_logger().panic(msg, *args, **kwargs)
 
 
 def alert(msg, *args, **kwargs):
@@ -502,7 +521,7 @@ def alert(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().alert(msg, *args, **kwargs)
+    get_default_logger().alert(msg, *args, **kwargs)
 
 
 def critical(msg, *args, **kwargs):
@@ -516,7 +535,7 @@ def critical(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().critical(msg, *args, **kwargs)
+    get_default_logger().critical(msg, *args, **kwargs)
 
 
 def error(msg, *args, **kwargs):
@@ -530,7 +549,7 @@ def error(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().error(msg, *args, **kwargs)
+    get_default_logger().error(msg, *args, **kwargs)
 
 
 def warning(msg, *args, **kwargs):
@@ -544,7 +563,7 @@ def warning(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().warning(msg, *args, **kwargs)
+    get_default_logger().warning(msg, *args, **kwargs)
 
 
 def notice(msg, *args, **kwargs):
@@ -558,7 +577,7 @@ def notice(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().notice(msg, *args, **kwargs)
+    get_default_logger().notice(msg, *args, **kwargs)
 
 
 def output(msg, *args, **kwargs):
@@ -572,7 +591,7 @@ def output(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().output(msg, *args, **kwargs)
+    get_default_logger().output(msg, *args, **kwargs)
 
 out = output
 
@@ -588,7 +607,7 @@ def info(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().info(msg, *args, **kwargs)
+    get_default_logger().info(msg, *args, **kwargs)
 
 
 def debug(msg, *args, **kwargs):
@@ -602,7 +621,7 @@ def debug(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().debug(msg, *args, **kwargs)
+    get_default_logger().debug(msg, *args, **kwargs)
 
 
 def fine(msg, *args, **kwargs):
@@ -616,7 +635,7 @@ def fine(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().fine(msg, *args, **kwargs)
+    get_default_logger().fine(msg, *args, **kwargs)
 
 
 def trace(msg, *args, **kwargs):
@@ -630,7 +649,7 @@ def trace(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().trace(msg, *args, **kwargs)
+    get_default_logger().trace(msg, *args, **kwargs)
 
 
 def lowest(msg, *args, **kwargs):
@@ -644,7 +663,7 @@ def lowest(msg, *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().lowest(msg, *args, **kwargs)
+    get_default_logger().lowest(msg, *args, **kwargs)
 
 
 def exception(msg="", *args, **kwargs):
@@ -658,7 +677,7 @@ def exception(msg="", *args, **kwargs):
     @return
     @see get_default_logger
     """
-    _get_default_logger().exception(msg, *args, **kwargs)
+    get_default_logger().exception(msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module

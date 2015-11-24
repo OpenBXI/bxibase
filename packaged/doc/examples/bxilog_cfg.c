@@ -14,9 +14,18 @@ SET_LOGGER(LOGGER_AC, "a.c.logger");
 char ** LEVEL_NAMES = NULL;
 
 void log_stuff(bxilog_logger_p logger) {
-    WARNING(logger, "A message");
-    OUT(logger, "A message");
-    DEBUG(logger, "A message");
+    PANIC(logger, "A panic message");
+    ALERT(logger, "An alert message");
+    CRITICAL(logger, "A critical message");
+    ERROR(logger, "An error message");
+    WARNING(logger, "A warning message");
+    NOTICE(logger, "A notice message");
+    OUT(logger, "A normal message");
+    INFO(logger, "An info message");
+    DEBUG(logger, "A debug message");
+    FINE(logger, "A fine message");
+    TRACE(logger, "A trace message");
+    LOWEST(logger, "A lowest message");
 }
 
 void display_loggers(size_t n, bxilog_logger_p loggers[n]) {
@@ -31,7 +40,7 @@ void display_loggers(size_t n, bxilog_logger_p loggers[n]) {
 int main(int argc, char** argv) {
     // Produce logs on stdout/stderr, and also in /tmp/foo.log
     bxilog_config_p config = bxilog_basic_config(argv[0], "/tmp/foo.log",
-                                                 O_CREAT | O_TRUNC);
+                                                 BXI_TRUNC_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     // If the logging library raises an error, nothing can be logged!
     // Use the bxierr_report() convenience method in this case
