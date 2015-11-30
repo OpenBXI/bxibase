@@ -196,6 +196,10 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
 }
 
 bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
+    if (0 == strcasecmp("off", level_str)) {
+        *level = BXILOG_OFF;
+        return BXIERR_OK;
+    }
     if (0 == strcasecmp("panic", level_str)
             || 0 == strcasecmp("emergency", level_str)) {
         *level = BXILOG_PANIC;
