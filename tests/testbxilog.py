@@ -101,8 +101,15 @@ class BXILogTest(unittest.TestCase):
         """
         bxilog.cleanup()
  
- 
-###############################################################################
+    def test_level_parser(self):
+        """
+        Test bxilog_level parsing function"
+        """
+        level_names = list(bxilog.get_all_level_names_iter())
+        for i in xrange(len(level_names)):
+            level = bxilog.get_level_from_str(level_names[i])
+            self.assertEquals(i, level)
+    
     def test_default_logger(self):
         """Test default logging functions"""
         for level in bxilog.get_all_level_names_iter():
@@ -361,7 +368,7 @@ class BXILogTest(unittest.TestCase):
         time.sleep(0.5)
         rc = p.wait()
         self.assertEquals(rc, -signal.SIGTERM)
- 
+
 ###############################################################################
  
 if __name__ == "__main__":

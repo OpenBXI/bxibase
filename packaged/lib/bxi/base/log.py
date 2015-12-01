@@ -238,6 +238,17 @@ def is_configured():
     return _INITIALIZED
 
 
+def get_level_from_str(level_str):
+    """
+    Return the ::bxilog_level_e related to the given string.
+    """
+    level_p = __FFI__.new('bxilog_level_e[1]')
+    bxierr = __BXIBASE_CAPI__.bxilog_get_level_from_str(level_str, level_p)
+
+    BXICError.raise_if_ko(bxierr)
+    return level_p[0]
+
+
 def basicConfig(**kwargs):
     """
     Configure the whole bxilog module.
@@ -248,7 +259,8 @@ def basicConfig(**kwargs):
         - `'syslog'`: None or a list of syslog handler arguments
         - `'setsighandler'`: if True, set signal handlers
         - `'filters'`: a string following the bxi filters format
-                       described in ::bxilog_filters_parse
+                       described in ::bxilog_filters_parse or a 
+                       ::bxilog_filters_p object
 
     @param[in] kwargs named parameters as described above
 
@@ -293,16 +305,55 @@ def basicConfig(**kwargs):
 def parse_filters(filter_str):
     """
     Parse the given string and return the corresponding set of filters as
-    a bxilog_filter_p* array
+    a bxilog_filter_p
 
     @param[in] filters_str a string representing filters as defined in ::bxilog_filters_parse()
 
-    @return a list of filters as a ::bxilog_filter_p*
+    @return a ::bxilog_filter_p object
     """
     filters_p = __FFI__.new('bxilog_filters_p[1]')
     err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
     BXICError.raise_if_ko(err)
     return filters_p[0]
+
+
+def new_detailed_filters(filters, delta=2, min_level=ERROR):
+    """
+    Create a copy of the given filters with a level increase of delta.
+    """
+    result_p = __FFI__.new('bxilog_filters_p[1]')
+    result_p[0] = __BXIBASE_CAPI__.bxilog_filters_new()
+    for i in xrange(filters.nb):
+        new_level = min(filters.list[i].level + delta, LOWEST)
+        # At least error messages
+        new_level = max(new_level, min_level)
+        __BXIBASE_CAPI__.bxilog_filters_add(result_p, filters.list[i].prefix,
+                                            new_level)
+    return result_p[0]
+
+
+def merge_filters(filters_set):
+    """
+    Merge the given set of filters.
+    """
+    prefixes = dict()
+    for filters in filters_set:
+        if isinstance(filters, str):
+            filters
+        for i in xrange(filters.nb):
+            prefix = __FFI__.string(filters.list[i].prefix)
+            level = filters.list[i].level
+            if prefix in prefixes:
+                prefixes[prefix] = max(level, prefixes[prefix])
+            else:
+                prefixes[prefix] = level
+
+    result_p = __FFI__.new('bxilog_filters_p[1]')
+    result_p[0] = __BXIBASE_CAPI__.bxilog_filters_new()
+    for prefix in sorted(prefixes):
+        __BXIBASE_CAPI__.bxilog_filters_add(result_p, prefix, prefixes[prefix])
+
+    return result_p[0]
 
 
 def _init():
@@ -324,8 +375,12 @@ def _init():
                   }
     # Configure loggers first, since init() produces logs that the user
     # might not want to see
-    err = __BXIBASE_CAPI__.bxilog_registry_parse_set_filters(_CONFIG['filters'])
-    BXICError.raise_if_ko(err)
+    filters = _CONFIG['filters']
+    if isinstance(filters, str):
+        filters = parse_filters(filters)
+    filters_p = __FFI__.new('bxilog_filters_p[1]')
+    filters_p[0] = filters
+    __BXIBASE_CAPI__.bxilog_registry_set_filters(filters_p)
 
     config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
 
@@ -334,13 +389,15 @@ def _init():
     syslog_handler_args = _CONFIG.get('syslog', None)
 
     if console_handler_args is not None:
-        filters = parse_filters(console_handler_args[0])
+        console_filters = console_handler_args[0]
+        if isinstance(console_filters, str):
+            console_filters = parse_filters(console_filters)
         stderr_level = __FFI__.cast('int', console_handler_args[1])
         colors = console_handler_args[2]
 
         __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
-                                                   filters,
+                                                   console_filters,
                                                    stderr_level,
                                                    colors,
                                                    )
@@ -349,19 +406,23 @@ def _init():
             file_handler_args = (':lowest', file_handler_args, True)
 
         progname = __FFI__.new('char[]', sys.argv[0])
-        filters = parse_filters(file_handler_args[0])
+        file_filters = file_handler_args[0]
+        if isinstance(file_filters, str):
+            file_filters = parse_filters(file_filters)
         filename = __FFI__.new('char[]', file_handler_args[1])
         open_flags = __FFI__.cast('int', os.O_CREAT |
                                  (os.O_APPEND if file_handler_args[2] else os.O_TRUNC))
         __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
-                                                   filters,
+                                                   file_filters,
                                                    progname,
                                                    filename,
                                                    open_flags)
 
     if syslog_handler_args is not None:
-        filters = parse_filters(syslog_handler_args[0])
+        syslog_filters = syslog_handler_args[0]
+        if isinstance(syslog_filters, str):
+            syslog_filters = parse_filters(syslog_filters)
         ident = __FFI__.new('char[]', sys.argv[0])
         option = __FFI__.cast('int', syslog_handler_args[1])
         facility = __FFI__.cast('int', syslog_handler_args[2])
@@ -369,7 +430,7 @@ def _init():
 
         __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                    __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,
-                                                   filters,
+                                                   syslog_filters,
                                                    ident,
                                                    option,
                                                    facility,

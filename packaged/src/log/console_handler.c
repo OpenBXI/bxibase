@@ -532,12 +532,12 @@ inline bxierr_p _display_color(char * line,
     errno = 0;
     int rc;
     if (BXILOG_OUTPUT != record->level) {
-        rc = fprintf(param->out, "%s[%c] %s\n" RESET_COLORS,
+        rc = fprintf(param->out, "%s[%c] %s" RESET_COLORS "\n",
                      data->colors[record->level],
                      LOG_LEVEL_STR[record->level],
                      buf);
     } else {
-        rc = fprintf(param->out, "%s%s\n" RESET_COLORS,
+        rc = fprintf(param->out, "%s%s" RESET_COLORS "\n",
                      data->colors[record->level],
                      buf);
     }
