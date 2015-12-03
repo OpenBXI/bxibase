@@ -383,8 +383,6 @@ bxierr_p _loop(bxilog_handler_p handler,
         }
         if (items[1].revents & ZMQ_POLLIN) {
             // Process data, this is the normal case
-
-
             err2 = _process_log_record(handler, param, data);
             BXIERR_CHAIN(err, err2);
             err = _process_err(handler, param, err);
