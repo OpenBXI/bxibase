@@ -384,7 +384,14 @@ bxierr_p _loop(bxilog_handler_p handler,
         if (items[1].revents & ZMQ_POLLIN) {
             // Process data, this is the normal case
             err2 = _process_log_record(handler, param, data);
+
+            if (EAGAIN == err2->code) {
+                // Might happened on interruption!
+                bxierr_destroy(&err2);
+                err2 = BXIERR_OK;
+            }
             BXIERR_CHAIN(err, err2);
+
             err = _process_err(handler, param, err);
             if (bxierr_isko(err)) return err;
         }
