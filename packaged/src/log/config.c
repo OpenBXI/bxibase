@@ -81,7 +81,7 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
 
     bxilog_config_add_handler(config,
                               BXILOG_CONSOLE_HANDLER,
-                              BXILOG_FILTERS_ALL_OUTPUT,
+                              BXILOG_FILTERS_ALL_ALL,
                               BXILOG_WARNING,
                               BXILOG_COLORS_TC_DARK);
     if (NULL != filename) {
