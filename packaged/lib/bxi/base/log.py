@@ -356,6 +356,13 @@ def merge_filters(filters_set):
     return result_p[0]
 
 
+def bxilog_excepthook(type_, value, traceback):
+    """
+    The exception hook called on uncaught exception.
+    """
+    exception()
+
+
 def _init():
     """
     Initialize the underlying C library
@@ -455,6 +462,8 @@ def _init():
     traceback.print_stack(file=sio)
     _INIT_CALLER = sio.getvalue()
     sio.close()
+
+    sys.excepthook = bxilog_excepthook
 
 
 def get_logger(name):
