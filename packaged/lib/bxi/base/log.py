@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 """
 @file log.py Python binding of the BXI High Performance Logging Library
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -360,7 +361,8 @@ def bxilog_excepthook(type_, value, traceback):
     """
     The exception hook called on uncaught exception.
     """
-    exception()
+    kwargs = {'exc_info': (type_, value, traceback)}
+    critical('Uncaught Exception', **kwargs)
 
 
 def _init():
@@ -790,17 +792,17 @@ class BXILogger(object):
         if not _INITIALIZED:
             _init()
         if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
-            exc_str = ''
-            if 'exc_info' in kwargs:
-                ei = sys.exc_info()
+            exc_s = ''
+            ei = kwargs.get('exc_info', None)
+            if ei is not None:
                 sio = StringIO.StringIO()
+                sio.write(' - ')
                 traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
                 exc_s = sio.getvalue()
                 sio.close()
                 if exc_s[-1:] == "\n":
                     exc_s = exc_s[:-1]
-                exc_str = '- Exception: %s' % exc_s
-            msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_str)
+            msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_s)
             filename, lineno, funcname = _FindCaller()
             bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
                                                                  level,
@@ -1017,7 +1019,7 @@ class BXILogger(object):
         @return
 
         """
-        kwargs['exc_info'] = True
+        kwargs['exc_info'] = sys.exc_info()
         if 'level' in kwargs:
             level = kwargs['level']
             del kwargs['level']

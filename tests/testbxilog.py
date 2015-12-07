@@ -20,6 +20,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import re
 
 from bxi.base.err import BXICError
 import bxi.base.log as bxilog
@@ -75,7 +76,7 @@ def threads_in_process(again):
             bxilog.out("Exception: %s", e)
  
  
-class BXILogTest(unittest.TestCase):
+class BXILogTest(bxilog.TestCase):
     """Unit tests for the BXILog
     """
  
@@ -126,7 +127,7 @@ class BXILogTest(unittest.TestCase):
                                 "Who care?", level=bxilog.WARNING)
         self._check_log_produced(FILENAME, 
                                  bxilog.exception,
-                                 "When no exception was raised - special char"\
+                                 "When no exception was raised - special char "\
                                  "but no args: '%s'",
                                  level=bxilog.DEBUG)
         try:
@@ -368,6 +369,26 @@ class BXILogTest(unittest.TestCase):
         time.sleep(0.5)
         rc = p.wait()
         self.assertEquals(rc, -signal.SIGTERM)
+        
+    def test_uncaught(self):
+        """Unit test for uncaught exception"""
+        exe = os.path.join(os.path.dirname(__file__), "uncaught.py")
+        try:
+            bxilog.out("Invoking %s. It must create a file", exe)
+            subprocess.check_call([exe])
+        except subprocess.CalledProcessError as cpe:
+            self.assertEqual(cpe.returncode, 1)
+        filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'
+        with open(filename) as logfile:
+            found = False
+            pattern = '.*Uncaught Exception - Traceback.*'
+            regexp = re.compile(pattern)
+            for line in logfile: 
+                if regexp.match(line):
+                    found = True
+        self.assertTrue(found, "Pattern %s not found in %s" % (pattern, filename)) 
+            
+        
 
 ###############################################################################
  
