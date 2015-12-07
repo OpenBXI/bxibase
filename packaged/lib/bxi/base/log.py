@@ -468,6 +468,14 @@ def _init():
     sys.excepthook = bxilog_excepthook
 
 
+def get_config():
+    """
+    Return the current bxilog configuration.
+    """
+    global _CONFIG
+    return _CONFIG
+
+
 def get_logger(name):
     """
     Return the BXILogger instance with the given name.
