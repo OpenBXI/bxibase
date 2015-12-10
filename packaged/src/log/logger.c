@@ -134,11 +134,12 @@ bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_lev
     return err;
 }
 
-bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
-                                  char * filename, size_t filename_len,
-                                  const char * funcname, size_t funcname_len,
-                                  const int line,
-                                  const char * fmt, va_list arglist) {
+bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
+                                         const bxilog_level_e level,
+                                         char * filename, size_t filename_len,
+                                         const char * funcname, size_t funcname_len,
+                                         const int line,
+                                         const char * fmt, va_list arglist) {
 
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
 
@@ -186,13 +187,13 @@ bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger, const bxi
 
     err = _send2handlers(logger, level, tsd->data_channel,
 #ifdef __linux__
-                    tsd->tid,
+                         tsd->tid,
 #endif
-                    tsd->thread_rank,
-                    filename, filename_len,
-                    funcname, funcname_len,
-                    line,
-                    logmsg, logmsg_len);
+                         tsd->thread_rank,
+                         filename, filename_len,
+                         funcname, funcname_len,
+                         line,
+                         logmsg, logmsg_len);
 
     if (logmsg_allocated) BXIFREE(logmsg);
     // Either record comes from the stack
@@ -204,10 +205,10 @@ bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger, const bxi
 }
 
 bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
-                                 char * filename, size_t filename_len,
-                                 const char * funcname, size_t funcname_len,
-                                 const int line,
-                                 const char * fmt, ...) {
+                                        char * filename, size_t filename_len,
+                                        const char * funcname, size_t funcname_len,
+                                        const int line,
+                                        const char * fmt, ...) {
     va_list ap;
     bxierr_p err;
 

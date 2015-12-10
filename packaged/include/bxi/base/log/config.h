@@ -14,16 +14,18 @@
 #include "bxi/base/log/handler.h"
 
 /**
+ * Configuration of the High Performance Logging Module
+ *
+ * A bxilog configuration specifies various logging parameters, in particular
+ * the set of logging handlers that must be used and with which parameters.
+ *
  * @file    config.h
  * @authors Pierre Vignéras <pierre.vigneras@bull.net>
  * @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
  *         This is not Free or Open Source software.\n
  *         Please contact Bull SAS for details about its license.\n
  *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
- * @brief  Configuration of the High Performance Logging Module
  *
- * A bxilog configuration specifies various logging parameters, in particular
- * the set of logging handlers that must be used and with which parameters.
  */
 
 // *********************************************************************************

@@ -41,9 +41,8 @@ def do_some_logs_threading():
 def do_some_logs_multiprocessing(again):
     bxilog.cleanup()
     bxilog.basicConfig(console=None,
-                       filename=FILENAME,
-                       setsighandler=True,
-                       filters=':lowest')
+                       file=(':lowest', FILENAME, False),
+                       setsighandler=True)
     while again.value:
         bxilog.out("Doing a simple log: %s", again)
         time.sleep(0.1)
@@ -54,9 +53,8 @@ def threads_in_process(again):
     __LOOP_AGAIN__ = True
     bxilog.cleanup()
     bxilog.basicConfig(console=None,
-                       filename=FILENAME,
-                       setsighandler=True,
-                       filters=':lowest')
+                       file=(':lowest', FILENAME, False),
+                       setsighandler=True)
     threads = []
     for i in xrange(multiprocessing.cpu_count()):
         thread = threading.Thread(target=do_some_logs_threading)
@@ -93,9 +91,8 @@ class BXILogTest(bxilog.TestCase):
         """
         print("Whole unit test suite file outputs: %s" % FILENAME)
         bxilog.basicConfig(console=None,
-                           filename=FILENAME,
-                           setsighandler=True,
-                           filters=':lowest')
+                           file=(':lowest', FILENAME, True),
+                           setsighandler=True)
  
     def tearDown(self):
         """Cleaning up for each test.
@@ -264,8 +261,8 @@ class BXILogTest(bxilog.TestCase):
         orig_size = os.stat(FILENAME).st_size if os.path.exists(FILENAME) else 0
  
         bxilog.basicConfig(console=None, 
-                           filename=FILENAME,
-                           filters=':output,foo:debug,foo.bar:trace')
+                           file=(':output,foo:debug,foo.bar:trace', FILENAME, True),
+                           )
          
         foo = bxilog.getLogger('foo')
         bar = bxilog.getLogger('foo.bar')

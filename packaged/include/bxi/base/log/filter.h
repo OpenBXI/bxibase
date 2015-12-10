@@ -76,8 +76,20 @@ struct bxilog_filters_s {
 // ********************************** Global Variables *****************************
 // *********************************************************************************
 
+/**
+ * Filters all messages to level ::BXILOG_OFF
+ */
 extern bxilog_filters_p BXILOG_FILTERS_ALL_OFF;
+
+/**
+ * Filters all messages to level ::BXILOG_OUTPUT
+ */
 extern bxilog_filters_p BXILOG_FILTERS_ALL_OUTPUT;
+
+
+/**
+ * Filters all messages to level ::BXILOG_ALL
+ */
 extern bxilog_filters_p BXILOG_FILTERS_ALL_ALL;
 
 // *********************************************************************************
