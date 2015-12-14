@@ -267,9 +267,12 @@ def basicConfig(**kwargs):
 
     Parameter kwargs can contain following parameters:
         - `'console'`: None or a list of console handler arguments
-        - `'filename'`: None or a list of file handler arguments
+        - `'filename'`: None or a file name
+        - `'file'`: None or a list of file handler arguments
         - `'syslog'`: None or a list of syslog handler arguments
-        - `'setsighandler'`: if True, set signal handlers
+        - `'setsighandler'`: if True, set signal handlers, default is True
+
+    If 'filename' is specified, it overwrites 'file' parameters.
 
     @param[in] kwargs named parameters as described above
 
@@ -386,7 +389,7 @@ def _add_console_config(console_handler_args, config):
 
 def _add_file_config(file_handler_args, config, console_filters):
     if file_handler_args[0] == FILE_HANDLER_FILTERS_AUTO:
-    # Compute file filters automatically according to console handler filters
+        # Compute file filters automatically according to console handler filters
         if console_filters is not None:
             file_filters = new_detailed_filters(console_filters)
         else:
@@ -396,7 +399,7 @@ def _add_file_config(file_handler_args, config, console_filters):
     progname = __FFI__.new('char[]', sys.argv[0])
     filename = __FFI__.new('char[]', file_handler_args[1])
     open_flags = __FFI__.cast('int',
-                              os.O_CREAT | 
+                              os.O_CREAT |
                               (os.O_APPEND if file_handler_args[2] else os.O_TRUNC))
     __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
