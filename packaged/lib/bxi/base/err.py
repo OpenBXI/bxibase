@@ -52,8 +52,7 @@ class BXICError(BXIError):
         __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
 
     def __str__(self):
-        return self.__class__.__name__ + '[bxierr_p: %s, msg: %s]' % (self.bxierr_pp[0],
-                                                                      self.message)
+        return self.message
 
     @staticmethod
     def chain(cause, err):
