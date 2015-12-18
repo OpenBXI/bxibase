@@ -179,6 +179,73 @@ void test_logger_levels(void) {
     bxierr_abort_ifko(err);
 }
 
+void test_very_long_log(void) {
+    char * dirtmp = strdup(FULLFILENAME);
+    char * basetmp = strdup(FULLFILENAME);
+    char * dir = dirname(dirtmp);
+    char * base = basename(basetmp);
+
+    char * longlog_filename = bxistr_new("%s/long-%s", dir, base);
+    BXIFREE(dirtmp);
+    BXIFREE(basetmp);
+
+    bxilog_filters_p all_except_long = bxilog_filters_new();
+    bxilog_filters_add(&all_except_long, "", BXILOG_ALL);
+    bxilog_filters_add(&all_except_long, "test.bxi.base.log.long", BXILOG_OFF);
+
+    bxilog_filters_p only_long = bxilog_filters_new();
+    bxilog_filters_add(&only_long, "", BXILOG_OFF);
+    bxilog_filters_add(&only_long, "test.bxi.base.log.long", BXILOG_ALL);
+
+    bxilog_config_p config = bxilog_config_new(PROGNAME);
+    bxilog_config_add_handler(config,
+                              BXILOG_FILE_HANDLER,
+                              all_except_long,
+                              PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
+    bxilog_config_add_handler(config,
+                              BXILOG_FILE_HANDLER,
+                              only_long,
+                              PROGNAME, longlog_filename, BXI_TRUNC_OPEN_FLAGS);
+
+    bxierr_p err = bxilog_init(config);
+    bxierr_report_keep(err, STDERR_FILENO);
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+
+    OUT(TEST_LOGGER, "Finding new long logger");
+
+    bxilog_logger_p long_logger;
+    err = bxilog_registry_get("test.bxi.base.log.long", &long_logger);
+    bxierr_abort_ifko(err);
+
+    const size_t size = 1024*1024;
+    char buf[size];
+
+    for (size_t i = 0; i < size; i++) {
+        buf[i] = (char) ('a' + (i % ('z' - 'a')));
+    }
+    buf[size-1] = '\0';
+    OUT(TEST_LOGGER, "Generating a very long message of size %zu in %s",
+        size, longlog_filename);
+
+    OUT(long_logger, "%s", buf);
+
+    bxilog_flush();
+
+    struct stat stat_s;
+    int rc = stat(longlog_filename, &stat_s);
+    bxiassert(0 == rc);
+    size_t fsize = (size_t) stat_s.st_size;
+
+    OUT(TEST_LOGGER, "Size of %s: %zu", longlog_filename, stat_s.st_size);
+
+    CU_ASSERT_TRUE(fsize > size);
+    CU_ASSERT_TRUE(fsize < 2*size);
+
+    err = bxilog_finalize(true);
+    bxierr_abort_ifko(err);
+    BXIFREE(longlog_filename);
+}
+
 void test_logger_init() {
     bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
                                                      FULLFILENAME,

@@ -155,6 +155,7 @@ static ssize_t _mkmsg(const size_t n, char buf[n],
                       const char * const logmsg);
 
 static bxierr_p _flush(bxilog_file_handler_param_p data);
+static bxierr_p _write(bxilog_file_handler_param_p data, const void * buf, size_t count);
 static bxierr_p _sync(bxilog_file_handler_param_p data);
 static void _tune_io(bxilog_file_handler_param_p data);
 static bxierr_p _internal_log_func(bxilog_level_e level,
@@ -434,22 +435,19 @@ bxierr_p _log_single_line(char * line,
             bxistr_digits_nb(record->line_nb) + \
             line_len; // Exclude the NULL terminating byte
 
-    if (size > data->buf_size) {
-        bxierr_p err = bxierr_new(ERR_LOG_LIMIT, NULL, NULL, NULL, NULL,
-                                  "Following Log line requires %zu bytes, but buffer "
-                                  "size is %zu. Skipping. %s", size, data->buf_size,
-                                  line);
-        _record_new_error(data, &err);
-        data->bytes_lost += size;
-        return BXIERR_OK;
-    }
-
     if (data->buf_size - data->next_char <= size) {
         bxierr_p err = _flush(data);
         bxierr_abort_ifko(err);
     }
 
-    char * buf = data->buf + data->next_char;
+    char * buf;
+    if (size > data->buf_size) {
+        buf = bximem_calloc(size + 1); // Include the NULL terminating byte since we
+                                       // use a specific buffer.
+    } else {
+        buf = data->buf + data->next_char;
+    }
+
     // Include the NULL terminating byte in the size given to
     // underlying snprintf() call, it is required.
     const ssize_t written = _mkmsg(size + 1, buf,
@@ -467,6 +465,12 @@ bxierr_p _log_single_line(char * line,
                                    param->loggername,
                                    line);
     bxiassert(0 < written);
+    if (size > data->buf_size) {
+        bxierr_p err = _write(data, buf, size);
+        BXIFREE(buf);
+        return err;
+    }
+
     data->next_char += (size_t) size;
     data->dirty = true;
     bxiassert(data->next_char <= data->buf_size);
@@ -552,32 +556,36 @@ void _tune_io(bxilog_file_handler_param_p data) {
     UNUSED(rc);
 }
 
-bxierr_p _flush(bxilog_file_handler_param_p data) {
+inline bxierr_p _flush(bxilog_file_handler_param_p data) {
     if (!data->dirty) return BXIERR_OK;
 
+    bxierr_p err = _write(data, data->buf, data->next_char);
+    data->next_char = 0;
+    data->dirty = false;
+    return err;
+}
+
+bxierr_p _write(bxilog_file_handler_param_p data, const void * buf, size_t count) {
     // Do not write more bytes than expected.
-    ssize_t written = write(data->fd, data->buf, data->next_char);
+    ssize_t written = write(data->fd, buf, count);
 
     if (0 >= written) {
         if (EPIPE == errno) {
             return bxierr_errno("Can't write to pipe (fd=%d, name=%s). "
-                                "Exiting. Some messages will be lost.",
-                                data->fd, data->filename);
+                    "Exiting. Some messages will be lost.",
+                    data->fd, data->filename);
         }
 
         bxierr_p bxierr = bxierr_errno("Calling write(fd=%d, name=%s) "
-                                       "failed (written=%d)",
-                                       data->fd, data->filename, written);
-        data->bytes_lost += data->next_char;
+                "failed (written=%d)",
+                data->fd, data->filename, written);
+        data->bytes_lost += count;
         _record_new_error(data, &bxierr);
     } else {
         data->bytes_written += (size_t) written;
     }
-    data->next_char = 0;
-    data->dirty = false;
     return BXIERR_OK;
 }
-
 
 bxierr_p _sync(bxilog_file_handler_param_p data) {
     errno = 0;

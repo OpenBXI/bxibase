@@ -72,6 +72,7 @@ void test_registry(void);
 void test_filter_parser(void);
 void test_logger_threads(void);
 void test_handlers(void);
+void test_very_long_log(void);
 
 
 /* The suite initialization function.
@@ -231,6 +232,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test logger non existing file", test_logger_non_existing_file))
         || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
         || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
+        || (NULL == CU_add_test(bxilog_suite, "test very long log", test_very_long_log))
         || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
         || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
@@ -238,7 +240,6 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
 ////        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
-
 
         || false) {
         CU_cleanup_registry();
