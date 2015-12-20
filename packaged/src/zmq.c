@@ -435,6 +435,7 @@ bxierr_p bxizmq_data_rcv(void ** result, const size_t expected_size,
                                      NULL,
                                      "Missing zeromq frame on socket %p", zocket);
     }
+
     zmq_msg_t mzg;
     errno = 0;
     int rc = zmq_msg_init(&mzg);

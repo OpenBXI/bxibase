@@ -28,6 +28,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <syslog.h>
+#include <inttypes.h>
 
 #include <CUnit/Basic.h>
 
@@ -236,7 +237,7 @@ void test_very_long_log(void) {
     bxiassert(0 == rc);
     size_t fsize = (size_t) stat_s.st_size;
 
-    OUT(TEST_LOGGER, "Size of %s: %zu", longlog_filename, stat_s.st_size);
+    OUT(TEST_LOGGER, "Size of %s: %"PRIu64, longlog_filename, (uint64_t)stat_s.st_size);
 
     CU_ASSERT_TRUE(fsize > size);
     CU_ASSERT_TRUE(fsize < 2*size);
