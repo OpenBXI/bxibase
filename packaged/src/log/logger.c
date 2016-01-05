@@ -185,6 +185,8 @@ bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
     tsd->sum_log_size += logmsg_len;
     tsd->log_nb++;
 
+    bxiassert(bxierr_isok(err));
+
     err = _send2handlers(logger, level, tsd->data_channel,
 #ifdef __linux__
                          tsd->tid,

@@ -157,8 +157,12 @@ bxierr_p bxilog_filters_parse(char * str, bxilog_filters_p * result) {
 
         char * endptr;
         tmp = strtoul(level_str, &endptr, 10);
-        if (0 != errno) return bxierr_errno("Error while parsing number: '%s'",
-                                            level_str);
+        if (0 != errno) {
+            err2 = bxierr_errno("Error while parsing number: '%s'",
+                                level_str);
+            BXIERR_CHAIN(err, err2);
+            goto QUIT;
+        }
         if (endptr == level_str) {
             err2 = bxilog_get_level_from_str(level_str, &level);
             BXIERR_CHAIN(err, err2);
@@ -188,6 +192,7 @@ bxierr_p bxilog_filters_parse(char * str, bxilog_filters_p * result) {
 
 QUIT:
     BXIFREE(str);
+    if (bxierr_isko(err)) bxilog_filters_destroy(&filters);
     return err;
 }
 
