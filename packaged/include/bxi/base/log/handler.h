@@ -172,6 +172,10 @@ struct bxilog_handler_s_f {
      *
      * @param[in] record a logging record
      * @param[in] filename the filename
+     * @param[in] funcname the function name
+     * @param[in] loggername the logger name
+     * @param[in] logmsg the actual log message
+     * @param[in] param the log handler parameter as returned by param_new()
      */
     bxierr_p (*process_log)(bxilog_record_p record,
                             char * filename,
@@ -179,11 +183,34 @@ struct bxilog_handler_s_f {
                             char * loggername,
                             char * logmsg,
                             bxilog_handler_param_p param);
-    bxierr_p (*process_err)(bxierr_p *err, bxilog_handler_param_p param);
+
+    /**
+     * Process an internal error, that is an error raised in the handler code itself.
+     *
+     * @param[in] err the internal error to process
+     * @param[in] param the log handler parameter as returned by param_new()
+     */
+    bxierr_p (*process_ierr)(bxierr_p *err, bxilog_handler_param_p param);
+
+    /**
+     * @param[in] param the log handler parameter as returned by param_new()
+     */
     bxierr_p (*process_implicit_flush)(bxilog_handler_param_p param);
+    /**
+     * @param[in] param the log handler parameter as returned by param_new()
+     */
     bxierr_p (*process_explicit_flush)(bxilog_handler_param_p param);
+    /**
+     * @param[in] param the log handler parameter as returned by param_new()
+     */
     bxierr_p (*process_exit)(bxilog_handler_param_p param);
+    /**
+     * @param[in] param the log handler parameter as returned by param_new()
+     */
     bxierr_p (*process_cfg)(bxilog_handler_param_p param);
+    /**
+     * @param[in] param the log handler parameter as returned by param_new()
+     */
     bxierr_p (*param_destroy)(bxilog_handler_param_p* param);
 };
 
@@ -198,9 +225,25 @@ struct bxilog_handler_s_f {
 // ********************************** Interface ************************************
 // *********************************************************************************
 
+/**
+ * Initialize the given handler parameters with the given filters.
+ *
+ * This function must be called by handler implementation in order to initialize
+ * correctly various generic handler implementation parameter.
+ *
+ * @param[in] handler a handler
+ * @param[in] filters a set of filters
+ * @param[in] param the parameters to initialize
+ */
 void bxilog_handler_init_param(bxilog_handler_p handler,
                                bxilog_filters_p filters,
                                bxilog_handler_param_p param);
+
+/**
+ * Cleanup the set of parameters initialized with ::bxilog_handler_init_param().
+ *
+ * @param[inout] param the set of parameters to cleanup
+ */
 void bxilog_handler_clean_param(bxilog_handler_param_p param);
 
 #endif /* BXILOG_H_ */

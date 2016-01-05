@@ -74,7 +74,7 @@ static bxierr_p _process_log(bxilog_record_p record,
                              char * loggername,
                              char * logmsg,
                              bxilog_snmplog_handler_param_p data);
-static bxierr_p _process_err(bxierr_p * err, bxilog_snmplog_handler_param_p data);
+static bxierr_p _process_ierr(bxierr_p * err, bxilog_snmplog_handler_param_p data);
 static bxierr_p _process_implicit_flush(bxilog_snmplog_handler_param_p data);
 static bxierr_p _process_explicit_flush(bxilog_snmplog_handler_param_p data);
 static bxierr_p _process_exit(bxilog_snmplog_handler_param_p data);
@@ -107,7 +107,7 @@ static const bxilog_handler_s BXILOG_SNMPLOG_HANDLER_S = {
                                                char * loggername,
                                                char * logmsg,
                                                bxilog_handler_param_p param)) _process_log,
-                  .process_err = (bxierr_p (*) (bxierr_p*, bxilog_handler_param_p)) _process_err,
+                  .process_ierr = (bxierr_p (*) (bxierr_p*, bxilog_handler_param_p)) _process_ierr,
                   .process_implicit_flush = (bxierr_p (*) (bxilog_handler_param_p)) _process_implicit_flush,
                   .process_explicit_flush = (bxierr_p (*) (bxilog_handler_param_p)) _process_explicit_flush,
                   .process_exit = (bxierr_p (*) (bxilog_handler_param_p)) _process_exit,
@@ -201,7 +201,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
 }
 
 
-bxierr_p _process_err(bxierr_p *err, bxilog_snmplog_handler_param_p data) {
+bxierr_p _process_ierr(bxierr_p *err, bxilog_snmplog_handler_param_p data) {
     bxierr_p result = BXIERR_OK;
 
     if (bxierr_isok(*err)) return *err;
@@ -228,7 +228,8 @@ bxierr_p _process_err(bxierr_p *err, bxilog_snmplog_handler_param_p data) {
     } else if (data->errset->total_seen_nb >= data->error_limit) {
         result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, NULL, NULL, NULL, NULL,
                             "Fatal: too many errors (%zu distinct errors/%zu total errors)",
-                            data->errset->distinct_err.errors_nb, data->errset->total_seen_nb);
+                            data->errset->distinct_err.errors_nb,
+                            data->errset->total_seen_nb);
     }
 
     return result;

@@ -373,7 +373,7 @@ def bxilog_excepthook(type_, value, traceback):
     The exception hook called on uncaught exception.
     """
     kwargs = {'exc_info': (type_, value, traceback)}
-    critical('Uncaught Exception', **kwargs)
+    critical('Uncaught Exception: %s' % value, **kwargs)
 
 
 def _add_console_config(console_handler_args, config):
@@ -827,17 +827,7 @@ class BXILogger(object):
         if not _INITIALIZED:
             _init()
         if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
-            exc_s = ''
-            ei = kwargs.get('exc_info', None)
-            if ei is not None:
-                sio = StringIO.StringIO()
-                sio.write(' - ')
-                traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
-                exc_s = sio.getvalue()
-                sio.close()
-                if exc_s[-1:] == "\n":
-                    exc_s = exc_s[:-1]
-            msg_str = "%s%s" % (msg % args if len(args) > 0 else str(msg), exc_s)
+            msg_str = msg % args if len(args) > 0 else str(msg)
             filename, lineno, funcname = _FindCaller()
             bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
                                                                  level,
@@ -849,6 +839,25 @@ class BXILogger(object):
                                                                  msg_str,
                                                                  len(msg_str) + 1)
             BXICError.raise_if_ko(bxierr_p)
+            exc_s = ''
+            ei = kwargs.get('exc_info', None)
+            if ei is not None:
+                sio = StringIO.StringIO()
+                traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
+                exc_s = sio.getvalue()
+                sio.close()
+                if exc_s[-1:] == "\n":
+                    exc_s = exc_s[:-1]
+                bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
+                                                                     TRACE,
+                                                                     filename,
+                                                                     len(filename) + 1,
+                                                                     funcname,
+                                                                     len(funcname) + 1,
+                                                                     lineno,
+                                                                     exc_s,
+                                                                     len(exc_s) + 1)
+                BXICError.raise_if_ko(bxierr_p)
 
     @property
     def name(self):

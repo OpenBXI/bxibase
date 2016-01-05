@@ -125,7 +125,7 @@ static bxierr_p _process_log(bxilog_record_p record,
                              char * loggername,
                              char * logmsg,
                              bxilog_file_handler_param_p data);
-static bxierr_p _process_err(bxierr_p * err, bxilog_file_handler_param_p data);
+static bxierr_p _process_ierr(bxierr_p * err, bxilog_file_handler_param_p data);
 static bxierr_p _process_implicit_flush(bxilog_file_handler_param_p data);
 static bxierr_p _process_explicit_flush(bxilog_file_handler_param_p data);
 static bxierr_p _process_exit(bxilog_file_handler_param_p data);
@@ -191,7 +191,7 @@ static const bxilog_handler_s BXILOG_FILE_HANDLER_S = {
                                                char * loggername,
                                                char * logmsg,
                                                bxilog_handler_param_p param)) _process_log,
-                  .process_err = (bxierr_p (*) (bxierr_p*, bxilog_handler_param_p)) _process_err,
+                  .process_ierr = (bxierr_p (*) (bxierr_p*, bxilog_handler_param_p)) _process_ierr,
                   .process_implicit_flush = (bxierr_p (*) (bxilog_handler_param_p)) _process_implicit_flush,
                   .process_explicit_flush = (bxierr_p (*) (bxilog_handler_param_p)) _process_explicit_flush,
                   .process_exit = (bxierr_p (*) (bxilog_handler_param_p)) _process_exit,
@@ -379,17 +379,17 @@ inline bxierr_p _process_log(bxilog_record_p record,
 }
 
 
-bxierr_p _process_err(bxierr_p *err, bxilog_file_handler_param_p data) {
+bxierr_p _process_ierr(bxierr_p *err, bxilog_file_handler_param_p data) {
     bxierr_p result = BXIERR_OK;
 
     if (bxierr_isok(*err)) return *err;
 
     char * str = bxierr_str(*err);
-    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "An internal error occured: %s", str);
+    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "A bxilog internal error occured: %s", str);
 
     if (bxierr_isko(fatal)) {
         result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
-                            "Fatal: error while processing error: %s", str);
+                            "Fatal: error while processing internal error: %s", str);
     } else {
         bxierr_destroy(err);
     }

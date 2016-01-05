@@ -78,7 +78,7 @@ static bxierr_p _process_log(bxilog_record_p record,
                              char * loggername,
                              char * logmsg,
                              bxilog_syslog_handler_param_p data);
-static bxierr_p _process_err(bxierr_p * err, bxilog_syslog_handler_param_p data);
+static bxierr_p _process_ierr(bxierr_p * err, bxilog_syslog_handler_param_p data);
 static bxierr_p _process_implicit_flush(bxilog_syslog_handler_param_p data);
 static bxierr_p _process_explicit_flush(bxilog_syslog_handler_param_p data);
 static bxierr_p _process_exit(bxilog_syslog_handler_param_p data);
@@ -111,7 +111,7 @@ static const bxilog_handler_s BXILOG_SYSLOG_HANDLER_S = {
                                                char * loggername,
                                                char * logmsg,
                                                bxilog_handler_param_p param)) _process_log,
-                  .process_err = (bxierr_p (*) (bxierr_p*, bxilog_handler_param_p)) _process_err,
+                  .process_ierr = (bxierr_p (*) (bxierr_p*, bxilog_handler_param_p)) _process_ierr,
                   .process_implicit_flush = (bxierr_p (*) (bxilog_handler_param_p)) _process_implicit_flush,
                   .process_explicit_flush = (bxierr_p (*) (bxilog_handler_param_p)) _process_explicit_flush,
                   .process_exit = (bxierr_p (*) (bxilog_handler_param_p)) _process_exit,
@@ -227,7 +227,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
 }
 
 
-bxierr_p _process_err(bxierr_p *err, bxilog_syslog_handler_param_p data) {
+bxierr_p _process_ierr(bxierr_p *err, bxilog_syslog_handler_param_p data) {
     bxierr_p result = BXIERR_OK;
 
     if (bxierr_isok(*err)) return *err;

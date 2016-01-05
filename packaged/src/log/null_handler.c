@@ -44,7 +44,7 @@ static bxierr_p _process_log(bxilog_record_p record,
                              char * loggername,
                              char * logmsg,
                              bxilog_handler_param_p data);
-static bxierr_p _process_err(bxierr_p * err, bxilog_handler_param_p data);
+static bxierr_p _process_ierr(bxierr_p * err, bxilog_handler_param_p data);
 static bxierr_p _process_implicit_flush(bxilog_handler_param_p data);
 static bxierr_p _process_explicit_flush(bxilog_handler_param_p data);
 static bxierr_p _process_exit(bxilog_handler_param_p data);
@@ -60,7 +60,7 @@ static const bxilog_handler_s BXILOG_NULL_HANDLER_S = {
                   .param_new = _param_new,
                   .init = _init,
                   .process_log = _process_log,
-                  .process_err = _process_err,
+                  .process_ierr = _process_ierr,
                   .process_implicit_flush = _process_implicit_flush,
                   .process_explicit_flush = _process_explicit_flush,
                   .process_exit = _process_exit,
@@ -128,7 +128,7 @@ bxierr_p _process_log(bxilog_record_p record,
 }
 
 
-bxierr_p _process_err(bxierr_p *err, bxilog_handler_param_p data) {
+bxierr_p _process_ierr(bxierr_p *err, bxilog_handler_param_p data) {
     UNUSED(err);
     UNUSED(data);
 

@@ -66,7 +66,7 @@ static bxierr_p _send_ready_status(bxilog_handler_p, bxilog_handler_param_p, han
 static bxierr_p _loop(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
 static bxierr_p _cleanup(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
 static bxierr_p _internal_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _process_err(bxilog_handler_p handler, bxilog_handler_param_p,  bxierr_p err);
+static bxierr_p _process_ierr(bxilog_handler_p handler, bxilog_handler_param_p,  bxierr_p err);
 static bxierr_p _process_log_record(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
 static bxierr_p _process_log_zmsg(bxilog_handler_p handler, bxilog_handler_param_p param, zmq_msg_t zmsg);
 static bxierr_p _process_ctrl_cmd(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
@@ -140,21 +140,21 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     // Do not quit immediately, we need to send a ready message to BC.
 
     ierr = _set_zmq_ctx(handler, param, &data);
-    eerr2 = _process_err(handler, param, ierr);
+    eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
     ierr = _create_zockets(handler, param, &data);
-    eerr2 = _process_err(handler, param, ierr);
+    eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
     if (param->mask_signals) {
         ierr = _mask_signals(handler);
-        eerr2 = _process_err(handler, param, ierr);
+        eerr2 = _process_ierr(handler, param, ierr);
         BXIERR_CHAIN(eerr, eerr2);
     }
 
     ierr = _send_ready_status(handler, param, &data, eerr);
-    eerr2 = _process_err(handler, param, ierr);
+    eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
     // Ok, we synced with BC. If now there is an error at that stage
@@ -162,12 +162,12 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     if (bxierr_isko(eerr)) goto CLEANUP;
 
     ierr = _loop(handler, param, &data);
-    eerr2 = _process_err(handler, param, ierr);
+    eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
 CLEANUP:
     ierr = _cleanup(handler, param, &data);
-    eerr2 = _process_err(handler, param, ierr);
+    eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
     eerr2 = _process_exit(handler, param, &data);
@@ -360,14 +360,14 @@ bxierr_p _loop(bxilog_handler_p handler,
             BXIERR_CHAIN(err, err2);
             err2 = _process_implicit_flush(handler, param, data);
             BXIERR_CHAIN(err, err2);
-            err = _process_err(handler, param, err);
+            err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
         }
         if (0 == rc) {
             // Nothing to poll -> do a flush() and start again
             err2 = _process_implicit_flush(handler, param, data);
             BXIERR_CHAIN(err, err2);
-            err = _process_err(handler, param, err);
+            err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
             continue;
         }
@@ -377,7 +377,7 @@ bxierr_p _loop(bxilog_handler_p handler,
             BXIERR_CHAIN(err, err2);
             // Treat explicit exit message
             if (BXILOG_HANDLER_EXIT_CODE == err->code) return err;
-            err = _process_err(handler, param, err);
+            err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
         }
         if (items[1].revents & ZMQ_POLLIN) {
@@ -391,7 +391,7 @@ bxierr_p _loop(bxilog_handler_p handler,
             }
             BXIERR_CHAIN(err, err2);
 
-            err = _process_err(handler, param, err);
+            err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
         }
     }
@@ -607,11 +607,11 @@ bxierr_p _process_exit(bxilog_handler_p handler,
             handler->process_exit(param);
 }
 
-bxierr_p _process_err(bxilog_handler_p handler,
-                      bxilog_handler_param_p param,
-                      bxierr_p err) {
+bxierr_p _process_ierr(bxilog_handler_p handler,
+                       bxilog_handler_param_p param,
+                       bxierr_p err) {
 
-    if (bxierr_isok(err) || NULL == handler->process_err) return err;
+    if (bxierr_isok(err) || NULL == handler->process_ierr) return err;
 
     bxierr_p actual_err = err;
     if (BXILOG_HANDLER_EXIT_CODE == err->code) {
@@ -621,5 +621,5 @@ bxierr_p _process_err(bxilog_handler_p handler,
         bxierr_destroy(&err);
     }
 
-    return handler->process_err(&actual_err, param);
+    return handler->process_ierr(&actual_err, param);
 }

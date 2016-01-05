@@ -45,8 +45,9 @@ class BXICError(BXIError):
 
         @param[in] bxierr_p a ::bxierr_p C pointer
         """
-        errstr = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
-        super(BXICError, self).__init__(errstr)
+        #errstr = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
+        err_msg = __FFI__.string(bxierr_p.msg)
+        super(BXICError, self).__init__(err_msg)
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
         __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
