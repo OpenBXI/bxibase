@@ -91,6 +91,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
     bxiassert(NULL != BXILOG__GLOBALS->config->handlers);
     bxiassert(0 < BXILOG__GLOBALS->config->tsd_log_buf_size);
     tsd->log_buf = bximem_calloc(BXILOG__GLOBALS->config->tsd_log_buf_size);
+
     bxierr_list_p errlist = bxierr_list_new();
     for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
         char * url = BXILOG__GLOBALS->config->handlers_params[i]->data_url;

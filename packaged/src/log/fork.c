@@ -99,9 +99,12 @@ void _parent_after_fork(void) {
     if (FORKED != BXILOG__GLOBALS->state) return;
 
     BXILOG__GLOBALS->state = INITIALIZING;
-    bxilog__init_globals();
 
-    bxierr_p err = bxilog__start_handlers();
+    bxierr_p err = bxilog__init_globals();
+    // Can't do a log
+    bxiassert(bxierr_isok(err));
+
+    err = bxilog__start_handlers();
     // Can't do a log
     bxiassert(bxierr_isok(err));
 
