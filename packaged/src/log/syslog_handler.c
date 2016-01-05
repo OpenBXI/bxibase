@@ -342,14 +342,20 @@ bxierr_p _log_single_line(char * line,
                           bool last,
                           log_single_line_param_p param) {
 
-    UNUSED(last);
-    UNUSED(line_len);
-
 //    bxilog_syslog_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
     int priority = (int) record->level + 1;
-    syslog(priority, "%s", line);
+
+    if (!last) {
+        char s[line_len + 1];
+        memcpy(s, line, line_len);
+        s[line_len] = '\0';
+        syslog(priority, "%s", s);
+    } else {
+        syslog(priority, "%s", line);
+    }
+
 
     return BXIERR_OK;
 }

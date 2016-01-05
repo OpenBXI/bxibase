@@ -303,10 +303,10 @@ def basicConfig(**kwargs):
         kwargs['file'] = (FILE_HANDLER_FILTERS_AUTO, kwargs['filename'], True)
 
     if 'syslog' not in kwargs:
-        # import syslog
-        # kwargs['syslog'] = (syslog.LOG_PID | syslog.LOG_CONS,
-        #                     syslog.LOG_LOCAL0, WARNING)
-        pass
+        import syslog
+        kwargs['syslog'] = (':warning',
+                            syslog.LOG_PID | syslog.LOG_CONS,
+                            syslog.LOG_LOCAL0)
 
     if 'setsighandler' not in kwargs:
         kwargs['setsighandler'] = True
@@ -417,11 +417,10 @@ def _add_syslog_config(syslog_handler_args, config):
     ident = __FFI__.new('char[]', sys.argv[0])
     option = __FFI__.cast('int', syslog_handler_args[1])
     facility = __FFI__.cast('int', syslog_handler_args[2])
-    threshold = __FFI__.cast('int', syslog_handler_args[3])
     __BXIBASE_CAPI__.bxilog_config_add_handler(config,
                                                __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,
                                                syslog_filters,
-                                               ident, option, facility, threshold)
+                                               ident, option, facility)
     return syslog_filters
 
 
@@ -466,7 +465,7 @@ def _init():
 
     syslog_handler_args = _CONFIG.get('syslog', None)
     if syslog_handler_args is not None:
-        syslog_filters = _add_syslog_config(config, syslog_handler_args)
+        syslog_filters = _add_syslog_config(syslog_handler_args, config)
         handler_filters.add(syslog_filters)
 
     if config.handlers_nb == 0:
