@@ -302,12 +302,6 @@ def basicConfig(**kwargs):
     if 'filename' in kwargs:
         kwargs['file'] = (FILE_HANDLER_FILTERS_AUTO, kwargs['filename'], True)
 
-    if 'syslog' not in kwargs:
-        import syslog
-        kwargs['syslog'] = (':warning',
-                            syslog.LOG_PID | syslog.LOG_CONS,
-                            syslog.LOG_LOCAL0)
-
     if 'setsighandler' not in kwargs:
         kwargs['setsighandler'] = True
 
