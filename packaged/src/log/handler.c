@@ -162,11 +162,10 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     if (bxierr_isko(eerr)) goto CLEANUP;
 
     ierr = _loop(handler, param, &data);
-
-CLEANUP:
     eerr2 = _process_err(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
+CLEANUP:
     ierr = _cleanup(handler, param, &data);
     eerr2 = _process_err(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
