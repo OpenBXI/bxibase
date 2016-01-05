@@ -528,7 +528,11 @@ bxierr_p _process_ctrl_cmd(bxilog_handler_p handler,
         // Nothing to process, this might happened if a flush has been asked
         // and processed before this function call
         bxiassert(NULL == cmd);
-        return (EAGAIN == err->code) ? BXIERR_OK : err;
+        if (EAGAIN == err->code) {
+            bxierr_destroy(&err);
+            return BXIERR_OK;
+        }
+        return err;
     }
 
     if (0 == strncmp(FLUSH_CTRL_MSG_REQ, cmd, ARRAYLEN(FLUSH_CTRL_MSG_REQ))) {
