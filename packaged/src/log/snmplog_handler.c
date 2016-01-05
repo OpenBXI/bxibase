@@ -218,6 +218,7 @@ bxierr_p _process_err(bxierr_p *err, bxilog_snmplog_handler_param_p data) {
                         "available in your program if it uses the full BXI "
                         "high performance logging library.\n",
                         err_str, (*err)->code);
+        BXIFREE(err_str);
     }
 
     if (bxierr_isko(result)) {
