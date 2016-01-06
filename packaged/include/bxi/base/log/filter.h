@@ -12,13 +12,16 @@
 
 
 /**
+ * @brief BXI Logging Filters.
  * @file    filter.h
  * @authors Pierre Vignéras <pierre.vigneras@bull.net>
  * @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
  *         This is not Free or Open Source software.\n
  *         Please contact Bull SAS for details about its license.\n
  *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
- * @brief  BXI Logging Filters.
+ *
+ *
+ * Filters are used to remove logging messages at various steps in the logging process.
  *
  */
 
@@ -41,10 +44,13 @@ typedef struct bxilog_filter_s bxilog_filter_s;
  */
 typedef bxilog_filter_s * bxilog_filter_p;
 
+/**
+ * The filters structure.
+ */
 typedef struct bxilog_filters_s bxilog_filters_s;
 
 /**
- * Filters.
+ * A Filters instance.
  */
 typedef bxilog_filters_s * bxilog_filters_p;
 
@@ -60,7 +66,7 @@ struct bxilog_filter_s {
 };
 
 /**
- * The filters structure.
+ * A set of filters.
  */
 struct bxilog_filters_s {
     bool allocated;                 //!< If true, means it must be deallocated
@@ -96,14 +102,14 @@ extern bxilog_filters_p BXILOG_FILTERS_ALL_ALL;
 // *********************************************************************************
 
 /**
- * Create new filters.
+ * Create a new empty set of filters.
  *
  * @return an array of filter.
  */
 bxilog_filters_p  bxilog_filters_new();
 
 /**
- * Destroy filters
+ * Destroy a set of filters.
  *
  * @param[inout] filters_p a pointer on filters
  */
@@ -128,12 +134,12 @@ void bxilog_filters_add(bxilog_filters_p * filters,
  * Parse the filters format and return the corresponding list of filters.
  *
  * The string must be in the following format:
- *      lvl_str     <-  [emergency, alert, critical, crit, error, err, warning, warn,
- *                       notice, output, info, debug, fine, trace, lowest]
- *      lvl_num     <-  [0-9]*
- *      lvl         <-  [lvl_num, level_str]
- *      prefix      <-  [A-z]+
- *      format      <-  (lvl:prefix,)*lvl:prefix
+ *      - lvl_str     <-  [emergency, alert, critical, crit, error, err, warning, warn,
+ *                         notice, output, info, debug, fine, trace, lowest]
+ *      - lvl_num     <-  [0-9]*
+ *      - lvl         <-  [lvl_num, level_str]
+ *      - prefix      <-  [A-z]+
+ *      - format      <-  (lvl:prefix,)*lvl:prefix
  *
  *
  * @param[in] format is a string containing the configuration for the loggers.
