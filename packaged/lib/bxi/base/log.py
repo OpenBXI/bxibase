@@ -837,6 +837,10 @@ class BXILogger(object):
             if ei is not None:
                 sio = StringIO.StringIO()
                 traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
+                if isinstance(ei[1], BXICError):
+                    backtrace = __FFI__.string(ei[1].bxierr_pp[0].backtrace)
+                    sio.write("Low Level C back trace:\n")
+                    sio.write(backtrace)
                 exc_s = sio.getvalue()
                 sio.close()
                 if exc_s[-1:] == "\n":

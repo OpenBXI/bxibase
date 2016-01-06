@@ -560,7 +560,7 @@ void bxierr_assert_fail(const char *assertion, const char *file,
  */
 inline void bxierr_destroy(bxierr_p * self_p) {
     bxiassert(NULL != self_p);
-
+    
     bxierr_free(*self_p);
     *self_p = NULL;
 }

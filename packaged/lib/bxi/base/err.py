@@ -50,7 +50,8 @@ class BXICError(BXIError):
         super(BXICError, self).__init__(err_msg)
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
-        __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
+        self.bxierr_pp = __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
+
 
     def __str__(self):
         return self.message
