@@ -287,122 +287,12 @@ def basicConfig(**kwargs):
     _CONFIG = kwargs
 
 
-def parse_filters(filter_str):
-    """
-    Parse the given string and return the corresponding set of filters as
-    a bxilog_filter_p
-
-    @param[in] filters_str a string representing filters as defined in ::bxilog_filters_parse()
-
-    @return a ::bxilog_filter_p object
-    """
-    filters_p = __FFI__.new('bxilog_filters_p[1]')
-    err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
-    bxierr.BXICError.raise_if_ko(err)
-    return filters_p[0]
-
-
-def new_detailed_filters(filters, delta=2, min_level=ERROR):
-    """
-    Create a copy of the given filters with a level increase of delta.
-    """
-    result_p = __FFI__.new('bxilog_filters_p[1]')
-    result_p[0] = __BXIBASE_CAPI__.bxilog_filters_new()
-    for i in xrange(filters.nb):
-        new_level = min(filters.list[i].level + delta, LOWEST)
-        # At least error messages
-        new_level = max(new_level, min_level)
-        __BXIBASE_CAPI__.bxilog_filters_add(result_p, filters.list[i].prefix,
-                                            new_level)
-    return result_p[0]
-
-
-def merge_filters(filters_set):
-    """
-    Merge the given set of filters.
-    """
-    prefixes = dict()
-    for filters in filters_set:
-        if isinstance(filters, str):
-            filters
-        for i in xrange(filters.nb):
-            prefix = __FFI__.string(filters.list[i].prefix)
-            level = filters.list[i].level
-            if prefix in prefixes:
-                prefixes[prefix] = max(level, prefixes[prefix])
-            else:
-                prefixes[prefix] = level
-
-    result_p = __FFI__.new('bxilog_filters_p[1]')
-    result_p[0] = __BXIBASE_CAPI__.bxilog_filters_new()
-    for prefix in sorted(prefixes):
-        __BXIBASE_CAPI__.bxilog_filters_add(result_p, prefix, prefixes[prefix])
-
-    return result_p[0]
-
-
 def bxilog_excepthook(type_, value, traceback):
     """
     The exception hook called on uncaught exception.
     """
     kwargs = {'exc_info': (type_, value, traceback)}
     critical('Uncaught Exception: %s' % value, **kwargs)
-
-
-def _add_console_config(console_handler_args, config):
-    console_filters = parse_filters(console_handler_args[0])
-    stderr_level = __FFI__.cast('int', console_handler_args[1])
-    colors = console_handler_args[2]
-    __BXIBASE_CAPI__.bxilog_config_add_handler(config,
-                                               __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
-                                               console_filters,
-                                               stderr_level, colors)
-    return console_filters
-
-
-def _add_file_config(file_handler_args, config, console_filters):
-    if file_handler_args[0] == FILE_HANDLER_FILTERS_AUTO:
-        # Compute file filters automatically according to console handler filters
-        if console_filters is not None:
-            file_filters = new_detailed_filters(console_filters)
-        else:
-            file_filters = __BXIBASE_CAPI__.BXILOG_FILTERS_ALL_ALL
-    else:
-        file_filters = parse_filters(file_handler_args[0])
-    progname = __FFI__.new('char[]', sys.argv[0])
-    filename = __FFI__.new('char[]', file_handler_args[1])
-    open_flags = __FFI__.cast('int',
-                              os.O_CREAT |
-                              (os.O_APPEND if file_handler_args[2] else os.O_TRUNC))
-    __BXIBASE_CAPI__.bxilog_config_add_handler(config,
-                                               __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
-                                               file_filters,
-                                               progname,
-                                               filename,
-                                               open_flags)
-    return file_filters
-
-
-def _add_syslog_config(syslog_handler_args, config):
-    syslog_filters = syslog_handler_args[0]
-    if isinstance(syslog_filters, str):
-        syslog_filters = parse_filters(syslog_filters)
-    ident = __FFI__.new('char[]', sys.argv[0])
-    option = __FFI__.cast('int', syslog_handler_args[1])
-    facility = __FFI__.cast('int', syslog_handler_args[2])
-    __BXIBASE_CAPI__.bxilog_config_add_handler(config,
-                                               __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,
-                                               syslog_filters,
-                                               ident, option, facility)
-    return syslog_filters
-
-
-def _add_null_handler(config):
-    null_filters = __BXIBASE_CAPI__.BXILOG_FILTERS_ALL_OFF
-    __BXIBASE_CAPI__.bxilog_config_add_handler(config,
-                                               __BXIBASE_CAPI__.BXILOG_NULL_HANDLER,
-                                               __BXIBASE_CAPI__.BXILOG_FILTERS_ALL_OFF)
-    return null_filters
 
 
 def _init():
@@ -422,31 +312,36 @@ def _init():
                    'setsighandler': True,
                    }
 
+    from . import config as bxilogconfig
+    from . import filter as bxilogfilter
+
     handler_filters = set()
     config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
 
     console_handler_args = _CONFIG.get('console', DEFAULT_CONSOLE_HANDLER_OPTIONS)
     if console_handler_args is not None:
-        console_filters = _add_console_config(console_handler_args, config)
+        console_filters = bxilogconfig.add_console_config(console_handler_args, config)
         handler_filters.add(console_filters)
 
     file_handler_args = _CONFIG.get('file', None)
     if file_handler_args is not None:
-        file_filters = _add_file_config(file_handler_args, config,
-                                        console_filters if console_handler_args is not None else None)
+        # Use the same filters than console_handlers
+        filters = console_filters if console_handler_args is not None else None
+        file_filters = bxilogconfig.add_file_config(file_handler_args, config,
+                                                    filters)
         handler_filters.add(file_filters)
 
     syslog_handler_args = _CONFIG.get('syslog', None)
     if syslog_handler_args is not None:
-        syslog_filters = _add_syslog_config(syslog_handler_args, config)
+        syslog_filters = bxilogconfig.add_syslog_config(syslog_handler_args, config)
         handler_filters.add(syslog_filters)
 
     if config.handlers_nb == 0:
         print("Warning: no handler defined in bxi logging library configuration!")
-        null_filters = _add_null_handler(config)
+        null_filters = bxilogconfig.add_null_handler(config)
         handler_filters.add(null_filters)
 
-    loggers_filters = merge_filters(handler_filters)
+    loggers_filters = bxilogfilter.merge_filters(handler_filters)
     filters_p = __FFI__.new('bxilog_filters_p[1]')
     filters_p[0] = loggers_filters
     __BXIBASE_CAPI__.bxilog_registry_set_filters(filters_p)
@@ -857,7 +752,7 @@ class TestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         basicConfig(console=None,
-                    file=(':lowest', cls.BXILOG_FILENAME, False))
+                    file=(':lowest', cls.BXILOG_FILENAME, True))
 
     @classmethod
     def tearDownClass(cls):
