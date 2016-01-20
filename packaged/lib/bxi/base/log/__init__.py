@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+
 """
 @file log.py Python binding of the BXI High Performance Logging Library
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -84,25 +84,29 @@ See the ::bxilog_level_e documentation of the underlying C API log.h
 for details on those levels.
 
 """
-
+from __future__ import print_function
+# Try to find other BXI packages in other folders
+from pkgutil import extend_path
+__path__ = extend_path(__path__, __name__)
 
 import atexit
-import cStringIO as StringIO
 import os
 import sys
-import traceback
 import warnings
 import unittest
 import tempfile
+import traceback
+import cStringIO as StringIO
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
-from bxi.base.err import BXICError, BXILogConfigError
+import bxi.base.err as bxierr
 
 
 # Find the C library
 __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
+
 
 # WARNING, in the following, the formatting of the documentation should remain as it is
 # in order to be correctly processed by doxygen. This is a doxygen bug.
@@ -153,17 +157,6 @@ LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 # does understand it
 ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
-#
-# _SRCFILE is used when walking the stack to check when we've got the first
-# caller stack frame.
-#
-if hasattr(sys, 'frozen'):  # support for py2exe
-    _SRCFILE = "bxilog%s__init__%s" % (os.sep, __file__[-4:])
-elif __file__[-4:].lower() in ['.pyc', '.pyo']:
-    _SRCFILE = __file__[:-4] + '.py'
-else:
-    _SRCFILE = __file__
-_SRCFILE = os.path.normcase(_SRCFILE)
 
 # If True,  bxilog_init() has already been called
 _INITIALIZED = False
@@ -221,26 +214,6 @@ Specifies that file handler filters must be computed automatically.
 FILE_HANDLER_FILTERS_AUTO = 'auto'
 
 
-def _FindCaller():
-    """Find caller filename, linenumber and function name.
-
-    @return a triplet (file name, line number, function name)
-    """
-    frame = sys._getframe(0)
-    if frame is not None:
-        frame = frame.f_back
-    rv = "(unknown file)", 0, "(unknown function)"
-    while hasattr(frame, "f_code"):
-        co = frame.f_code
-        filename = os.path.normcase(co.co_filename)
-        if filename == _SRCFILE:
-            frame = frame.f_back
-            continue
-        rv = (co.co_filename, frame.f_lineno, co.co_name)
-        break
-    return rv
-
-
 def is_configured():
     """
     Check if the logs have already been configured.
@@ -255,10 +228,16 @@ def get_level_from_str(level_str):
     Return the ::bxilog_level_e related to the given string.
     """
     level_p = __FFI__.new('bxilog_level_e[1]')
-    bxierr = __BXIBASE_CAPI__.bxilog_get_level_from_str(level_str, level_p)
+    err = __BXIBASE_CAPI__.bxilog_get_level_from_str(level_str, level_p)
 
-    BXICError.raise_if_ko(bxierr)
+    bxierr.BXICError.raise_if_ko(err)
     return level_p[0]
+
+
+def fileConfig(**kwargs):
+    """
+    """
+    pass
 
 
 def basicConfig(**kwargs):
@@ -281,19 +260,19 @@ def basicConfig(**kwargs):
                already been initialized
     """
     if _INITIALIZED:
-        raise BXILogConfigError("The bxilog has already been initialized. "
-                                "Its configuration cannot be changed."
-                                "\nAvailable solutions:"
-                                "\n\t1. Do not perform a log at module level, "
-                                "and the configuration afterwards;"
-                                "\n\t2. Do no perform a log unless is_configured()"
-                                " returns True;"
-                                "\n\t3. Call cleanup() to reinitialize the whole "
-                                "bxilog library (Note: you might need a reconfiguration)."
-                                "\nFor your convenience, "
-                                "the following stacktrace might help finding out where "
-                                "the first _init() call  was made:\n %s" % _INIT_CALLER,
-                                kwargs)
+        raise bxierr.BXILogConfigError("The bxilog has already been initialized. "
+                                       "Its configuration cannot be changed."
+                                       "\nAvailable solutions:"
+                                       "\n\t1. Do not perform a log at module level, "
+                                       "and the configuration afterwards;"
+                                       "\n\t2. Do no perform a log unless is_configured()"
+                                       " returns True;"
+                                       "\n\t3. Call cleanup() to reinitialize the whole "
+                                       "bxilog library (Note: you might need a reconfiguration)."
+                                       "\nFor your convenience, "
+                                       "the following stacktrace might help finding out where "
+                                       "the first _init() call  was made:\n %s" % _INIT_CALLER,
+                                       kwargs)
     global _CONFIG
 
     if 'console' not in kwargs:
@@ -319,7 +298,7 @@ def parse_filters(filter_str):
     """
     filters_p = __FFI__.new('bxilog_filters_p[1]')
     err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
-    BXICError.raise_if_ko(err)
+    bxierr.BXICError.raise_if_ko(err)
     return filters_p[0]
 
 
@@ -441,7 +420,7 @@ def _init():
                    'filename': None,
                    'syslog': None,
                    'setsighandler': True,
-                  }
+                   }
 
     handler_filters = set()
     config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
@@ -472,13 +451,13 @@ def _init():
     filters_p[0] = loggers_filters
     __BXIBASE_CAPI__.bxilog_registry_set_filters(filters_p)
 
-    bxierr_p = __BXIBASE_CAPI__.bxilog_init(config)
+    err_p = __BXIBASE_CAPI__.bxilog_init(config)
     _INITIALIZED = True
-    BXICError.raise_if_ko(bxierr_p)
+    bxierr.BXICError.raise_if_ko(err_p)
     atexit.register(cleanup)
     if _CONFIG['setsighandler']:
-        bxierr_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
-        BXICError.raise_if_ko(bxierr_p)
+        err_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
+        bxierr.BXICError.raise_if_ko(err_p)
 
     sio = StringIO.StringIO()
     traceback.print_stack(file=sio)
@@ -512,10 +491,11 @@ def get_logger(name):
             return logger
 
     logger_p = __FFI__.new('bxilog_logger_p[1]')
-    bxierr_p = __BXIBASE_CAPI__.bxilog_registry_get(name, logger_p)
-    BXICError.raise_if_ko(bxierr_p)
+    err_p = __BXIBASE_CAPI__.bxilog_registry_get(name, logger_p)
+    bxierr.BXICError.raise_if_ko(err_p)
 
-    return BXILogger(logger_p[0])
+    from . import logger as bxilogger
+    return bxilogger.BXILogger(logger_p[0])
 
 
 def cleanup(flush=True):
@@ -529,8 +509,8 @@ def cleanup(flush=True):
     global _CONFIG
     global _DEFAULT_LOGGER
     if _INITIALIZED:
-        bxierr_p = __BXIBASE_CAPI__.bxilog_finalize(flush)
-        BXICError.raise_if_ko(bxierr_p)
+        err_p = __BXIBASE_CAPI__.bxilog_finalize(flush)
+        bxierr.BXICError.raise_if_ko(err_p)
     _INITIALIZED = False
     _DEFAULT_LOGGER = None
     _CONFIG = None
@@ -542,8 +522,8 @@ def flush():
 
     @return
     """
-    bxierr_p = __BXIBASE_CAPI__.bxilog_flush()
-    BXICError.raise_if_ko(bxierr_p)
+    err_p = __BXIBASE_CAPI__.bxilog_flush()
+    bxierr.BXICError.raise_if_ko(err_p)
 
 
 def get_all_level_names_iter():
@@ -566,8 +546,9 @@ def get_all_loggers_iter():
     """
     loggers = __FFI__.new("bxilog_logger_p **")
     nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
+    from . import logger as bxilogger
     for i in xrange(nb):
-        yield BXILogger(loggers[0][i])
+        yield bxilogger.BXILogger(loggers[0][i])
 
 
 def get_default_logger():
@@ -787,304 +768,6 @@ getLogger = get_logger
 # Provide a compatible API with the standard Python logging module
 warn = warning
 
-
-class BXILogger(object):
-    """
-    A BXILogger instance provides various methods for logging.
-
-    This class provides a thin layer on top of the underlying C module.
-    """
-
-    def __init__(self, clogger):
-        """
-        Wraps the given C logger.
-
-        @param[in] clogger the C underlying logger instance.
-
-        @return a BXILogger instance
-        """
-        self.clogger = clogger
-
-    def log(self, level, msg, *args, **kwargs):
-        """
-        Log the given message at the given level.
-
-        @param[in] level the level at which the given message should be logged
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        @exception BXICError if an error occurred at the underlying C layer
-        """
-        if not _INITIALIZED:
-            _init()
-        if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
-            msg_str = msg % args if len(args) > 0 else str(msg)
-            filename, lineno, funcname = _FindCaller()
-            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
-                                                                 level,
-                                                                 filename,
-                                                                 len(filename) + 1,
-                                                                 funcname,
-                                                                 len(funcname) + 1,
-                                                                 lineno,
-                                                                 msg_str,
-                                                                 len(msg_str) + 1)
-            BXICError.raise_if_ko(bxierr_p)
-            exc_s = ''
-            ei = kwargs.get('exc_info', None)
-            if ei is not None:
-                sio = StringIO.StringIO()
-                traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
-                if isinstance(ei[1], BXICError):
-                    backtrace = __FFI__.string(ei[1].bxierr_pp[0].backtrace)
-                    sio.write("Low Level C back trace:\n")
-                    sio.write(backtrace)
-                exc_s = sio.getvalue()
-                sio.close()
-                if exc_s[-1:] == "\n":
-                    exc_s = exc_s[:-1]
-                bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
-                                                                     TRACE,
-                                                                     filename,
-                                                                     len(filename) + 1,
-                                                                     funcname,
-                                                                     len(funcname) + 1,
-                                                                     lineno,
-                                                                     exc_s,
-                                                                     len(exc_s) + 1)
-                BXICError.raise_if_ko(bxierr_p)
-
-    @property
-    def name(self):
-        return __FFI__.string(self.clogger.name)
-
-    @property
-    def level(self):
-        return self.clogger.level
-
-    def set_level(self, level):
-        """
-        Set this logger logging level.
-
-        @param[in] level the new logging level
-        @return
-        @see ::PANIC
-        @see ::ALERT
-        @see ::CRITICAL
-        @see ::ERROR
-        @see ::WARNING
-        @see ::NOTICE
-        @see ::OUT
-        @see ::INFO
-        @see ::DEBUG
-        @see ::FINE
-        @see ::TRACE
-        @see ::LOWEST
-        """
-        __BXIBASE_CAPI__.bxilog_logger_set_level(self.clogger, level)
-
-    def is_enabled_for(self, level):
-        """
-        Return True if this logger is enabled for the given logging level.
-
-        @param[in] level the logging level to check against
-        @return True if this logger is enabled for the given logging level.
-        """
-        return __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level)
-
-    def off(self, msg, *args, **kwargs):
-        """
-        Do not log the given message!
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(OFF, msg, *args, **kwargs)
-
-    def panic(self, msg, *args, **kwargs):
-        """
-        Log at the ::PANIC level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(PANIC, msg, *args, **kwargs)
-
-    def alert(self, msg, *args, **kwargs):
-        """
-        Log at the ::ALERT level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(ALERT, msg, *args, **kwargs)
-
-    def critical(self, msg, *args, **kwargs):
-        """
-        Log at the ::CRITICAL level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(CRITICAL, msg, *args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        """
-        Log at the ::ERROR level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(ERROR, msg, *args, **kwargs)
-
-    def warning(self, msg, *args, **kwargs):
-        """
-        Log at the ::WARNING level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(WARNING, msg, *args, **kwargs)
-
-    def notice(self, msg, *args, **kwargs):
-        """
-        Log at the ::NOTICE level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(NOTICE, msg, *args, **kwargs)
-
-    def output(self, msg, *args, **kwargs):
-        """
-        Log at the ::OUT level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(OUTPUT, msg, *args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        """
-        Log at the ::INFO level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(INFO, msg, *args, **kwargs)
-
-    def debug(self, msg, *args, **kwargs):
-        """
-        Log at the ::DEBUG level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(DEBUG, msg, *args, **kwargs)
-
-    def fine(self, msg, *args, **kwargs):
-        """
-        Log at the ::FINE level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(FINE, msg, *args, **kwargs)
-
-    def trace(self, msg, *args, **kwargs):
-        """
-        Log at the ::TRACE level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(TRACE, msg, *args, **kwargs)
-
-    def lowest(self, msg, *args, **kwargs):
-        """
-        Log at the ::LOWEST level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(LOWEST, msg, *args, **kwargs)
-
-    def exception(self, msg, *args, **kwargs):
-        """
-        Log the current exception with the given message.
-
-        @param[in] msg the message to log with the given exception
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        kwargs['exc_info'] = sys.exc_info()
-        if 'level' in kwargs:
-            level = kwargs['level']
-            del kwargs['level']
-        else:
-            level = ERROR
-        self.log(level, msg, *args, **kwargs)
-
-    @staticmethod
-    def flush():
-        """Convenience method for flushing all logs
-
-        @return
-        """
-        flush()
-
-    # Provide a compatible API with the standard Python logging module
-    setLevel = set_level
-
-    # Provide a compatible API with the standard Python logging module
-    isEnabledFor = is_enabled_for
-
-    # Provide a compatible API with the standard Python logging module
-    warn = warning
-    out = output
 
 
 # Warnings integration - taken from the standard Python logging module
