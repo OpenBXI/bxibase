@@ -749,10 +749,12 @@ class TestCase(unittest.TestCase):
     BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
                                    "%s.bxilog" % os.path.basename(sys.argv[0]))
 
+    APPEND = False
+
     @classmethod
     def setUpClass(cls):
         basicConfig(console=None,
-                    file=(':lowest', cls.BXILOG_FILENAME, True))
+                    file=(':lowest', cls.BXILOG_FILENAME, TestCase.APPEND))
 
     @classmethod
     def tearDownClass(cls):
