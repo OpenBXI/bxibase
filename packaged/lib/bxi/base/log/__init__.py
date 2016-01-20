@@ -663,8 +663,6 @@ getLogger = get_logger
 # Provide a compatible API with the standard Python logging module
 warn = warning
 
-
-
 # Warnings integration - taken from the standard Python logging module
 _warnings_showwarning = None
 
