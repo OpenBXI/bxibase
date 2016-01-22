@@ -96,11 +96,13 @@ import warnings
 import unittest
 import tempfile
 import traceback
+import configobj
 import cStringIO as StringIO
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
+
 
 
 # Find the C library
@@ -161,58 +163,25 @@ ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 # If True,  bxilog_init() has already been called
 _INITIALIZED = False
 
-# Can be set by basicConfig()
+# Set by set_config()
 _CONFIG = None
 _INIT_CALLER = None
+
+DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
+                                      'setsighandler': True,
+                                      'console': {
+                                                  'module': 'bxi.base.log.console_handler',
+                                                  'filters': ':output',
+                                                  'stderr_level': 'WARNING',
+                                                  'colors': '216_dark',
+                                                  }
+                                       })
 
 # The default logger name
 _ROOT_LOGGER_NAME = ''
 
 # The default logger.
 _DEFAULT_LOGGER = None
-
-""" 
-Colors Theme.
-
-Defining new color themes is really very simple.
-
-See ::bxilog_colors_p for details.
-"""
-COLORS = {'none': __BXIBASE_CAPI__.BXILOG_COLORS_NONE,
-          '216_dark': __BXIBASE_CAPI__.BXILOG_COLORS_216_DARK,
-          'truecolor_dark': __BXIBASE_CAPI__.BXILOG_COLORS_TC_DARK,
-          'truecolor_light': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHT,
-          'truecolor_darkgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_DARKGRAY,
-          'truecolor_lightgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHTGRAY,
-          }
-
-"""
-Default configuration items.
-
-@see ::basicConfig()
-"""
-DEFAULT_FILTERS = ':lowest'
-
-"""
-Default configuration of the console handler
-
-@see ::basicConfig()
-@see ::bxilog_handler_p
-@see ::BXILOG_CONSOLE_HANDLER
-"""
-DEFAULT_CONSOLE_HANDLER_OPTIONS = (':output',
-                                   WARNING,
-                                   __BXIBASE_CAPI__.BXILOG_COLORS_216_DARK)
-
-"""
-Specifies that file handler filters must be computed automatically.
-
-@see ::basicConfig()
-@see ::bxilog_handler_p
-@see ::BXILOG_FILE_HANDLER
-"""
-FILE_HANDLER_FILTERS_AUTO = 'auto'
-
 
 def is_configured():
     """
@@ -234,30 +203,9 @@ def get_level_from_str(level_str):
     return level_p[0]
 
 
-def fileConfig(**kwargs):
+def set_config(configobj):
     """
-    """
-    pass
-
-
-def basicConfig(**kwargs):
-    """
-    Configure the whole bxilog module.
-
-    Parameter kwargs can contain following parameters:
-        - `'console'`: None or a list of console handler arguments
-        - `'filename'`: None or a file name
-        - `'file'`: None or a list of file handler arguments
-        - `'syslog'`: None or a list of syslog handler arguments
-        - `'setsighandler'`: if True, set signal handlers, default is True
-
-    If 'filename' is specified, it overwrites 'file' parameters.
-
-    @param[in] kwargs named parameters as described above
-
-    @return
-    @exception bxi.base.err.BXILogConfigError if the logging system as
-               already been initialized
+    Set the whole bxilog module from the given configobj
     """
     if _INITIALIZED:
         raise bxierr.BXILogConfigError("The bxilog has already been initialized. "
@@ -272,19 +220,18 @@ def basicConfig(**kwargs):
                                        "\nFor your convenience, "
                                        "the following stacktrace might help finding out where "
                                        "the first _init() call  was made:\n %s" % _INIT_CALLER,
-                                       kwargs)
+                                       configobj)
+
     global _CONFIG
+    _CONFIG = configobj
 
-    if 'console' not in kwargs:
-        kwargs['console'] = DEFAULT_CONSOLE_HANDLER_OPTIONS
 
-    if 'filename' in kwargs:
-        kwargs['file'] = (FILE_HANDLER_FILTERS_AUTO, kwargs['filename'], True)
-
-    if 'setsighandler' not in kwargs:
-        kwargs['setsighandler'] = True
-
-    _CONFIG = kwargs
+def get_config():
+    """
+    Return the current bxilog configuration.
+    """
+    global _CONFIG
+    return _CONFIG
 
 
 def bxilog_excepthook(type_, value, traceback):
@@ -306,51 +253,26 @@ def _init():
     global _INIT_CALLER
 
     if _CONFIG is None:
-        _CONFIG = {'console': DEFAULT_CONSOLE_HANDLER_OPTIONS,
-                   'filename': None,
-                   'syslog': None,
-                   'setsighandler': True,
-                   }
+        _CONFIG = DEFAULT_CONFIG
 
     from . import config as bxilogconfig
     from . import filter as bxilogfilter
 
     handler_filters = set()
-    config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
+    c_config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
 
-    console_handler_args = _CONFIG.get('console', DEFAULT_CONSOLE_HANDLER_OPTIONS)
-    if console_handler_args is not None:
-        console_filters = bxilogconfig.add_console_config(console_handler_args, config)
-        handler_filters.add(console_filters)
+    try:
+        handlers = _CONFIG['handlers']
+        for section in handlers:
+            bxilogconfig.add_handler(_CONFIG, section, c_config)
+    except KeyError as ke:
+        raise bxierr.BXIError("Bad bxilog configuration: %s, can't find %s" % (_CONFIG, ke))
 
-    file_handler_args = _CONFIG.get('file', None)
-    if file_handler_args is not None:
-        # Use the same filters than console_handlers
-        filters = console_filters if console_handler_args is not None else None
-        file_filters = bxilogconfig.add_file_config(file_handler_args, config,
-                                                    filters)
-        handler_filters.add(file_filters)
-
-    syslog_handler_args = _CONFIG.get('syslog', None)
-    if syslog_handler_args is not None:
-        syslog_filters = bxilogconfig.add_syslog_config(syslog_handler_args, config)
-        handler_filters.add(syslog_filters)
-
-    if config.handlers_nb == 0:
-        print("Warning: no handler defined in bxi logging library configuration!")
-        null_filters = bxilogconfig.add_null_handler(config)
-        handler_filters.add(null_filters)
-
-    loggers_filters = bxilogfilter.merge_filters(handler_filters)
-    filters_p = __FFI__.new('bxilog_filters_p[1]')
-    filters_p[0] = loggers_filters
-    __BXIBASE_CAPI__.bxilog_registry_set_filters(filters_p)
-
-    err_p = __BXIBASE_CAPI__.bxilog_init(config)
+    err_p = __BXIBASE_CAPI__.bxilog_init(c_config)
     _INITIALIZED = True
     bxierr.BXICError.raise_if_ko(err_p)
     atexit.register(cleanup)
-    if _CONFIG['setsighandler']:
+    if _CONFIG.get('setsighandler', True):
         err_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
         bxierr.BXICError.raise_if_ko(err_p)
 
@@ -360,14 +282,7 @@ def _init():
     sio.close()
 
     sys.excepthook = bxilog_excepthook
-
-
-def get_config():
-    """
-    Return the current bxilog configuration.
-    """
-    global _CONFIG
-    return _CONFIG
+    debug("BXI logging configuration: %s", _CONFIG)
 
 
 def get_logger(name):
@@ -658,10 +573,51 @@ def exception(msg="", *args, **kwargs):
 
 # Provide a compatible API with the standard Python logging module
 getLogger = get_logger
-
-
-# Provide a compatible API with the standard Python logging module
+shutdown = cleanup
 warn = warning
+
+
+def basicConfig(**kwargs):
+    """
+    Convenient function for backward compatibility with python logging module.
+
+    Parameter kwargs can contain following parameters:
+        - `'filename'`: Specifies that a File Handler be created, using the specified 
+                        filename, rather than a Console Handler.
+        - `'filemode'`: Specifies the mode to open the file, if filename is specified 
+            (if filemode is unspecified, it defaults to ‘a’).
+        - `'level'`: set the root logger level to the specified level
+
+    @param[in] kwargs named parameters as described above
+
+    @return
+    @exception bxi.base.err.BXILogConfigError if the logging system as
+               already been initialized
+    """
+    config = configobj.ConfigObj()
+    config['setsighandler'] = True
+
+    if 'filename' in kwargs:
+        config['handlers'] = ['filehandler']
+        section = dict()
+        import bxi.base.log.file_handler as bxilog_filehandler
+        section['module'] = bxilog_filehandler.__name__
+        section['filters'] = ':%s' % kwargs.get('level', OUTPUT)
+        section['file'] = kwargs['filename']
+        mode = kwargs.get('filemode', 'a')
+        section['append'] = mode == 'a'
+        config['filehandler'] = section
+    else:
+        config['handlers'] = ['consolehandler']
+        section = dict()
+        import bxi.base.log.console_handler as bxilog_consolehandler
+        section['module'] = bxilog_consolehandler.__name__
+        section['filters'] = ':%s' % kwargs.get('level', OUTPUT)
+        section['stderr_level'] = 'WARNING'
+        section['colors'] = '216_dark'
+        config['consolehandler'] = section
+
+    set_config(config)
 
 # Warnings integration - taken from the standard Python logging module
 _warnings_showwarning = None
@@ -747,12 +703,13 @@ class TestCase(unittest.TestCase):
     BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
                                    "%s.bxilog" % os.path.basename(sys.argv[0]))
 
-    APPEND = False
+    FILEMODE = 'w'
 
     @classmethod
     def setUpClass(cls):
-        basicConfig(console=None,
-                    file=(':lowest', cls.BXILOG_FILENAME, TestCase.APPEND))
+        basicConfig(filename=cls.BXILOG_FILENAME,
+                    level=LOWEST,
+                    filemode=TestCase.FILEMODE)
 
     @classmethod
     def tearDownClass(cls):

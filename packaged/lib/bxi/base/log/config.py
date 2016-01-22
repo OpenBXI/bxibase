@@ -14,6 +14,7 @@ from __future__ import print_function
 
 import os
 import sys
+import importlib
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
@@ -24,6 +25,20 @@ import bxi.base.log.filter as bxilogfilter
 # Find the C library
 __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
+
+
+def add_handler(configobj, section_name, c_config):
+    """
+    Add a bxilog handler to the given configuration.
+
+    @param[in] configobj the configobj (a dict) representing the whole configuration
+    @param[in] section the section in the configobj that must be used
+    @param[inout] c_config the bxilog configuration where the handler must be added to 
+    """
+    section = configobj[section_name]
+    module_name = section['module']
+    module = importlib.import_module(module_name)
+    module.add_handler(configobj, section_name, c_config)
 
 
 def add_console_config(console_handler_args, config):
@@ -43,40 +58,6 @@ def add_console_config(console_handler_args, config):
                                                console_filters,
                                                stderr_level, colors)
     return console_filters
-
-
-def add_file_config(file_handler_args, config, console_filters):
-    """
-    Add a file handler to the given configuration according tho the given console filters
-
-    @param[in] file_handler_args file handler arguments (see ::BXILOG_FILE_HANDLER)
-    @param[inout] the configuration where the handler must be added to
-    @param[in] the console_filters used (can be None)
-
-    If console_filters is not None, the file filters is defined by a call to 
-    ::bxi.base.log.filter.new_detailed_filters(console_filters). 
-    Otherwise, ::BXILOG_FILTERS_ALL_ALL is used.
-    """
-    if file_handler_args[0] == bxilog.FILE_HANDLER_FILTERS_AUTO:
-        # Compute file filters automatically according to console handler filters
-        if console_filters is not None:
-            file_filters = bxilogfilter.new_detailed_filters(console_filters)
-        else:
-            file_filters = __BXIBASE_CAPI__.BXILOG_FILTERS_ALL_ALL
-    else:
-        file_filters = bxilogfilter.parse_filters(file_handler_args[0])
-    progname = __FFI__.new('char[]', sys.argv[0])
-    filename = __FFI__.new('char[]', file_handler_args[1])
-    open_flags = __FFI__.cast('int',
-                              os.O_CREAT |
-                              (os.O_APPEND if file_handler_args[2] else os.O_TRUNC))
-    __BXIBASE_CAPI__.bxilog_config_add_handler(config,
-                                               __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
-                                               file_filters,
-                                               progname,
-                                               filename,
-                                               open_flags)
-    return file_filters
 
 
 def add_syslog_config(syslog_handler_args, config):

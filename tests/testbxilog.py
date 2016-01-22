@@ -21,6 +21,7 @@ import tempfile
 import threading
 import unittest
 import re
+import configobj
 
 from bxi.base.err import BXICError
 import bxi.base.log as bxilog
@@ -40,9 +41,9 @@ def do_some_logs_threading():
  
 def do_some_logs_multiprocessing(again):
     bxilog.cleanup()
-    bxilog.basicConfig(console=None,
-                       file=(':lowest', FILENAME, False),
-                       setsighandler=True)
+    bxilog.basicConfig(filename=FILENAME,
+                       filemode='w',
+                       level=bxilog.LOWEST)
     while again.value:
         bxilog.out("Doing a simple log: %s", again)
         time.sleep(0.1)
@@ -52,9 +53,9 @@ def threads_in_process(again):
     global __LOOP_AGAIN__
     __LOOP_AGAIN__ = True
     bxilog.cleanup()
-    bxilog.basicConfig(console=None,
-                       file=(':lowest', FILENAME, False),
-                       setsighandler=True)
+    bxilog.basicConfig(filename=FILENAME,
+                       filemode='w',
+                       level=bxilog.LOWEST)
     threads = []
     for i in xrange(multiprocessing.cpu_count()):
         thread = threading.Thread(target=do_some_logs_threading)
@@ -90,9 +91,9 @@ class BXILogTest(bxilog.TestCase):
         """Definition of the context.
         """
         print("Whole unit test suite file outputs: %s" % FILENAME)
-        bxilog.basicConfig(console=None,
-                           file=(':lowest', FILENAME, True),
-                           setsighandler=True)
+        bxilog.basicConfig(filename=FILENAME,
+                           filemode='a',
+                           level=bxilog.LOWEST)
  
     def tearDown(self):
         """Cleaning up for each test.
@@ -219,7 +220,7 @@ class BXILogTest(bxilog.TestCase):
         self.assertEquals(os.stat(name).st_size, 0)
         os.close(fd)
  
-        bxilog.basicConfig(console=None, filename=name)
+        bxilog.basicConfig(filename=name)
  
         self._check_log_produced(name, bxilog.output, "One log on file: %s", name)
         os.remove(name)
@@ -235,7 +236,7 @@ class BXILogTest(bxilog.TestCase):
         os.close(fd)
         os.remove(name)
  
-        bxilog.basicConfig(console=None, filename=name)
+        bxilog.basicConfig(filename=name)
  
         self._check_log_produced(name, bxilog.output,
                                  "One log on non-existent (deleted) file: %s", name)
@@ -246,7 +247,7 @@ class BXILogTest(bxilog.TestCase):
         tmpdir = tempfile.mkdtemp(".bxilog", "test_")
         os.rmdir(tmpdir)
         name = os.path.join(tmpdir, 'dummy.bxilog')
-        bxilog.basicConfig(console=None, filename=name)
+        bxilog.basicConfig(filename=name)
  
         self.assertRaises(BXICError, bxilog.output,
                           "One log on non-existent (deleted) directory: %s", name)
@@ -259,10 +260,15 @@ class BXILogTest(bxilog.TestCase):
         """Test logging with configuration items"""
  
         orig_size = os.stat(FILENAME).st_size if os.path.exists(FILENAME) else 0
- 
-        bxilog.basicConfig(console=None, 
-                           file=(':output,foo:debug,foo.bar:trace', FILENAME, True),
-                           )
+        
+        conf = {'handlers': ['out'], 
+                'setsighandler': True,
+                'out':{'module': 'bxi.base.log.file_handler',
+                       'filters': ':output,foo:debug,foo.bar:trace',
+                       'file': FILENAME,
+                       'append': True}
+                }
+        bxilog.set_config(configobj.ConfigObj(conf))
          
         foo = bxilog.getLogger('foo')
         bar = bxilog.getLogger('foo.bar')

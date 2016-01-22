@@ -23,7 +23,7 @@ basename = os.path.basename(__main__.__file__)
 FILENAME = "%s.bxilog" % os.path.splitext(basename)[0]
 
 if __name__ == "__main__":
-    bxilog.basicConfig(console=None, filename=FILENAME)
+    bxilog.basicConfig(filename=FILENAME)
 
     bxilog.output("Will raise an exception without any try/except, log must catch it")
     raise ValueError("Normal: this must appears in the file")
