@@ -41,7 +41,7 @@
  *
  * See: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
  */
-typedef const char const * ansi_color_code_p;
+typedef const char * const ansi_color_code_p;
 
 #ifndef BXICFFI
 /**
