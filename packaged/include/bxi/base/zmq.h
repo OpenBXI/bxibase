@@ -65,6 +65,7 @@
 // ********************************** Interface ************************************
 // *********************************************************************************
 
+#ifndef BXICFFI
 /**
  * Create a zmq socket, connect to the given url and set the specified option on it.
  *
@@ -114,17 +115,6 @@ bxierr_p bxizmq_zocket_setopt(void * self,
                               const void * const option_value,
                               const size_t option_len
                              );
-
-//TODO: comment
-bxierr_p bxizmq_sync_pub(void * pub_zocket,
-                         void * sync_zocket,
-                         char * const prefix,
-                         const size_t prefix_len,
-                         const double timeout_s);
-
-bxierr_p bxizmq_sync_sub(void * zmq_ctx,
-                         void * sub_zocket,
-                         const double timeout_s);
 
 /**
  * Cleanup the given zeromq socket, releasing all underlying resources.
@@ -426,5 +416,39 @@ bxierr_p bxizmq_str_rcv(void * zocket, int flags, bool check_more, char ** resul
  * @param hint unused
  */
 void bxizmq_data_free(void * data, void * hint);
+#endif
+
+/**
+ * Synchronize a publish zmq socket
+ * with a subscribe socket using a rep socket.
+ * This avoid losing messages at the beginning.
+ *
+ * @param pub_zocket to be synchronized
+ * @param sync_zocket rep socket use to communicate with the subscribing process
+ * @param sync_url used to bind the socket
+ * @param sync_url_len length of the url
+ * @param timeout in seconds before abording
+ *
+ * @return BXIERR_OK if the synchronization is done.
+ */
+bxierr_p bxizmq_sync_pub(void * pub_zocket,
+                         void * sync_zocket,
+                         char * const sync_url,
+                         const size_t sync_url_len,
+                         const double timeout);
+
+/**
+ * synchronized the subscribe socket.
+ *
+ * @param zmq_ctx required for socket creation
+ * @param sub_zocket to be synchronized
+ * @param timeout in seconds before abording.
+ *
+ * @return BXIERR_OK if the synchronization is done.
+ */
+bxierr_p bxizmq_sync_sub(void * zmq_ctx,
+                         void * sub_zocket,
+                         const double timeout);
+
 
 #endif /* BXIZMQ_H_ */

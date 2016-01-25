@@ -14,6 +14,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
 
 #include <zmq.h>
 
@@ -31,6 +34,7 @@
 #define DEFAULT_CLOSING_LINGER 1000u
 #define MAX_CONNECTION_TIMEOUT 1.0     // seconds
 #define INPROC_PROTO "inproc"
+#define TCP_PROTO "tcp"
 
 
 // *********************************************************************************
@@ -42,6 +46,7 @@
 // *********************************************************************************
 
 bxierr_p _zocket_create(void * const ctx, const int type, void ** result);
+bxierr_p _split_url(const char * const url, char * elements[3]);
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
@@ -71,11 +76,69 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         if (bxierr_isko(err)) return err;
     }
 
-    int rc = zmq_bind(socket, url);
+
+    char * translate_url = (char *)url;
+
+    int rc = zmq_bind(socket, translate_url);
     if (rc == -1) {
-        err2 = bxierr_errno("Can't bind zmq socket on %s", url);
+        err2 = bxierr_errno("Can't bind zmq socket on %s", translate_url);
         BXIERR_CHAIN(err, err2);
+
+        //Try by translating hostname into IP
+        if (strncmp(translate_url, TCP_PROTO, ARRAYLEN(TCP_PROTO) - 1) != 0) {
+            err2 = bxizmq_zocket_destroy(socket);
+            BXIERR_CHAIN(err, err2);
+            return err;
+        }
+
+        char * elements[3];
+        //Get the protocol the hostname and the port
+        err2 = _split_url(url, elements);
+        BXIERR_CHAIN(err, err2);
+
+        if (bxierr_isko(err2)) {
+            err2 = bxizmq_zocket_destroy(socket);
+            BXIERR_CHAIN(err, err2);
+            return err;
+            return err;
+        }
+
+        errno = 0;
+        struct addrinfo hints, *servinfo;
+        int rv;
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family = AF_UNSPEC; // use either IPV4 or IPV6
+        hints.ai_socktype = SOCK_STREAM;
+
+        errno = 0;
+        if ( (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)) != 0) 
+        {
+            err2 = bxierr_gen("Translation address error: getaddrinfo: %s", gai_strerror(rv));
+            BXIERR_CHAIN(err, err2);
+        }
+
+        errno = 0;
+        char * ip = NULL;
+        struct addrinfo *p;
+        struct sockaddr_in *h;
+        for(p = servinfo; p != NULL && ip == NULL; p = p->ai_next) {
+            h = (struct sockaddr_in *) p->ai_addr;
+            ip = bxistr_new(inet_ntoa( h->sin_addr ) );
+        }
+        translate_url = bxistr_new("%s://%s:%s", elements[0], ip, elements[2]);
+        BXIFREE(ip);
+        int rc = zmq_bind(socket, translate_url);
+        if (rc == -1) {
+            //Neither url works
+            err2 = bxierr_errno("Can't bind zmq socket on translated url: %s", translate_url);
+            BXIERR_CHAIN(err, err2);
+        } else {
+            //It finally works
+            bxierr_destroy(&err);
+            err = BXIERR_OK;
+        }
     }
+
     if (bxierr_isko(err)) {
         err2 = bxizmq_zocket_destroy(socket);
         BXIERR_CHAIN(err, err2);
@@ -85,7 +148,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     char endpoint[512];
     endpoint[0] = '\0';
 
-    if (NULL != affected_port && strncmp(url,
+    if (NULL != affected_port && strncmp(translate_url,
                                          INPROC_PROTO,
                                          ARRAYLEN(INPROC_PROTO) - 1) != 0) {
         bxiassert(NULL != socket);
@@ -761,3 +824,38 @@ bxierr_p _zocket_create(void * const ctx, const int type, void ** result) {
 
 }
 
+bxierr_p _split_url(const char * const url, char * elements[3]) {
+    if (url == NULL) {
+        return bxierr_gen("Url should be defined");
+    }
+    elements[0] = strdup(url);
+    char * hostname_pos = strchr(elements[0], ':');
+
+    if (hostname_pos == NULL) {
+        elements[0] = NULL;
+        return bxierr_gen("Url doesn't contain seperator ':'");
+    }
+
+    if (hostname_pos[1] == '/' && hostname_pos[2] == '/') {
+        hostname_pos[0] = '\0';
+        hostname_pos[1] = '\0';
+        hostname_pos[2] = '\0';
+        elements[1] = &hostname_pos[3];
+        char * port = strchr(elements[1], ':');
+
+        if (port == NULL) {
+            bxierr_p err = bxierr_gen("Url doesn't contain port number after"
+                                      " hostname %s ':.*'", elements[1]);
+            elements[0] = NULL;
+            elements[1] = NULL;
+            return err;
+        }
+
+        port[0] = '\0';
+        elements[2] = &port[1];
+        return BXIERR_OK;
+    } else {
+        elements[0] = NULL;
+        return bxierr_gen("Url doesn't contain '://' after protocol name");
+    }
+}
