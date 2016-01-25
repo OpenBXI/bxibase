@@ -23,6 +23,8 @@
 
 #include "bxi/base/log.h"
 
+#include "log_impl.h"
+
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -59,11 +61,22 @@ void bxilog_exit(int exit_code,
 
     bxiassert(NULL != logger);
     char * str = bxierr_str_limit(err, BXIERR_ALL_CAUSES);
-    bxilog_logger_log(logger, level,
-                      file, filelen,
-                      func, funclen,
-                      line,
-                      "Exiting with code %d, Error is: %s", exit_code, str);
+    if (INITIALIZED != BXILOG__GLOBALS->state) {
+        char * msg = bxistr_new("Exiting with code %d, error is %s\n"
+                                "(Since the BXI logging library is not "
+                                "initialized: the above message is raw displayed "
+                                "on stderr. Especially, it won't appear in the "
+                                "expected logging file.)\n", exit_code, str);
+        bxilog_rawprint(msg, STDERR_FILENO);
+        BXIFREE(msg);
+    } else {
+        bxilog_logger_log(logger, level,
+                          file, filelen,
+                          func, funclen,
+                          line,
+                          "Exiting with code %d, error is: %s", exit_code, str);
+    }
+    BXIFREE(str);
     bxierr_destroy(&err);
     err = bxitime_sleep(CLOCK_MONOTONIC, 0, 50000000);
     bxierr_destroy(&err);

@@ -38,14 +38,18 @@ void display_loggers(size_t n, bxilog_logger_p loggers[n]) {
 }
 
 int main(int argc, char** argv) {
+    if (argc != 1) exit(EX_SOFTWARE);
+
     // Produce logs on stdout/stderr, and also in /tmp/foo.log
     bxilog_config_p config = bxilog_basic_config(argv[0], "/tmp/foo.log",
                                                  BXI_TRUNC_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
-    // If the logging library raises an error, nothing can be logged!
-    // Use the bxierr_report() convenience method in this case
-    bxierr_report(&err, STDERR_FILENO);
-    if (argc != 1) exit(EX_SOFTWARE);
+    // Use BXILOG_REPORT for error reporting, the error is destroyed.
+    // If the logging library raises an error,
+    // it has not been initialized. In such a case, the implementation takes care of that
+    // and display a message on stderr.
+    BXILOG_REPORT(MY_LOGGER, BXILOG_CRITICAL, err,
+                  "Can't initialize the BXI Logging library");
 
     // Fetching log level names
     size_t n = 0;
@@ -73,9 +77,8 @@ int main(int argc, char** argv) {
     log_stuff(LOGGER_AC);
 
     err = bxilog_finalize(true);
-    // Again, the logging library is not in a normal state,
-    // use bxierr_report()
-    bxierr_report(&err, STDERR_FILENO);
+    BXILOG_REPORT(MY_LOGGER, BXILOG_CRITICAL, err,
+                  "Can't finalize the BXI logging library");
 
     BXIFREE(loggers);
     return 0;

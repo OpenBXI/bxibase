@@ -19,17 +19,17 @@ SET_LOGGER(MY_LOGGER, "my.logger");
 void foo_noraise(void) {
     struct timespec start;
     bxierr_p err = bxitime_get(CLOCK_MONOTONIC, &start);
-    if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
-                                        BXILOG_ERROR,
-                                        err,
-                                        "Calling bxitime_gettime() failed");
+    BXILOG_REPORT(MY_LOGGER,
+                  BXILOG_ERROR,
+                  err,
+                  "Calling bxitime_gettime() failed");
     DEBUG(MY_LOGGER, "Producing a log");
     double duration;
     err = bxitime_duration(CLOCK_MONOTONIC, start, &duration);
-    if (bxierr_isko(err)) BXILOG_REPORT(MY_LOGGER,
-                                        BXILOG_ERROR,
-                                        err,
-                                        "Calling bxitime_duration() failed");
+    BXILOG_REPORT(MY_LOGGER,
+                  BXILOG_ERROR,
+                  err,
+                  "Calling bxitime_duration() failed");
     OUT(MY_LOGGER, "Duration: %lf", duration);
 }
 
@@ -52,14 +52,18 @@ bxierr_p bar_raise(void) {
 }
 
 int main(int argc, char** argv) {
-    // Produce logs on stdout, and '/dev/null'
 
+    if (argc != 1) exit(EX_SOFTWARE);
+
+    // Produce logs on stdout, and '/dev/null'
     bxilog_config_p config = bxilog_basic_config(argv[0], "/dev/null", O_CREAT | O_TRUNC);
     bxierr_p err = bxilog_init(config);
-    // If the logging library raises an error, nothing can be logged!
-    // Use the bxierr_report() convenience method in this case
-    bxierr_report(&err, STDERR_FILENO);
-    if (argc != 1) exit(EX_SOFTWARE);
+    // Use BXILOG_REPORT for error reporting, the error is destroyed.
+    // If the logging library raises an error,
+    // it has not been initialized. In such a case, the implementation takes care of that
+    // and display a message on stderr.
+    BXILOG_REPORT(MY_LOGGER, BXILOG_CRITICAL, err,
+                  "Can't initialize the BXI logging library");
 
     DEBUG(MY_LOGGER, "Calling noraise");
     foo_noraise();
@@ -73,8 +77,7 @@ int main(int argc, char** argv) {
     }
 
     err = bxilog_finalize(true);
-    // Again, the logging library is not in a normal state,
-    // use bxierr_report()
-    bxierr_report(&err, STDERR_FILENO);
+    BXILOG_REPORT(MY_LOGGER, BXILOG_CRITICAL, err,
+                  "Can't finalize the BXI logging library");
     exit(EXIT_SUCCESS);
 }

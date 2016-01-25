@@ -92,23 +92,34 @@ void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
 
     if (*err == NULL) return;
     if (bxierr_isok(*err)) return;
-    if (!bxilog_logger_is_enabled_for(logger, level)) return ;
+    if (!bxilog_logger_is_enabled_for(logger, level)) return;
 
     char * msg;
     size_t len = bxistr_vnew(&msg, fmt, arglist);
     char * err_str = bxierr_str(*err);
-    bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
-                                               file, filelen,
-                                               func, funclen, line,
-                                               msg, len + 1);
-    bxierr_report(&logerr, STDERR_FILENO);
 
-    logerr = bxilog_logger_log_nolevelcheck(logger, BXILOG_TRACE,
-                                            file, filelen,
-                                            func, funclen, line,
-                                            "%s", err_str);
+    if (INITIALIZED != BXILOG__GLOBALS->state) {
+        char * out = bxistr_new("%s\n%s\n"
+                                "(The BXI logging library is not initialized: "
+                                "the above message is raw displayed "
+                                "on stderr. Especially, it won't appear in the "
+                                "expected logging file.)\n", msg, err_str);
+        bxilog_rawprint(out, STDERR_FILENO);
+        BXIFREE(out);
+    } else {
+        bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
+                                                   file, filelen,
+                                                   func, funclen, line,
+                                                   msg, len + 1);
+        bxierr_report(&logerr, STDERR_FILENO);
+
+        logerr = bxilog_logger_log_nolevelcheck(logger, BXILOG_TRACE,
+                                                file, filelen,
+                                                func, funclen, line,
+                                                "%s", err_str);
+        bxierr_report(&logerr, STDERR_FILENO);
+    }
     BXIFREE(msg);
     BXIFREE(err_str);
-    bxierr_report(&logerr, STDERR_FILENO);
 }
 
