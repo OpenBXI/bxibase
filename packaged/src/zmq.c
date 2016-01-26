@@ -123,7 +123,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         struct sockaddr_in *h;
         for(p = servinfo; p != NULL && ip == NULL; p = p->ai_next) {
             h = (struct sockaddr_in *) p->ai_addr;
-            ip = bxistr_new(inet_ntoa( h->sin_addr ) );
+            ip = bxistr_new("%s", inet_ntoa( h->sin_addr ) );
         }
         translate_url = bxistr_new("%s://%s:%s", elements[0], ip, elements[2]);
         BXIFREE(ip);
