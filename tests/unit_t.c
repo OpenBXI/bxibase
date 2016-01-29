@@ -233,7 +233,7 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
         || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
         || (NULL == CU_add_test(bxilog_suite, "test very long log", test_very_long_log))
-        || (NULL == CU_add_test(bxilog_suite, "test sinle logger instance", test_single_logger_instance))
+        || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
         || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
         || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))

@@ -27,7 +27,6 @@ __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
 
-#
 # _SRCFILE is used when walking the stack to check when we've got the first
 # caller stack frame.
 #
@@ -61,6 +60,17 @@ def _FindCaller():
     return rv
 
 
+def _bxierr_report(bxierr_p):
+    """
+    Report and destroy the given C bxierr_report() on standard error.
+
+    @param[in] bxierr_p the error to report and destroy
+    """
+    bxierr_pp = __FFI__.new('bxierr_p[1]')
+    bxierr_pp[0] = bxierr_p
+    __BXIBASE_CAPI__.bxierr_report(bxierr_pp, 2)
+
+
 class BXILogger(object):
     """
     A BXILogger instance provides various methods for logging.
@@ -77,6 +87,58 @@ class BXILogger(object):
         @return a BXILogger instance
         """
         self.clogger = clogger
+
+    def _report_exception(self, level,
+                          filename, filename_len,
+                          funcname, funcname_len,
+                          lineno, ei):
+
+        tbs = []
+        msgs = []
+        while True:
+            if isinstance(ei[1], bxierr.BXICError):
+                backtrace = __FFI__.string(ei[1].bxierr_pp[0].backtrace)
+                tb = "Low Level C back trace:\n" + backtrace
+            else:
+                tb = ""
+            lines = traceback.format_exception(ei[0], ei[1], ei[2], None)
+            tb += ''.join(lines[0:len(lines)-1])
+            tbs.insert(0, tb[:-1]) # Remove final '\n'
+            msg = lines[-1][:-1] # Remove final '\n'
+            msgs.insert(0, msg)
+
+            if not hasattr(ei[1], 'cause') or ei[1].cause is None:
+                break
+
+            ei = (type(ei[1].cause), ei[1].cause, ei[1].traceback)
+
+        for i in xrange(len(msgs)):
+            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
+                                                                 bxilog.TRACE, 
+                                                                 filename, filename_len,
+                                                                 funcname, funcname_len,
+                                                                 lineno, 
+                                                                 tbs[i],
+                                                                 len(tbs[i]) + 1)
+            # Recursive call: this will raise an exception that might be catched
+            # again by the logging library and so on...
+            # So instead of:
+            # bxierr.BXICError.raise_if_ko(bxierr_p)
+            # We use directly the bxierr C reporting to stderr (fd=2)
+            _bxierr_report(bxierr_p)
+            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
+                                                                 level, 
+                                                                 filename, filename_len, 
+                                                                 funcname, funcname_len, 
+                                                                 lineno,
+                                                                 msgs[i],
+                                                                 len(msgs[i]) + 1)
+            # Recursive call: this will raise an exception that might be catched
+            # again by the logging library and so on...
+            # So instead of:
+            # bxierr.BXICError.raise_if_ko(bxierr_p)
+            # We use directly the bxierr C reporting to stderr (fd=2)
+            _bxierr_report(bxierr_p)
 
     def log(self, level, msg, *args, **kwargs):
         """
@@ -95,39 +157,31 @@ class BXILogger(object):
         if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
             msg_str = msg % args if len(args) > 0 else str(msg)
             filename, lineno, funcname = _FindCaller()
+            filename_len = len(filename) + 1
+            funcname_len = len(funcname) + 1
+            msg_str_len = len(msg_str) + 1
             bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
                                                                  level,
                                                                  filename,
-                                                                 len(filename) + 1,
+                                                                 filename_len,
                                                                  funcname,
-                                                                 len(funcname) + 1,
+                                                                 funcname_len,
                                                                  lineno,
                                                                  msg_str,
-                                                                 len(msg_str) + 1)
-            bxierr.BXICError.raise_if_ko(bxierr_p)
+                                                                 msg_str_len)
+            # Recursive call: this will raise an exception that might be catched
+            # again by the logging library and so on...
+            # So instead of:
+            # bxierr.BXICError.raise_if_ko(bxierr_p)
+            # We use directly the bxierr C reporting to stderr (fd=2)
+            _bxierr_report(bxierr_p)
             exc_s = ''
             ei = kwargs.get('exc_info', None)
             if ei is not None:
-                sio = StringIO.StringIO()
-                traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
-                if isinstance(ei[1], bxierr.BXICError):
-                    backtrace = __FFI__.string(ei[1].bxierr_pp[0].backtrace)
-                    sio.write("Low Level C back trace:\n")
-                    sio.write(backtrace)
-                exc_s = sio.getvalue()
-                sio.close()
-                if exc_s[-1:] == "\n":
-                    exc_s = exc_s[:-1]
-                bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
-                                                                     bxilog.TRACE,
-                                                                     filename,
-                                                                     len(filename) + 1,
-                                                                     funcname,
-                                                                     len(funcname) + 1,
-                                                                     lineno,
-                                                                     exc_s,
-                                                                     len(exc_s) + 1)
-                bxierr.BXICError.raise_if_ko(bxierr_p)
+                self._report_exception(level, 
+                                       filename, filename_len,
+                                       funcname, funcname_len,
+                                       lineno, ei)
 
     @property
     def name(self):

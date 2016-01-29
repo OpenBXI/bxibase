@@ -384,7 +384,7 @@ class BXILogTest(bxilog.TestCase):
         filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'
         with open(filename) as logfile:
             found = False
-            pattern = '.*Uncaught Exception - Traceback.*'
+            pattern = '.*Uncaught Exception:.*'
             regexp = re.compile(pattern)
             for line in logfile: 
                 if regexp.match(line):

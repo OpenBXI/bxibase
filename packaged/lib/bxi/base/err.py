@@ -25,7 +25,7 @@ class BXIError(Exception):
     """
     The root class of all BXI exceptions
     """
-    def __init__(self, msg):
+    def __init__(self, msg, cause=None, traceback=None):
         """
         Create a new BXIError instance.
 
@@ -33,6 +33,8 @@ class BXIError(Exception):
         """
         super(BXIError, self).__init__(msg)
         self.msg = msg
+        self.cause = None
+        self.traceback = None
 
 
 class BXICError(BXIError):
@@ -45,16 +47,18 @@ class BXICError(BXIError):
 
         @param[in] bxierr_p a ::bxierr_p C pointer
         """
-        #errstr = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
+#        err_msg = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
         err_msg = __FFI__.string(bxierr_p.msg)
         super(BXICError, self).__init__(err_msg)
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
+        _cause = bxierr_p.cause
+        self.cause = BXICError(_cause) if _cause != __FFI__.NULL else None
         self.bxierr_pp = __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
-
 
     def __str__(self):
         return self.message
+
 
     @staticmethod
     def chain(cause, err):
