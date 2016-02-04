@@ -14,6 +14,7 @@ encoding//packaged/lib/bxi/base/log/console_handler.py=utf-8
 encoding//packaged/lib/bxi/base/log/file_handler.py=utf-8
 encoding//packaged/lib/bxi/base/log/filter.py=utf-8
 encoding//packaged/lib/bxi/base/log/logger.py=utf-8
+encoding//packaged/lib/bxi/base/log/netsnmp_handler.py=utf-8
 encoding//packaged/lib/bxi/base/log/syslog_handler.py=utf-8
 encoding//packaged/lib/bxi/base/sign.py=utf-8
 encoding//packaged/lib/bxi/ffi.py=utf-8
