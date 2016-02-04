@@ -51,12 +51,12 @@ typedef enum {
     BXILOG_LOWEST,                          //!< most detailed debug-level message
 // Alias
 #ifndef BXICFFI
-    BXILOG_EMERG = BXILOG_PANIC,    //!< alias for `BXILOG_EMERG`
-    BXILOG_EMERGENCY = BXILOG_PANIC,//!< alias for `BXILOG_EMERGENCY`
-    BXILOG_CRIT = BXILOG_CRITICAL,  //!< alias for `BXILOG_CRIT`
-    BXILOG_ERR = BXILOG_ERROR,      //!< alias for `BXILOG_ERR`
-    BXILOG_WARN = BXILOG_WARNING,   //!< alias for `BXILOG_WARN`
-    BXLOG_OUT = BXILOG_OUTPUT,      //!< alias for `BXILOG_OUT`
+    BXILOG_EMERG = BXILOG_PANIC,    //!< alias for `BXILOG_PANIC`
+    BXILOG_EMERGENCY = BXILOG_PANIC,//!< alias for `BXILOG_PANIC`
+    BXILOG_CRIT = BXILOG_CRITICAL,  //!< alias for `BXILOG_CRITICAL`
+    BXILOG_ERR = BXILOG_ERROR,      //!< alias for `BXILOG_ERROR`
+    BXILOG_WARN = BXILOG_WARNING,   //!< alias for `BXILOG_WARNING`
+    BXLOG_OUT = BXILOG_OUTPUT,      //!< alias for `BXILOG_OUTPUT`
     // If you change BXILOG_ALL, remember to also change the Python part,
     // see log.py
     BXILOG_ALL = BXILOG_LOWEST,     //!< convenience

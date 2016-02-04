@@ -124,6 +124,7 @@ size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
  *       behavior, duplicate your string before calling this function.
  *
  * @param[inout] str the string to parse
+ * @param[in] str_len the length of the string (e.g: as returned by strlen())
  * @param[in] f the function to apply for each line found
  * @param[in] param a parameter that will be given to f for each line found
  *
@@ -131,6 +132,7 @@ size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
  * @return the first error returned by `f()`.
  */
 bxierr_p bxistr_apply_lines(char * str,
+                            size_t str_len,
                             bxierr_p (*f)(char * line,
                                           size_t line_len,
                                           bool last,

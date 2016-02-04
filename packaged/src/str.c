@@ -106,6 +106,7 @@ char* bxistr_new(const char * const fmt, ...) {
 
 
 bxierr_p bxistr_apply_lines(char * str,
+                            size_t str_len,
                             bxierr_p (*f)(char * line,
                                           size_t line_len,
                                           bool last,
@@ -113,18 +114,12 @@ bxierr_p bxistr_apply_lines(char * str,
                             void * param) {
 
         char * s = str;
-#ifndef _GNU_SOURCE
-        char * eol = strchr(s, '\0');
-#endif
+        char * eol = str + str_len;
         while (true) {
-#ifdef _GNU_SOURCE
-            char * next = strchrnul(s, '\n');
-#else
             char * next = strchr(s, '\n');
             next = (NULL == next) ? eol : next;
-#endif
             size_t len = (size_t) (next - s);
-            bool last = *next == '\0';
+            bool last = next == eol;
             bxierr_p err = f(s, len, last, param);
             if (bxierr_isko(err)) return err;
             if (last) break;

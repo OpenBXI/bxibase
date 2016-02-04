@@ -12,6 +12,7 @@
  */
 
 
+
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
@@ -22,8 +23,7 @@
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/syslog_handler.h"
-#include "bxi/base/log/snmplog_handler.h"
-
+#include <bxi/base/log/netsnmp_handler.h>
 #include "bxi/base/log/config.h"
 
 #include "config_impl.h"

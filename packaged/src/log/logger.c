@@ -113,10 +113,10 @@ void bxilog_logger_destroy(bxilog_logger_p * self_p) {
 
 
 bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
-                           char * filename, size_t filename_len,
-                           const char * funcname, size_t funcname_len,
-                           int line,
-                           const char * rawstr, size_t rawstr_len) {
+                                  char * filename, size_t filename_len,
+                                  const char * funcname, size_t funcname_len,
+                                  int line,
+                                  const char * rawstr, size_t rawstr_len) {
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
     tsd_p tsd;
     bxierr_p err = bxilog__tsd_get(&tsd);

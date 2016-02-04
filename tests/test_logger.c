@@ -38,7 +38,6 @@
 
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/file_handler.h"
-#include "bxi/base/log/snmplog_handler.h"
 #include "bxi/base/log/syslog_handler.h"
 
 SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
@@ -441,8 +440,13 @@ void test_single_logger_instance(void) {
     err = bxilog_registry_get("test.bad.logger", &logger);
     CU_ASSERT_TRUE(bxierr_isok(err));
     CU_ASSERT_PTR_NOT_NULL_FATAL(logger);
-    CU_ASSERT_PTR_EQUAL(logger, BAD_LOGGER1);
-    CU_ASSERT_PTR_NOT_EQUAL(logger, BAD_LOGGER2);
+    // Can be one or the other depending on the order
+    // of registration
+    if (logger == BAD_LOGGER1) {
+        CU_ASSERT_PTR_NOT_EQUAL(logger, BAD_LOGGER2);
+    } else {
+        CU_ASSERT_PTR_EQUAL(logger, BAD_LOGGER2);
+    }
     CU_ASSERT_TRUE(_is_logger_in_registered(logger));
 
     err = bxilog_finalize(true);

@@ -135,7 +135,9 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
 
     bxistr_prefixer_s data;
     bxistr_prefixer_init(&data, ERR_MSG_PREFIX, ARRAYLEN(ERR_MSG_PREFIX) - 1);
-    bxierr_p tmp = bxistr_apply_lines(self->msg, bxistr_prefixer_line, &data);
+    bxierr_p tmp = bxistr_apply_lines(self->msg,
+                                      self->msg_len,
+                                      bxistr_prefixer_line, &data);
     assert(bxierr_isok(tmp));
     char * final_msg;
     bxistr_join("\n", ARRAYLEN("\n") - 1,
@@ -349,7 +351,9 @@ char * bxierr_list_str(bxierr_p err, uint64_t depth) {
         // Prefix all line
         char * prefix = bxistr_new("##egrp %zu", current);
         bxistr_prefixer_init(&prefixer, prefix, strlen(prefix));
-        bxistr_apply_lines(s, bxistr_prefixer_line, &prefixer);
+        bxistr_apply_lines(s,
+                           strlen(s),
+                           bxistr_prefixer_line, &prefixer);
         BXIFREE(s);
         BXIFREE(prefix);
         // Join all lines

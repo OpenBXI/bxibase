@@ -11,7 +11,13 @@ cffi_files=\
 			 bxi/base/log/syslog_handler.h\
 			 bxi/base/log/console_handler.h
 			 
-#file to be install
+if HAVE_SNMP_LOG
+cffi_files+=\
+		  bxi/base/log/netsnmp_handler.h
+
+endif
+
+#file to be installed
 nobase_include_HEADERS = \
 						 $(cffi_files)\
 						 bxi/base/version.h\
@@ -26,9 +32,7 @@ nobase_include_HEADERS = \
 						 bxi/base/log/report.h\
 						 bxi/base/log/signal.h\
 						 bxi/base/log/thread.h\
-						 bxi/base/log/registry.h\
-						 bxi/base/log/snmplog_handler.h
-
+						 bxi/base/log/registry.h
 
 if HAVE_PYTHON
 ../lib/bxi/base/cffi_h.py: $(cffi_files) 

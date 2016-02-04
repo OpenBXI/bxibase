@@ -11,13 +11,13 @@
  ###############################################################################
  */
 
-#ifndef BXILOG_SNMPLOG_HANDLER_H_
-#define BXILOG_SNMPLOG_HANDLER_H_
+#ifndef BXILOG_NETSNMP_HANDLER_H_
+#define BXILOG_NETSNMP_HANDLER_H_
 
 #include "bxi/base/log.h"
 
 /**
- * @file    snmplog_handler.h
+ * @file    netsnmp_handler.h
  * @authors Pierre Vignéras <pierre.vigneras@bull.net>
  * @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
  *         This is not Free or Open Source software.\n
@@ -49,14 +49,19 @@
  * @note the net-snmp logging library must be initialized. See net-snmp documentation
  * for details.
  */
-extern const bxilog_handler_p BXILOG_SNMPLOG_HANDLER;
+extern const bxilog_handler_p BXILOG_NETSNMP_HANDLER;
 #else
-extern bxilog_handler_p BXILOG_SNMPLOG_HANDLER;
+extern bxilog_handler_p BXILOG_NETSNMP_HANDLER;
 #endif
 
 //*********************************************************************************
 //********************************** Interfaces        ****************************
 //*********************************************************************************
+
+int bxilog_netsnmp_callback(int majorID, int minorID,
+                            void *serverarg, void *clientarg);
+
+
 
 
 #endif

@@ -37,7 +37,8 @@ int main(int argc, char** argv) {
 
     bxistr_prefixer_s prefixer;
     bxistr_prefixer_init(&prefixer, "*prefix*", ARRAYLEN("*prefix*") - 1);
-    bxistr_apply_lines(multiline_str, bxistr_prefixer_line, &prefixer);
+    bxistr_apply_lines(multiline_str,
+                       strlen(multiline_str), bxistr_prefixer_line, &prefixer);
     for(size_t i = 0; i < prefixer.lines_nb; i++) {
         OUT(LOGGER, "%s", prefixer.lines[i]);
     }

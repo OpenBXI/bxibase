@@ -11,6 +11,7 @@
  ###############################################################################
  */
 
+#include <bxi/base/log/netsnmp_handler.h>
 #include <unistd.h>
 #include <syscall.h>
 #include <string.h>
@@ -26,13 +27,14 @@
 
 #include "bxi/base/log.h"
 
-#include "bxi/base/log/snmplog_handler.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
 
 #define INTERNAL_LOGGER_NAME "bxi.base.log.handler.snmplog"
+
+SET_LOGGER(NETSNMP_LOGGER, "bxilog.netsnmp");
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 //*********************************************************************************
@@ -114,8 +116,18 @@ static const bxilog_handler_s BXILOG_SNMPLOG_HANDLER_S = {
                   .process_cfg = (bxierr_p (*) (bxilog_handler_param_p)) _process_cfg,
                   .param_destroy = (bxierr_p (*) (bxilog_handler_param_p*)) _param_destroy,
 };
-const bxilog_handler_p BXILOG_SNMPLOG_HANDLER = (bxilog_handler_p) &BXILOG_SNMPLOG_HANDLER_S;
+const bxilog_handler_p BXILOG_NETSNMP_HANDLER = (bxilog_handler_p) &BXILOG_SNMPLOG_HANDLER_S;
 
+static const int SNMP2BXILOG_LEVELS[] = {
+    BXILOG_EMERG,       // #define LOG_EMERG       0       /* system is unusable */
+    BXILOG_ALERT,       // #define LOG_ALERT       1       /* action must be taken immediately */
+    BXILOG_CRIT,        // #define LOG_CRIT        2       /* critical conditions */
+    BXILOG_ERR,         // #define LOG_ERR         3       /* error conditions */
+    BXILOG_WARN,        // #define LOG_WARNING     4       /* warning conditions */
+    BXILOG_NOTICE,      // #define LOG_NOTICE      5       /* normal but significant condition */
+    BXILOG_INFO,        // #define LOG_INFO        6       /* informational */
+    BXILOG_DEBUG,       // #define LOG_DEBUG       7       /* debug-level messages */
+};
 //*********************************************************************************
 //********************************** Implementation    ****************************
 //*********************************************************************************
@@ -124,7 +136,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
                                   bxilog_filters_p filters,
                                   va_list ap) {
 
-    bxiassert(BXILOG_SNMPLOG_HANDLER == self);
+    bxiassert(BXILOG_NETSNMP_HANDLER == self);
 
     va_end(ap);
 
@@ -132,6 +144,48 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxilog_handler_init_param(self, filters, &result->generic);
 
     return (bxilog_handler_param_p) result;
+}
+
+int bxilog_netsnmp_callback(int majorID, int minorID,
+                            void *serverarg, void * clientarg) {
+    UNUSED(majorID);
+    UNUSED(minorID);
+
+    BXIASSERT(NETSNMP_LOGGER, NULL != serverarg);
+    BXIASSERT(NETSNMP_LOGGER, NULL != clientarg);
+
+    bxilog_logger_p* logger_p = (bxilog_logger_p*) clientarg;
+    struct snmp_log_message * slm = (struct snmp_log_message *) serverarg;
+
+    if (NULL == slm->msg) return 0;
+
+//    size_t len = strlen(slm->msg) + 1; // Include the NULL terminating byte
+//
+//    char * buf[len];
+//    if ('\n' == slm->msg[len - 2]) { // Remove the newline char
+//        len--;
+//    };
+//    memcpy(buf, slm->msg, len);
+//    buf[len - 1] = '\0';
+//
+//    // Skip line with nothing in it
+//    if (2 >= len) return 0;
+
+//    bxilog_logger_log_rawstr(*logger_p,
+//                             SNMP2BXILOG_LEVELS[slm->priority],
+//                             __FILE__, ARRAYLEN(__FILE__),
+//                             __FUNCTION__, ARRAYLEN(__FUNCTION__),
+//                             __LINE__,
+//                             buf, len);
+
+    bxilog_logger_log_rawstr(*logger_p,
+                             SNMP2BXILOG_LEVELS[slm->priority],
+                             __FILE__, ARRAYLEN(__FILE__),
+                             __FUNCTION__, ARRAYLEN(__FUNCTION__),
+                             __LINE__,
+                             slm->msg, strlen(slm->msg)+1);
+
+    return 0;
 }
 
 //*********************************************************************************
@@ -194,6 +248,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
     };
 
     bxierr_p err = bxistr_apply_lines(logmsg,
+                                      record->logmsg_len,
                                       (bxierr_p (*)(char*, size_t, bool, void*)) _log_single_line,
                                       &param);
 

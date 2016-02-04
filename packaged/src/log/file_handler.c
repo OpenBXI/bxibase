@@ -370,6 +370,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
     };
 //    fprintf(stderr, "Processing log\n");
     bxierr_p err = bxistr_apply_lines(logmsg,
+                                      record->logmsg_len,
                                       (bxierr_p (*)(char*, size_t, bool, void*)) _log_single_line,
                                       &param);
 //    fprintf(stderr, "Processed log\n");

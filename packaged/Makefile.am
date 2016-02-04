@@ -28,7 +28,7 @@ lib_libbxibase_la_SOURCES=\
 
 if HAVE_SNMP_LOG
 lib_libbxibase_la_SOURCES+=\
-		  src/log/snmplog_handler.c
+		  src/log/netsnmp_handler.c
 
 endif
 

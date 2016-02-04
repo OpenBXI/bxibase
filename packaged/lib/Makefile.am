@@ -26,7 +26,8 @@ nobase_python_PYTHON=\
                   bxi/base/log/filter.py\
                   bxi/base/log/console_handler.py\
                   bxi/base/log/file_handler.py\
-                  bxi/base/log/syslog_handler.py
+                  bxi/base/log/syslog_handler.py\
+                  bxi/base/log/netsnmp_handler.py
 
 
 
