@@ -118,7 +118,7 @@ static const bxilog_handler_s BXILOG_SNMPLOG_HANDLER_S = {
 };
 const bxilog_handler_p BXILOG_NETSNMP_HANDLER = (bxilog_handler_p) &BXILOG_SNMPLOG_HANDLER_S;
 
-static const int SNMP2BXILOG_LEVELS[] = {
+static const bxilog_level_e SNMP2BXILOG_LEVELS[] = {
     BXILOG_EMERG,       // #define LOG_EMERG       0       /* system is unusable */
     BXILOG_ALERT,       // #define LOG_ALERT       1       /* action must be taken immediately */
     BXILOG_CRIT,        // #define LOG_CRIT        2       /* critical conditions */
