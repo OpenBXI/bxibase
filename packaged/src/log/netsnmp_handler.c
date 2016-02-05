@@ -159,31 +159,21 @@ int bxilog_netsnmp_callback(int majorID, int minorID,
 
     if (NULL == slm->msg) return 0;
 
-//    size_t len = strlen(slm->msg) + 1; // Include the NULL terminating byte
-//
-//    char * buf[len];
-//    if ('\n' == slm->msg[len - 2]) { // Remove the newline char
-//        len--;
-//    };
-//    memcpy(buf, slm->msg, len);
-//    buf[len - 1] = '\0';
-//
-//    // Skip line with nothing in it
-//    if (2 >= len) return 0;
+    // SNMP message always contains the '\n'
+    // We will remove it and replace it by '\0'
+    size_t len = strlen(slm->msg); // Does not include the NULL terminating byte
+    char buf[len];
+    memcpy(buf, slm->msg, len);
 
-//    bxilog_logger_log_rawstr(*logger_p,
-//                             SNMP2BXILOG_LEVELS[slm->priority],
-//                             __FILE__, ARRAYLEN(__FILE__),
-//                             __FUNCTION__, ARRAYLEN(__FUNCTION__),
-//                             __LINE__,
-//                             buf, len);
+    BXIASSERT(*logger_p, '\n' == buf[len-1]);
+    buf[len - 1] = '\0';
 
     bxilog_logger_log_rawstr(*logger_p,
                              SNMP2BXILOG_LEVELS[slm->priority],
                              __FILE__, ARRAYLEN(__FILE__),
                              __FUNCTION__, ARRAYLEN(__FUNCTION__),
                              __LINE__,
-                             slm->msg, strlen(slm->msg)+1);
+                             buf, len);
 
     return 0;
 }

@@ -60,6 +60,7 @@ typedef struct bxilog_console_handler_param_s_f {
     bxilog_level_e stderr_level;
     bxierr_list_p errset;
     size_t lost_logs;
+    int loggername_width;
     char ** colors;
     bxierr_p (*display_out) (char * line,
                              size_t line_len,
@@ -256,6 +257,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxilog_handler_init_param(self, filters, &result->generic);
 
     result->stderr_level = level;
+    result->loggername_width = DEFAULT_LOGGERNAME_WIDTH;
     result->colors = colors;
 
     if (NULL != result->colors) {
@@ -414,7 +416,7 @@ inline bxierr_p _param_destroy(bxilog_console_handler_param_p * data_p) {
 bxierr_p _sync(bxilog_console_handler_param_p data) {
     UNUSED(data);
 
-    bxierr_p err = BXIERR_OK, err2;
+    bxierr_p err = BXIERR_OK;
 
     errno = 0;
     int rc = fflush(stderr);
@@ -504,12 +506,19 @@ inline bxierr_p _display_nocolor(char * line,
     buf[line_len] = '\0';
 
     int rc;
-    if (BXILOG_OUTPUT != record->level) {
+    if (BXILOG_OUTPUT < record->level) {
+        rc = fprintf(param->out, "[%c] %*.*s %s\n",
+                     LOG_LEVEL_STR[record->level],
+                     param->data->loggername_width,
+                     param->data->loggername_width,
+                     param->loggername,
+                     buf);
+    } else if (BXILOG_OUTPUT == record->level) {
+        rc = fprintf(param->out, "%s\n", buf);
+    } else {
         rc = fprintf(param->out, "[%c] %s\n",
                      LOG_LEVEL_STR[record->level],
                      buf);
-    } else {
-        rc = fprintf(param->out, "%s\n", buf);
     }
 
     UNUSED(rc);
@@ -535,14 +544,22 @@ inline bxierr_p _display_color(char * line,
 
     errno = 0;
     int rc;
-    if (BXILOG_OUTPUT != record->level) {
+    if (BXILOG_OUTPUT < record->level) {
+        rc = fprintf(param->out, "%s[%c] %*.*s %s" RESET_COLORS "\n",
+                     data->colors[record->level],
+                     LOG_LEVEL_STR[record->level],
+                     data->loggername_width,
+                     data->loggername_width,
+                     param->loggername,
+                     buf);
+    } else if (BXILOG_OUTPUT == record->level) {
+        rc = fprintf(param->out, "%s%s" RESET_COLORS "\n",
+                     data->colors[record->level],
+                     buf);
+    } else {
         rc = fprintf(param->out, "%s[%c] %s" RESET_COLORS "\n",
                      data->colors[record->level],
                      LOG_LEVEL_STR[record->level],
-                     buf);
-    } else {
-        rc = fprintf(param->out, "%s%s" RESET_COLORS "\n",
-                     data->colors[record->level],
                      buf);
     }
     UNUSED(rc);
