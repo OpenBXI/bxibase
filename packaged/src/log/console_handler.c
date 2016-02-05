@@ -433,7 +433,7 @@ bxierr_p _sync(bxilog_console_handler_param_p data) {
 //    }
 
     UNUSED(rc);
-    UNUSED(err2);
+    //UNUSED(err2);
 
     return err;
 }
