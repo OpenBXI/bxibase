@@ -238,7 +238,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
     };
 
     bxierr_p err = bxistr_apply_lines(logmsg,
-                                      record->logmsg_len,
+                                      record->logmsg_len - 1,
                                       (bxierr_p (*)(char*, size_t, bool, void*)) _log_single_line,
                                       &param);
 

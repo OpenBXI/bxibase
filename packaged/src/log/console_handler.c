@@ -360,13 +360,13 @@ inline bxierr_p _process_log(bxilog_record_p record,
     if (record->level > data->stderr_level) {
         param.out = stdout;
         err = bxistr_apply_lines(logmsg,
-                                 record->logmsg_len,
+                                 record->logmsg_len - 1, // Exclude the NULL terminating byte
                                  (bxierr_p (*)(char*, size_t, bool, void*)) data->display_out,
                                  &param);
     } else {
         param.out = stderr;
         err = bxistr_apply_lines(logmsg,
-                                 record->logmsg_len,
+                                 record->logmsg_len - 1,
                                  (bxierr_p (*)(char*, size_t, bool, void*)) data->display_err,
                                  &param);
     }
