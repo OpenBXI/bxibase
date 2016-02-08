@@ -67,7 +67,7 @@ URL:	 	https://novahpc.frec.bull.fr
 Provides: %{name}
 #Conflicts:
 #TODO: What do you require
-Requires: zeromq3
+Requires: zeromq
 Requires: backtrace
 Requires: python-cffi >= 0.8.6
 
