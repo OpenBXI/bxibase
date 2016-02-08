@@ -346,7 +346,7 @@ bxierr_p _log_single_line(char * line,
 //    bxilog_syslog_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
-    int priority = (int) record->level + 1;
+    int priority = (int) record->level - 1;
 
     if (!last) {
         char s[line_len + 1];
