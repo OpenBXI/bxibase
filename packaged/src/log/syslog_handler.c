@@ -32,6 +32,7 @@
 //*********************************************************************************
 
 #define INTERNAL_LOGGER_NAME "bxi.base.log.handler.syslog"
+#define LOG_IGNORE INT32_MAX
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 //*********************************************************************************
@@ -120,6 +121,21 @@ static const bxilog_handler_s BXILOG_SYSLOG_HANDLER_S = {
 };
 const bxilog_handler_p BXILOG_SYSLOG_HANDLER = (bxilog_handler_p) &BXILOG_SYSLOG_HANDLER_S;
 
+static const bxilog_level_e BXILOG2SYSLOG_LEVELS[] = {
+    LOG_IGNORE,       // BXILOG_OFF: how to deal with that??
+    LOG_EMERG,        // BXILOG_EMERG
+    LOG_ALERT,        // BXILOG_ALERT
+    LOG_CRIT,         // BXILOG_CRIT
+    LOG_ERR,          // BXILOG_ERR
+    LOG_WARNING,      // BXILOG_WARN
+    LOG_NOTICE,       // BXILOG_NOTICE
+    LOG_NOTICE,       // BXILOG_OUT
+    LOG_INFO,         // BXILOG_INFO
+    LOG_DEBUG,        // BXILOG_DEBUG
+    LOG_IGNORE,       // BXILOG_FINE
+    LOG_IGNORE,       // BXILOG_TRACE
+    LOG_IGNORE,       // BXILOG_LOWEST
+};
 //*********************************************************************************
 //********************************** Implementation    ****************************
 //*********************************************************************************
@@ -346,7 +362,9 @@ bxierr_p _log_single_line(char * line,
 //    bxilog_syslog_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
-    int priority = (int) record->level - 1;
+    int priority = BXILOG2SYSLOG_LEVELS[record->level];
+
+    if (LOG_IGNORE == priority) return BXIERR_OK;
 
     if (!last) {
         char s[line_len + 1];
@@ -356,7 +374,6 @@ bxierr_p _log_single_line(char * line,
     } else {
         syslog(priority, "%s", line);
     }
-
 
     return BXIERR_OK;
 }
