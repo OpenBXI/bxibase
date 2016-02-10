@@ -42,7 +42,7 @@ def do_some_logs_threading():
 def do_some_logs_multiprocessing(again):
     bxilog.cleanup()
     bxilog.basicConfig(filename=FILENAME,
-                       filemode='w',
+                       filemode='a',
                        level=bxilog.LOWEST)
     while again.value:
         bxilog.out("Doing a simple log: %s", again)
@@ -54,7 +54,7 @@ def threads_in_process(again):
     __LOOP_AGAIN__ = True
     bxilog.cleanup()
     bxilog.basicConfig(filename=FILENAME,
-                       filemode='w',
+                       filemode='a',
                        level=bxilog.LOWEST)
     threads = []
     for i in xrange(multiprocessing.cpu_count()):
@@ -75,7 +75,7 @@ def threads_in_process(again):
             bxilog.out("Exception: %s", e)
  
  
-class BXILogTest(bxilog.TestCase):
+class BXILogTest(unittest.TestCase):
     """Unit tests for the BXILog
     """
  
@@ -241,6 +241,7 @@ class BXILogTest(bxilog.TestCase):
         self._check_log_produced(name, bxilog.output,
                                  "One log on non-existent (deleted) file: %s", name)
         bxilog.cleanup()
+        os.remove(name)
  
     def test_non_existing_dir(self):
         """Test logging into a non existing tmpdir - this should raise an error"""
@@ -358,7 +359,39 @@ class BXILogTest(bxilog.TestCase):
             except Error as e:
                 bxilog.out("Exception: %s", e)
             self.assertFalse(process.is_alive())
- 
+            
+    def test_exception(self):
+        try:
+            raise ValueError("Exception 1 raised for testing purpose, don't worry")
+        except ValueError as ve:
+            bxilog.exception('Handling exception 1 with no arguments')
+            
+        try:
+            raise ValueError("Exception 2 raised for testing purpose, don't worry")
+        except ValueError as ve:
+            bxilog.exception('Handling exception 2 with 1 argument: %s', ve)
+            
+        try:
+            raise ValueError("Exception 3 raised for testing purpose, don't worry")
+        except ValueError as ve:
+            bxilog.exception('Handling exception 3 with 2 argument: %s - %d', ve, 3)
+        
+        try:
+            raise ValueError("Exception 4 raised for testing purpose, don't worry")
+        except ValueError as ve:
+            bxilog.exception('Handling exception 4 with level only', 
+                             level=bxilog.CRITICAL)
+        try:
+            raise ValueError("Exception 5 raised for testing purpose, don't worry")
+        except ValueError as ve:
+            bxilog.exception('Handling exception 5 with 1 argument and the level: %s',
+                             ve, level=bxilog.CRITICAL)
+        try:
+            raise ValueError("Exception 6 raised for testing purpose, don't worry")
+        except ValueError as ve:
+            bxilog.exception('Handling exception 6 with 2 argument and the level: %s - %d',
+                             ve, 3, level=bxilog.CRITICAL)
+
  
     def test_sighandler(self):
         """Unit test for mantis#19501"""
