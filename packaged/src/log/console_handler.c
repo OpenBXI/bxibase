@@ -507,7 +507,7 @@ inline bxierr_p _display_nocolor(char * line,
 
     int rc;
     if (BXILOG_OUTPUT < record->level) {
-        rc = fprintf(param->out, "[%c] %*.*s %s\n",
+        rc = fprintf(param->out, "[%c] %-*.*s %s\n",
                      LOG_LEVEL_STR[record->level],
                      param->data->loggername_width,
                      param->data->loggername_width,
@@ -545,7 +545,7 @@ inline bxierr_p _display_color(char * line,
     errno = 0;
     int rc;
     if (BXILOG_OUTPUT < record->level) {
-        rc = fprintf(param->out, "%s[%c] %*.*s %s" RESET_COLORS "\n",
+        rc = fprintf(param->out, "%s[%c] %-*.*s %s" RESET_COLORS "\n",
                      data->colors[record->level],
                      LOG_LEVEL_STR[record->level],
                      data->loggername_width,
