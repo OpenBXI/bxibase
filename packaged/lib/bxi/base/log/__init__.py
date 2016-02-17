@@ -22,7 +22,7 @@ Therefore, in most cases, the following code should just work:
 
     import bxi.base.log as logging
 
-    _LOGGER = logging.getLogger('my.logger')
+    _LOGGER = logging.getLogger('~bxilog')
 
 Configuring the logging system is done using the ::basicConfig()
 function which offers as far as possible the same API than Python own's
@@ -369,7 +369,7 @@ def get_default_logger():
     """
     global _DEFAULT_LOGGER
     if _DEFAULT_LOGGER is None:
-        _DEFAULT_LOGGER = getLogger(_ROOT_LOGGER_NAME)
+        _DEFAULT_LOGGER = getLogger('lib' + _ROOT_LOGGER_NAME)
     return _DEFAULT_LOGGER
 
 
@@ -636,7 +636,7 @@ def _showwarning(message, category, filename, lineno, _file=None, line=None):
             _warnings_showwarning(message, category, filename, lineno, _file, line)
     else:
         warning_msg = warnings.formatwarning(message, category, filename, lineno, line)
-        getLogger("py.warnings").warning("%s", warning_msg)
+        getLogger('lib' + 'lib' + "py.warnings").warning("%s", warning_msg)
 
 
 def captureWarnings(capture):

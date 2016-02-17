@@ -20,7 +20,7 @@
 #include "bxi/base/err.h"
 #include "bxi/base/log.h"
 
-SET_LOGGER(TEST_LOGGER, "test.bxibase.err");
+SET_LOGGER(TEST_LOGGER, "test.bxierr");
 
 void test_bxierr() {
     srand((unsigned int)time(NULL));

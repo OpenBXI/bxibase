@@ -85,7 +85,7 @@ static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
 //*********************************************************************************
 
 // The internal logger
-SET_LOGGER(LOGGER, "bxi.base.log.core");
+SET_LOGGER(LOGGER, "~bxilog");
 
 
 static pthread_mutex_t BXILOG_INITIALIZED_MUTEX = PTHREAD_MUTEX_INITIALIZER;

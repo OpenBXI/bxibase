@@ -82,7 +82,7 @@ static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_
 //*********************************************************************************
 
 // The internal logger
-SET_LOGGER(LOGGER, "bxi.base.log.logger");
+SET_LOGGER(LOGGER, "~bxilog.logger");
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
