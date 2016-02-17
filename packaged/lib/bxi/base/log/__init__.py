@@ -159,7 +159,8 @@ LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 # does understand it
 ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
-const = __BXIBASE_CAPI__.bxilog_const
+LIB_PREFIX = __FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX)
+
 
 
 # If True,  bxilog_init() has already been called
