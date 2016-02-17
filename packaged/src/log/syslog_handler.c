@@ -31,7 +31,7 @@
 //********************************** Defines **************************************
 //*********************************************************************************
 
-#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.syslog"
+#define INTERNAL_LOGGER_NAME BXILOG_LIB_PREFIX "bxilog.handler.syslog"
 #define LOG_IGNORE INT32_MAX
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)

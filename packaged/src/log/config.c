@@ -48,7 +48,7 @@
 //*********************************************************************************
 
 // The internal logger
-SET_LOGGER(LOGGER, "~bxilog.cfg");
+SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.cfg");
 
 
 static char * _LOG_LEVEL_NAMES[] = { "off",

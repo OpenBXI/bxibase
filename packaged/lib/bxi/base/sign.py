@@ -16,7 +16,7 @@ import signal
 import bxi.base.log as bxilog
 
 
-_LOGGER = bxilog.getLogger('lib' + __name__)
+_LOGGER = bxilog.getLogger(bxilog.const.LIB_PREFIX + __name__)
 
 
 SIGNALS = ['None',

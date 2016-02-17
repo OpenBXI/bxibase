@@ -84,8 +84,15 @@ static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
 //********************************** Global Variables  ****************************
 //*********************************************************************************
 
+const bxilog_const_s bxilog_const = {
+                                     .LIB_PREFIX = BXILOG_LIB_PREFIX,
+                                     .HB_PREFIX = BXILOG_HB_PREFIX,
+};
+
+
+
 // The internal logger
-SET_LOGGER(LOGGER, "~bxilog");
+SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog");
 
 
 static pthread_mutex_t BXILOG_INITIALIZED_MUTEX = PTHREAD_MUTEX_INITIALIZER;

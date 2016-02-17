@@ -38,7 +38,7 @@
 //********************************** Defines **************************************
 //*********************************************************************************
 
-#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.file.stdio"
+#define INTERNAL_LOGGER_NAME BXILOG_LIB_PREFIX "bxilog.handler.file.stdio"
 
 // WARNING: highly dependent on the log format
 #define YEAR_SIZE 4

@@ -41,7 +41,7 @@
 
 #define ERR_LOG_LIMIT 1061117   // Leet Speak
 
-#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.file"
+#define INTERNAL_LOGGER_NAME BXILOG_LIB_PREFIX "bxilog.handler.file"
 #define DEFAULT_BLOCKS_NB 4
 
 // WARNING: highly dependent on the log format

@@ -32,9 +32,9 @@
 //********************************** Defines **************************************
 //*********************************************************************************
 
-#define INTERNAL_LOGGER_NAME "bxi.base.log.handler.snmplog"
+#define INTERNAL_LOGGER_NAME BXILOG_LIB_PREFIX "bxilog.handler.snmplog"
 
-SET_LOGGER(NETSNMP_LOGGER, "bxilog.netsnmp");
+SET_LOGGER(NETSNMP_LOGGER, BXILOG_LIB_PREFIX "bxilog.netsnmp");
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 //*********************************************************************************

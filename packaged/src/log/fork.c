@@ -42,7 +42,7 @@ static void _child_after_fork(void);
 //*********************************************************************************
 
 // The internal logger
-SET_LOGGER(LOGGER, "bxi.base.log.fork");
+SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.fork");
 
 
 //*********************************************************************************

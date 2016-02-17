@@ -22,11 +22,11 @@ Therefore, in most cases, the following code should just work:
 
     import bxi.base.log as logging
 
-    _LOGGER = logging.getLogger('~bxilog')
+    logging.output('The BXI logging library %s', 'rocks')
 
-Configuring the logging system is done using the ::basicConfig()
-function which offers as far as possible the same API than Python own's
-logging.basicConfig().
+Configuring the logging system is done using the ::set_config() function.
+However, a ::basicConfig() function is provided to offer as far as 
+possible the same API than Python own's logging.basicConfig().
 
 Differences with Python logging module
 ======================================
@@ -46,22 +46,22 @@ an exception:
                                       # from another module of course).
 
     # This will raise a BXILogConfigError
-    logging.basicConfig(filename='+') # Configure the logging system so all logs go
-                                      # to the standard error
+    logging.basicConfig(filename='/tmp/foo.bxilog') # Configure the logging system so all 
+                                                    # logs go to file '/tmp/foo.bxilog'
 
 The reason is that the first log, will initialize the logging system so all messages
 must be displayed on the standard output (by default).
 
 The second call, ask the logging system to change the configuration so all logs now
-must be displayed on the standard error. This leads in the program to a dynamic
+must be written to '/tmp/foo.bxilog'. This leads in the program to a dynamic
 change in the logging outputs which is usually undesired. Hence, an exception is raised.
 If this is really the behavior expected, you might try the following:
 
     try:
-        logging.basicConfig(filename='+')
+        logging.basicConfig(filename='/tmp/foo.bxilog')
     except BXILogConfigError:
         logging.cleanup()
-        logging.basicConfig(filename='+')
+        logging.basicConfig(filename='/tmp/foo.bxilog')
         logging.output("Dynamic reconfiguration of the logging system")
 
 Configuration
@@ -159,6 +159,8 @@ LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 # does understand it
 ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
+const = __BXIBASE_CAPI__.bxilog_const
+
 
 # If True,  bxilog_init() has already been called
 _INITIALIZED = False
@@ -177,11 +179,9 @@ DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
                                                   }
                                        })
 
-# The default logger name
-_ROOT_LOGGER_NAME = ''
-
 # The default logger.
 _DEFAULT_LOGGER = None
+
 
 def is_configured():
     """
@@ -369,7 +369,7 @@ def get_default_logger():
     """
     global _DEFAULT_LOGGER
     if _DEFAULT_LOGGER is None:
-        _DEFAULT_LOGGER = getLogger('lib' + _ROOT_LOGGER_NAME)
+        _DEFAULT_LOGGER = getLogger(os.path.basename(sys.argv[0]))
     return _DEFAULT_LOGGER
 
 
@@ -636,7 +636,7 @@ def _showwarning(message, category, filename, lineno, _file=None, line=None):
             _warnings_showwarning(message, category, filename, lineno, _file, line)
     else:
         warning_msg = warnings.formatwarning(message, category, filename, lineno, line)
-        getLogger('lib' + 'lib' + "py.warnings").warning("%s", warning_msg)
+        getLogger("py.warnings").warning("%s", warning_msg)
 
 
 def captureWarnings(capture):

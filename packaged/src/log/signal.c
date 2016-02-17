@@ -48,7 +48,7 @@ static void _sig_handler(int signum, siginfo_t * siginfo, void * dummy);
 //*********************************************************************************
 
 // The internal logger
-SET_LOGGER(LOGGER, "~bxilog.signal");
+SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.signal");
 
 /* For signals handler */
 static volatile sig_atomic_t FATAL_ERROR_IN_PROGRESS = 0;
