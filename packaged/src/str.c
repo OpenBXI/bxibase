@@ -285,6 +285,10 @@ size_t bxistr_count(const char * s, const char c) {
 }
 
 char * bxistr_mkshorter(char * s, size_t max_len, char sep) {
+    // TODO: unfinished yet!
+    // When there are very few sep, but max_len is wide enough,
+    // still the process will produce strings way too short.
+    // We must be smarter.
     bxiassert(NULL != s);
     bxiassert(0 < max_len);
 
