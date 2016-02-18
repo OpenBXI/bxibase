@@ -195,5 +195,85 @@ void test_bxistr_rfind(void) {
     CU_ASSERT_EQUAL(len, strlen(t));
 
     CU_ASSERT_EQUAL(strlen(path), size);
+}
+
+void test_bxistr_count(void) {
+    char * s = "foo";
+    size_t n = bxistr_count(s, '.');
+    CU_ASSERT_EQUAL(n, 0);
+
+    n = bxistr_count(s, 'f');
+    CU_ASSERT_EQUAL(n, 1);
+
+    n = bxistr_count(s, 'o');
+    CU_ASSERT_EQUAL(n, 2);
+}
+
+void test_bxistr_mkshorter(void) {
+    char * s = "foo";
+    char * r = bxistr_mkshorter(s, 1, '.');
+
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 2, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "fo");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 3, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "foo");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 4, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "foo");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 4, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "foo");
+    BXIFREE(r);
+
+    s = "foo.bar";
+    r = bxistr_mkshorter(s, 1, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 2, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "fo");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 3, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "fob");
+    BXIFREE(r);
+
+    s = "bxi.base.log.config";
+    r = bxistr_mkshorter(s, 1, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "b");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 2, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bx");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 8, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bxibaslo");
+    BXIFREE(r);
+
+    s = "a.b.c.d.e";
+    r = bxistr_mkshorter(s, 5, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "abcde");
+    BXIFREE(r);
+
 
 }

@@ -269,6 +269,63 @@ size_t bxistr_digits_nb(int32_t n) {
     return 10;
 }
 
+size_t bxistr_count(const char * s, const char c) {
+   bxiassert(NULL != s);
+
+   // Trick: increment either i or s. s+i is the current character to check.
+   size_t i = 0;
+   while (s[i] != '\0') {
+       if (s[i] == c) {
+           i++; // Character found, increment i
+       } else {
+           s++; // Character not found, increment s, so s+i is the next character
+       }
+   }
+   return i;
+}
+
+char * bxistr_mkshorter(char * s, size_t max_len, char sep) {
+    bxiassert(NULL != s);
+    bxiassert(0 < max_len);
+
+    char * const result = bximem_calloc((max_len + 1) * sizeof(*result));
+
+    size_t n = bxistr_count(s, sep) + 1;
+    if (1 == n) n = max_len;
+    // We have n subnames. We want to allocate
+    // at least 1 char for the last level
+    // at least 2 char for the last - 1 level
+    // ...
+    // at least n chars for the first level
+    size_t max_in_slot[n];
+    for (size_t i = 0; i < n; i++) max_in_slot[i] = n - i;
+
+    const char * next = s;
+    size_t slot = 0;
+    for (size_t i = 0; i < max_len; i++) {
+        result[i] = *next;              // Allocate the character
+        next++;
+        max_in_slot[slot]--;            // Count the allocation
+
+        if (0 == max_in_slot[slot]) { // We allocated all characters for this level
+            next = strchr(next, sep); // Find next separator
+            if (NULL == next) break; // This is the end
+        }
+        if (sep == *next) { // We reached the next separator
+            next++;                     // Next character is just after
+            if (NULL == next) break;    // This is the end
+            // Distribute the remaining char in slot to all others
+            size_t remaining = max_in_slot[slot];
+            for (size_t k = slot + 1; k < n; k++) {
+                max_in_slot[k] += remaining / (n - slot);
+            }
+            slot++;
+        }
+
+    }
+    return result;
+}
+
 // *********************************************************************************
 // ********************************** Static Functions  ****************************
 // *********************************************************************************

@@ -253,6 +253,16 @@ size_t bxistr_digits_nb(int32_t n);
 
 
 /**
+ * Return the number of occurrence of character 'c' in string 's'
+ */
+size_t bxistr_count(const char * s, const char c);
+
+/**
+ * Make the given string with the given separator shorter, up to the given maximum size.
+ */
+char * bxistr_mkshorter(char * s, size_t max_len, char sep);
+
+/**
  * @example bxistr_examples.c
  * Examples of the bxistr.h module. Compile with `-lbxibase`.
  *

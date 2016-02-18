@@ -43,18 +43,20 @@ char ** ARGV = NULL;
 // However, to prevent defining related .h, we define all functions here
 
 // From test_mem.c
-void test_free();
+void test_free(void);
 
 
 // From test_str.c
-void test_bxistr_apply_lines();
-void test_bxistr_prefix_lines();
-void test_bxistr_join();
+void test_bxistr_apply_lines(void);
+void test_bxistr_prefix_lines(void);
+void test_bxistr_join(void);
 void test_bxistr_rfind(void);
+void test_bxistr_count(void);
+void test_bxistr_mkshorter(void);
 
 // From test_err.c
-void test_bxierr();
-void test_bxierr_chain();
+void test_bxierr(void);
+void test_bxierr_chain(void);
 
 // From test_time.c
 void test_time(void);
@@ -178,6 +180,8 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxistr_suite, "test bxistr_prefix_lines", test_bxistr_prefix_lines))
         || (NULL == CU_add_test(bxistr_suite, "test bxistr_join", test_bxistr_join))
         || (NULL == CU_add_test(bxistr_suite, "test bxistr_rfind", test_bxistr_rfind))
+        || (NULL == CU_add_test(bxistr_suite, "test bxistr_count", test_bxistr_count))
+        || (NULL == CU_add_test(bxistr_suite, "test bxistr_mkshorter", test_bxistr_mkshorter))
         || false) {
         CU_cleanup_registry();
         return (CU_get_error());

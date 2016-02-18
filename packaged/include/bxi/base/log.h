@@ -127,6 +127,11 @@
  */
 #define BXILOG_BADLVL_ERR 840111
 
+/**
+ * The character used for separation in logger names.
+ */
+#define BXILOG_NAME_SEP '.'
+
 #define BXILOG_LIB_PREFIX "~"
 #define BXILOG_HB_PREFIX "?"
 
