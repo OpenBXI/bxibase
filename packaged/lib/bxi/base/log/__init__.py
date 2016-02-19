@@ -242,6 +242,18 @@ def bxilog_excepthook(type_, value, traceback):
     critical('Uncaught Exception: %s' % value, **kwargs)
 
 
+def report_uncaught(func):
+    """
+    Decorator for reporting uncaught exception.
+    """
+    def wrapped(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            exception('Uncaught Exception: %s', e.__class__.__name__)
+    return wrapped
+
+
 def _init():
     """
     Initialize the underlying C library
