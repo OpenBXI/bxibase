@@ -104,7 +104,6 @@ import bxi.base as bxibase
 import bxi.base.err as bxierr
 
 
-
 # Find the C library
 __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
