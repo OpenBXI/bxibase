@@ -102,11 +102,19 @@ void _parent_after_fork(void) {
 
     bxierr_p err = bxilog__init_globals();
     // Can't do a log
-    bxiassert(bxierr_isok(err));
+    if (bxierr_isko(err)) {
+        bxierr_report(&err, STDERR_FILENO);
+        BXILOG__GLOBALS->state = BROKEN;
+        return;
+    }
 
     err = bxilog__start_handlers();
     // Can't do a log
-    bxiassert(bxierr_isok(err));
+    if (bxierr_isko(err)) {
+        bxierr_report(&err, STDERR_FILENO);
+        BXILOG__GLOBALS->state = BROKEN;
+        return;
+    }
 
     if (INITIALIZING != BXILOG__GLOBALS->state) {
         error(EX_SOFTWARE, 0,
