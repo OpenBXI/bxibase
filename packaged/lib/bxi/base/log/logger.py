@@ -15,7 +15,6 @@ from __future__ import print_function
 import sys
 import os
 import traceback
-import cStringIO as StringIO
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
