@@ -331,7 +331,16 @@ bxierr_p _process_exit(bxilog_file_handler_param_p data) {
 }
 
 inline bxierr_p _process_implicit_flush(bxilog_file_handler_param_p data) {
-    return _flush(data);
+    bxierr_p err = BXIERR_OK, err2;
+
+    err2 = _flush(data);
+    BXIERR_CHAIN(err, err2);
+
+    err2 = _sync(data);
+    BXIERR_CHAIN(err, err2);
+
+    return err;
+
 }
 
 inline bxierr_p _process_explicit_flush(bxilog_file_handler_param_p data) {

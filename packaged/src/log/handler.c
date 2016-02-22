@@ -42,6 +42,7 @@
 
 typedef struct {
     bool zmq_context_created;
+    size_t filtered_msg_nb;                   // Number of messages filtered out
     void * ctrl_zocket;
     void * data_zocket;
 
@@ -57,22 +58,54 @@ typedef handler_data_s * handler_data_p;
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxierr_p _mask_signals(bxilog_handler_p);
-static bxierr_p _set_zmq_ctx(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _create_zockets(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _bind_ctrl_zocket(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _bind_data_zocket(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _init_handler(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _send_ready_status(bxilog_handler_p, bxilog_handler_param_p, handler_data_p, bxierr_p err);
-static bxierr_p _loop(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _cleanup(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _internal_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _process_ierr(bxilog_handler_p handler, bxilog_handler_param_p,  bxierr_p err);
-static bxierr_p _process_log_record(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _process_log_zmsg(bxilog_handler_p handler, bxilog_handler_param_p param, zmq_msg_t zmsg);
-static bxierr_p _process_ctrl_cmd(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _process_implicit_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _process_explicit_flush(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
-static bxierr_p _process_exit(bxilog_handler_p, bxilog_handler_param_p, handler_data_p);
+static bxierr_p _set_zmq_ctx(bxilog_handler_p,
+                             bxilog_handler_param_p,
+                             handler_data_p);
+static bxierr_p _create_zockets(bxilog_handler_p,
+                                bxilog_handler_param_p,
+                                handler_data_p);
+static bxierr_p _bind_ctrl_zocket(bxilog_handler_p,
+                                  bxilog_handler_param_p,
+                                  handler_data_p);
+static bxierr_p _bind_data_zocket(bxilog_handler_p,
+                                  bxilog_handler_param_p,
+                                  handler_data_p);
+static bxierr_p _init_handler(bxilog_handler_p,
+                              bxilog_handler_param_p,
+                              handler_data_p);
+static bxierr_p _send_ready_status(bxilog_handler_p,
+                                   bxilog_handler_param_p,
+                                   handler_data_p, bxierr_p err);
+static bxierr_p _loop(bxilog_handler_p,
+                      bxilog_handler_param_p,
+                      handler_data_p);
+static bxierr_p _cleanup(bxilog_handler_p,
+                         bxilog_handler_param_p,
+                         handler_data_p);
+static bxierr_p _internal_flush(bxilog_handler_p,
+                                bxilog_handler_param_p,
+                                handler_data_p);
+static bxierr_p _process_ierr(bxilog_handler_p handler,
+                              bxilog_handler_param_p,
+                              bxierr_p err);
+static bxierr_p _process_log_record(bxilog_handler_p,
+                                    bxilog_handler_param_p,
+                                    handler_data_p);
+static bxierr_p _process_log_zmsg(bxilog_handler_p handler,
+                                  bxilog_handler_param_p param,
+                                  handler_data_p data, zmq_msg_t zmsg);
+static bxierr_p _process_ctrl_cmd(bxilog_handler_p,
+                                  bxilog_handler_param_p,
+                                  handler_data_p);
+static bxierr_p _process_implicit_flush(bxilog_handler_p,
+                                        bxilog_handler_param_p,
+                                        handler_data_p);
+static bxierr_p _process_explicit_flush(bxilog_handler_p,
+                                        bxilog_handler_param_p,
+                                        handler_data_p);
+static bxierr_p _process_exit(bxilog_handler_p,
+                              bxilog_handler_param_p,
+                              handler_data_p);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -92,6 +125,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
     param->data_hwm = 1000;
     param->ctrl_hwm = 1000;
     param->poll_timeout_ms = 1000;
+    param->filtered_msgs_max = 20;
     param->filters = filters;
 
     // Use the param pointer to guarantee a unique URL name for different instances of
@@ -363,10 +397,23 @@ bxierr_p _loop(bxilog_handler_p handler,
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
         }
-        if (0 == rc) {
-            // Nothing to poll -> do a flush() and start again
+//        fprintf(stderr, "Flush: %zu %zu\n", param->filtered_msgs_max, data->filtered_msgs);
+        if (0 == rc || param->filtered_msgs_max < data->filtered_msg_nb) {
+            // 0== rc: nothing to poll -> do a flush() and start again
+            // param->filtered_msgs_max <= data->filtered_msgs:
+            // we might have received billions of logs that were filtered out
+            // and very few of them have been filtered in (accepted by the handler)
+            // however, if we do not flush, those accepted messages might never
+            // be seen unless an explicit flush is requested. As an example,
+            // if the handler (file_handler) buffers messages, only few of them have
+            // reached the buffer in let say 10 minutes which is therefore almost
+            // empty and not written to the underlying storage. For the end user
+            // it seems therefore that nothing happened at all! So ask for an
+            // implicit flush.
+
             err2 = _process_implicit_flush(handler, param, data);
             BXIERR_CHAIN(err, err2);
+            data->filtered_msg_nb = 0;
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
             continue;
@@ -462,7 +509,7 @@ bxierr_p _process_log_record(bxilog_handler_p handler,
         return err;
     }
 
-    err2 = _process_log_zmsg(handler, param, zmsg);
+    err2 = _process_log_zmsg(handler, param, data, zmsg);
     BXIERR_CHAIN(err, err2);
     /* Release */
     err2 = bxizmq_msg_close(&zmsg);
@@ -473,6 +520,7 @@ bxierr_p _process_log_record(bxilog_handler_p handler,
 
 bxierr_p _process_log_zmsg(bxilog_handler_p handler,
                            bxilog_handler_param_p param,
+                           handler_data_p data,
                            zmq_msg_t zmsg) {
 
 
@@ -510,6 +558,8 @@ bxierr_p _process_log_zmsg(bxilog_handler_p handler,
             err = handler->process_log(record,
                                        filename, funcname, loggername, logmsg,
                                        param);
+    } else {
+        data->filtered_msg_nb++;
     }
 
     return err;
