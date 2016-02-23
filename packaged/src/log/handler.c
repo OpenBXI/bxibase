@@ -42,7 +42,6 @@
 
 typedef struct {
     bool zmq_context_created;
-    size_t filtered_msg_nb;                   // Number of messages filtered out
     void * ctrl_zocket;
     void * data_zocket;
 
@@ -124,8 +123,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
     param->zmq_context = NULL;
     param->data_hwm = 1000;
     param->ctrl_hwm = 1000;
-    param->poll_timeout_ms = 1000;
-    param->filtered_msgs_max = 20;
+    param->flush_freq_ms = 1000;
     param->filters = filters;
 
     // Use the param pointer to guarantee a unique URL name for different instances of
@@ -380,9 +378,16 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     zmq_pollitem_t items[] = { { data->ctrl_zocket, 0, ZMQ_POLLIN, 0 },
                                { data->data_zocket, 0, ZMQ_POLLIN, 0 } };
+
+    long actual_timeout = param->flush_freq_ms;
+    struct timespec last_flush_time;
+    err2 = bxitime_get(CLOCK_MONOTONIC_RAW, &last_flush_time);
+    if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
+
     while (true) {
         errno = 0;
-        int rc = zmq_poll(items, 2, param->poll_timeout_ms);
+        int rc = zmq_poll(items, 2, actual_timeout);
+
         if (-1 == rc) {
             if (EINTR == errno) continue; // One interruption happened
                                           // (e.g. with profiling)
@@ -397,10 +402,20 @@ bxierr_p _loop(bxilog_handler_p handler,
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
         }
-//        fprintf(stderr, "Flush: %zu %zu\n", param->filtered_msgs_max, data->filtered_msgs);
-        if (0 == rc || param->filtered_msgs_max < data->filtered_msg_nb) {
-            // 0== rc: nothing to poll -> do a flush() and start again
-            // param->filtered_msgs_max <= data->filtered_msgs:
+        double tmp;
+        err2 = bxitime_duration(CLOCK_MONOTONIC_RAW, last_flush_time, &tmp);
+        if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
+        long duration_since_last_flush = (long) (tmp * 1e3);
+
+        actual_timeout = param->flush_freq_ms - duration_since_last_flush;
+
+//        fprintf(stderr,
+//                "Duration: %ld, Actual Timeout:  %ld\n",
+//                duration_since_last_flush, actual_timeout);
+
+        if (0 == rc || 0 >= actual_timeout) {
+            // 0 == rc: nothing to poll -> do a flush() and start again
+            // 0 >= actual_timeout:
             // we might have received billions of logs that were filtered out
             // and very few of them have been filtered in (accepted by the handler)
             // however, if we do not flush, those accepted messages might never
@@ -408,12 +423,17 @@ bxierr_p _loop(bxilog_handler_p handler,
             // if the handler (file_handler) buffers messages, only few of them have
             // reached the buffer in let say 10 minutes which is therefore almost
             // empty and not written to the underlying storage. For the end user
-            // it seems therefore that nothing happened at all! So ask for an
-            // implicit flush.
+            // it seems therefore that nothing happened at all! So we must guarantee
+            // implicit flush is requested at regular interval
 
+//            fprintf(stderr, "Implicit flush\n");
             err2 = _process_implicit_flush(handler, param, data);
             BXIERR_CHAIN(err, err2);
-            data->filtered_msg_nb = 0;
+
+            err2 = bxitime_get(CLOCK_MONOTONIC_RAW, &last_flush_time);
+            if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
+            actual_timeout = param->flush_freq_ms;
+
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) return err;
             continue;
@@ -559,7 +579,7 @@ bxierr_p _process_log_zmsg(bxilog_handler_p handler,
                                        filename, funcname, loggername, logmsg,
                                        param);
     } else {
-        data->filtered_msg_nb++;
+        UNUSED(data);
     }
 
     return err;

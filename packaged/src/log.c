@@ -203,7 +203,6 @@ bxierr_p bxilog_finalize(bool flush) {
 
     DEBUG(LOGGER, "Exiting bxilog");
 
-
     err = bxilog__finalize();
 
     if (bxierr_isko(err)) {

@@ -108,9 +108,7 @@ typedef struct {
                                         //!< a new one will be created
     int data_hwm;                       //!< ZMQ High Water Mark for the data socket
     int ctrl_hwm;                       //!< ZMQ High Water Mark for the control socket
-    long poll_timeout_ms;               //!< Polling timeout in milliseconds
-    size_t filtered_msgs_max;           //!< Maximum number of filtered message before
-                                        //!< a flush is requested
+    long flush_freq_ms;                 //!< Implicit flush frequency
     char * data_url;                    //!< The data zocket URL
     char * ctrl_url;                    //!< The control zocket URL
     bxilog_filters_p filters;           //!< The filters
