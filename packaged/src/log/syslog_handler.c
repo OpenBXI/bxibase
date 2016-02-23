@@ -121,7 +121,7 @@ static const bxilog_handler_s BXILOG_SYSLOG_HANDLER_S = {
 };
 const bxilog_handler_p BXILOG_SYSLOG_HANDLER = (bxilog_handler_p) &BXILOG_SYSLOG_HANDLER_S;
 
-static const bxilog_level_e BXILOG2SYSLOG_LEVELS[] = {
+static const int BXILOG2SYSLOG_LEVELS[] = {
     LOG_IGNORE,       // BXILOG_OFF: how to deal with that??
     LOG_EMERG,        // BXILOG_EMERG
     LOG_ALERT,        // BXILOG_ALERT
