@@ -12,10 +12,11 @@ TESTS = \
 		unit_t\
 		../packaged/doc/examples/bxistr_examples\
 		../packaged/doc/examples/bxilog_err\
-if HAVE_PYTHON
-		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py \
-endif
 		../packaged/doc/examples/bxilog_cfg
+if HAVE_PYTHON
+TESTS += \
+		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py
+endif
 
 check_PROGRAMS= \
 				unit_t\
