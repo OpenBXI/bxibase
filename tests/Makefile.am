@@ -6,13 +6,13 @@ check-local:
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 		LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 		nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS};\
-		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py
 endif
 
 TESTS = \
 		unit_t\
 		../packaged/doc/examples/bxistr_examples\
 		../packaged/doc/examples/bxilog_err\
+		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py \
 		../packaged/doc/examples/bxilog_cfg
 
 check_PROGRAMS= \
@@ -39,9 +39,13 @@ unit_t_LDADD=$(top_builddir)/packaged/lib/libbxibase.la\
 
 #TESTS_ENVIRONMENT=@VALGRIND@ @VALGRIND_ARGS@
 AUTOMAKE_OPTIONS = parallel-tests
-TEST_EXTENSIONS = .pl .sh
+TEST_EXTENSIONS = .pl .sh .py
 LOG_COMPILER =${VALGRIND}  `if   test "${VALGRIND}" !=  ""   ; then echo "${VALGRIND_ARGS}"; fi`
 LOG_DRIVER=$(top_srcdir)/custom-test-driver
+PY_LOG_DRIVER=PYTHONPATH=${abs_top_srcdir}/packaged/lib/:${abs_top_builddir}/packaged/lib/:${abs_top_srcdir}/tests:$${PYTHONPATH} \
+			   PATH=${abs_top_srcdir}/packaged/bin:${abs_top_srcdir}/packaged/doc/examples:${PATH}\
+			   LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
+			   ${LOG_DRIVER}
 
 compile_tests:$(check_PROGRAMS)
 
