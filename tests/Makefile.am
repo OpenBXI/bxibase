@@ -6,7 +6,7 @@ check-local:
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 		LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 		nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS};\
-		../packaged/doc/examples/bxilog_multiprocessing.py
+		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py
 endif
 
 TESTS = \
