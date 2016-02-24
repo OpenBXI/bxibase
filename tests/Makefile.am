@@ -5,15 +5,15 @@ if HAVE_PYTHON
 check-local: 
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 		LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-		nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS}
+		nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS};\
+		../packaged/doc/examples/bxilog_multiprocessing.py
 endif
 
 TESTS = \
 		unit_t\
 		../packaged/doc/examples/bxistr_examples\
 		../packaged/doc/examples/bxilog_err\
-		../packaged/doc/examples/bxilog_cfg\
-		../packaged/doc/examples/bxilog_multiprocessing.py
+		../packaged/doc/examples/bxilog_cfg
 
 check_PROGRAMS= \
 				unit_t\
