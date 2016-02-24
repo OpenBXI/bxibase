@@ -51,7 +51,6 @@
  *      - `::BXILOG_CONSOLE_HANDLER`: log to standard output and standard error;
  *      - `::BXILOG_FILE_HANDLER`: log to a file;
  *      - `::BXILOG_SYSLOG_HANDLER`: log to syslog;
- *      - `::BXILOG_SNMPLOG_HANDLER`: redirect bxilogs to the net-snmp logging library
  *
  * ### Basic 5-steps usage
  *
@@ -139,10 +138,12 @@
 // ********************************** Types   **************************************
 // *********************************************************************************
 
-// BXI Logging Constants (mainly for higher level languages binding)
+/**
+ * BXI Logging Constants Type (mainly for higher level languages binding)
+ */
 typedef struct {
-    char * LIB_PREFIX;
-    char * HB_PREFIX;
+    char * LIB_PREFIX;      //!< The library prefix used for logger names
+    char * HB_PREFIX;       //!< The heartbeat prefix used for logger names
 } bxilog_const_s;
 
 // *********************************************************************************
@@ -150,6 +151,9 @@ typedef struct {
 // *********************************************************************************
 
 #ifndef BXICFFI
+/**
+ * BXI Logging Constants (mainly for higher level languages binding)
+ */
 extern const bxilog_const_s bxilog_const;
 #else
 extern bxilog_const_s bxilog_const;

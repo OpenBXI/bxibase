@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-@file log.py Python binding of the BXI High Performance Logging Library
+Python binding of the BXI High Performance Logging Library
+@namespace bxi.base.log
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
 @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
-@namespace bxi.base.log Python binding of the BXI High Performance Logging Library
+
 
 This module exposes a simple Python binding over the BXI High Performance Logging Library.
 
@@ -20,12 +21,14 @@ with much better overall performances, and a similar API for basic usage.
 
 Therefore, in most cases, the following code should just work:
 
-    import bxi.base.log as logging
+~~~~~~~~~{.py}
+import bxi.base.log as logging
 
-    logging.output('The BXI logging library %s', 'rocks')
+logging.output('The BXI logging library %s', 'rocks')
+~~~~~~~~~
 
-Configuring the logging system is done using the ::set_config() function.
-However, a ::basicConfig() function is provided to offer as far as 
+Configuring the logging system is done using the set_config function.
+However, a basicConfig function is provided to offer as far as
 possible the same API than Python own's logging.basicConfig().
 
 Differences with Python logging module
@@ -39,39 +42,44 @@ can be done only once in the whole process. The logging system is initialized as
 as a log is performed. Therefore the following sequence of instructions will lead to
 an exception:
 
-    import bxi.base.log as logging
+~~~~~~~~{.py}
+import bxi.base.log as logging
 
-    logging.output("This is a log")   # This actually initialize the logging system
-                                      # (unless another log has already been emitted
-                                      # from another module of course).
+logging.output("This is a log")   # This actually initialize the logging system
+                                  # (unless another log has already been emitted
+                                  # from another module of course).
 
-    # This will raise a BXILogConfigError
-    logging.basicConfig(filename='/tmp/foo.bxilog') # Configure the logging system so all 
-                                                    # logs go to file '/tmp/foo.bxilog'
+# This will raise a BXILogConfigError
+logging.set_config(filename='/tmp/foo.bxilog') # Configure the logging system so all 
+                                               # logs go to file '/tmp/foo.bxilog'
+~~~~~~~~
 
 The reason is that the first log, will initialize the logging system so all messages
 must be displayed on the standard output (by default).
 
 The second call, ask the logging system to change the configuration so all logs now
-must be written to '/tmp/foo.bxilog'. This leads in the program to a dynamic
+must be written to '/tmp/foo.bxilog'. This leads to a dynamic
 change in the logging outputs which is usually undesired. Hence, an exception is raised.
-If this is really the behavior expected, you might try the following:
+If this is really the behavior expected, you must do the following:
 
-    try:
-        logging.basicConfig(filename='/tmp/foo.bxilog')
-    except BXILogConfigError:
-        logging.cleanup()
-        logging.basicConfig(filename='/tmp/foo.bxilog')
-        logging.output("Dynamic reconfiguration of the logging system")
+~~~~~~~~~{.py}
+try:
+    logging.basicConfig(filename='/tmp/foo.bxilog')
+except BXILogConfigError:
+    logging.cleanup()
+    logging.basicConfig(filename='/tmp/bar.bxilog')
+    logging.output("Dynamic reconfiguration of the logging system")
+~~~~~~~~~
 
 Configuration
 ---------------
 
 This module does not provide a hierarchy of loggers as per the Python logging API.
 Each logger holds its own logging level and this has no relationship with any other
+loggers. Therefore, setting the level of a given logger does not affect any other 
 loggers.
 
-However, the configuration of the logging system is based on prefix matching.
+However, the filtering in the logging system is based on prefix matching.
 
 
 Log levels
@@ -82,6 +90,31 @@ syslog facility (from ::PANIC to ::NOTICE), and enhanced with
 lower detailed levels (from ::OUT to ::LOWEST).
 See the ::bxilog_level_e documentation of the underlying C API log.h
 for details on those levels.
+
+Uncaught Exception
+-------------------
+
+Uncaught exception are automatically reported by the logging system 
+using bxi.base.log::exception
+
+**Note however that there is an issue with the Python multiprocessing module and 
+a simple workaround. See bxi.base.log::multiprocessing_target for details.**
+
+
+Python Warning Systems
+-----------------------
+
+The Python warning systems can be captured by the  bxi logging system, 
+see bxi.base.log::captureWarnings for details.
+
+Automatic cleanup and flush
+----------------------------
+
+The BXI logging library must be cleaned up before exit to prevent messages lost.
+This is automatically done in Python.
+
+**Note however that there is an issue with the Python multiprocessing module and 
+a simple workaround: See bxi.base.log::multiprocessing_target for details.**
 
 """
 from __future__ import print_function
@@ -161,7 +194,6 @@ ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 LIB_PREFIX = __FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX)
 
 
-
 # If True,  bxilog_init() has already been called
 _INITIALIZED = False
 
@@ -177,7 +209,7 @@ DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
                                                   'stderr_level': 'WARNING',
                                                   'colors': '216_dark',
                                                   }
-                                       })
+                                      })
 
 # The default logger.
 _DEFAULT_LOGGER = None
@@ -242,15 +274,32 @@ def bxilog_excepthook(type_, value, traceback):
     critical('Uncaught Exception: %s' % value, **kwargs)
 
 
-def report_uncaught(func):
+def multiprocessing_target(func):
     """
-    Decorator for reporting uncaught exception.
+    Decorator for multiprocessing target function.
+
+    This decorator works around two multiprocessing modules issues:
+
+    - multiprocessing does not call defined except hook:
+      see http://bugs.python.org/issue1230540
+
+    - multiprocessing does not call atexit:
+      see http://bugs.python.org/issue23489
+
+    This decorator must be used as in the following code snippet to guarantee:
+
+    - uncaught exception are correctly reported by bxilog
+    - the bxi logging library is cleaned up on exit
+
+### @snippet bxilog_multiprocessing.py BXI Log and Python multiprocessing module
     """
     def wrapped(*args, **kwargs):
         try:
             func(*args, **kwargs)
         except Exception as e:
             exception('Uncaught Exception: %s', e.__class__.__name__)
+        finally:
+            cleanup()
     return wrapped
 
 
@@ -270,7 +319,6 @@ def _init():
     from . import config as bxilogconfig
     from . import filter as bxilogfilter
 
-    handler_filters = set()
     c_config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
 
     try:
@@ -653,9 +701,10 @@ def _showwarning(message, category, filename, lineno, _file=None, line=None):
 
 def captureWarnings(capture):
     """
-    If capture is true, redirect all warnings to the logging package.
-    If capture is False, ensure that warnings are not redirected to logging
+    If capture is False, ensure that warnings are not redirected to bxi logging
     but to their original destinations.
+
+    @param[in] capture if true, redirect all warnings to the bxi logging package
     """
     global _warnings_showwarning
     if capture:
@@ -712,6 +761,15 @@ class FileLike(object):
 
 
 class TestCase(unittest.TestCase):
+    """
+    Base class for unit testing with the logging system.
+
+    This class defines the filename where logs are produced according 
+    to the basename of the unit program launched and the directory returned
+    by tempfile.gettempdir().
+
+    Files are overwritten by default.
+    """
     BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
                                    "%s.bxilog" % os.path.basename(sys.argv[0]))
 
@@ -726,3 +784,10 @@ class TestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cleanup()
+
+
+##
+# @example bxilog_multiprocessing.py
+# Using bxilog with the Python multiprocessing module
+#
+

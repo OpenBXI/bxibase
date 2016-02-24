@@ -30,6 +30,8 @@ class BXIError(Exception):
         Create a new BXIError instance.
 
         @param[in] msg a message
+        @param[in] cause the cause of the error
+        @param[in] traceback the traceback of the error
         """
         super(BXIError, self).__init__(msg)
         self.msg = msg
@@ -52,8 +54,8 @@ class BXICError(BXIError):
         super(BXICError, self).__init__(err_msg)
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
-        _cause = bxierr_p.cause
-        self.cause = BXICError(_cause) if _cause != __FFI__.NULL else None
+        cause_ = bxierr_p.cause
+        self.cause = BXICError(cause_) if cause_ != __FFI__.NULL else None
         self.bxierr_pp = __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
 
     def __str__(self):

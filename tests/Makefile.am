@@ -12,7 +12,8 @@ TESTS = \
 		unit_t\
 		../packaged/doc/examples/bxistr_examples\
 		../packaged/doc/examples/bxilog_err\
-		../packaged/doc/examples/bxilog_cfg
+		../packaged/doc/examples/bxilog_cfg\
+		../packaged/doc/examples/bxilog_multiprocessing.py
 
 check_PROGRAMS= \
 				unit_t\
@@ -69,7 +70,8 @@ DISTCLEANFILES=\
 EXTRA_DIST=\
 		   ../packaged/doc/examples/bxistr_examples.c\
 		   ../packaged/doc/examples/bxilog_err.c\
-		   ../packaged/doc/examples/bxilog_cfg.c
+		   ../packaged/doc/examples/bxilog_cfg.c\
+		   ../packaged/doc/examples/bxilog_multiprocessing.py
 
 
 ___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la

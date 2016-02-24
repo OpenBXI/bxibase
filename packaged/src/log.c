@@ -232,7 +232,7 @@ UNLOCK:
 
 bxierr_p bxilog_flush(void) {
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
-    DEBUG(LOGGER, "Requesting a flush()");
+    FINE(LOGGER, "Requesting a flush()");
     tsd_p tsd = NULL;
     bxierr_p err = bxilog__tsd_get(&tsd);
     if (bxierr_isko(err)) return err;
@@ -271,8 +271,8 @@ bxierr_p bxilog_flush(void) {
                                  "flushing %zu handlers.",
                                  BXILOG__GLOBALS->config->handlers_nb);
     }
-    DEBUG(LOGGER, "flush() done succesfully on all %zu handlers",
-          BXILOG__GLOBALS->config->handlers_nb);
+    FINE(LOGGER, "flush() done succesfully on all %zu handlers",
+         BXILOG__GLOBALS->config->handlers_nb);
 
     bxierr_list_destroy(&errlist);
     return BXIERR_OK;

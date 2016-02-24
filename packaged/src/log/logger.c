@@ -121,7 +121,6 @@ bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_lev
     tsd_p tsd;
     bxierr_p err = bxilog__tsd_get(&tsd);
     if (bxierr_isko(err)) return err;
-
     err = _send2handlers(logger, level, tsd->data_channel,
 #ifdef __linux__
                     tsd->tid,

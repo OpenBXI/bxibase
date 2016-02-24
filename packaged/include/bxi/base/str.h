@@ -254,11 +254,21 @@ size_t bxistr_digits_nb(int32_t n);
 
 /**
  * Return the number of occurrence of character 'c' in string 's'
+ *
+ * @param[in] s a NULL terminated string
+ * @param[in] c the character to look after in s
+ * @return the number of occurrence of character 'c' in string 's'
  */
 size_t bxistr_count(const char * s, const char c);
 
 /**
  * Make the given string with the given separator shorter, up to the given maximum size.
+ *
+ * @param[in] s a string
+ * @param[in] max_len the maximum number of characters allowed for the result
+ * @param[in] sep a separator in 's' that is used for character selection
+ *
+ * @return a string with maximum max_len characters somehow related to 's'.
  */
 char * bxistr_mkshorter(char * s, size_t max_len, char sep);
 
