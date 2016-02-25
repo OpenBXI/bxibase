@@ -10,23 +10,39 @@
 
 """
 
-from cffi import FFI
-from cffi.api import CDefError
+import cffi
+import cffi.api
 
-__FFI__ = FFI()
+__FFI__ = cffi.FFI()
+
+
+# C helper functions
+try:
+    __FFI__.cdef('''FILE *fmemopen(void *, size_t, const char*);
+                 int fclose(FILE*);''')
+except cffi.FFIError:
+    # only once is needed
+    pass
 
 
 def add_cdef_for_type(ctype, cdef, packed=False):
+    '''
+    Define the given cdef, only if given ctype isn't defined yet.
+
+    Warning: this doesn't work for function ctype !
+
+    @return None
+    '''
+    try:
+        __FFI__.getctype(ctype)
+    except cffi.api.CDefError:
+        __FFI__.cdef(cdef, packed)
+
+
+def get_ffi():
     """
     Return the ffi object used by this module to interact with the C backend.
 
     @return the ffi object used by this module to interact with the C backend.
     """
-    try:
-        __FFI__.getctype(ctype)
-    except CDefError:
-        __FFI__.cdef(cdef, packed)
-
-
-def get_ffi():
     return __FFI__
