@@ -61,7 +61,6 @@ class BXICError(BXIError):
     def __str__(self):
         return self.message
 
-
     @staticmethod
     def chain(cause, err):
         """
