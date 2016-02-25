@@ -261,10 +261,10 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     result->colors = colors;
 
     if (NULL != result->colors) {
-//        result->display_out = isatty(STDOUT_FILENO) ? _display_color : _display_nocolor;
-//        result->display_err = isatty(STDERR_FILENO) ? _display_color : _display_nocolor;
-        result->display_out = _display_color;
-        result->display_err = _display_color;
+        result->display_out = isatty(STDOUT_FILENO) ? _display_color : _display_nocolor;
+        result->display_err = isatty(STDERR_FILENO) ? _display_color : _display_nocolor;
+//        result->display_out = _display_color;
+//        result->display_err = _display_color;
     } else {
         result->display_out = _display_nocolor;
         result->display_err = _display_nocolor;
