@@ -97,17 +97,18 @@ class BXICError(BXIError):
         """
         return __BXIBASE_CAPI__.bxierr_isok(bxierr_p)
 
-    @staticmethod
-    def raise_if_ko(bxierr_p):
+    @classmethod
+    def raise_if_ko(cls, bxierr_p):
         """
         Raise a BXICError if the given ::bxierr_p is ko.
 
+        @param[in] cls invoking class, to be raised if ko
         @param[in] bxierr_p the ::bxierr_p
         @return
         @exception BXICError the corresponding BXICError if the given ::bxierr_p is ko.
         """
         if __BXIBASE_CAPI__.bxierr_isko(bxierr_p):
-            raise BXICError(bxierr_p)
+            raise cls(bxierr_p)
 
     @staticmethod
     def errno2bxierr(msg):
