@@ -274,6 +274,39 @@ void test_bxistr_mkshorter(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
     CU_ASSERT_STRING_EQUAL(r, "abcde");
     BXIFREE(r);
+}
 
+
+void test_bxistr_hex(void) {
+    char * s = NULL;
+    uint8_t buf[512] = {0};
+    uint8_t * pbuf = buf;
+
+    bxierr_p err = bxistr_hex2bytes(s, 0, &pbuf);
+    CU_ASSERT_TRUE(bxierr_isko(err));
+    bxierr_destroy(&err);
+
+    s = "";
+    err = bxistr_hex2bytes(s, 0, &pbuf);
+    CU_ASSERT_TRUE(bxierr_isko(err));
+    bxierr_destroy(&err);
+
+    s = "abcdef";
+    err = bxistr_hex2bytes(s, 1, &pbuf); // Length must be even
+    CU_ASSERT_TRUE(bxierr_isko(err));
+    bxierr_destroy(&err);
+
+    s = "abcdef";
+    err = bxistr_hex2bytes(s, strlen(s), &pbuf);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_EQUAL(0xab, buf[0]);
+    CU_ASSERT_EQUAL(0xcd, buf[1]);
+    CU_ASSERT_EQUAL(0xef, buf[2]);
+
+    char * t = NULL;
+    err = bxistr_bytes2hex(buf, strlen(s)/2, &t);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(t);
+    CU_ASSERT_STRING_EQUAL(s, t);
 
 }

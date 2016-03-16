@@ -273,6 +273,39 @@ size_t bxistr_count(const char * s, const char c);
 char * bxistr_mkshorter(char * s, size_t max_len, char sep);
 
 /**
+ * Transform the given hexadecimal string into its related array of bytes.
+ *
+ * If *pbuf is NULL, a new buffer will be allocated. It will have to be
+ * freed (see BXIFREE()).
+ *
+ * @param[in] s a string
+ * @param[in] len the length of the string 's' (must be even)
+ * @param[inout] pbuf a pointer on the buffer where the result must be produced
+ *
+ * @return BXIERR_OK on success, anything else on error
+ *
+ * @see bxistr_bytes2hex
+ */
+bxierr_p bxistr_hex2bytes(char * s, size_t len, uint8_t ** pbuf);
+
+/**
+ * Transform the given array of bytes into its related hexadecimal string.
+ *
+ * If *ps is NULL, a new string will be allocated. It will have to be freed
+ * (see BXIFREE()).
+ *
+ * @param[in] buf the array of bytes
+ * @param[in] len the length of array of bytes
+ * @param[inout] ps a pointer on the the resulting string
+ *
+ * @return BXIERR_OK on success, anything else on error
+ *
+ * @see bxistr_hex2bytes()
+ */
+bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps);
+
+
+/**
  * @example bxistr_examples.c
  * Examples of the bxistr.h module. Compile with `-lbxibase`.
  *

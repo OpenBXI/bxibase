@@ -330,6 +330,74 @@ char * bxistr_mkshorter(char * s, size_t max_len, char sep) {
     return result;
 }
 
+bxierr_p bxistr_hex2bytes(char * s, size_t len, uint8_t ** pbuf) {
+    // Adapted from:
+    // http://stackoverflow.com/questions/3408706/hexadecimal-string-to-byte-array-in-c
+    if (NULL == s) return bxierr_gen("Null pointer given for s parameter");
+
+    if (0 == len || 0 != len % 2) return bxierr_gen("Wrong string length: %zu must be "
+                                                    "a strictly positive even number",
+                                                    len);
+
+    size_t dlength = len / 2;
+
+    if (NULL == *pbuf) *pbuf = bximem_calloc(dlength * sizeof(**pbuf));
+    uint8_t * buf = *pbuf;
+
+    size_t index = 0;
+
+    while (index < len) {
+        const char c = s[index];
+
+        int value;
+        if (c >= '0' && c <= '9') value = (c - '0');
+        else if (c >= 'A' && c <= 'F') value = (10 + (c - 'A'));
+        else if (c >= 'a' && c <= 'f') value = (10 + (c - 'a'));
+        else return bxierr_gen("Non hexadecimal digit: %c in %s", c, s);
+
+        // Multiple lines required to remove GCC warning conversion removals
+
+        // (index + 1) % 2: We want odd numbers to result to 1 and even to 0
+        // since the first digit of a hex string is the most significant and
+        // needs to be multiplied by 16. so for index 0 => 0 + 1 % 2 = 1,
+        // index 1 => 1 + 1 % 2 = 0 etc.
+        // << 4: Shift by 4 is multiplying by 16. example: b00000001 << 4 = b00010000
+        uint8_t add = (uint8_t) (value << (((index + 1) % 2) * 4));
+        // index / 2 :
+        // Division between integers will round down the value,
+        // so 0/2 = 0, 1/2 = 0, 2/2 = 1, 3/2 = 0 etc.
+        // So, for every 2 string characters we add the value to 1 data byte.
+        uint8_t cur = buf[(index/2)];
+        buf[(index/2)] = (uint8_t) (cur + add);
+        index++;
+    }
+
+    return BXIERR_OK;
+}
+
+bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps) {
+    // Modified from:
+    // http://stackoverflow.com/questions/6357031/how-do-you-convert-buffer-byte-array-to-hex-string-in-c
+
+    static const char hex_str[]= "0123456789abcdef";
+
+    if (NULL == buf) return bxierr_gen("Null pointer given for buf parameter.");
+    if (NULL == ps) return bxierr_gen("Null pointer given for ps parameter");
+
+    if (NULL == *ps) *ps = bximem_calloc((len * 2 + 1) * sizeof(**ps));
+
+    char * out = *ps;
+    out[len * 2] = '\0';
+
+    for (size_t i = 0; i < len; i++) {
+        out[i * 2 + 0] = hex_str[(buf[i] >> 4) & 0x0F];
+        out[i * 2 + 1] = hex_str[(buf[i]     ) & 0x0F];
+    }
+
+    return BXIERR_OK;
+}
+
+
 // *********************************************************************************
 // ********************************** Static Functions  ****************************
 // *********************************************************************************
