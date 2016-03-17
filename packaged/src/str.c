@@ -335,7 +335,7 @@ bxierr_p bxistr_hex2bytes(char * s, size_t len, uint8_t ** pbuf) {
     // http://stackoverflow.com/questions/3408706/hexadecimal-string-to-byte-array-in-c
     if (NULL == s) return bxierr_gen("Null pointer given for s parameter");
 
-    if (0 == len || 0 != len % 2) return bxierr_gen("Wrong string length: %zu must be "
+    if (0 == len || 0 != len % 2) return bxierr_gen("Wrong string length: %zu, it must be "
                                                     "a strictly positive even number",
                                                     len);
 

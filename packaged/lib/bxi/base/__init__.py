@@ -67,6 +67,10 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
         self._len = n
         self._buf = __FFI__.buffer(ctab, n)
 
+    @property
+    def buffer(self):
+        return self._buf
+
     def __raw_getitem__(self, index):
         return ord(self._buf[index])
 
