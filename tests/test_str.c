@@ -308,5 +308,6 @@ void test_bxistr_hex(void) {
     CU_ASSERT_TRUE(bxierr_isok(err));
     CU_ASSERT_PTR_NOT_NULL_FATAL(t);
     CU_ASSERT_STRING_EQUAL(s, t);
+    BXIFREE(t);
 
 }
