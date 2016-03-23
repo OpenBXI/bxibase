@@ -43,11 +43,12 @@ class BXICError(BXIError):
     """
     Wrap a ::bxierr_p into a Python exception
     """
-    def __init__(self, bxierr_p):
+    def __init__(self, bxierr_p, gc=True):
         """
         Create a new instance for the given ::bxierr_p
 
         @param[in] bxierr_p a ::bxierr_p C pointer
+        @param[in] gc if bxierr_destroy should be called
         """
 #        err_msg = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
         err_msg = __FFI__.string(bxierr_p.msg)
@@ -55,8 +56,9 @@ class BXICError(BXIError):
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
         cause_ = bxierr_p.cause
-        self.cause = BXICError(cause_) if cause_ != __FFI__.NULL else None
-        self.bxierr_pp = __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
+        self.cause = BXICError(cause_, gc=False) if cause_ != __FFI__.NULL else None
+        if gc:
+            self.bxierr_pp = __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
 
     def __str__(self):
         return self.message
