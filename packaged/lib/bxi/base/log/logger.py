@@ -20,6 +20,7 @@ import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
 import bxi.base.log as bxilog
+from bxi.base.err import BXICError
 
 # Find the C library
 __FFI__ = bxiffi.get_ffi()
@@ -393,6 +394,40 @@ class BXILogger(object):
         else:
             level = bxilog.ERROR
         self.log(level, msg, *args, **kwargs)
+
+    def report(self, err, level=bxilog.ERROR, msg="", *args, **kwargs):
+        """
+        Report an error.
+
+        Note: the difference with exception() is that the error is given 
+        in argument here.
+
+        @param[in] err the error to report
+        @param[in] level the error level to report the error at
+        @param[in] msg the message to display along with the error report
+        @param[in] args message arguments if any
+        @param[in] kwargs message arguments if any
+
+        @return
+        """
+        if not isinstance(err, BXICError):
+            raise NotImplementedError('Only BXICError is supported currently. '
+                                      'Try bxilog.exception() instead.')
+
+        msg_str = msg % args if len(args) > 0 else str(msg)
+        filename, lineno, funcname = _FindCaller()
+        filename_len = len(filename) + 1
+        funcname_len = len(funcname) + 1
+        msg_str_len = len(msg_str) + 1   
+        __BXIBASE_CAPI__.bxilog_report_keep(self.clogger,
+                                            level,
+                                            err.bxierr_pp,
+                                            filename,
+                                            filename_len,
+                                            funcname,
+                                            funcname_len,
+                                            lineno,
+                                            msg_str)
 
     @staticmethod
     def flush():

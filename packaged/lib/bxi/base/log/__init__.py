@@ -625,13 +625,29 @@ def exception(msg="", *args, **kwargs):
     Log the current exception.
 
     @param[in] msg a message to display before the exception itself
-    @param[in] args the message arguments if any
-    @param[in] kwargs the message arguments if any
+    @param[in] args message arguments if any
+    @param[in] kwargs message arguments if any
 
     @return
     @see get_default_logger
     """
     get_default_logger().exception(msg, *args, **kwargs)
+
+
+def report(err, msg="", *args, **kwargs):
+    """
+    Report the given error.
+
+    @param[in] err the error to report
+    @param[in] msg the message to display along with the error report
+    @param[in] args message arguments if any
+    @param[in] kwargs message arguments if any
+
+    @return
+
+    @see get_default_logger
+    """
+    get_default_logger().report(err, msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
