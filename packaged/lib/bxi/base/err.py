@@ -58,7 +58,8 @@ class BXICError(BXIError):
         cause_ = bxierr_p.cause
         self.cause = BXICError(cause_, gc=False) if cause_ != __FFI__.NULL else None
         if gc:
-            self.bxierr_pp = __FFI__.gc(self.bxierr_pp, __BXIBASE_CAPI__.bxierr_destroy)
+            self.bxierr_pp = __FFI__.gc(self.bxierr_pp,
+                                        __BXIBASE_CAPI__.bxierr_destroy)
 
     def __str__(self):
         return self.message
