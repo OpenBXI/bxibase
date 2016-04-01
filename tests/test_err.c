@@ -68,7 +68,6 @@ void test_bxierr() {
     current = bxierr_errno("Just a test, don't take this message into account");
     str = bxierr_str(current);
     OUT(TEST_LOGGER, "Test of perror: %s", str);
-    current->str = NULL;
     BXIFREE(str);
     bxierr_destroy(&current);
 }

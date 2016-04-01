@@ -12,6 +12,8 @@
 This module exposes all BXI Exception classes.
 
 """
+import sys
+import traceback
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
@@ -25,18 +27,25 @@ class BXIError(Exception):
     """
     The root class of all BXI exceptions
     """
-    def __init__(self, msg, cause=None, traceback=None):
+    def __init__(self, msg, cause=None):
         """
         Create a new BXIError instance.
 
         @param[in] msg a message
         @param[in] cause the cause of the error
-        @param[in] traceback the traceback of the error
         """
         super(BXIError, self).__init__(msg)
         self.msg = msg
-        self.cause = None
-        self.traceback = None
+        self.cause = cause
+        tb = sys.exc_info()
+        if tb == (None, None, None):
+            self.traceback_str = ""
+        else:
+            self.traceback_str = bxibase.traceback2str(tb[2])
+
+    def __str__(self):
+        return self.msg + ("" if self.cause is None \
+                              else "\n caused by: " + str(self.cause))
 
 
 class BXICError(BXIError):
@@ -62,7 +71,14 @@ class BXICError(BXIError):
                                         __BXIBASE_CAPI__.bxierr_destroy)
 
     def __str__(self):
-        return self.message
+        c_report = __BXIBASE_CAPI__.bxierr_report_new()
+        self.bxierr_pp[0].add_to_report(self.bxierr_pp[0], c_report, 20)
+        lines = []
+        for i in xrange(0, c_report.err_nb):
+            lines.append(__FFI__.string(c_report.err_msgs[i]))
+        s = "\n".join(lines)
+        __BXIBASE_CAPI__.bxierr_report_free(c_report)
+        return s
 
     @staticmethod
     def chain(cause, err):

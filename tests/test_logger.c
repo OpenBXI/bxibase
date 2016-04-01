@@ -116,7 +116,8 @@ size_t produce_simple_logs(bxilog_logger_p logger) {
 size_t produce_complex_logs() {
     size_t logged_msg_nb = 0;
 
-    char* str = bxierr_backtrace_str();
+    char* str;
+    bxierr_backtrace_str(&str);
     INFO(TEST_LOGGER, "One backtrace at level INFO: %s", str);
     logged_msg_nb++;
     BXIFREE(str);
@@ -142,9 +143,7 @@ size_t produce_complex_logs() {
                   "at level OUTPUT");
     logged_msg_nb++;
     err2 = bxierr_gen("An error to report");
-    err2->str = NULL;
     BXIERR_CHAIN(err, err2);
-    err->str = NULL;
     BXILOG_REPORT_KEEP(TEST_LOGGER, BXILOG_OUTPUT, err,
                        "Don't worry, this is just a test for error reporting "
                        "at level OUTPUT");

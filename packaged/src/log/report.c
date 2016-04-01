@@ -13,6 +13,7 @@
 
 
 #include <stdarg.h>
+#include <string.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
@@ -38,7 +39,7 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 
-static void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
+static void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err_p,
                         char * file, size_t filelen,
                         const char * func, size_t funclen,
                         int line,
@@ -79,26 +80,58 @@ void bxilog_report_keep(bxilog_logger_p logger, bxilog_level_e level, bxierr_p *
 }
 
 
+void bxilog_report_raw(bxierr_report_p self,
+                       bxilog_logger_p logger, bxilog_level_e level,
+                       char * file, size_t filelen,
+                       const char * func, size_t funclen,
+                       int line,
+                       const char * msg, size_t msglen) {
+
+    bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
+                                               file, filelen,
+                                               func, funclen, line,
+                                               msg, msglen);
+    bxierr_report(&logerr, STDERR_FILENO);
+
+    for (size_t i = 0; i < self->err_nb; i++) {
+        bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
+                                                   file, filelen,
+                                                   func, funclen, line,
+                                                   self->err_msgs[i],
+                                                   self->err_msglens[i]);
+        bxierr_report(&logerr, STDERR_FILENO);
+
+        logerr = bxilog_logger_log_rawstr(logger, BXILOG_TRACE,
+                                          file, filelen,
+                                          func, funclen, line,
+                                          self->err_bts[i],
+                                          self->err_btslens[i]);
+        bxierr_report(&logerr, STDERR_FILENO);
+    }
+}
+
+
+
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
 
-void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
+void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err_p,
                  char * file, size_t filelen,
                  const char * func, size_t funclen,
                  int line,
                  const char * fmt, va_list arglist) {
 
-    if (*err == NULL) return;
-    if (bxierr_isok(*err)) return;
+    if (*err_p == NULL) return;
+    if (bxierr_isok(*err_p)) return;
     if (!bxilog_logger_is_enabled_for(logger, level)) return;
 
     char * msg;
     size_t len = bxistr_vnew(&msg, fmt, arglist);
-    char * err_str = bxierr_str(*err);
 
     if (INITIALIZED != BXILOG__GLOBALS->state) {
+        char * err_str = bxierr_str(*err_p);
         char * out = bxistr_new("%s\n%s\n"
                                 "(The BXI logging library is not initialized: "
                                 "the above message is raw displayed "
@@ -106,20 +139,17 @@ void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err,
                                 "expected logging file.)\n", msg, err_str);
         bxilog_rawprint(out, STDERR_FILENO);
         BXIFREE(out);
+        BXIFREE(err_str);
     } else {
-        bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
-                                                   file, filelen,
-                                                   func, funclen, line,
-                                                   msg, len + 1);
-        bxierr_report(&logerr, STDERR_FILENO);
+        bxierr_report_p report = bxierr_report_new();
+        bxierr_report_add_from_limit(*err_p, report, BXIERR_ALL_CAUSES);
+        bxilog_report_raw(report, logger, level,
+                          file, filelen,
+                          func, funclen, line,
+                          msg, len+1);
+        bxierr_report_destroy(&report);
 
-        logerr = bxilog_logger_log_nolevelcheck(logger, BXILOG_TRACE,
-                                                file, filelen,
-                                                func, funclen, line,
-                                                "%s", err_str);
-        bxierr_report(&logerr, STDERR_FILENO);
     }
     BXIFREE(msg);
-    BXIFREE(err_str);
 }
 

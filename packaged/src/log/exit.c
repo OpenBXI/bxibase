@@ -60,7 +60,7 @@ void bxilog_exit(int exit_code,
                  int line) {
 
     bxiassert(NULL != logger);
-    char * str = bxierr_str_limit(err, BXIERR_ALL_CAUSES);
+    char * str = bxierr_str(err);
     if (INITIALIZED != BXILOG__GLOBALS->state) {
         char * msg = bxistr_new("Exiting with code %d, error is %s\n"
                                 "(Since the BXI logging library is not "

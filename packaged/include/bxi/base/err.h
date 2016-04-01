@@ -232,8 +232,10 @@
  *
  * @see bxierr_list_p
  */
-#define bxierr_from_list(code, errlist, ...) \
-    bxierr_new(code, errlist, (void (*) (void*)) bxierr_list_free, bxierr_list_str,\
+#define bxierr_from_list(code, errlist, ...)            \
+    bxierr_new(code, errlist,                           \
+               (void (*) (void*)) bxierr_list_free,     \
+               bxierr_list_add_to_report,\
                NULL, __VA_ARGS__)
 
 /**
@@ -246,15 +248,17 @@
  *
  * @see bxierr_new
  */
-#define bxierr_set_str bxierr_list_str
+#define bxierr_set_add_to_report bxierr_list_add_to_report
 
 /**
  * Define an error with the given code and the given error set.
  *
  * @see bxierr_set_p
  */
-#define bxierr_from_set(code, errset, ...) \
-    bxierr_new(code, errset, (void (*) (void*)) bxierr_set_free, bxierr_set_str,\
+#define bxierr_from_set(code, errset, ...)              \
+    bxierr_new(code, errset,                            \
+               (void (*) (void*)) bxierr_set_free,      \
+               bxierr_set_add_to_report,                \
                NULL, __VA_ARGS__)
 
 /**
@@ -311,6 +315,30 @@
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************
+
+
+/**
+ * An error report, used for error/exception reporting.
+ */
+struct bxierr_report_s {
+    size_t err_nb;                  //<! Number of errors in the report
+    size_t allocated;               //<! Number of allocated slots
+    size_t * err_msglens;           //<! The array of err_nb message strings length
+    size_t * err_btslens;           //<! The array of err_nb backtrace strings length
+    char ** err_msgs;               //<! The array of err_nb message strings length
+    char ** err_bts;                //<! The array of err_nb backtrace strings length
+};
+
+/**
+ * Alias
+ */
+typedef struct bxierr_report_s bxierr_report_s;
+
+/**
+ * The main type used for error report.
+ */
+typedef bxierr_report_s * bxierr_report_p;
+
 /**
  * The bxi error instance structure.
  */
@@ -322,6 +350,7 @@ typedef struct bxierr_s bxierr_s;
  */
 typedef struct bxierr_s * bxierr_p;
 
+
 /** \public
  * The bxierr data structure representing an error.
  *
@@ -331,12 +360,12 @@ struct bxierr_s {
     bool allocated;                         //!< true if this error has been mallocated
     int  code;                              //!< the error code
     char * backtrace;                       //!< the backtrace
+    size_t backtrace_len;                   //!< the backtrace string length (including
+                                            //!< the NULL terminating byte)
     void * data;                            //!< some data related to the error
-    /**
-     * Return a human string representation of the given error up
-     * to the given depth.
-     */
-    char * (*str)(bxierr_p err, uint64_t depth);
+    void (*add_to_report)(bxierr_p,         //!< add this error to the given report
+                          bxierr_report_p,
+                          size_t depth);
     void (*free_fn)(void *);                //!< the function to use to free the data
     bxierr_p cause;                         //!< the cause if any (can be NULL)
     bxierr_p last_cause;                    //!< the initial cause valid only on the first error
@@ -384,6 +413,10 @@ typedef struct {
 typedef bxierr_set_s * bxierr_set_p;
 
 
+// *********************************************************************************
+// ********************************** Global Variables *****************************
+// *********************************************************************************
+
 /**
  * The single instance meaning OK.
  *
@@ -394,13 +427,14 @@ typedef bxierr_set_s * bxierr_set_p;
  */
 #ifndef BXICFFI
 extern const bxierr_p BXIERR_OK;
+extern const char * BXIERR_CAUSED_BY_STR;
+extern const int BXIERR_CAUSED_BY_STR_LEN;
 #else
 extern bxierr_p BXIERR_OK;
+extern char * BXIERR_CAUSED_BY_STR;
+extern int BXIERR_CAUSED_BY_STR_LEN;
 #endif
 
-// *********************************************************************************
-// ********************************** Global Variables *****************************
-// *********************************************************************************
 
 // *********************************************************************************
 // ********************************** Interface ************************************
@@ -409,22 +443,25 @@ extern bxierr_p BXIERR_OK;
 /**
  * Return a new bxi error instance.
  *
+ *
  * @param[in] code the error code
  * @param[in] data an error specific data (can be NULL)
  * @param[in] free_fn the function that must be used to release the given `data` (can be NULL)
- * @param[in] str the function that must be used to transform the error into a string (can be NULL)
+ * @param[in] add_to_report the function (can be NULL) that must be used to add the
+ *            error to a report
  * @param[in] cause the error cause (can be NULL)
  * @param[in] fmt the error message in a printf like style.
  *
  * @return a new bxi error instance
  *
  * @see bxierr_destroy()
+ * @see bxierr_report_p
  * @see bxierr_p
  */
 bxierr_p bxierr_new(int code,
                     void * data,
                     void (*free_fn) (void *),
-                    char * (*str)(bxierr_p err, uint64_t depth),
+                    void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
                     bxierr_p cause,
                     const char * fmt,
                     ...)
@@ -446,27 +483,6 @@ void bxierr_free(bxierr_p self);
 
 
 /**
- * Return a human string representation of the given error up
- * to the given depth.
- *
- * Since errors can be chained (see `bxierr_get_cause()`),
- * one might want to stop the string generation up to a given
- * depth of causes. Use `BXIERR_ALL_CAUSES` to include all
- * causes in the returned string.
- *
- * The returned string *must* be freed. Use `BXIFREE()`.
- *
- * @param[in] self the error
- * @param[in] depth the maximum depth at which the processing must stop
- *
- * @return a human string representation of the given error
- *
- * @see bxierr_get_depth()
- * @see bxierr_get_cause()
- */
-char * bxierr_str_limit(bxierr_p self, uint64_t depth);
-
-/**
  * Return the depth of the given error.
  *
  * The depth is defined as the number of causes in the whole chain starting from
@@ -477,6 +493,7 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth);
  * @return the error depth
  */
 size_t bxierr_get_depth(bxierr_p self);
+
 
 /**
  * Return the `BXIERR_OK` error;
@@ -493,6 +510,56 @@ size_t bxierr_get_depth(bxierr_p self);
  */
 bxierr_p bxierr_get_ok();
 
+/**
+ * Create a new error report
+ *
+ * @return a new report
+ */
+bxierr_report_p bxierr_report_new();
+
+/**
+ * Add an error/exception into the given report
+ *
+ * @param[in] report a report
+ * @param[in] err_msg the error message
+ * @param[in] err_msglen the error message length (including the NULL terminating byte)
+ * @param[in] err_bt the error backtrace
+ * @param[in] err_btlen the error backtrace length (including the NULL terminating byte)
+ */
+void bxierr_report_add(bxierr_report_p report,
+                       char * err_msg, const size_t err_msglen,
+                       char * err_bt, size_t err_btlen);
+
+/**
+ * Free the given report
+ *
+ * @param[inout] self the report to free
+ *
+ * @see bxierr_report_destroy
+ */
+void bxierr_report_free(bxierr_report_p self);
+
+/**
+ * Return a string from the given report.
+ *
+ * @note the returned string will have to be freed. Use BXIFREE().
+ *
+ * @param[in] self a report
+ * @param[out] result_p a pointer on the result string
+ *
+ * @return the length of the returned string
+ */
+size_t bxierr_report_str(bxierr_report_p self, char ** result_p);
+
+/**
+ * Add the given bxierr_p information into a report
+ *
+ * @param[in] self the error to add
+ * @param[inout] report the report
+ * @param[in] depth how many causes must be added
+ *
+ */
+void bxierr_report_add_from_limit(bxierr_p self, bxierr_report_p report, size_t depth);
 
 /**
  * Report the given error on the given file descriptor.
@@ -541,7 +608,48 @@ void bxierr_assert_fail(const char *assertion, const char *file,
 #endif
                         ;
 
+/**
+ * Return a human string from the given error up to the given depth.
+ *
+ * @note the returned string must be freed. Use BXIFREE().
+ *
+ * @param[in] self an error
+ * @param[in] depth the maximum number of causes to display
+ *
+ * @return a human string representing the given error
+ */
+char * bxierr_str_limit(bxierr_p self, size_t depth);
+
 #ifndef BXICFFI
+
+
+/**
+ * Destroy the given report.
+ *
+ * @note the value of the given pointer is nullified after this call.
+ *
+ * @param[inout] report_p a pointer on the report
+ *
+ */
+inline void bxierr_report_destroy(bxierr_report_p * report_p) {
+    bxiassert(NULL != report_p);
+    bxierr_report_free(*report_p);
+    bximem_destroy((char**) report_p);
+}
+
+/**
+ * Add an error to a report
+ *
+ * @param[in] self an error
+ * @param[inout] report a report
+ *
+ * @see bxierr_report_add_from_limit
+ */
+inline void bxierr_report_add_from(bxierr_p self, bxierr_report_p report) {
+    bxierr_report_add_from_limit(self, report, BXIERR_ALL_CAUSES);
+}
+
+
 /**
  * Destroy the error instance pointed to by `self_p`.
  *
@@ -565,7 +673,6 @@ inline void bxierr_destroy(bxierr_p * self_p) {
     *self_p = NULL;
 }
 
-
 /**
  * Return true if the given `bxierr` is ok. False otherwise.
  *
@@ -588,6 +695,7 @@ inline bool bxierr_isko(bxierr_p self) {
     return self != BXIERR_OK;
 }
 
+
 /**
  * Return a human string representation of the given `bxierr`.
  *
@@ -596,14 +704,7 @@ inline bool bxierr_isko(bxierr_p self) {
  * @return a human string representation of the given `bxierr`.
  */
 inline char * bxierr_str(bxierr_p self) {
-    assert(NULL != self);
-    // Ensure that even when the str function is NULL, we can still create the message
-    // in one way or another
-    if (self->str != NULL) {
-        return self->str(self, BXIERR_ALL_CAUSES);
-    } else {
-        return bxierr_str_limit(self, BXIERR_ALL_CAUSES);
-    }
+    return bxierr_str_limit(self, BXIERR_ALL_CAUSES);
 }
 
 /**
@@ -669,6 +770,8 @@ inline void bxierr_abort_ifko(bxierr_p fatal_err) {
     }
 }
 #else
+void bxierr_report_add_from(bxierr_p self, bxierr_report_p report);
+void bxierr_report_destroy(bxierr_report_p report);
 void bxierr_destroy(bxierr_p * self_p);
 bool bxierr_isok(bxierr_p self);
 bool bxierr_isko(bxierr_p self);
@@ -722,11 +825,15 @@ bxierr_p bxierr_vfromidx(int errcode,
 #endif
 
 /**
- * Return a human representation of the current backtrace.
+ * Fill the given buffer with a human representation of the current backtrace.
  *
- * @return a string representing current backtrace.
+ * The returned buffer is mallocated, and will have to be freed (see BXIFREE()).
+ *
+ * @param[out] buf a pointer on the resulting buffer
+ *
+ * @return the number of bytes written to buf.
  */
-char * bxierr_backtrace_str(void);
+size_t bxierr_backtrace_str(char ** buf);
 
 
 
@@ -796,18 +903,19 @@ void bxierr_list_destroy(bxierr_list_p * group_p);
 void bxierr_list_append(bxierr_list_p list, bxierr_p err);
 
 /**
- * Transform a bxierr_p with a bxierr_list_p in its data field into a string.
+ * Transform a bxierr_p with a bxierr_list_p in its data field into a report.
  *
  * @note this function main purpose is to be used as an argument of bxierr_new().
  *
  * @param[in] err the error
+ * @param[inout] report the report
  * @param[in] depth the number of error causes to transform to string
  *
  * @return a string representation of the given error
  *
  * @see bxierr_new()
  */
-char * bxierr_list_str(bxierr_p err, uint64_t depth);
+void bxierr_list_add_to_report(bxierr_p err, bxierr_report_p report, uint64_t depth);
 
 
 /**

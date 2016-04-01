@@ -95,7 +95,6 @@
 // *********************************************************************************
 
 
-
 /**
  * Report an error and destroy it.
  *
@@ -154,6 +153,29 @@ void bxilog_report_keep(bxilog_logger_p logger, bxilog_level_e level, bxierr_p *
 #endif
 ;
 
+
+/**
+ * Log a report at a logging level with a message
+ *
+ * @note the report is destroyed after this call
+ *
+ * @param[inout] self a report
+ * @param[in] logger the logger to emit the report with
+ * @param[in] level the level at which the report must be produced
+ * @param[in] file the file name from which the log is emitted from
+ * @param[in] filelen the file name length (including the NULL terminating byte)
+ * @param[in] func the function name from which the log is emitted from
+ * @param[in] funclen the function name length (including the NULL terminating byte)
+ * @param[in] line the line number in the function
+ * @param[in] msg the message to produce along with the report
+ * @param[in] msglen the message length (including the NULL terminating byte)
+ */
+void bxilog_report_raw(bxierr_report_p self,
+                       bxilog_logger_p logger, bxilog_level_e level,
+                       char * file, size_t filelen,
+                       const char * func, size_t funclen,
+                       int line,
+                       const char * msg, size_t msglen);
 
 
 #endif

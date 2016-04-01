@@ -18,7 +18,9 @@ from bxi.base.cffi_h import C_DEF
 
 import bxi.ffi as bxiffi
 
+import sys
 import collections  # noqa
+import traceback
 from functools import total_ordering  # noqa
 
 bxiffi.add_cdef_for_type('bxilog_p', C_DEF)
@@ -169,7 +171,6 @@ class Wrapper(object):
 
     def __setattr__(self, name, value):
         try:
-
             cstruct = getattr(self, '_cstruct')
             if isinstance(value, Uint8CTuple):
                 setattr(cstruct, name, tuple(value))
@@ -179,3 +180,15 @@ class Wrapper(object):
         except AttributeError:
             # LOGGER.lowest("Raw assignment: %r.%s = %r", self, name, value)
             super(Wrapper, self).__setattr__(name, value)
+
+
+def traceback2str(trace):
+    try:
+        tb = traceback.extract_tb(trace)
+        bt = []
+        for trace in tb:
+            bt.append("##trce## %s at %s:%d\n"
+                      "##trce##\t%s" % (trace[2], trace[0], trace[1], trace[3]))
+        return "".join(bt)
+    finally:
+        sys.exc_clear()

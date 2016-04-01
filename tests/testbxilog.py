@@ -8,11 +8,12 @@
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
-import ctypes
+
+
 """Unit tests of BXI Log Python library.
 """
 
-import __main__
+import ctypes
 import multiprocessing
 import os, time, signal
 import subprocess
@@ -23,12 +24,16 @@ import unittest
 import re
 import configobj
 
-from bxi.base.err import BXICError
+import bxi.ffi as bxiffi
+import bxi.base as bxibase
+import bxi.base.err as bxierr
 import bxi.base.log as bxilog
  
  
-BASENAME = os.path.basename(__main__.__file__)
+BASENAME = os.path.basename(__file__)
 FILENAME = "%s.bxilog" % os.path.splitext(BASENAME)[0]
+
+__FFI__ = bxiffi.get_ffi()
  
 __LOOP_AGAIN__ = True
  
@@ -73,7 +78,9 @@ def threads_in_process(again):
             thread.join(5)
         except Error as e:
             bxilog.out("Exception: %s", e)
- 
+
+class TestException(Exception):
+    pass
  
 class BXILogTest(unittest.TestCase):
     """Unit tests for the BXILog
@@ -250,7 +257,7 @@ class BXILogTest(unittest.TestCase):
         name = os.path.join(tmpdir, 'dummy.bxilog')
         bxilog.basicConfig(filename=name)
  
-        self.assertRaises(BXICError, bxilog.output,
+        self.assertRaises(bxierr.BXICError, bxilog.output,
                           "One log on non-existent (deleted) directory: %s", name)
  
         bxilog.cleanup()
@@ -363,18 +370,20 @@ class BXILogTest(unittest.TestCase):
     def test_exception(self):
         try:
             raise ValueError("Exception 1 raised for testing purpose, don't worry")
-        except ValueError as ve:
+        except ValueError:
             bxilog.exception('Handling exception 1 with no arguments')
             
         try:
             raise ValueError("Exception 2 raised for testing purpose, don't worry")
         except ValueError as ve:
-            bxilog.exception('Handling exception 2 with 1 argument: %s', ve)
+            bxilog.exception('Handling exception 2 with 1 argument: %s',
+                             'argument')
             
         try:
             raise ValueError("Exception 3 raised for testing purpose, don't worry")
         except ValueError as ve:
-            bxilog.exception('Handling exception 3 with 2 argument: %s - %d', ve, 3)
+            bxilog.exception('Handling exception 3 with 2 argument: %s - %d',
+                             'argument', 3)
         
         try:
             raise ValueError("Exception 4 raised for testing purpose, don't worry")
@@ -385,12 +394,40 @@ class BXILogTest(unittest.TestCase):
             raise ValueError("Exception 5 raised for testing purpose, don't worry")
         except ValueError as ve:
             bxilog.exception('Handling exception 5 with 1 argument and the level: %s',
-                             ve, level=bxilog.CRITICAL)
+                             'argument', level=bxilog.CRITICAL)
         try:
             raise ValueError("Exception 6 raised for testing purpose, don't worry")
         except ValueError as ve:
             bxilog.exception('Handling exception 6 with 2 argument and the level: %s - %d',
-                             ve, 3, level=bxilog.CRITICAL)
+                             'argument', 3, level=bxilog.CRITICAL)
+
+        try:
+            raise TestException("Custom made exception, don't worry")
+        except TestException:
+            bxilog.exception('Custom made exception thrown, good!')
+
+        try:
+            te = TestException("Another custom made exception, don't worry")
+            te.cause = TestException("Cause of the exception")
+            te.cause.cause = TestException("Root cause of the exception")
+            raise te
+        except TestException:
+            bxilog.exception('Custom made exception with causes thrown, good!')
+            
+        try:
+            root = bxibase.__CAPI__.bxierr_new(101, bxiffi.__FFI__.NULL, __FFI__.NULL,
+                                               __FFI__.NULL, __FFI__.NULL, 
+                                               "The root cause")
+            other = bxibase.__CAPI__.bxierr_new(102, __FFI__.NULL, __FFI__.NULL,
+                                               __FFI__.NULL, root, 
+                                               "Consequence")
+            bce = bxierr.BXICError(other)
+            be = bxierr.BXIError("Another one", cause=bce)
+            te = TestException("An exception, don't worry")
+            te.cause = be
+            raise te
+        except TestException:
+            bxilog.exception('Mix of C and Python exceptions, good!')
 
  
     def test_sighandler(self):

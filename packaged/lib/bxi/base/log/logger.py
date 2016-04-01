@@ -66,6 +66,8 @@ def _bxierr_report(bxierr_p):
 
     @param[in] bxierr_p the error to report and destroy
     """
+    if bxierr_p is None:
+        return
     bxierr_pp = __FFI__.new('bxierr_p[1]')
     bxierr_pp[0] = bxierr_p
     __BXIBASE_CAPI__.bxierr_report(bxierr_pp, 2)
@@ -87,58 +89,6 @@ class BXILogger(object):
         @return a BXILogger instance
         """
         self.clogger = clogger
-
-    def _report_exception(self, level,
-                          filename, filename_len,
-                          funcname, funcname_len,
-                          lineno, ei):
-
-        tbs = []
-        msgs = []
-        while True:
-            if isinstance(ei[1], bxierr.BXICError):
-                backtrace = __FFI__.string(ei[1].bxierr_pp[0].backtrace)
-                tb = "Low Level C back trace:\n" + backtrace
-            else:
-                tb = ""
-            lines = traceback.format_exception(ei[0], ei[1], ei[2], None)
-            tb += ''.join(lines[0:len(lines)-1])
-            tbs.insert(0, tb[:-1]) # Remove final '\n'
-            msg = lines[-1][:-1] # Remove final '\n'
-            msgs.insert(0, msg)
-
-            if not hasattr(ei[1], 'cause') or ei[1].cause is None:
-                break
-
-            ei = (type(ei[1].cause), ei[1].cause, ei[1].traceback)
-
-        for i in xrange(len(msgs)):
-            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
-                                                                 bxilog.TRACE, 
-                                                                 filename, filename_len,
-                                                                 funcname, funcname_len,
-                                                                 lineno, 
-                                                                 tbs[i],
-                                                                 len(tbs[i]) + 1)
-            # Recursive call: this will raise an exception that might be catched
-            # again by the logging library and so on...
-            # So instead of:
-            # bxierr.BXICError.raise_if_ko(bxierr_p)
-            # We use directly the bxierr C reporting to stderr (fd=2)
-            _bxierr_report(bxierr_p)
-            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
-                                                                 level, 
-                                                                 filename, filename_len, 
-                                                                 funcname, funcname_len, 
-                                                                 lineno,
-                                                                 msgs[i],
-                                                                 len(msgs[i]) + 1)
-            # Recursive call: this will raise an exception that might be catched
-            # again by the logging library and so on...
-            # So instead of:
-            # bxierr.BXICError.raise_if_ko(bxierr_p)
-            # We use directly the bxierr C reporting to stderr (fd=2)
-            _bxierr_report(bxierr_p)
 
     def log(self, level, msg, *args, **kwargs):
         """
@@ -175,13 +125,64 @@ class BXILogger(object):
             # bxierr.BXICError.raise_if_ko(bxierr_p)
             # We use directly the bxierr C reporting to stderr (fd=2)
             _bxierr_report(bxierr_p)
-            exc_s = ''
-            ei = kwargs.get('exc_info', None)
-            if ei is not None:
-                self._report_exception(level, 
-                                       filename, filename_len,
-                                       funcname, funcname_len,
-                                       lineno, ei)
+
+    def _report(self, ei, level, msg, *args, **kwargs):
+        if not bxilog._INITIALIZED:
+            bxilog._init()
+
+        report_c = __BXIBASE_CAPI__.bxierr_report_new()
+
+        ei = sys.exc_info()
+        while True:
+            clazz = ei[0]
+            value = ei[1]
+            if isinstance(value, bxierr.BXICError):
+                __BXIBASE_CAPI__.bxierr_report_add_from(value.bxierr_pp[0], report_c)
+                break
+
+            if isinstance(value, bxierr.BXIError):
+                err_msg = value.msg
+                err_bt = value.traceback_str
+                __BXIBASE_CAPI__.bxierr_report_add(report_c,
+                                                   err_msg, len(err_msg) + 1,
+                                                   err_bt, len(err_bt) + 1)
+            else:
+                err_msg = "".join(x[:-1] for x in traceback.format_exception_only(clazz,
+                                                                                  value))
+                if ei[2] is None:
+                    err_bt = "-- Backtrace unavailable --"
+                else:
+                    err_bt = bxibase.traceback2str(ei[2])
+                __BXIBASE_CAPI__.bxierr_report_add(report_c,
+                                                   err_msg, len(err_msg) + 1,
+                                                   err_bt, len(err_bt) + 1)
+
+            if not hasattr(value, 'cause') or value.cause is None:
+                break
+
+            cause_str = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR
+            cause_str_len = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR_LEN
+            __BXIBASE_CAPI__.bxierr_report_add(report_c,
+                                               cause_str, cause_str_len,
+                                               "", len("") + 1)
+            ei = (type(value.cause), value.cause, None)
+
+        msg_str = msg % args if len(args) > 0 else str(msg)
+        filename, lineno, funcname = _FindCaller()
+        filename_len = len(filename) + 1
+        funcname_len = len(funcname) + 1
+        msg_str_len = len(msg_str) + 1
+
+        __BXIBASE_CAPI__.bxilog_report_raw(report_c,
+                                           self.clogger,
+                                           level,
+                                           filename,
+                                           filename_len,
+                                           funcname,
+                                           funcname_len,
+                                           lineno,
+                                           msg_str,
+                                           msg_str_len)
 
     @property
     def name(self):
@@ -387,22 +388,18 @@ class BXILogger(object):
         @return
 
         """
-        kwargs['exc_info'] = sys.exc_info()
         if 'level' in kwargs:
             level = kwargs['level']
             del kwargs['level']
         else:
             level = bxilog.ERROR
-        self.log(level, msg, *args, **kwargs)
+        self._report(sys.exc_info(), level, msg, *args, **kwargs)
 
-    def report(self, err, level=bxilog.ERROR, msg="", *args, **kwargs):
+    def report_bxierr(self, err, level=bxilog.ERROR, msg="", *args, **kwargs):
         """
-        Report an error.
+        Report a BXICError or a bxierr_p object.
 
-        Note: the difference with exception() is that the error is given 
-        in argument here.
-
-        @param[in] err the error to report
+        @param[in] err an instance of a BXICError or a bxierr_p 
         @param[in] level the error level to report the error at
         @param[in] msg the message to display along with the error report
         @param[in] args message arguments if any
@@ -410,15 +407,16 @@ class BXILogger(object):
 
         @return
         """
-        if not isinstance(err, BXICError):
-            raise NotImplementedError('Only BXICError is supported currently. '
-                                      'Try bxilog.exception() instead.')
+        if not isinstance(err, BXICError) and \
+           not __FFI__.typeof(bxierr) is __FFI__.typeof('bxierr_p'):
+
+            raise NotImplementedError('Bad object type, expected BXICError or bxierr_p,'
+                                      ' got: %r. Use bxilog.exception() instead?' % err)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
         filename, lineno, funcname = _FindCaller()
         filename_len = len(filename) + 1
         funcname_len = len(funcname) + 1
-        msg_str_len = len(msg_str) + 1   
         __BXIBASE_CAPI__.bxilog_report_keep(self.clogger,
                                             level,
                                             err.bxierr_pp,
@@ -427,6 +425,7 @@ class BXILogger(object):
                                             funcname,
                                             funcname_len,
                                             lineno,
+                                            "%s",
                                             msg_str)
 
     @staticmethod

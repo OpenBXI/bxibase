@@ -191,8 +191,10 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     if (SIGINT == signum || SIGTERM == signum) {
         str = bxistr_new("%s: %s\n", BXILOG__GLOBALS->config->progname, sigstr);
     } else {
-        char * trace = bxierr_backtrace_str();
-        str = bxistr_new("%s: %s\n%s\n", BXILOG__GLOBALS->config->progname, sigstr, trace);
+        char * trace;
+        bxierr_backtrace_str(&trace);
+        str = bxistr_new("%s: %s\n%s\n", BXILOG__GLOBALS->config->progname,
+                         sigstr, trace);
         BXIFREE(trace);
     }
     BXIFREE(sigstr);

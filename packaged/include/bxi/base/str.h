@@ -206,7 +206,7 @@ void bxistr_prefixer_cleanup(bxistr_prefixer_p self);
  * @note: the resulting string will have to be freed. Use BXIFREE() for this purpose.
  *
  * @param[in] sep the separator string
- * @param[in] sep_len the length of the separotor string
+ * @param[in] sep_len the length of the separator string
  * @param[in] lines the lines to join together
  * @param[in] lines_len the array of lines length
  * @param[in] lines_nb the number of elements in both lines and lines_len arrays

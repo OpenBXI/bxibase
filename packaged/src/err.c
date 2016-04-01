@@ -34,6 +34,7 @@
 #define ERR_BT_PREFIX   "##trce## "
 #define ERR_CODE_PREFIX "##code## "
 #define ERR_MSG_PREFIX  "##mesg## "
+#define CAUSED_BY_STR "... caused by:"
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -53,6 +54,8 @@ static void __bt_init__(void);
 // *********************************************************************************
 
 bxierr_define(BXIERR_OK, 0, OK_MSG);
+const char * BXIERR_CAUSED_BY_STR = CAUSED_BY_STR;
+const int BXIERR_CAUSED_BY_STR_LEN = ARRAYLEN(CAUSED_BY_STR);
 
 struct backtrace_state * BT_STATE = NULL;
 
@@ -60,19 +63,21 @@ struct backtrace_state * BT_STATE = NULL;
 // ********************************** Implementation   *****************************
 // *********************************************************************************
 // Inline functions defined in the .h
-extern void bxierr_list_destroy(bxierr_list_p * group_p);
-extern void bxierr_set_destroy(bxierr_set_p * group_p);
+extern void bxierr_report_add_from(bxierr_p self, bxierr_report_p report);
+extern void bxierr_report_destroy(bxierr_report_p *);
 extern void bxierr_destroy(bxierr_p * self_p);
 extern void bxierr_abort_ifko(bxierr_p fatal_err);
-extern bool bxierr_isok(bxierr_p self);
-extern bool bxierr_isko(bxierr_p self);
-extern char* bxierr_str(bxierr_p self);
+extern bool bxierr_isok(bxierr_p report);
+extern bool bxierr_isko(bxierr_p report);
+extern char* bxierr_str(bxierr_p report);
 extern void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
+extern void bxierr_list_destroy(bxierr_list_p * group_p);
+extern void bxierr_set_destroy(bxierr_set_p * group_p);
 
 bxierr_p bxierr_new(int code,
                     void * data,
                     void (*free_fn) (void *),
-                    char * (*str)(bxierr_p, uint64_t),
+                    void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
                     bxierr_p cause,
                     const char * fmt,
                     ...) {
@@ -80,13 +85,12 @@ bxierr_p bxierr_new(int code,
     bxierr_p self = bximem_calloc(sizeof(*self));
     self->allocated = true;
     self->code = code;
-    self->backtrace = bxierr_backtrace_str();
+    char * tmp = NULL;
+    self->backtrace_len = bxierr_backtrace_str(&tmp);
+    self->backtrace = tmp;
     self->data = data;
     self->free_fn = free_fn;
-    self->str = str;
-    if (self->str == NULL) {
-        self->str = bxierr_str_limit;
-    }
+    self->add_to_report = (NULL == add_to_report) ? bxierr_report_add_from_limit : add_to_report;
     self->cause = cause;
     if (self->cause != NULL) {
         if (self->cause->last_cause != NULL) {
@@ -117,21 +121,67 @@ void bxierr_free(bxierr_p self) {
     BXIFREE(self);
 }
 
-char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
-    bxiassert(NULL != self);
-    const char * cause_str;
-    if (NULL == self->cause) {
-        cause_str = bxistr_new("%s", "");
-    } else if (2 > depth) {
-        size_t remaining = bxierr_get_depth(self->cause);
-        cause_str = bxistr_new("...<%zu more causes>", remaining);
-    } else {
-        if (self->cause->str != NULL) {
-            cause_str = self->cause->str(self->cause, depth-1);
-        } else {
-            cause_str = bxierr_str_limit(self->cause, depth-1);
-        }
+
+bxierr_report_p bxierr_report_new() {
+    bxierr_report_p self = bximem_calloc(sizeof(*self));
+    self->err_nb = 0;
+    self->allocated = 1;
+    self->err_msglens = bximem_calloc(self->allocated * sizeof(*self->err_msglens));
+    self->err_btslens = bximem_calloc(self->allocated * sizeof(*self->err_btslens));
+    self->err_msgs = bximem_calloc(self->allocated * sizeof(*self->err_msgs));
+    self->err_bts = bximem_calloc(self->allocated * sizeof(*self->err_bts));
+
+    return self;
+}
+
+void bxierr_report_add(bxierr_report_p report,
+                       char * err_msg, const size_t err_msglen,
+                       char * err_bt, size_t err_btlen) {
+
+    if (report->err_nb >= report->allocated) {
+        size_t new_size = 2 * report->allocated;
+        report->err_msglens = bximem_realloc(report->err_msglens,
+                                             report->allocated * sizeof(*report->err_msglens),
+                                             new_size * sizeof(*report->err_msglens));
+        report->err_btslens = bximem_realloc(report->err_btslens,
+                                           report->allocated * sizeof(*report->err_btslens),
+                                           new_size * sizeof(*report->err_btslens));
+
+        report->err_msgs = bximem_realloc(report->err_msgs,
+                                        report->allocated * sizeof(*report->err_msgs),
+                                        new_size * sizeof(*report->err_msgs));
+        report->err_bts = bximem_realloc(report->err_bts,
+                                       report->allocated * sizeof(*report->err_btslens),
+                                       new_size * sizeof(*report->err_btslens));
+        report->allocated = new_size;
     }
+
+    report->err_msgs[report->err_nb] = strdup(err_msg);
+    report->err_msglens[report->err_nb] = err_msglen;
+
+    report->err_bts[report->err_nb] = strdup(err_bt);
+    report->err_btslens[report->err_nb] = err_btlen;
+
+    report->err_nb++;
+}
+
+void bxierr_report_free(bxierr_report_p report) {
+    if (NULL == report) return;
+
+    for (size_t i = 0; i < report->err_nb; i++) {
+        BXIFREE(report->err_bts[i]);
+        BXIFREE(report->err_msgs[i]);
+    }
+    BXIFREE(report->err_msglens);
+    BXIFREE(report->err_btslens);
+    BXIFREE(report->err_msgs);
+    BXIFREE(report->err_bts);
+}
+
+
+void bxierr_report_add_from_limit(bxierr_p self, bxierr_report_p report, size_t depth) {
+    bxiassert(NULL != self);
+    bxiassert(NULL != report);
 
     bxistr_prefixer_s data;
     bxistr_prefixer_init(&data, ERR_MSG_PREFIX, ARRAYLEN(ERR_MSG_PREFIX) - 1);
@@ -144,15 +194,57 @@ char * bxierr_str_limit(bxierr_p self, uint64_t depth) {
                 data.lines, data.lines_len, data.lines_nb,
                 &final_msg);
 
-    char * result = bxistr_new(ERR_CODE_PREFIX"%d\n%s\n%s\n%s",
-                               self->code, final_msg, self->backtrace,
-                               cause_str);
+    char * result = bxistr_new(ERR_CODE_PREFIX"%d\n%s", self->code, final_msg);
+
+    char * bt = (NULL == self->backtrace) ? "" : self->backtrace;
+    size_t bt_len = (NULL == self->backtrace) ? 1 : (self->backtrace_len + 1);
+
+    bxierr_report_add(report, result, strlen(result) + 1, bt, bt_len);
+    BXIFREE(result);
+
+    if (NULL == self->cause) {
+        // Nothing to do!
+    } else if (2 > depth) {
+        size_t remaining = bxierr_get_depth(self->cause);
+        char * cause_str = bxistr_new("...<%zu more causes>", remaining);
+        bxierr_report_add(report, cause_str, strlen(cause_str) + 1, "", 1);
+        BXIFREE(cause_str);
+    } else {
+        bxierr_report_add(report, CAUSED_BY_STR, ARRAYLEN(CAUSED_BY_STR), "", 1);
+        if (self->cause->add_to_report != NULL) {
+            self->cause->add_to_report(self->cause, report, depth-1);
+        } else {
+            bxierr_report_add_from_limit(self->cause, report, depth-1);
+        }
+    }
 
     bxistr_prefixer_cleanup(&data);
-    BXIFREE(cause_str);
     BXIFREE(final_msg);
+}
 
-    return result;
+size_t bxierr_report_str(bxierr_report_p report, char** result_p) {
+    bxiassert(NULL != report);
+    bxiassert(NULL != result_p);
+
+    char * lines[report->err_nb];
+    size_t lines_len[report->err_nb];
+    for (size_t i = 0; i < report->err_nb; i++) {
+        char * tmp[2] = {report->err_msgs[i], report->err_bts[i]};
+        // Remove the NULL terminating byte from the length
+        size_t tmp_len[2] = {report->err_msglens[i] - 1, report->err_btslens[i] - 1};
+        char * result = NULL;
+        lines_len[i] = bxistr_join("\n", ARRAYLEN("\n") - 1,
+                                   tmp, tmp_len, 2,
+                                   &result);
+        lines[i] = result;
+    }
+    size_t len = bxistr_join("\n", ARRAYLEN("\n") - 1, lines, lines_len, report->err_nb,
+                             result_p);
+    for (size_t i = 0; i < report->err_nb; i++) {
+        BXIFREE(lines[i]);
+    }
+
+    return len;
 }
 
 void bxierr_report(bxierr_p * self, int fd) {
@@ -169,6 +261,23 @@ void bxierr_report_keep(bxierr_p self, int fd) {
     BXIFREE(errstr);
 }
 
+char * bxierr_str_limit(bxierr_p self, size_t depth) {
+    bxiassert(NULL != self);
+
+    bxierr_report_p report = bxierr_report_new();
+    // Ensure that even when the str function is NULL, we can still create the message
+    // in one way or another
+    if (NULL != self->add_to_report) {
+        self->add_to_report(self, report, depth);
+    } else {
+        bxierr_report_add_from_limit(self, report, depth);
+    }
+    char * result = NULL;
+    bxierr_report_str(report, &result);
+    bxierr_report_destroy(&report);
+    return result;
+}
+
 bxierr_p bxierr_get_ok() { return BXIERR_OK; }
 
 size_t bxierr_get_depth(bxierr_p self) {
@@ -182,6 +291,7 @@ size_t bxierr_get_depth(bxierr_p self) {
     }
     return result;
 }
+
 
 bxierr_p bxierr_fromidx(const int erridx,
                         const char * const * const erridx2str,
@@ -231,14 +341,15 @@ bxierr_p bxierr_vfromidx(const int erridx,
     return result;
 }
 
-char * bxierr_backtrace_str(void) {
-    char * buf = NULL;
+size_t bxierr_backtrace_str(char ** result) {
+    *result = NULL;
     size_t size;
     errno = 0;
-    FILE * faked_file = open_memstream(&buf, &size);
+    FILE * faked_file = open_memstream(result, &size);
     if (NULL == faked_file) {
         error(0, errno, "Calling open_memstream() failed");
-        return strdup("Unavailable backtrace (open_memstream() failed)");
+        *result = strdup("Unavailable backtrace (open_memstream() failed)");
+        return strlen(*result) + 1;
     }
     void *addresses[BACKTRACE_MAX];
     int c = backtrace(addresses, BACKTRACE_MAX);
@@ -267,7 +378,7 @@ char * bxierr_backtrace_str(void) {
     fclose(faked_file);
     BXIFREE(symbols);
     BXIFREE(strings);
-    return buf;
+    return size;
 }
 
 void bxierr_assert_fail(const char *assertion, const char *file,
@@ -335,50 +446,19 @@ void bxierr_list_append(bxierr_list_p list, bxierr_p err) {
     list->errors_nb++;
 }
 
-char * bxierr_list_str(bxierr_p err, uint64_t depth) {
-    char * str = bxierr_str_limit(err, depth);
+void bxierr_list_add_to_report(bxierr_p err, bxierr_report_p report, size_t depth) {
+    bxierr_report_add_from_limit(err, report, depth);
     bxierr_list_p group = err->data;
-    char ** ierr_lines = bximem_calloc(group->errors_nb * sizeof(*ierr_lines));
-    size_t * ierr_lines_len = bximem_calloc(group->errors_nb * sizeof(*ierr_lines_len));
     size_t current = 0;
-    bxistr_prefixer_s prefixer;
-    char * final_s;
     // Create the string for each internal error in the group
     for (size_t i = 0; i < group->errors_size; i++) {
         bxierr_p ierr = group->errors[i];
         if (NULL == ierr) continue;
-        char * s = bxierr_str_limit(ierr, depth);
-        // Prefix all line
-        char * prefix = bxistr_new("##egrp %zu", current);
-        bxistr_prefixer_init(&prefixer, prefix, strlen(prefix));
-        bxistr_apply_lines(s,
-                           strlen(s),
-                           bxistr_prefixer_line, &prefixer);
-        BXIFREE(s);
-        BXIFREE(prefix);
-        // Join all lines
-        ierr_lines_len[current] = bxistr_join("\n", ARRAYLEN("\n") - 1,
-                                              prefixer.lines, prefixer.lines_len,
-                                              prefixer.lines_nb,
-                                              &final_s);
-        ierr_lines[current] = final_s;
-        bxistr_prefixer_cleanup(&prefixer);
+        char * s = bxistr_new("Error n°%zu", current);
+        bxierr_report_add(report, s, strlen(s) + 1, "", 1);
+        bxierr_report_add_from_limit(ierr, report, depth);
         current++;
     }
-    // Join all lines from each internal error into one big string
-    bxistr_join("\n", ARRAYLEN("\n") - 1,
-                ierr_lines, ierr_lines_len,
-                current,
-                &final_s);
-    char * result = bxistr_new("%s%s", str, final_s);
-    BXIFREE(str);
-    BXIFREE(final_s);
-    for (size_t i = 0; i < group->errors_nb; i++) {
-        BXIFREE(ierr_lines[i]);
-    }
-    BXIFREE(ierr_lines);
-    BXIFREE(ierr_lines_len);
-    return result;
 }
 
 bxierr_set_p bxierr_set_new() {
@@ -483,8 +563,8 @@ int _bt_full_cb(void *data, uintptr_t pc,
                 const char *filename, int lineno, const char *function) {
     UNUSED(pc);
     if (NULL != filename && 0 != lineno && NULL != function) {
-        char * str = bxistr_new("%s:%d - %s()",
-                                filename, lineno, function);
+        char * str = bxistr_new("%s at %s:%d",
+                                function, filename, lineno);
         (* (char **) data) = str;
     }
     return 0;

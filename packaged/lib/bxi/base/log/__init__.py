@@ -270,8 +270,12 @@ def bxilog_excepthook(type_, value, traceback):
     """
     The exception hook called on uncaught exception.
     """
-    kwargs = {'exc_info': (type_, value, traceback)}
-    critical('Uncaught Exception: %s' % value, **kwargs)
+    global _INITIALIZED
+    if not _INITIALIZED:
+        sys.__excepthook__(type_, value, traceback)
+    else:
+        kwargs = {'exc_info': (type_, value, traceback)}
+        critical('Uncaught Exception: %s' % value, **kwargs)
 
 
 def multiprocessing_target(func):
@@ -329,13 +333,12 @@ def _init():
         raise bxierr.BXIError("Bad bxilog configuration: %s, can't find %s" % (_CONFIG, ke))
 
     err_p = __BXIBASE_CAPI__.bxilog_init(c_config)
+    bxierr.BXICError.raise_if_ko(err_p)
+    sys.excepthook = bxilog_excepthook
+    atexit.register(cleanup)
     # Make sure _INITIALIZED is True before raising the exception in order to ensure
     # bxilog_init is not call recursively.
     _INITIALIZED = True
-    bxierr.BXICError.raise_if_ko(err_p)
-
-    atexit.register(cleanup)
-    sys.excepthook = bxilog_excepthook
     sio = StringIO.StringIO()
     traceback.print_stack(file=sio)
     _INIT_CALLER = sio.getvalue()
