@@ -221,6 +221,7 @@ def is_configured():
 
     @return A boolean indicating the configuration state of the logs
     """
+    global _INITIALIZED
     return _INITIALIZED
 
 
@@ -239,6 +240,7 @@ def set_config(configobj):
     """
     Set the whole bxilog module from the given configobj
     """
+    global _INITIALIZED
     if _INITIALIZED:
         raise bxierr.BXILogConfigError("The bxilog has already been initialized. "
                                        "Its configuration cannot be changed."
@@ -274,8 +276,9 @@ def bxilog_excepthook(type_, value, traceback):
     if not _INITIALIZED:
         sys.__excepthook__(type_, value, traceback)
     else:
-        kwargs = {'exc_info': (type_, value, traceback)}
-        critical('Uncaught Exception: %s' % value, **kwargs)
+        get_default_logger()._report(sys.exc_info(),
+                                     CRITICAL,
+                                     'Uncaught Exception: %s' % value)
 
 
 def multiprocessing_target(func):
