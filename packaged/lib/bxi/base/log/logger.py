@@ -132,7 +132,6 @@ class BXILogger(object):
 
         report_c = __BXIBASE_CAPI__.bxierr_report_new()
 
-        ei = sys.exc_info()
         while True:
             clazz = ei[0]
             value = ei[1]

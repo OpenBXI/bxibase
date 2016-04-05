@@ -276,9 +276,9 @@ def bxilog_excepthook(type_, value, traceback):
     if not _INITIALIZED:
         sys.__excepthook__(type_, value, traceback)
     else:
-        get_default_logger()._report(sys.exc_info(),
+        get_default_logger()._report((type_, value, traceback),
                                      CRITICAL,
-                                     'Uncaught Exception: %s' % value)
+                                     'Uncaught Exception - exiting thread')
 
 
 def multiprocessing_target(func):

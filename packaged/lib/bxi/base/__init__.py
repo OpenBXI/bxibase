@@ -187,8 +187,8 @@ def traceback2str(trace):
         tb = traceback.extract_tb(trace)
         bt = []
         for trace in tb:
-            bt.append("##trce## %s at %s:%d\n"
-                      "##trce##\t%s" % (trace[2], trace[0], trace[1], trace[3]))
-        return "".join(bt)
+            bt.append("%s at %s:%d\n"
+                      "\t%s" % (trace[2], trace[0], trace[1], trace[3]))
+        return "\n".join(bt)
     finally:
         sys.exc_clear()
