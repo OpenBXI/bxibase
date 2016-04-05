@@ -88,7 +88,7 @@ Doxygen documentation of Bxi Basic library for high-level C programming
 test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %setup
 #TODO put the doc again when working
-%configure --disable-debug
+%configure --disable-debug %{?checkdoc}
 
 ###############################################################################
 # The current directory is the one main directory of the tar
