@@ -915,7 +915,7 @@ void bxierr_list_append(bxierr_list_p list, bxierr_p err);
  *
  * @see bxierr_new()
  */
-void bxierr_list_add_to_report(bxierr_p err, bxierr_report_p report, uint64_t depth);
+void bxierr_list_add_to_report(bxierr_p err, bxierr_report_p report, size_t depth);
 
 
 /**
