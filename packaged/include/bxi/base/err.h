@@ -181,7 +181,7 @@
                        "Thanks and Sorry."
 
 
-#define BXIERR_ALL_CAUSES UINT64_MAX
+#define BXIERR_ALL_CAUSES SIZE_MAX
 #define ERR2STR_MAX_SIZE 1024
 
 
