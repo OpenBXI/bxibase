@@ -696,6 +696,7 @@ inline bool bxierr_isko(bxierr_p self) {
 }
 
 
+
 /**
  * Return a human string representation of the given `bxierr`.
  *
@@ -820,8 +821,8 @@ bxierr_p bxierr_fromidx(int erridx,
  */
 #ifndef BXICFFI
 bxierr_p bxierr_vfromidx(int errcode,
-                          const char * const * erridx2str,
-                          const char * fmt, va_list ap);
+                         const char * const * erridx2str,
+                         const char * fmt, va_list ap);
 #endif
 
 /**
