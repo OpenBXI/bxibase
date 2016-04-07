@@ -271,18 +271,25 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
  */
 bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     if (NULL == zocket) return BXIERR_OK;
+    bxierr_p err = BXIERR_OK, err2;
     errno = 0;
     int linger = DEFAULT_CLOSING_LINGER;
     int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
-    if (rc != 0) return _zmqerr(errno, "Can't set linger for socket cleanup");
+    if (rc != 0) {
+        err2 = _zmqerr(errno, "Can't set linger for socket cleanup");
+        BXIERR_CHAIN(err, err2);
+    }
 
     errno = 0;
     rc = zmq_close(zocket);
     if (rc != 0) {
         while (rc == -1 && errno == EINTR) rc = zmq_close(zocket);
-        if (rc != 0) return _zmqerr(errno, "Can't close socket");
+        if (rc != 0) {
+            err2 = _zmqerr(errno, "Can't close socket");
+            BXIERR_CHAIN(err, err2);
+        }
     }
-    return BXIERR_OK;
+    return err;
 }
 /*********************************** END Zocket ***********************************/
 
