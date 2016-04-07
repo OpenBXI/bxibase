@@ -124,6 +124,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
     param->data_hwm = 1000;
     param->ctrl_hwm = 1000;
     param->flush_freq_ms = 1000;
+    param->ierr_max = 10;
     param->filters = filters;
 
     // Use the param pointer to guarantee a unique URL name for different instances of
@@ -384,6 +385,7 @@ bxierr_p _loop(bxilog_handler_p handler,
     err2 = bxitime_get(CLOCK_MONOTONIC_RAW, &last_flush_time);
     if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
 
+    bxierr_set_p ierr_set = bxierr_set_new();
     while (true) {
         errno = 0;
         int rc = zmq_poll(items, 2, actual_timeout);
@@ -394,13 +396,25 @@ bxierr_p _loop(bxilog_handler_p handler,
 
             int code = zmq_errno();
             const char * msg = zmq_strerror(code);
-            err2 = bxierr_new(code, NULL, NULL, NULL, NULL,
-                              "Calling zmq_poll() failed: %s", msg);
-            BXIERR_CHAIN(err, err2);
-            err2 = _process_implicit_flush(handler, param, data);
-            BXIERR_CHAIN(err, err2);
-            err = _process_ierr(handler, param, err);
-            if (bxierr_isko(err)) return err;
+            bxierr_p ierr = bxierr_new(code, NULL, NULL, NULL, NULL,
+                                       "Calling zmq_poll() failed: %s", msg);
+            bool new_err = bxierr_set_add(ierr_set, &ierr);
+            if (new_err) {
+                err2 = _process_implicit_flush(handler, param, data);
+                BXIERR_CHAIN(err, err2);
+                err2 = _process_ierr(handler, param, ierr);
+                BXIERR_CHAIN(err, err2);
+                if (bxierr_isko(err)) return err;
+            }
+
+            if (ierr_set->total_seen_nb > param->ierr_max) {
+                return bxierr_from_set(BXILOG_TOO_MANY_IERR,
+                                       ierr_set,
+                                       "Too many internal errors, "
+                                       "exiting from thread %d",
+                                       data->tid);
+            }
+
         }
         double tmp;
         err2 = bxitime_duration(CLOCK_MONOTONIC_RAW, last_flush_time, &tmp);

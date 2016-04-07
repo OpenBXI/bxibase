@@ -46,7 +46,12 @@
 /**
  *  Error code used by handlers to specify they must exit.
  */
-#define BXILOG_HANDLER_EXIT_CODE 41322811
+#define BXILOG_HANDLER_EXIT_CODE 41323817  // Leet code for .A.LER EXIT
+
+/**
+ * Error code used by handlers to  specify too many internal errors was detected
+ */
+#define BXILOG_TOO_MANY_IERR 700471322     // Leet code  for TOO .A.7 IERR
 
 #if defined(__x86_64__)  || defined(__aarch64__)
 #define TIMESPEC_SIZE 16
@@ -108,6 +113,8 @@ typedef struct {
                                         //!< a new one will be created
     int data_hwm;                       //!< ZMQ High Water Mark for the data socket
     int ctrl_hwm;                       //!< ZMQ High Water Mark for the control socket
+    size_t ierr_max;                    //!< Maximal number of internal errors before
+                                        //!< exiting
     long flush_freq_ms;                 //!< Implicit flush frequency
     char * data_url;                    //!< The data zocket URL
     char * ctrl_url;                    //!< The control zocket URL
