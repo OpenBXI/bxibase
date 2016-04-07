@@ -34,6 +34,7 @@ endif
 
 lib_libbxibase_la_LDFLAGS=\
 					 $(ZMQ_LIBS)\
+					 $(LIBTOOLLDFLAGS)\
 					 $(UUID_LIBS)
 
 lib_libbxibase_la_CFLAGS=\
