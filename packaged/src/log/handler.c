@@ -404,7 +404,7 @@ bxierr_p _loop(bxilog_handler_p handler,
                 BXIERR_CHAIN(err, err2);
                 err2 = _process_ierr(handler, param, ierr);
                 BXIERR_CHAIN(err, err2);
-                if (bxierr_isko(err)) return err;
+                if (bxierr_isko(err)) goto QUIT;
             }
 
             if (ierr_set->total_seen_nb > param->ierr_max) {
@@ -449,7 +449,7 @@ bxierr_p _loop(bxilog_handler_p handler,
             actual_timeout = param->flush_freq_ms;
 
             err = _process_ierr(handler, param, err);
-            if (bxierr_isko(err)) return err;
+            if (bxierr_isko(err)) goto QUIT;
             continue;
         }
         if (items[0].revents & ZMQ_POLLIN) {
@@ -457,9 +457,9 @@ bxierr_p _loop(bxilog_handler_p handler,
             err2 = _process_ctrl_cmd(handler, param, data);
             BXIERR_CHAIN(err, err2);
             // Treat explicit exit message
-            if (BXILOG_HANDLER_EXIT_CODE == err->code) return err;
+            if (BXILOG_HANDLER_EXIT_CODE == err->code) goto QUIT;
             err = _process_ierr(handler, param, err);
-            if (bxierr_isko(err)) return err;
+            if (bxierr_isko(err)) goto QUIT;
         }
         if (items[1].revents & ZMQ_POLLIN) {
             // Process data, this is the normal case
@@ -473,11 +473,12 @@ bxierr_p _loop(bxilog_handler_p handler,
             BXIERR_CHAIN(err, err2);
 
             err = _process_ierr(handler, param, err);
-            if (bxierr_isko(err)) return err;
+            if (bxierr_isko(err)) goto QUIT;
         }
     }
+QUIT:
+    bxierr_set_destroy(&ierr_set);
 
-    bxiunreachable_statement;
     return err;
 }
 
