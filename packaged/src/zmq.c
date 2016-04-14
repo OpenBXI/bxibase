@@ -124,21 +124,26 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         struct sockaddr_in *h;
         for(p = servinfo; p != NULL && ip == NULL; p = p->ai_next) {
             h = (struct sockaddr_in *) p->ai_addr;
+            if (h == NULL) {
+                continue;
+            }
             ip = bxistr_new("%s", inet_ntoa( h->sin_addr ) );
         }
-        translate_url = bxistr_new("%s://%s:%s", elements[0], ip, elements[2]);
-        BXIFREE(ip);
-        int rc = zmq_bind(socket, translate_url);
-        if (rc == -1) {
-            //Neither url works
-            err2 = _zmqerr(errno,
-                           "Can't bind zmq socket on translated url %s",
-                           translate_url);
-            BXIERR_CHAIN(err, err2);
-        } else {
-            //It finally works
-            bxierr_destroy(&err);
-            err = BXIERR_OK;
+        if (ip != NULL) {
+            translate_url = bxistr_new("%s://%s:%s", elements[0], ip, elements[2]);
+            BXIFREE(ip);
+            int rc = zmq_bind(socket, translate_url);
+            if (rc == -1) {
+                //Neither url works
+                err2 = _zmqerr(errno,
+                               "Can't bind zmq socket on translated url %s",
+                               translate_url);
+                BXIERR_CHAIN(err, err2);
+            } else {
+                //It finally works
+                bxierr_destroy(&err);
+                err = BXIERR_OK;
+            }
         }
     }
 
