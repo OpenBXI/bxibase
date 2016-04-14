@@ -101,7 +101,6 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
             err2 = bxizmq_zocket_destroy(socket);
             BXIERR_CHAIN(err, err2);
             return err;
-            return err;
         }
 
         errno = 0;
@@ -116,6 +115,12 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         {
             err2 = bxierr_gen("Translation address error: getaddrinfo: %s", gai_strerror(rv));
             BXIERR_CHAIN(err, err2);
+        }
+
+        if (bxierr_isko(err2)) {
+            err2 = bxizmq_zocket_destroy(socket);
+            BXIERR_CHAIN(err, err2);
+            return err;
         }
 
         errno = 0;
