@@ -42,7 +42,7 @@ if HAVE_PYTHON
 		done > cffi.h
 	C_INCLUDE_PATH="$(top_srcdir)/packaged/include:$(abs_top_builddir)/packaged/include:\
 	${C_INCLUDE_PATH}" \
-	$(top_srcdir)/h2py.sh ${CFLAGS} cffi.h $@;\
+	$(top_srcdir)/h2py.sh $$(echo ${CFLAGS}|sed 's/-g[0-9]\?\>//g') cffi.h $@;\
 	rm cffi.h
 
 
