@@ -93,10 +93,14 @@ bxierr_p bxierr_new(int code,
     self->add_to_report = (NULL == add_to_report) ? bxierr_report_add_from_limit : add_to_report;
     self->cause = cause;
     if (self->cause != NULL) {
-        if (self->cause->last_cause != NULL) {
-            self->last_cause = self->cause->last_cause;
+        if (self->cause == BXIERR_OK) {
+            self->cause = NULL;
         } else {
-            self->last_cause = self->cause;
+            if (self->cause->last_cause != NULL) {
+                self->last_cause = self->cause->last_cause;
+            } else {
+                self->last_cause = self->cause;
+            }
         }
     }
 
