@@ -739,7 +739,7 @@ inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
                 if (!(*err)->allocated || !(*tmp)->allocated) {
                     bxierr_p loop_err = bxierr_gen("Not allocated error provided to BXIERR_CHAIN");
                     bxierr_report(&loop_err, STDERR_FILENO);
-                    bxierr_report(&tmp, STDERR_FILENO);
+                    bxierr_report(tmp, STDERR_FILENO);
                 } else if (*err == *tmp) {
                     bxierr_p loop_err = bxierr_gen("Loop detected on BXIERR_CHAIN");
                     bxierr_report(&loop_err, STDERR_FILENO);
