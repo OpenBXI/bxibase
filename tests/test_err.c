@@ -72,6 +72,8 @@ void test_bxierr() {
     BXIFREE(str);
     bxierr_destroy(&current);
 
+    /* Don't do things like below this in your code it just to try that works
+     * but it is not the good to use it*/
     current = bxierr_new(420, "Test Static Chain", NULL, NULL, BXIERR_TEST_CHAIN,
                          "Just a test, don't take this message into account");
     str = bxierr_str(current);
@@ -87,6 +89,7 @@ void test_bxierr() {
     CU_ASSERT_PTR_NULL(BXIERR_TEST_CHAIN->cause);
     OUT(TEST_LOGGER, "Test of perror: %s", str);
     BXIFREE(str);
+    /* End of the dirty tests*/
 
     bxierr_destroy(&current);
 }
