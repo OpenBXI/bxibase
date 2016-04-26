@@ -216,6 +216,13 @@ class BXILogTest(unittest.TestCase):
         self.assertRaises(TypeError,
                           logger.output,
                            "Testing wrong types: %d %d %s", 'foo', 2.5, 3, 'toto')
+        
+    def test_strange_char(self):
+        """Test logging with non-printable character, and especially, NULL char"""
+        for i in xrange(256):
+            bxilog.output("A message with ascii character %d just between "
+                          "the two following quotes '%s'", i, chr(i))
+        
  
     def test_existing_file(self):
         """Test logging into an existing file"""
@@ -446,22 +453,22 @@ class BXILogTest(unittest.TestCase):
     def test_uncaught(self):
         """Unit test for uncaught exception"""
         exe = os.path.join(os.path.dirname(__file__), "uncaught.py")
+        filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'
         try:
-            bxilog.out("Invoking %s. It must create a file", exe)
+            bxilog.out("Invoking %s. It must create file: %s", exe, filename)
             subprocess.check_call([exe])
         except subprocess.CalledProcessError as cpe:
             self.assertEqual(cpe.returncode, 1)
         filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'
         with open(filename) as logfile:
             found = False
-            pattern = '.*Uncaught Exception:.*'
+            pattern = '.*Uncaught Exception - exiting thread.*'
             regexp = re.compile(pattern)
             for line in logfile: 
                 if regexp.match(line):
                     found = True
-        self.assertTrue(found, "Pattern %s not found in %s" % (pattern, filename)) 
-            
-        
+        self.assertTrue(found, "Pattern %s not found in %s" % (pattern, filename))
+        os.unlink(filename) 
 
 ###############################################################################
  

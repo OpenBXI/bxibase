@@ -21,7 +21,6 @@
 #include "bxi/base/log.h"
 
 SET_LOGGER(TEST_LOGGER, "test.bxierr");
-bxierr_define(BXIERR_TEST_CHAIN, 10, "Error to test chain with static error");
 
 void test_bxierr() {
     srand((unsigned int)time(NULL));
@@ -72,26 +71,6 @@ void test_bxierr() {
     BXIFREE(str);
     bxierr_destroy(&current);
 
-    /* Don't do things like below this in your code it just to try that works
-     * but it is not the good to use it*/
-    current = bxierr_new(420, "Test Static Chain", NULL, NULL, BXIERR_TEST_CHAIN,
-                         "Just a test, don't take this message into account");
-    str = bxierr_str(current);
-    CU_ASSERT_PTR_NULL(current->cause);
-    CU_ASSERT_PTR_NULL(BXIERR_TEST_CHAIN->cause);
-    /* Chain with static error should not work*/
-    BXIERR_CHAIN(current, BXIERR_TEST_CHAIN);
-    CU_ASSERT_PTR_NULL(current->cause);
-    CU_ASSERT_PTR_NULL(BXIERR_TEST_CHAIN->cause);
-    bxierr_p test = (bxierr_p)BXIERR_TEST_CHAIN;
-    BXIERR_CHAIN(test, current);
-    CU_ASSERT_PTR_NULL(current->cause);
-    CU_ASSERT_PTR_NULL(BXIERR_TEST_CHAIN->cause);
-    OUT(TEST_LOGGER, "Test of perror: %s", str);
-    BXIFREE(str);
-    /* End of the dirty tests*/
-
-    bxierr_destroy(&current);
 }
 
 void test_bxierr_chain() {

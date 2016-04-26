@@ -139,20 +139,21 @@ static bxierr_p _log_single_line(char * line,
                              bool last,
                              log_single_line_param_p param);
 
-static ssize_t _mkmsg(const size_t n, char buf[n],
-                      const char level,
-                      const struct timespec * const detail_time,
-                      const pid_t pid,
+static size_t _mkmsg(const size_t n, char buf[n],
+                     const char level,
+                     const struct timespec * const detail_time,
+                     const pid_t pid,
 #ifdef __linux__
-                      const pid_t tid,
+                     const pid_t tid,
 #endif
-                      const uint16_t thread_rank,
-                      const char * const progname,
-                      const char * const filename,
-                      const int line_nb,
-                      const char * const funcname,
-                      const char * const loggername,
-                      const char * const logmsg);
+                     const uint16_t thread_rank,
+                     const char * const progname,
+                     const char * const filename,
+                     const int line_nb,
+                     const char * const funcname,
+                     const char * const loggername,
+                     const char * const logmsg,
+                     size_t line_len);
 
 static bxierr_p _flush(bxilog_file_handler_param_p data);
 static bxierr_p _write(bxilog_file_handler_param_p data, const void * buf, size_t count);
@@ -176,9 +177,9 @@ static const char LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
 // WARNING: If you change this format, change also different #define above
 // along with FIXED_LOG_SIZE
 #ifdef __linux__
-static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*u:%s|%s:%d@%s|%s|%s\n";
+static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*u:%s|%s:%d@%s|%s|";
 #else
-static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u:%s|%s:%d@%s|%s|%s\n";
+static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u:%s|%s:%d@%s|%s|";
 #endif
 
 static const bxilog_handler_s BXILOG_FILE_HANDLER_S = {
@@ -436,14 +437,15 @@ bxierr_p _log_single_line(char * line,
     bxilog_file_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
-    const size_t size = FIXED_LOG_SIZE + \
+    const size_t prefix_size = FIXED_LOG_SIZE + \
             // Exclude NULL terminating byte from preprocessed length
             data->progname_len - 1 + \
             record->filename_len -1 + \
             record->funcname_len - 1 + \
             record->logname_len - 1 + \
-            bxistr_digits_nb(record->line_nb) + \
-            line_len; // Exclude the NULL terminating byte
+            bxistr_digits_nb(record->line_nb);
+
+    size_t size = prefix_size + line_len;
 
     if (data->buf_size - data->next_char <= size) {
         bxierr_p err = _flush(data);
@@ -460,21 +462,21 @@ bxierr_p _log_single_line(char * line,
 
     // Include the NULL terminating byte in the size given to
     // underlying snprintf() call, it is required.
-    const ssize_t written = _mkmsg(size + 1, buf,
-                                   LOG_LEVEL_STR[record->level],
-                                   &record->detail_time,
-                                   record->pid,
+    _mkmsg(prefix_size + 1, buf,
+           LOG_LEVEL_STR[record->level],
+           &record->detail_time,
+           record->pid,
 #ifdef __linux__
-                                   record->tid,
+           record->tid,
 #endif
-                                   record->thread_rank,
-                                   data->progname,
-                                   param->filename,
-                                   record->line_nb,
-                                   param->funcname,
-                                   param->loggername,
-                                   line);
-    bxiassert(0 < written);
+           record->thread_rank,
+           data->progname,
+           param->filename,
+           record->line_nb,
+           param->funcname,
+           param->loggername,
+           line, line_len);
+
     if (size > data->buf_size) {
         bxierr_p err = _write(data, buf, size);
         BXIFREE(buf);
@@ -489,7 +491,7 @@ bxierr_p _log_single_line(char * line,
 }
 
 
-ssize_t _mkmsg(const size_t n, char buf[n],
+size_t _mkmsg(const size_t n, char buf[n],
                const char level,
                const struct timespec * const detail_time,
                const pid_t pid,
@@ -502,12 +504,14 @@ ssize_t _mkmsg(const size_t n, char buf[n],
                const int line_nb,
                const char * const funcname,
                const char * const loggername,
-               const char * const logmsg) {
+               const char * const logmsg,
+               size_t logmsg_len) {
 
     errno = 0;
     struct tm dummy, *now;
     now = localtime_r(&detail_time->tv_sec, &dummy);
     bxiassert(NULL != now);
+
     int written = snprintf(buf, n, LOG_FMT,
                            level,
                            YEAR_SIZE, now->tm_year + 1900,
@@ -526,8 +530,9 @@ ssize_t _mkmsg(const size_t n, char buf[n],
                            filename,
                            line_nb,
                            funcname,
-                           loggername,
-                           logmsg);
+                           loggername);
+    memcpy(buf + written, logmsg, logmsg_len);
+    buf[(size_t) written + logmsg_len] = '\n';
 
 
     // WARNING: Truncation can happen if the logmsg is part of a larger string.
@@ -538,7 +543,7 @@ ssize_t _mkmsg(const size_t n, char buf[n],
     //    bxiassert(written < (int)n);
 
     bxiassert(written >= 0);
-    return written;
+    return (size_t) written + logmsg_len;
 }
 
 bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {

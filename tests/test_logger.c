@@ -160,6 +160,41 @@ size_t produce_complex_logs() {
     return logged_msg_nb;
 }
 
+void test_strange_log() {
+    bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
+                                                     FULLFILENAME,
+                                                     BXI_APPEND_OPEN_FLAGS);
+    bxierr_p err = bxilog_init(config);
+    bxierr_report_keep(err, STDERR_FILENO);
+
+    CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
+    OUT(TEST_LOGGER, "Starting test");
+
+    char * VAR_TEMPLATE = "A log with ascii char %d just between following";
+    char * FIX_TEMPLATE = " two quotes: '#' this is after the two quotes";
+
+    for (size_t i = 0; i < 256; i++) {
+        char * tmp = bxistr_new(VAR_TEMPLATE, i);
+        size_t tmp_len = strlen(tmp);
+        char * buf = bxistr_new("%s%s", tmp, FIX_TEMPLATE);
+        size_t len = tmp_len + strlen(FIX_TEMPLATE) + 1;
+        BXIFREE(tmp);
+        char * c = strchr(buf, '#');
+        CU_ASSERT_PTR_NOT_NULL(c);
+        *c = (char) i;
+        bxilog_logger_log_rawstr(TEST_LOGGER, BXILOG_OUTPUT,
+                                 __FILE__, ARRAYLEN(__FILE__),
+                                 __func__, ARRAYLEN(__func__),
+                                 __LINE__,
+                                 buf, len);
+        BXIFREE(buf);
+    }
+
+    err = bxilog_finalize(true);
+    bxierr_abort_ifko(err);
+}
+
+
 /*
  *  Check logger initialization
  */
@@ -244,6 +279,7 @@ void test_very_long_log(void) {
     bxierr_abort_ifko(err);
     BXIFREE(longlog_filename);
 }
+
 
 void test_logger_init() {
     bxilog_config_p config = bxilog_unit_test_config(PROGNAME,

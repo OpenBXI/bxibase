@@ -53,7 +53,14 @@ static void __bt_init__(void);
 // ********************************** Global Variables *****************************
 // *********************************************************************************
 
-bxierr_define(BXIERR_OK, 0, OK_MSG);
+const bxierr_s BXIERR_OK_S = {
+                            .code = 0,
+                            .msg = OK_MSG,
+                            .msg_len = ARRAYLEN(OK_MSG),
+};
+
+const bxierr_p BXIERR_OK = (const bxierr_p) &BXIERR_OK_S;
+
 const char * BXIERR_CAUSED_BY_STR = CAUSED_BY_STR;
 const int BXIERR_CAUSED_BY_STR_LEN = ARRAYLEN(CAUSED_BY_STR);
 
@@ -83,7 +90,6 @@ bxierr_p bxierr_new(int code,
                     ...) {
 
     bxierr_p self = bximem_calloc(sizeof(*self));
-    self->allocated = true;
     self->code = code;
     char * tmp = NULL;
     self->backtrace_len = bxierr_backtrace_str(&tmp);
@@ -91,16 +97,13 @@ bxierr_p bxierr_new(int code,
     self->data = data;
     self->free_fn = free_fn;
     self->add_to_report = (NULL == add_to_report) ? bxierr_report_add_from_limit : add_to_report;
-    self->cause = cause;
+    self->cause = bxierr_isok(cause) ? NULL : cause;
+
     if (self->cause != NULL) {
-        if (!self->cause->allocated) {
-            self->cause = NULL;
+        if (self->cause->last_cause != NULL) {
+            self->last_cause = self->cause->last_cause;
         } else {
-            if (self->cause->last_cause != NULL) {
-                self->last_cause = self->cause->last_cause;
-            } else {
-                self->last_cause = self->cause;
-            }
+            self->last_cause = self->cause;
         }
     }
 
@@ -114,7 +117,7 @@ bxierr_p bxierr_new(int code,
 
 void bxierr_free(bxierr_p self) {
     if (NULL == self) return;
-    if (!self->allocated) return;
+    if (self == BXIERR_OK) return;
     if (NULL != self->cause) bxierr_destroy(&(self->cause));
     if (NULL != self->free_fn) {
         self->free_fn(self->data);

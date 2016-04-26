@@ -217,15 +217,27 @@
  * printf-like message.
  *
  * @see bxierr_fromidx()
+ * @see bxierr_new()
  */
 #define bxierr_errno(...) bxierr_fromidx(errno, NULL, __VA_ARGS__)
 
 /**
- * Create a generic error, with the given printf-like message.
+ * Return a new instance with an error code and the given printf-like message.
  *
  * @see bxierr_new()
  */
-#define bxierr_gen(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, NULL, __VA_ARGS__)
+#define bxierr_simple(code, ...) bxierr_new(code, NULL, NULL, NULL, NULL, __VA_ARGS__)
+
+/**
+ * Create a generic error, with the given printf-like message.
+ *
+ * @note: method bxierr_simple() should be preferred as it provides a specific error code
+ *        that can be used to distinguish different errors.
+ *
+ * @see bxierr_new()
+ * @see bxierr_simple()
+ */
+#define bxierr_gen(...) bxierr_simple(BXIERR_GENERIC_CODE, __VA_ARGS__)
 
 /**
  * Define an error with the given code and the given error list.
@@ -260,25 +272,6 @@
                (void (*) (void*)) bxierr_set_free,      \
                bxierr_set_add_to_report,                \
                NULL, __VA_ARGS__)
-
-/**
- * Define a new static error.
- *
- * Note: statically defined errors cannot be chained!
- */
-#define bxierr_define(name, code_number, user_msg)                  \
-    bxierr_s name ## _S = {                                         \
-                                .allocated = false,                 \
-                                .code = code_number,                \
-                                .backtrace = NULL,                  \
-                                .data = NULL,                       \
-                                .free_fn = NULL,                    \
-                                .cause = NULL,                      \
-                                .last_cause = NULL,                 \
-                                .msg = user_msg,                    \
-                                .msg_len = ARRAYLEN(user_msg),      \
-    };                                                              \
-    const bxierr_p name = (bxierr_p) &name ## _S;
 
 /**
  * If the given expression is false, exit with a message and a
@@ -357,7 +350,6 @@ typedef struct bxierr_s * bxierr_p;
  * Note: bxierr can be chained
  */
 struct bxierr_s {
-    bool allocated;                         //!< true if this error has been mallocated
     int  code;                              //!< the error code
     char * backtrace;                       //!< the backtrace
     size_t backtrace_len;                   //!< the backtrace string length (including
@@ -733,29 +725,21 @@ inline char * bxierr_str(bxierr_p self) {
  *
  */
 inline void bxierr_chain(bxierr_p *err, const bxierr_p *tmp) {
-            assert(NULL != (*err));
-            assert(NULL != (*tmp));
+            bxiassert(NULL != (*err));
+            bxiassert(NULL != (*tmp));
+
             if (bxierr_isko((*tmp)) && bxierr_isko((*err))) {
-                if (!(*err)->allocated || !(*tmp)->allocated) {
-                    bxierr_p loop_err = bxierr_gen("Not allocated error provided to BXIERR_CHAIN");
-                    bxierr_report(&loop_err, STDERR_FILENO);
-                    bxierr_report(err, STDERR_FILENO);
-                    *err = BXIERR_OK;
-                } else if (*err == *tmp) {
-                    bxierr_p loop_err = bxierr_gen("Loop detected on BXIERR_CHAIN");
-                    bxierr_report(&loop_err, STDERR_FILENO);
+                bxiassert(*err != *tmp);
+                if (NULL != (*tmp)->cause) {
+                    bxiassert((*tmp)->last_cause->cause == NULL);
+                    (*tmp)->last_cause->cause = (*err);
                 } else {
-                    if (NULL != (*tmp)->cause) {
-                        assert((*tmp)->last_cause->cause == NULL);
-                        (*tmp)->last_cause->cause = (*err);
-                    } else {
-                        (*tmp)->cause = (*err);
-                    }
-                    if ((*err)->last_cause != NULL) {
-                        (*tmp)->last_cause = (*err)->last_cause;
-                    } else {
-                        (*tmp)->last_cause = (*err);
-                    }
+                    (*tmp)->cause = (*err);
+                }
+                if ((*err)->last_cause != NULL) {
+                    (*tmp)->last_cause = (*err)->last_cause;
+                } else {
+                    (*tmp)->last_cause = (*err);
                 }
             }
             (*err) = bxierr_isko((*tmp)) ? (*tmp) : (*err);

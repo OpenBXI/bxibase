@@ -116,11 +116,11 @@ bxierr_p bxistr_apply_lines(char * str,
         char * s = str;
         char * eol = str + str_len;
         while (true) {
-            char * next = strchr(s, '\n');
+            char * next = memchr(s, '\n', (size_t) (eol - s));
             next = (NULL == next) ? eol : next;
-            size_t len = (size_t) (next - s);
+            size_t sub_len = (size_t) (next - s);
             bool last = next == eol;
-            bxierr_p err = f(s, len, last, param);
+            bxierr_p err = f(s, sub_len, last, param);
             if (bxierr_isko(err)) return err;
             if (last) break;
             s = next + 1;

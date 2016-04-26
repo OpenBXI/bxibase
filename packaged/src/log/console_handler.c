@@ -501,25 +501,19 @@ inline bxierr_p _display_nocolor(char * line,
     UNUSED(last);
     bxilog_record_p record = param->record;
 
-    char buf[line_len + 1];
-    memcpy(buf, line, line_len);
-    buf[line_len] = '\0';
-
     int rc;
-    if (BXILOG_OUTPUT < record->level) {
-        rc = fprintf(param->out, "[%c] %-*.*s %s\n",
+    if (BXILOG_OUTPUT != record->level) {
+        rc = fprintf(param->out, "[%c] %-*.*s ",
                      LOG_LEVEL_STR[record->level],
                      param->data->loggername_width,
                      param->data->loggername_width,
-                     param->loggername,
-                     buf);
-    } else if (BXILOG_OUTPUT == record->level) {
-        rc = fprintf(param->out, "%s\n", buf);
-    } else {
-        rc = fprintf(param->out, "[%c] %s\n",
-                     LOG_LEVEL_STR[record->level],
-                     buf);
+                     param->loggername);
     }
+
+    for (size_t i = 0; i < line_len; i++) {
+        fputc(line[i], param->out);
+    }
+    fputc('\n', param->out);
 
     UNUSED(rc);
     // We just don't care!
@@ -538,30 +532,26 @@ inline bxierr_p _display_color(char * line,
     bxilog_console_handler_param_p data = param->data;
     bxilog_record_p record = param->record;
 
-    char buf[line_len + 1];
-    memcpy(buf, line, line_len);
-    buf[line_len] = '\0';
-
     errno = 0;
     int rc;
-    if (BXILOG_OUTPUT < record->level) {
-        rc = fprintf(param->out, "%s[%c] %-*.*s %s" RESET_COLORS "\n",
+    if (BXILOG_OUTPUT != record->level) {
+        rc = fprintf(param->out, "%s[%c] %-*.*s ",
                      data->colors[record->level],
                      LOG_LEVEL_STR[record->level],
                      data->loggername_width,
                      data->loggername_width,
-                     param->loggername,
-                     buf);
-    } else if (BXILOG_OUTPUT == record->level) {
-        rc = fprintf(param->out, "%s%s" RESET_COLORS "\n",
-                     data->colors[record->level],
-                     buf);
+                     param->loggername);
     } else {
-        rc = fprintf(param->out, "%s[%c] %s" RESET_COLORS "\n",
-                     data->colors[record->level],
-                     LOG_LEVEL_STR[record->level],
-                     buf);
+        rc = fprintf(param->out, "%s",
+                     data->colors[record->level]);
     }
+
+    for (size_t i = 0; i < line_len; i++) {
+        fputc(line[i], param->out);
+    }
+    fputs(RESET_COLORS, param->out);
+    fputc('\n', param->out);
+
     UNUSED(rc);
     // We just don't care!
 //    if (rc < 0) {

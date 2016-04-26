@@ -26,6 +26,11 @@ void log_stuff(bxilog_logger_p logger) {
     FINE(logger, "A fine message");
     TRACE(logger, "A trace message");
     LOWEST(logger, "A lowest message");
+
+    OUT(logger,
+        "A log message with a NULL character between the following "
+        "two quotes: '%c', this is after the quotes", 0);
+    OUT(logger, "A multiline message\n\tNext line");
 }
 
 void display_loggers(size_t n, bxilog_logger_p loggers[n]) {
