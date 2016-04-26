@@ -59,7 +59,7 @@ const bxierr_s BXIERR_OK_S = {
                             .msg_len = ARRAYLEN(OK_MSG),
 };
 
-const bxierr_p BXIERR_OK = (const bxierr_p) &BXIERR_OK_S;
+const bxierr_p BXIERR_OK = (bxierr_p) &BXIERR_OK_S;
 
 const char * BXIERR_CAUSED_BY_STR = CAUSED_BY_STR;
 const int BXIERR_CAUSED_BY_STR_LEN = ARRAYLEN(CAUSED_BY_STR);
