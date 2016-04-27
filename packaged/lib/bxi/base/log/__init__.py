@@ -640,20 +640,20 @@ def exception(msg="", *args, **kwargs):
     get_default_logger().exception(msg, *args, **kwargs)
 
 
-def report(err, msg="", *args, **kwargs):
+def report_bxierr(bxierr, msg="", *args, **kwargs):
     """
-    Report the given error.
+    Report the given bxierr_p.
 
-    @param[in] err the error to report
+    @param[in] bxierr the bxierr_p to report
     @param[in] msg the message to display along with the error report
     @param[in] args message arguments if any
     @param[in] kwargs message arguments if any
-
+ 
     @return
-
+ 
     @see get_default_logger
     """
-    get_default_logger().report(err, msg, *args, **kwargs)
+    get_default_logger().report_bxierr(bxierr, msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module

@@ -381,6 +381,11 @@ class BXILogger(object):
         """
         Log the current exception with the given message.
 
+        @note the logging level can be specified:
+                exception(bxierr,
+                          "An error occured on %s with %s", foo, bar,
+                          level=WARNING)
+
         @param[in] msg the message to log with the given exception
         @param[in] args an array of parameters for string substitution in msg
         @param[in] kwargs a dict of named parameters for string substitution in msg
@@ -398,8 +403,12 @@ class BXILogger(object):
         """
         Report a BXICError or a bxierr_p object.
 
+        @note the logging level can be specified:
+                report_bxierr(bxierr,
+                              "An error occured on %s with %s", foo, bar,
+                              level=WARNING)
+
         @param[in] err an instance of a BXICError or a bxierr_p 
-        @param[in] level the error level to report the error at
         @param[in] msg the message to display along with the error report
         @param[in] args message arguments if any
         @param[in] kwargs message arguments if any
