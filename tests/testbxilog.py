@@ -431,6 +431,7 @@ class BXILogTest(unittest.TestCase):
             bce = bxierr.BXICError(other)
             be = bxierr.BXIError("Another one", cause=bce)
             te = TestException("An exception, don't worry")
+            bxilog.report_bxierr(bce, msg="test report error", level=bxilog.ALERT)
             te.cause = be
             raise te
         except TestException:

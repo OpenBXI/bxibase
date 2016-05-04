@@ -422,6 +422,7 @@ class BXILogger(object):
                                       ' got: %r. Use bxilog.exception() instead?' % err)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
+        cmsg_str = __FFI__.new("char []", msg_str)
         filename, lineno, funcname = _FindCaller()
         filename_len = len(filename) + 1
         funcname_len = len(funcname) + 1
@@ -434,7 +435,7 @@ class BXILogger(object):
                                             funcname_len,
                                             lineno,
                                             "%s",
-                                            msg_str)
+                                            cmsg_str)
 
     @staticmethod
     def flush():

@@ -653,7 +653,7 @@ def report_bxierr(bxierr, msg="", *args, **kwargs):
  
     @see get_default_logger
     """
-    get_default_logger().report_bxierr(bxierr, msg, *args, **kwargs)
+    get_default_logger().report_bxierr(bxierr, msg=msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
