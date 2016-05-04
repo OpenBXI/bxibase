@@ -18,7 +18,7 @@
 
 size_t SENDER_NB; // Initialized in the main
 size_t LOOP_NB;   // Initialized in the main
-void * CONTEXT;   //  Initialized in the main
+void * CONTEXT;   // Initialized in the main
 
 struct blob_t {
     size_t id;
