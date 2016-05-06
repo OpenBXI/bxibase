@@ -10,7 +10,7 @@ import sys
 import textwrap
 import tempfile
 import unittest
-import posless
+import bxi.base.posless as posless
 
 from StringIO import StringIO
 
@@ -319,7 +319,7 @@ class TestOverride(ParserTestCase):
 
 
 # ============================
-# from posless import * tests
+# from bxi.base.posless import * tests
 # ============================
 
 class TestImportStar(TestCase):

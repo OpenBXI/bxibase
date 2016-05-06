@@ -18,7 +18,7 @@ import bxi.base.log as logging
 import bxi.base.log.console_handler as bxilog_consolehandler
 import bxi.base.log.file_handler as bxilog_filehandler
 import configobj
-import posless as argparse
+import bxi.base.posless as argparse
 import tempfile
 import os.path
 import sys
