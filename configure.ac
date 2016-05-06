@@ -58,7 +58,7 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_STRERROR_R
 AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 
-SUBPACKAGES="debuginfo doc"
+SUBPACKAGES="debuginfo doc devel tests"
 AC_SUBST([SUBPACKAGES])
 AC_BXIEXTRA_DIST="h2py.sh"
 AC_SUBST([AC_BXIEXTRA_DIST])

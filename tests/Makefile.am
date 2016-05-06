@@ -18,11 +18,17 @@ TESTS += \
 		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py
 endif
 
-check_PROGRAMS= \
-				unit_t\
-				../packaged/doc/examples/bxistr_examples\
-				../packaged/doc/examples/bxilog_err\
-				../packaged/doc/examples/bxilog_cfg
+inst_checkdir=$(docdir)/tests/
+inst_check_PROGRAMS= \
+					 unit_t\
+					 ../packaged/doc/examples/bxistr_examples\
+					 ../packaged/doc/examples/bxilog_err\
+					 ../packaged/doc/examples/bxilog_cfg
+
+dist_inst_check_SCRIPTS=\
+						simple_bxilog_user.py \
+						testbxilog.py\
+						uncaught.py
 
 unit_t_CFLAGS =\
 			   -I$(top_srcdir)/packaged/include\
