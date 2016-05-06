@@ -101,7 +101,8 @@ void bxilog_logger_set_level(const bxilog_logger_p logger, const bxilog_level_e 
 }
 
 // Defined inline in bxilog.h
-extern bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
+extern bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger,
+                                         const bxilog_level_e level);
 
 void bxilog_logger_destroy(bxilog_logger_p * self_p) {
     if (NULL == *self_p) return;
