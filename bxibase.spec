@@ -9,7 +9,7 @@
 # Bull software starts with 1.1-Bull.1.0
 # For versionning policy, please see wiki:
 # http://intran0x.frec.bull.fr/projet/HPC/wiki_etudes/index.php/How_to_generate_RPM#Bull_rpm_NAMING_CONVENTION
-%define version 5.0.1
+%define version 5.1.0
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
@@ -42,7 +42,7 @@
 %define target_doc_dir /usr/share/doc/%{name}
 
 # TODO: Give your summary
-Summary:    Basic library for high-level C programming (logging, error, string, zmq)
+Summary:    Basic library for high-level C and Python programming (logging, error, string, zmq)
 Name:		%{name}
 Version:	%{version}
 Release:	%{release}
@@ -77,13 +77,13 @@ BuildRequires: python-cffi >= 0.8.6
 
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
-Basic C modules including the high performance BXI logging library.
+Basic C and Python modules including the high performance BXI logging library.
 
 %package doc
 Summary: Documentation of Bxi Basic library for high-level C programming
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description doc
-Doxygen documentation of Bxi Basic library for high-level C programming
+Doxygen documentation of Bxi Basic library for high-level C and Python programming
 
 %package devel
 Summary: Header files providing the bxibase API
