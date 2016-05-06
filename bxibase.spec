@@ -145,6 +145,8 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 #%{_libdir}/lib*
 %{target_lib_dir}/lib*
 %{target_python_lib_dir}/*
+%doc
+    %{target_doc_dir}/ChangeLog
 
 
 %files devel
@@ -164,8 +166,6 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 #%{target_bin_dir}/bin1
 #%{target_bin_dir}/prog2
 #%{target_bin_dir}/exe3
-%doc
-    %{target_doc_dir}/ChangeLog
 #TODO ADD IT AGAIN when the doc is fixed
 %files doc
     %{target_doc_dir}/%{version}/
