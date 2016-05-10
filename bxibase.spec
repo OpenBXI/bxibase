@@ -69,8 +69,7 @@ Provides: %{name}
 #TODO: What do you require
 Requires: zeromq
 Requires: backtrace
-BuildRequires: zeromq
-BuildRequires: backtrace
+BuildRequires: zeromq-devel
 BuildRequires: backtrace-devel
 Requires: python-cffi >= 0.8.6
 BuildRequires: python-cffi >= 0.8.6
@@ -87,11 +86,13 @@ Doxygen documentation of Bxi Basic library for high-level C and Python programmi
 
 %package devel
 Summary: Header files providing the bxibase API
+Requires: %{name}
 
 %description devel
 Header files providing the bxibase API
 
 %package tests
+Requires: %{name}
 Summary: Tests for the BXI base library
 
 %description tests
