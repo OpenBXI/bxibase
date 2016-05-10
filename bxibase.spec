@@ -73,6 +73,11 @@ BuildRequires: zeromq-devel
 BuildRequires: backtrace-devel
 Requires: python-cffi >= 0.8.6
 BuildRequires: python-cffi >= 0.8.6
+BuildRequires: gcc
+buildRequires: gcc-c++
+BuildRequires: net-snmp-devel
+BuildRequires: CUnit-devel
+Requires: net-snmp
 
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
