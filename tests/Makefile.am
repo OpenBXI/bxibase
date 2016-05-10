@@ -4,11 +4,11 @@ all-local:
 if HAVE_PYTHON
 check-local: 
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
-		LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-		nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS}; \
-		PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
-		LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-        coverage run ${top_srcdir}/tests/posless_suite.py
+	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
+	nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS}; \
+	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
+	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
+	coverage run ${top_srcdir}/tests/posless_suite.py
 endif
 
 TESTS = \
