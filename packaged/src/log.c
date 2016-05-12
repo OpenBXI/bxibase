@@ -35,6 +35,10 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
+
 #include <sys/ioctl.h>
 
 #include <zmq.h>
@@ -80,6 +84,7 @@ static bxierr_p _start_handler_thread(bxilog_handler_p handler,
                                       bxilog_handler_param_p param);
 static bxierr_p _sync_handler(size_t);
 static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
+static void _setprocname();
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -140,6 +145,8 @@ bxierr_p bxilog_init(bxilog_config_p config) {
     _check_set_params(config);
 
     BXILOG__GLOBALS->state = INITIALIZING;
+
+    _setprocname(BXILOG__GLOBALS->config->progname);
 
     err = bxilog__init_globals();
     if (bxierr_isko(err)) {
@@ -592,7 +599,6 @@ void _check_set_params(bxilog_config_p config) {
     BXILOG__GLOBALS->config = config;
 }
 
-
 bxierr_p _start_handler_thread(bxilog_handler_p handler, bxilog_handler_param_p param) {
     bxierr_p err = BXIERR_OK, err2;
     pthread_attr_t attr;
@@ -691,4 +697,19 @@ bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err) {
                                        "Can't join handler thread. "
                                        "Calling pthread_join() failed (rc=%d)", rc);
     return BXIERR_OK;
+}
+
+
+void _setprocname(char * name) {
+#ifdef __linux__
+    errno = 0;
+    const char * progname = NULL;
+    bxistr_rsub(name, strlen(name), '/', &progname);
+    int rc = prctl(15 /* PR_SET_NAME */, progname, 0, 0, 0);
+    if (0 != rc) {
+        bxierr_p err = bxierr_errno("Setting process name to '%s' with "
+                                    "prctl() failed", name);
+        bxierr_report(&err, STDERR_FILENO);
+    }
+#endif
 }
