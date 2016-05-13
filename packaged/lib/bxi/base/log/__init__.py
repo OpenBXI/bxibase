@@ -122,6 +122,7 @@ from __future__ import print_function
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
+
 import atexit
 import os
 import sys
@@ -242,6 +243,7 @@ def set_config(configobj):
     """
     global _INITIALIZED
     if _INITIALIZED:
+        
         raise bxierr.BXILogConfigError("The bxilog has already been initialized. "
                                        "Its configuration cannot be changed."
                                        "\nAvailable solutions:"
