@@ -313,7 +313,7 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
             return default
 
         try:
-            _dict = _return_dict_value(config, Sections)
+            dictonary = _return_dict_value(config, Sections)
         except bxierr.BXIError as e:
             _LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
                         " using %s as default for value %s from (sub)section [%s]", e.msg,
@@ -322,8 +322,8 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
 
         try:
             _LOGGER.debug("Return %s for value %s in section %s",
-                          _dict[value], value, Sections)
-            return _dict[value]
+                          dictonary[value], value, Sections)
+            return dictonary[value]
         except (KeyError, TypeError, AttributeError):
             _LOGGER.exception("No value %s in the (sub)sections [%s]."
                             " using %s as default for value %s from (sub)section [%s]",
