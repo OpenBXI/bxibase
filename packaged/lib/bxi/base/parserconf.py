@@ -22,6 +22,7 @@ import bxi.base.posless as posless
 import tempfile
 import os.path
 import sys
+import bxi.base.err as bxierr
 
 ArgumentError = posless.ArgumentError
 ArgumentTypeError = posless.ArgumentTypeError
@@ -288,3 +289,46 @@ def addargs(parser, config_file=DEFAULT_CONFIG_FILE, setsighandler=True):
     parser.add_argument('--help-full',
                         action=_FullHelpAction, default=posless.SUPPRESS,
                         help=_('show all options and exit'))
+
+def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None):
+    def _return_dict_value(config, Sections):
+        try:
+            if len(Sections) > 1:
+                return _return_dict_value(config.get(Sections[0]), Sections[1:])
+            else:
+                return config.get(Sections[0])
+        except bxierr.BXIError as e:
+            raise bxierr.BXIError("[%s]%s" % (Sections[0], e.msg))
+        except:
+            _LOGGER.exception("Initial error:", level=logging.DEBUG)
+            raise bxierr.BXIError("[%s]" % Sections[0])
+    try:
+        try:
+            if config is None:
+                config = parser.config
+        except AttributeError:
+            _LOGGER.exception("No configuration provided."
+                            " Using %s as default for value %s from section %s",
+                            default, value, Sections, level=logging.DEBUG)
+            return default
+
+        try:
+            _dict = _return_dict_value(config, Sections)
+        except bxierr.BXIError as e:
+            _LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
+                        " using %s as default for value %s from (sub)section [%s]", e.msg,
+                            default, value, ']['.join(Sections))
+            return default
+
+        try:
+            _LOGGER.debug("Return %s for value %s in section %s",
+                          _dict[value], value, Sections)
+            return _dict[value]
+        except (KeyError, TypeError, AttributeError):
+            _LOGGER.exception("No value %s in the (sub)sections [%s]."
+                            " using %s as default for value %s from (sub)section [%s]",
+                            value, ']['.join(Sections),
+                            default, value, ']['.join(Sections), level=logging.DEBUG)
+            return default
+    except:
+        _LOGGER.exception("Log erro")
