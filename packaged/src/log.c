@@ -544,7 +544,7 @@ bxierr_p bxilog__stop_handlers(void) {
 
 void bxilog_rawprint(char* msg, int fd) {
     // TODO: use a better format?
-    ssize_t n = write(fd, msg, strlen(msg) + 1);
+    ssize_t n = write(fd, msg, strlen(msg));
     // Just don't care on error, the end-user might have redirected
     // the stderr stream to a non-writable place (such as a broken pipe after a
     // command such as 'cmd 2>&1 |head')...
