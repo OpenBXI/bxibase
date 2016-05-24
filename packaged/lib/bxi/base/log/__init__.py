@@ -243,7 +243,6 @@ def set_config(configobj):
     """
     global _INITIALIZED
     if _INITIALIZED:
-        
         raise bxierr.BXILogConfigError("The bxilog has already been initialized. "
                                        "Its configuration cannot be changed."
                                        "\nAvailable solutions:"

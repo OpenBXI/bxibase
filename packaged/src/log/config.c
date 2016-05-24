@@ -140,7 +140,7 @@ bxilog_config_p bxilog_netsnmp_config(const char * const progname) {
 
 bxilog_config_p bxilog_config_new(const char * const progname) {
     bxilog_config_p config = bximem_calloc(sizeof(*config));
-    config->progname = progname;
+    config->progname = strdup(progname);
     config->tsd_log_buf_size = 128;
     config->handlers_nb = 0;
     config->ctrl_hwm = 1000;
@@ -185,6 +185,7 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
     }
     BXIFREE(config->handlers);
     BXIFREE(config->handlers_params);
+    BXIFREE(config->progname);
     bximem_destroy((char**) config_p);
     if (errlist->errors_nb > 0) {
         return bxierr_from_list(BXIERR_GROUP_CODE, errlist,
