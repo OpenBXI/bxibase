@@ -11,6 +11,7 @@
 /unit_t.bxilog
 /aclocal.m4
 /*.bxilog
+**/*.pyc
 
 # /.autotools_cache/
 /.autotools_cache/ltmain.sh
