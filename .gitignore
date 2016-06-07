@@ -11,7 +11,6 @@
 /unit_t.bxilog
 /aclocal.m4
 /*.bxilog
-**/*.pyc
 
 # /.autotools_cache/
 /.autotools_cache/ltmain.sh
@@ -117,3 +116,6 @@
 /tests/report
 /tests/Makefile.in
 /tests/*.bxilog
+
+**/*.pyc
+**/*.pyo
