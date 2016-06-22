@@ -72,6 +72,7 @@
 		<buildTargets>
 			<target name="all" path="misc/issues/zmq-inproc-leak" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
+				<buildArguments/>
 				<buildTarget>all</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>

@@ -221,7 +221,7 @@ void bxilog_registry_reset() {
 bxierr_p bxilog_registry_set_filters(bxilog_filters_p * filters_p) {
     bxiassert(NULL != filters_p);
     bxilog_filters_p filters = *filters_p;
-    bxiassert(NULL != filters);
+    if (NULL == filters) return bxierr_gen("Given filters pointers %p points to NULL!", filters_p);
     int rc = pthread_mutex_lock(&REGISTER_LOCK);
     bxiassert(0 == rc);
     _reset_config();
