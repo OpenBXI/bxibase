@@ -161,7 +161,8 @@ const bxilog_colors_p BXILOG_COLORS_216_DARK = {
                              "\033[22m" "\033[38;5;196m",                                // ERROR
                              "\033[22m" "\033[38;5;226m",                                // WARNING
                              "\033[22m" "\033[38;5;229m",                                // NOTIFY
-                             "\033[22m" "\033[38;5;231m",                                // OUTPUT
+//                             "\033[22m" "\033[38;5;231m",                                // OUTPUT
+                             RESET_COLORS,                                               // OUTPUT
                              "\033[2m" "\033[38;5;46m",                                 // INFO
                              "\033[2m" "\033[38;5;83m",                                 // DEBUG
                              "\033[2m" "\033[38;5;77m",                                 // FINE
@@ -177,7 +178,8 @@ const bxilog_colors_p BXILOG_COLORS_TC_DARK = {
                              "\033[22m" TC_FG_RGB(255,0,0),                                  // ERROR
                              "\033[22m" TC_FG_RGB(255,255,0),                                // WARNING
                              "\033[22m" TC_FG_RGB(255,255,153),                              // NOTIFY
-                             "\033[22m" TC_FG_RGB(255,255,255),                              // OUTPUT
+//                             "\033[22m" TC_FG_RGB(255,255,255),                              // OUTPUT
+                             RESET_COLORS,                                                  // OUTPUT
                              "\033[2m" TC_FG_RGB(0,255,0),                                  // INFO
                              "\033[2m" TC_FG_RGB(51,255,51),                                // DEBUG
                              "\033[2m" TC_FG_RGB(51,204,51),                                // FINE
@@ -193,7 +195,8 @@ const bxilog_colors_p BXILOG_COLORS_TC_LIGHT = {
                              "\033[22m" TC_FG_RGB(128,25,0),                                 // ERROR
                              "\033[22m" TC_FG_RGB(128,75,0),                                 // WARNING
                              "\033[22m" TC_FG_RGB(75,50,0),                                  // NOTIFY
-                             "\033[22m" TC_FG_RGB(0,0,0),                                    // OUTPUT
+//                             "\033[22m" TC_FG_RGB(0,0,0),                                    // OUTPUT
+                             RESET_COLORS,                                                  // OUTPUT
                              "\033[2m" TC_FG_RGB(0,50,75),                                  // INFO
                              "\033[2m" TC_FG_RGB(0,50,100),                                 // DEBUG
                              "\033[2m" TC_FG_RGB(0,75,125),                                 // FINE
@@ -209,7 +212,8 @@ const bxilog_colors_p BXILOG_COLORS_TC_DARKGRAY = {
                              "\033[22m" TC_FG_RGB(191,191,191),                                 // ERROR
                              "\033[22m" TC_FG_RGB(170,170,170),                                 // WARNING
                              "\033[22m" TC_FG_RGB(149,149,149),                                  // NOTIFY
-                             "\033[22m" TC_FG_RGB(128,128,128),                              // OUTPUT
+//                             "\033[22m" TC_FG_RGB(128,128,128),                              // OUTPUT
+                             RESET_COLORS,                                                      // OUTPUT
                              "\033[2m" TC_FG_RGB(113,113,113),                                  // INFO
                              "\033[2m" TC_FG_RGB(98,98,98),                                 // DEBUG
                              "\033[2m" TC_FG_RGB(83,83,83),                                 // FINE
@@ -225,7 +229,8 @@ const bxilog_colors_p BXILOG_COLORS_TC_LIGHTGRAY = {
                              "\033[22m" TC_FG_RGB(83,83,83),                                 // ERROR
                              "\033[22m" TC_FG_RGB(98,98,98),                                 // WARNING
                              "\033[22m" TC_FG_RGB(113,113,113),                              // NOTIFY
-                             "\033[22m" TC_FG_RGB(128,128,128),                              // OUTPUT
+//                             "\033[22m" TC_FG_RGB(128,128,128),                              // OUTPUT
+                             RESET_COLORS,                                                      // OUTPUT
                              "\033[2m" TC_FG_RGB(149,149,149),                                  // INFO
                              "\033[2m" TC_FG_RGB(170,170,170),                                 // DEBUG
                              "\033[2m"TC_FG_RGB(191,191,191),                                 // FINE
