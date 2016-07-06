@@ -1,3 +1,4 @@
+if HAVE_TESTS
 all-local:
 	mkdir -p report
 
@@ -107,3 +108,4 @@ ___packaged_doc_examples_bxilog_err_CFLAGS=\
 
 ___packaged_doc_examples_bxilog_cfg_CFLAGS=\
 										   -I$(top_srcdir)/packaged/include
+endif
