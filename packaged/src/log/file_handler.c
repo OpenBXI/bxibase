@@ -93,6 +93,7 @@ typedef struct bxilog_file_handler_param_s_f {
 #endif
     uint16_t thread_rank;
     bxierr_set_p errset;
+    size_t err_max;
     bool dirty;
     size_t bytes_lost;
     size_t bytes_written;
@@ -243,6 +244,7 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
     // a rank number?
     data->thread_rank = (uint16_t) pthread_self();
     data->errset = bxierr_set_new();
+    data->err_max = 10;
     data->bytes_lost = 0;
     data->bytes_written = 0;
     data->dirty = false;
@@ -395,17 +397,35 @@ bxierr_p _process_ierr(bxierr_p *err, bxilog_file_handler_param_p data) {
 
     if (bxierr_isok(*err)) return *err;
 
-    char * str = bxierr_str(*err);
-    bxierr_p fatal = _ilog(BXILOG_ERROR, data, "A bxilog internal error occured: %s", str);
+    bool new_err = bxierr_set_add(data->errset, err);
+    if (new_err) {
+        char * str = bxierr_str(*err);
+        bxierr_p fatal = _ilog(BXILOG_ERROR, data,
+                               "A bxilog internal error occured:\n %s", str);
 
-    if (bxierr_isko(fatal)) {
-        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
-                            "Fatal: error while processing internal error: %s", str);
-    } else {
-        bxierr_destroy(err);
+        if (bxierr_isko(fatal)) {
+            result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
+                                "Fatal: error while processing internal error: %s",
+                                str);
+        }
+        BXIFREE(str);
     }
-    BXIFREE(str);
-//    fprintf(stderr, "%d.%d: process_err: ok\n", data->pid, data->tid);
+
+    if (data->errset->total_seen_nb > data->err_max) {
+
+        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE,
+                            bxierr_from_set(BXILOG_TOO_MANY_IERR,
+                                            data->errset,
+                                            "Too many errors (%zu > %zu)",
+                                            data->errset->total_seen_nb,
+                                            data->err_max),
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            "Fatal, exiting from thread %d",
+                                            data->tid);
+
+    }
 
     return result;
 }

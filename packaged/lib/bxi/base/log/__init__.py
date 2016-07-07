@@ -274,7 +274,7 @@ def bxilog_excepthook(type_, value, traceback):
     The exception hook called on uncaught exception.
     """
     global _INITIALIZED
-    if not _INITIALIZED:
+    if not _INITIALIZED or not __BXIBASE_CAPI__.bxilog_is_ready():
         sys.__excepthook__(type_, value, traceback)
     else:
         get_default_logger()._report((type_, value, traceback),

@@ -237,6 +237,22 @@ UNLOCK:
     return err;
 }
 
+bool bxilog_is_ready() {
+    bool result = false;
+    int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) {
+        bxierr_p tmp = bxierr_errno("Calling pthread_mutex_lock() failed (rc=%d)", rc);
+        bxierr_report(&tmp, STDERR_FILENO);
+    }
+    result = INITIALIZED == BXILOG__GLOBALS->state;
+    rc = pthread_mutex_unlock(&BXILOG_INITIALIZED_MUTEX);
+    if (0 != rc) {
+        bxierr_p tmp = bxierr_errno("Calling pthread_mutex_unlock() failed (rc=%d)", rc);
+        bxierr_report(&tmp, STDERR_FILENO);
+    }
+    return result;
+}
+
 bxierr_p bxilog_flush(void) {
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
     FINE(LOGGER, "Requesting a flush()");

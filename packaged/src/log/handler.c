@@ -385,7 +385,6 @@ bxierr_p _loop(bxilog_handler_p handler,
     err2 = bxitime_get(CLOCK_MONOTONIC_RAW, &last_flush_time);
     if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
 
-    bxierr_set_p ierr_set = bxierr_set_new();
     while (true) {
         errno = 0;
         int rc = zmq_poll(items, 2, actual_timeout);
@@ -398,23 +397,11 @@ bxierr_p _loop(bxilog_handler_p handler,
             const char * msg = zmq_strerror(code);
             bxierr_p ierr = bxierr_new(code, NULL, NULL, NULL, NULL,
                                        "Calling zmq_poll() failed: %s", msg);
-            bool new_err = bxierr_set_add(ierr_set, &ierr);
-            if (new_err) {
-                err2 = _process_implicit_flush(handler, param, data);
-                BXIERR_CHAIN(err, err2);
-                err2 = _process_ierr(handler, param, ierr);
-                BXIERR_CHAIN(err, err2);
-                if (bxierr_isko(err)) goto QUIT;
-            }
-
-            if (ierr_set->total_seen_nb > param->ierr_max) {
-                return bxierr_from_set(BXILOG_TOO_MANY_IERR,
-                                       ierr_set,
-                                       "Too many internal errors, "
-                                       "exiting from thread %d",
-                                       data->tid);
-            }
-
+            err2 = _process_implicit_flush(handler, param, data);
+            BXIERR_CHAIN(err, err2);
+            err2 = _process_ierr(handler, param, ierr);
+            BXIERR_CHAIN(err, err2);
+            if (bxierr_isko(err)) goto QUIT;
         }
         double tmp;
         err2 = bxitime_duration(CLOCK_MONOTONIC_RAW, last_flush_time, &tmp);
@@ -477,7 +464,6 @@ bxierr_p _loop(bxilog_handler_p handler,
         }
     }
 QUIT:
-    bxierr_set_destroy(&ierr_set);
 
     return err;
 }

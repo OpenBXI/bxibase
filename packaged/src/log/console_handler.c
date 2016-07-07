@@ -58,7 +58,8 @@ typedef struct bxilog_console_handler_param_s_f {
     uint16_t thread_rank;
 
     bxilog_level_e stderr_level;
-    bxierr_list_p errset;
+    bxierr_set_p errset;
+    size_t max_err;
     size_t lost_logs;
     int loggername_width;
     char ** colors;
@@ -299,7 +300,8 @@ bxierr_p _init(bxilog_console_handler_param_p data) {
                           data->stderr_level, BXILOG_PANIC, BXILOG_LOWEST);
         BXIERR_CHAIN(err, err2);
     }
-    data->errset = bxierr_list_new();
+    data->errset = bxierr_set_new();
+    data->max_err = 10;
     data->lost_logs = 0;
 
     return err;
@@ -312,11 +314,12 @@ bxierr_p _process_exit(bxilog_console_handler_param_p data) {
     BXIERR_CHAIN(err, err2);
 
     if (data->lost_logs > 0) {
-        char * str = bxistr_new("BXI Log File Handler Error Summary:\n"
+        char * str = bxistr_new("%s summary:\n"
                                 "\tNumber of lost log lines: %zu\n"
                                 "\tNumber of reported distinct errors: %zu\n",
+                                BXILOG_CONSOLE_HANDLER->name,
                                 data->lost_logs,
-                                data->errset->errors_nb);
+                                data->errset->total_seen_nb);
         bxilog_rawprint(str, STDERR_FILENO);
         BXIFREE(str);
     }
@@ -384,18 +387,35 @@ bxierr_p _process_ierr(bxierr_p *err, bxilog_console_handler_param_p data) {
 
     if (bxierr_isok(*err)) return *err;
 
-    char * str = bxierr_str(*err);
-    bxierr_p fatal = _ilog(BXILOG_ERROR, data,
-                           "A bxilog internal error occured:\n %s", str);
+    bool new_err = bxierr_set_add(data->errset, err);
+    if (new_err) {
+        char * str = bxierr_str(*err);
+        bxierr_p fatal = _ilog(BXILOG_ERROR, data,
+                               "A bxilog internal error occured:\n %s", str);
 
-    if (bxierr_isko(fatal)) {
-        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
-                            "Fatal: error while processing internal error error: %s",
-                            str);
-    } else {
-        bxierr_destroy(err);
+        if (bxierr_isko(fatal)) {
+            result = bxierr_new(BXILOG_HANDLER_EXIT_CODE, fatal, NULL, NULL, NULL,
+                                "Fatal: error while processing internal error: %s",
+                                str);
+        }
+        BXIFREE(str);
     }
-    BXIFREE(str);
+
+    if (data->errset->total_seen_nb > data->max_err) {
+
+        result = bxierr_new(BXILOG_HANDLER_EXIT_CODE,
+                            bxierr_from_set(BXILOG_TOO_MANY_IERR,
+                                            data->errset,
+                                            "Too many errors (%zu > %zu)",
+                                            data->errset->total_seen_nb,
+                                            data->max_err),
+                            NULL,
+                            NULL,
+                            NULL,
+                            "Fatal, exiting from thread %d",
+                            data->tid);
+
+    }
 
     return result;
 }
@@ -412,7 +432,7 @@ inline bxierr_p _param_destroy(bxilog_console_handler_param_p * data_p) {
 
     bxilog_handler_clean_param(&data->generic);
 
-    bxierr_list_destroy(&data->errset);
+    bxierr_set_destroy(&data->errset);
     bximem_destroy((char**) data_p);
     return BXIERR_OK;
 }
