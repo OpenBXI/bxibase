@@ -207,6 +207,13 @@ bxierr_p bxilog_init(bxilog_config_p config);
  */
 bxierr_p bxilog_finalize(bool flush);
 
+/**
+ * Return true if the logging library is ready to be used, false otherwise
+ *
+ * @return true if the logging library is ready to be used, false otherwise
+ */
+bool bxilog_is_ready();
+
 
 /**
  * Request a flush of all pending logs.

@@ -287,6 +287,7 @@ void test_logger_init() {
                                                      BXI_APPEND_OPEN_FLAGS);
     bxierr_p err = bxilog_init(config);
     bxierr_report(&err, STDERR_FILENO);
+    CU_ASSERT_TRUE_FATAL(bxilog_is_ready());
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     OUT(TEST_LOGGER, "Starting test");
@@ -304,6 +305,7 @@ void test_logger_init() {
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     bxierr_destroy(&err);
+    CU_ASSERT_FALSE_FATAL(bxilog_is_ready());
 }
 
 static char * _get_filename(int fd) {
@@ -429,6 +431,12 @@ void test_logger_non_existing_dir(void) {
     err = bxilog_init(new_config);
     CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
     bxierr_destroy(&err);
+
+    // Try another time, should also fail normally
+    err = bxilog_init(new_config);
+    CU_ASSERT_TRUE_FATAL(bxierr_isko(err));
+    bxierr_destroy(&err);
+
     // Fail because the library has not been initialized correctly
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
