@@ -19,7 +19,9 @@ __FFI__ = cffi.FFI()
 # C helper functions
 try:
     __FFI__.cdef('''FILE *fmemopen(void *, size_t, const char*);
-                 int fclose(FILE*);''')
+                 int fclose(FILE*);
+                 void free(void *ptr);
+                 ''')
 except cffi.FFIError:
     # only once is needed
     pass
