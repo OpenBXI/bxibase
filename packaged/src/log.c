@@ -481,20 +481,33 @@ bxierr_p bxilog__stop_handlers(void) {
         err2 = bxizmq_str_snd(EXIT_CTRL_MSG_REQ, zocket, 0, 0, 0);
         BXIERR_CHAIN(err, err2);
 
-        char * msg = NULL;
         errno = 0;
-        err2 = bxizmq_str_rcv(zocket, 0, 0, &msg);
-        BXIERR_CHAIN(err, err2);
+        zmq_pollitem_t poll_set[] = {
+        { zocket, 0, ZMQ_POLLIN, 0 },};
+        while(true) {
+            int rc = zmq_poll(poll_set, 1, 500);
+            if (-1 == rc) {
+                err2 = bxierr_errno("Calling zmq_poll() failed");
+                BXIERR_CHAIN(err, err2);
+                break;
+            }
 
-        if (0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
-            // We just notify the end user there is a minor problem, but
-            // returning such an error is useless at this point, we want to exit.
-            bxierr_p tmp = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, NULL,
-                                      "Wrong message received. Expected: %s, received: %s",
-                                      EXIT_CTRL_MSG_REP, msg);
-            bxierr_report(&tmp, STDERR_FILENO);
+            if (!(poll_set[0].revents & ZMQ_POLLIN)) break;
+            char * msg = NULL;
+            err2 = bxizmq_str_rcv(zocket, 0, 0, &msg);
+            BXIERR_CHAIN(err, err2);
+
+            if (0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
+                // We just notify the end user there is a minor problem, but
+                // returning such an error is useless at this point, we want to exit.
+                bxierr_p tmp = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, NULL,
+                                          "Wrong message received. Expected: %s, received: %s",
+                                          EXIT_CTRL_MSG_REP, msg);
+                bxierr_report(&tmp, STDERR_FILENO);
+            }
+            BXIFREE(msg);
+            break;
         }
-        BXIFREE(msg);
 
         bxierr_p handler_err;
         err2 = _join_handler(i, &handler_err);
