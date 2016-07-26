@@ -361,6 +361,7 @@ size_t bxierr_backtrace_str(char ** result) {
     }
     void *addresses[BACKTRACE_MAX];
     sigset_t old_set;
+    sigemptyset(&old_set);
     int rc = pthread_sigmask(SIG_BLOCK, &old_set, NULL);
     if (rc != 0) {
         error(0, errno, "Calling pthread_sigmask() failed");
