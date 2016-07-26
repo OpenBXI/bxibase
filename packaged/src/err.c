@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/syscall.h>
 #include <backtrace.h>
 #include <backtrace-supported.h>
@@ -359,10 +360,21 @@ size_t bxierr_backtrace_str(char ** result) {
         return strlen(*result) + 1;
     }
     void *addresses[BACKTRACE_MAX];
+    sigset_t old_set;
+    int rc = pthread_sigmask(SIG_BLOCK, &old_set, NULL);
+    if (rc != 0) {
+        error(0, errno, "Calling pthread_sigmask() failed");
+        *result = strdup("Unavailable backtrace (pthread_sigmask() failed)");
+        return strlen(*result) + 1;
+    }
     int c = backtrace(addresses, BACKTRACE_MAX);
     errno = 0;
     char **symbols = backtrace_symbols(addresses, c);
     char **strings = _pretty_backtrace(addresses, c);
+    rc = pthread_sigmask(SIG_UNBLOCK, &old_set, NULL);
+    if (rc != 0) {
+        error(0, errno, "Calling pthread_sigmask() unblocking failed");
+    }
 
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
