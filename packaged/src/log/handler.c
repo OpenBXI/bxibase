@@ -190,8 +190,8 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
-    // Ok, we synced with BC. If now there is an error at that stage
-    // no need to go in the loop, just cleanup and exit.
+    //// Ok, we synced with BC. If now there is an error at that stage
+    //// no need to go in the loop, just cleanup and exit.
     if (bxierr_isko(eerr)) goto CLEANUP;
 
     ierr = _loop(handler, param, &data);
@@ -354,18 +354,26 @@ bxierr_p _send_ready_status(bxilog_handler_p handler,
         BXIFREE(msg);
         return result;
     }
+
     BXIFREE(msg);
     if (bxierr_isok(err)) {
-        fatal_err = bxizmq_str_snd(READY_CTRL_MSG_REP, data->ctrl_zocket, 0, 0, 0);
+        fatal_err = bxizmq_str_snd(READY_CTRL_MSG_REP, data->ctrl_zocket, ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, fatal_err);
         bxierr_abort_ifko(fatal_err);
 
-        return BXIERR_OK;
+        fatal_err = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket, 0, 0, 0);
+        BXIERR_CHAIN(err, fatal_err);
+        bxierr_abort_ifko(fatal_err);
+
+        return err;
     }
 
     // Send the error message
     char * err_str = bxierr_str(err);
-    fatal_err = bxizmq_str_snd(err_str, data->ctrl_zocket, 0, 0, 0);
+    fatal_err = bxizmq_str_snd(err_str, data->ctrl_zocket, ZMQ_SNDMORE, 0, 0);
     BXIFREE(err_str);
+    bxierr_abort_ifko(fatal_err);
+    fatal_err = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket, 0, 0, 0);
     bxierr_abort_ifko(fatal_err);
 
     return BXIERR_OK;
@@ -603,6 +611,18 @@ bxierr_p _process_ctrl_cmd(bxilog_handler_p handler,
             bxierr_destroy(&err);
             return BXIERR_OK;
         }
+        return err;
+    }
+
+    if (0 == strncmp(READY_CTRL_MSG_REQ, cmd, ARRAYLEN(READY_CTRL_MSG_REQ))) {
+        BXIFREE(cmd);
+
+        err2 = bxizmq_str_snd(READY_CTRL_MSG_REP, data->ctrl_zocket, ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
+
+        err2 = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket, 0, 0, 0);
+        BXIERR_CHAIN(err, err2);
+
         return err;
     }
 

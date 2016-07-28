@@ -642,6 +642,8 @@ bxierr_p _start_handler_thread(bxilog_handler_p handler, bxilog_handler_param_p 
 
     bxilog__handler_thread_bundle_p bundle = bximem_calloc(sizeof(*bundle));
     bundle->handler = handler;
+    param->rank = BXILOG__GLOBALS->internal_handlers_nb;
+    param->status = BXI_LOG_HANDLER_NOT_READY;
     bundle->param = param;
 
     pthread_t thread;
@@ -652,6 +654,7 @@ bxierr_p _start_handler_thread(bxilog_handler_p handler, bxilog_handler_param_p 
         err2 = bxierr_fromidx(rc, NULL,
                               "Calling pthread_attr_init() failed (rc=%d)", rc);
         BXIERR_CHAIN(err, err2);
+        param->rank = 0;
     } else {
         BXILOG__GLOBALS->handlers_threads[BXILOG__GLOBALS->internal_handlers_nb] = thread;
         BXILOG__GLOBALS->internal_handlers_nb++;
@@ -683,36 +686,65 @@ bxierr_p _sync_handler(size_t handler_rank) {
 
 
     bxierr_p err = BXIERR_OK, err2;
-    size_t retry = 1000;
-    while(true) {
-        err2 = bxizmq_str_snd(READY_CTRL_MSG_REQ, tsd->ctrl_channel, ZMQ_DONTWAIT, 0, 0);
-        if (bxierr_isok(err2)) break;
-        if (EAGAIN != err2->code) break;
-        if (retry == 0) break;
-        bxierr_destroy(&err2);
-        err2  = bxitime_sleep(CLOCK_MONOTONIC_COARSE, 0, 1000);
-        bxierr_report(&err2, STDERR_FILENO);
-        retry--;
-    }
-    BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) return err;
-
-    char * msg;
-    err2 = bxizmq_str_rcv(tsd->ctrl_channel, 0, 0, &msg);
-    BXIERR_CHAIN(err, err2);
-
-    if (0 != strncmp(READY_CTRL_MSG_REP, msg, ARRAYLEN(READY_CTRL_MSG_REP))) {
-        // Ok, the handler sends us an error msg.
-        // We expect it to die and the actual error will be returned
-        bxierr_p handler_err;
-        fatal_err = _join_handler(handler_rank, &handler_err);
-        bxierr_abort_ifko(fatal_err);
-
-        bxiassert(bxierr_isko(handler_err));
-        err2 = handler_err;
+    while(BXILOG__GLOBALS->config->handlers_params[handler_rank]->status != BXI_LOG_HANDLER_READY) {
+        size_t retry = 1000;
+        while(true) {
+            err2 = bxizmq_str_snd(READY_CTRL_MSG_REQ, tsd->ctrl_channel, ZMQ_DONTWAIT, 0, 0);
+            if (bxierr_isok(err2)) break;
+            if (EAGAIN != err2->code) break;
+            if (retry == 0) break;
+            bxierr_report(&err2, STDERR_FILENO);
+            err2  = bxitime_sleep(CLOCK_MONOTONIC_COARSE, 0, 1000);
+            bxierr_report(&err2, STDERR_FILENO);
+            retry--;
+        }
         BXIERR_CHAIN(err, err2);
+        if (bxierr_isko(err)) return err;
+
+        char * msg;
+        err2 = bxizmq_str_rcv(tsd->ctrl_channel, 0, false, &msg);
+        BXIERR_CHAIN(err, err2);
+
+
+        if (0 != strncmp(READY_CTRL_MSG_REP, msg, ARRAYLEN(READY_CTRL_MSG_REP))) {
+            fprintf(stderr,"####dkjnskjn######%s##########", msg);
+            BXIFREE(msg);
+            size_t *rank = NULL;
+            size_t received_size;
+            err2 = bxizmq_data_rcv((void**)&rank, sizeof(*rank), tsd->ctrl_channel, 0, 0, &received_size);
+            BXIERR_CHAIN(err, err2);
+            BXILOG__GLOBALS->config->handlers_params[*rank]->status = BXI_LOG_HANDLER_ERROR;
+            // Ok, the handler sends us an error msg.
+            // We expect it to die and the actual error will be returned
+            bxierr_p handler_err;
+            fatal_err = _join_handler(*rank, &handler_err);
+            bxierr_abort_ifko(fatal_err);
+
+            bxiassert(bxierr_isko(handler_err));
+            err2 = handler_err;
+            BXIERR_CHAIN(err, err2);
+            BXIFREE(rank);
+            return err;
+        }
+
+        int64_t more = 0;
+        size_t more_size = sizeof(more);
+
+        int rc = zmq_getsockopt(tsd->ctrl_channel, ZMQ_RCVMORE, &more, &more_size);
+        BXIASSERT(LOGGER, rc == 0);
+
+        if (bxierr_isko(err)) {
+            bxierr_report(&err, STDERR_FILENO);
+        }
+        BXIFREE(msg);
+
+        size_t *rank = NULL;
+        size_t received_size;
+        err2 = bxizmq_data_rcv((void**)&rank, sizeof(*rank), tsd->ctrl_channel, 0, 0, &received_size);
+        BXIERR_CHAIN(err, err2);
+        BXILOG__GLOBALS->config->handlers_params[*rank]->status = BXI_LOG_HANDLER_READY;
+        BXIFREE(rank);
     }
-    BXIFREE(msg);
 
     return err;
 }

@@ -104,6 +104,11 @@ typedef struct {
  */
 typedef bxilog_record_s * bxilog_record_p;
 
+typedef enum {
+    BXI_LOG_HANDLER_NOT_READY=0,
+    BXI_LOG_HANDLER_READY=1,
+    BXI_LOG_HANDLER_ERROR=2,
+} bxilog_handler_state_e;
 /**
  * Log handler parameter.
  */
@@ -119,6 +124,8 @@ typedef struct {
     char * data_url;                    //!< The data zocket URL
     char * ctrl_url;                    //!< The control zocket URL
     bxilog_filters_p filters;           //!< The filters
+    size_t rank;                        //!< identifier of the handler
+    bxilog_handler_state_e status;      //!< handler status
 } bxilog_handler_param_s;
 
 /**
