@@ -24,7 +24,8 @@ lib_libbxibase_la_SOURCES=\
 		  src/log/file_handler_stdio.c\
 		  src/log/console_handler.c\
 		  src/log/syslog_handler.c\
-		  src/log/null_handler.c
+		  src/log/null_handler.c\
+		  src/log/monitor_handler.c
 
 if HAVE_SNMP_LOG
 lib_libbxibase_la_SOURCES+=\
@@ -55,4 +56,3 @@ EXTRA_DIST=\
 		   src/log/log_impl.h\
 		   src/log/registry_impl.h\
 		   src/log/tsd_impl.h
-

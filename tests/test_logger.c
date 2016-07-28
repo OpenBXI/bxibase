@@ -39,6 +39,7 @@
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/syslog_handler.h"
+#include "bxi/base/log/monitor_handler.h"
 
 SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
 SET_LOGGER(BAD_LOGGER1, "test.bad.logger");
@@ -827,6 +828,10 @@ void test_handlers(void) {
                               BXILOG_SYSLOG_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
                               PROGNAME, LOG_CONS | LOG_PERROR, LOG_LOCAL0);
+    bxilog_config_add_handler(config,
+                              BXILOG_MONITOR_HANDLER,
+                              BXILOG_FILTERS_ALL_OFF,
+                              PROGNAME, LOG_CONS | LOG_PERROR, LOG_LOCAL0);
 #ifdef HAVE_LIBNETSNMP
     bxilog_config_add_handler(config,
                               BXILOG_SNMPLOG_HANDLER,
@@ -847,7 +852,7 @@ void test_handlers(void) {
 
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-    
+
     OUT(TEST_LOGGER, "Starting test_handlers");
     produce_simple_logs(TEST_LOGGER);
 
