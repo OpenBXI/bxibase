@@ -11,6 +11,9 @@
  ###############################################################################
  */
 
+
+#include <zmq.h>
+
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
 #include "bxi/base/str.h"
@@ -49,19 +52,19 @@ typedef struct bxilog_monitor_handler_param_s_f {
 static bxilog_handler_param_p _param_new(bxilog_handler_p self,
                                          bxilog_filters_p filters,
                                          va_list ap);
-static bxierr_p _init(bxilog_handler_param_p data);
+static bxierr_p _init(bxilog_monitor_handler_param_p data);
 static bxierr_p _process_log(bxilog_record_p record,
                              char * filename,
                              char * funcname,
                              char * loggername,
                              char * logmsg,
-                             bxilog_handler_param_p data);
-static bxierr_p _process_ierr(bxierr_p * err, bxilog_handler_param_p data);
-static bxierr_p _process_implicit_flush(bxilog_handler_param_p data);
-static bxierr_p _process_explicit_flush(bxilog_handler_param_p data);
-static bxierr_p _process_exit(bxilog_handler_param_p data);
-static bxierr_p _process_cfg(bxilog_handler_param_p data);
-static bxierr_p _param_destroy(bxilog_handler_param_p *data_p);
+                             bxilog_monitor_handler_param_p data);
+static bxierr_p _process_ierr(bxierr_p * err, bxilog_monitor_handler_param_p data);
+static bxierr_p _process_implicit_flush(bxilog_monitor_handler_param_p data);
+static bxierr_p _process_explicit_flush(bxilog_monitor_handler_param_p data);
+static bxierr_p _process_exit(bxilog_monitor_handler_param_p data);
+static bxierr_p _process_cfg(bxilog_monitor_handler_param_p data);
+static bxierr_p _param_destroy(bxilog_monitor_handler_param_p *data_p);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -99,49 +102,77 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     char * url = va_arg(ap, char *);
     va_end(ap);
 
-    bxilog_handler_param_p result = bximem_calloc(sizeof(*result));
+    bxilog_monitor_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
     result->url = url;
     result->ctx = NULL;
     result->zock = NULL;
 
-    return result;
+    return (bxilog_handler_param_p) result;
 }
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
 
-bxierr_p _init(bxilog_handler_param_p data) {
+bxierr_p _init(bxilog_monitor_handler_param_p data) {
     //data->pid = getpid();
-    void * ctx = zmq_ctx_new();
+
+    // Creating the ZMQ context
+    data->ctx = zmq_ctx_new();
+
+    if (NULL == data->ctx) {
+      return bxierr_errno("ZMQ context creation failed");
+    }
+
+    // Creating the ZMQ socket
+    data->zock = zmq_socket(data->ctx, ZMQ_PUB);
+    if (NULL == data->zock) {
+      return bxierr_errno("ZMQ socket creation failed");
+    }
 
     return BXIERR_OK;
 }
 
-bxierr_p _process_exit(bxilog_handler_param_p data) {
-  int rc;
+bxierr_p _process_exit(bxilog_monitor_handler_param_p data) {
+    int rc;
+    int linger = 100;
+
     if(NULL != data->zock) {
-      rc = zmq_setsockopt(data->zock, ZMQ_LINGER, 100, sizeof(int));
+      rc = zmq_setsockopt(data->zock, ZMQ_LINGER, &linger, sizeof(int));
+      if (-1 == rc) {
+        return bxierr_errno("Unable to change linger on ZMQ socket");
+      }
       rc = zmq_close(data->zock);
+      if (-1 == rc) {
+        return bxierr_errno("Unable to close ZMQ socket");
+      }
     }
 
     if(NULL != data->ctx) {
       rc = zmq_ctx_shutdown(data->ctx);
+      if (-1 == rc) {
+        return bxierr_errno("Unable to shutdown ZMQ context");
+      }
       rc = zmq_ctx_term(data->ctx);
+      if (-1 == rc) {
+        return bxierr_errno("Unable to terminate ZMQ context");
+      }
     }
 
     return BXIERR_OK;
 }
 
-bxierr_p _process_implicit_flush(bxilog_handler_param_p data) {
+bxierr_p _process_implicit_flush(bxilog_monitor_handler_param_p data) {
     UNUSED(data);
+
     return BXIERR_OK;
 }
 
-bxierr_p _process_explicit_flush(bxilog_handler_param_p data) {
+bxierr_p _process_explicit_flush(bxilog_monitor_handler_param_p data) {
     UNUSED(data);
+
     return BXIERR_OK;
 }
 
@@ -150,20 +181,28 @@ bxierr_p _process_log(bxilog_record_p record,
                       char * funcname,
                       char * loggername,
                       char * logmsg,
-                      bxilog_handler_param_p data) {
+                      bxilog_monitor_handler_param_p data) {
 
-    UNUSED(record);
     UNUSED(filename);
     UNUSED(funcname);
     UNUSED(loggername);
     UNUSED(logmsg);
-    UNUSED(data);
+
+    int rc;
+
+    if (NULL != data->zock) {
+      rc = zmq_send(data->zock, (void *) record, sizeof(record), 0);
+
+      if (-1 == rc) {
+        return bxierr_errno("Unable to send the log record through the socket");
+      }
+    }
 
     return BXIERR_OK;
 }
 
 
-bxierr_p _process_ierr(bxierr_p *err, bxilog_handler_param_p data) {
+bxierr_p _process_ierr(bxierr_p *err, bxilog_monitor_handler_param_p data) {
     UNUSED(err);
     UNUSED(data);
 
@@ -171,13 +210,17 @@ bxierr_p _process_ierr(bxierr_p *err, bxilog_handler_param_p data) {
 }
 
 
-bxierr_p _process_cfg(bxilog_handler_param_p data) {
+bxierr_p _process_cfg(bxilog_monitor_handler_param_p data) {
     UNUSED(data);
+
     return BXIERR_OK;
 }
 
-bxierr_p _param_destroy(bxilog_handler_param_p * data_p) {
-    bxilog_handler_clean_param(*data_p);
+bxierr_p _param_destroy(bxilog_monitor_handler_param_p * data_p) {
+    bxilog_monitor_handler_param_p data = *data_p;
+    bxilog_handler_clean_param(&data->generic);
+
     bximem_destroy((char**) data_p);
+
     return BXIERR_OK;
 }
