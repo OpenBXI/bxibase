@@ -132,6 +132,14 @@ bxierr_p _init(bxilog_monitor_handler_param_p data) {
       return bxierr_errno("ZMQ socket creation failed");
     }
 
+    // Binding the zocket
+    int rc = zmq_bind(data->zock, data->url);
+    if (-1 == rc) {
+      return bxierr_errno("ZMQ socket binding failed on url '%s'", data->url);
+    }
+
+    printf("Heere!\n");
+
     return BXIERR_OK;
 }
 
