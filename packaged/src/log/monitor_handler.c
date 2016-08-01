@@ -138,8 +138,6 @@ bxierr_p _init(bxilog_monitor_handler_param_p data) {
       return bxierr_errno("ZMQ socket binding failed on url '%s'", data->url);
     }
 
-    printf("Heere!\n");
-
     return BXIERR_OK;
 }
 
