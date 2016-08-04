@@ -57,6 +57,43 @@ bxierr_p _zmqerr(int errnum, const char * fmt, ...);
 // ********************************** Implementation   *****************************
 // *********************************************************************************
 
+/************************************** Context ***********************************/
+bxierr_p bxizmq_context_new(void ** ctx) {
+    void * context = NULL;
+
+    context = zmq_ctx_new();
+    if (NULL == context) {
+      return bxierr_errno("ZMQ context creation failed");
+    }
+
+    *ctx = context;
+
+    return BXIERR_OK;
+}
+
+
+bxierr_p bxizmq_context_destroy(void ** ctx) {
+    int rc;
+
+    if(NULL != *ctx) {
+        rc = zmq_ctx_shutdown(*ctx);
+        if (-1 == rc) {
+            return bxierr_errno("Unable to shutdown ZMQ context");
+        }
+        rc = zmq_ctx_term(*ctx);
+        if (-1 == rc) {
+           return bxierr_errno("Unable to terminate ZMQ context");
+        }
+    }
+
+    // NULLify the pointer
+    *ctx = NULL;
+
+    return BXIERR_OK;
+}
+
+/********************************** END Context ***********************************/
+
 /*************************************** Zocket ***********************************/
 bxierr_p bxizmq_zocket_bind(void * const ctx,
                             const int type,
@@ -111,7 +148,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         hints.ai_socktype = SOCK_STREAM;
 
         errno = 0;
-        if ( (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)) != 0) 
+        if ( (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)) != 0)
         {
             err2 = bxierr_gen("Translation address error: getaddrinfo: %s", gai_strerror(rv));
             BXIERR_CHAIN(err, err2);
