@@ -1,23 +1,3 @@
-/* -*- coding: utf-8 -*-
- ###############################################################################
- # Author: Sébastien Miquée <sebastien.miquee@atos.net>
- # Created on: 2016/07/27
- # Contributors:
- ###############################################################################
- # Copyright (C) 2016  Bull S. A. S.  -  All rights reserved
- # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
- # This is not Free or Open Source software.
- # Please contact Bull S. A. S. for details about its license.
- ###############################################################################
- */
-
-
-#ifndef BXILOG_MONITOR_HANDLER_H_
-#define BXILOG_MONITOR_HANDLER_H_
-
-#include "bxi/base/err.h"
-#include "bxi/base/log.h"
-
 /**
  * @file    monitor_handler.h
  * @authors Sébastien Miquée <sebastien.miquee@atos.net>
@@ -29,6 +9,14 @@
  *
  * The monitor handler sends logs through a ZMQ socket.
  */
+
+
+#ifndef BXILOG_REMOTE_HANDLER_H_
+#define BXILOG_REMOTE_HANDLER_H_
+
+#include "bxi/base/err.h"
+#include "bxi/base/log.h"
+
 
 //*********************************************************************************
 //********************************  Defines  **************************************
@@ -53,9 +41,9 @@
  * @param[in] url a `char *` string; the url to bind to
  */
 
-extern const bxilog_handler_p BXILOG_MONITOR_HANDLER;
+extern const bxilog_handler_p BXILOG_REMOTE_HANDLER;
 #else
-extern bxilog_handler_p BXILOG_MONITOR_HANDLER;
+extern bxilog_handler_p BXILOG_REMOTE_HANDLER;
 #endif
 
 
