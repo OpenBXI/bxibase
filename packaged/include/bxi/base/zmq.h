@@ -89,15 +89,16 @@ bxierr_p bxizmq_context_destroy(void ** ctx);
 
 
 /**
- * Create a zmq socket, connect to the given url and set the specified option on it.
+ * Bind the socket to the given url and set the specified option on it. If the
+ * socket given as a parameter is NULL, then it will be created.
  *
- * Any error encountered leads to a NULL pointer returned.
+ * Any error encountered leads to a NULL pointer for the socket.
  *
  * @param ctx the zeromq context
  * @param type the type of zeromq socket to create
- * @param url the url to connect to or bind to
+ * @param url the url to bind to
  * @param affected_port is the port selected by zmq for addresses like 'tcp://localhost:!'
- * @param self the newly created socket (NULL on error)
+ * @param self the socket (NULL on error)
  * @return BXIERR_OK on success, any other on failure.
  */
 bxierr_p bxizmq_zocket_bind(void * const ctx,
@@ -108,14 +109,15 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
 
 
 /**
- * Create a zmq socket, connect to the given url and an hwm (high water mark) to 0.
+ * Connect the socket to the given url and set the hwm (high water mark) to 0. If the
+ * socket given as a parameter is NULL, then it will be created.
  *
- * Any error encountered leads to a NULL pointer returned.
+ * Any error encountered leads to a NULL pointer for the socket.
  *
  * @param ctx the zeromq context
  * @param type the type of zeromq socket to create
- * @param url the url to connect to or bind to
- * @param self the newly created socket (NULL on error)
+ * @param url the url to connect to
+ * @param self the socket (NULL on error)
  *
  * @return BXIERR_OK on success, any other on failure.
  */
