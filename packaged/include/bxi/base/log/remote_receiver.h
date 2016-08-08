@@ -43,7 +43,7 @@
  * @param[in] urls the urls list
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv(int nb_urls, char ** urls);
+bxierr_p bxilog_remote_recv(int nb_urls, const char ** urls);
 
 
 #endif

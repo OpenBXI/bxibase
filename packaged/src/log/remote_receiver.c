@@ -43,7 +43,7 @@ SET_LOGGER(_REMOTE_LOGGER, "bxilog.remote");
 static bxierr_p _receive_record(void * sock, bxilog_record_p record);
 static bxierr_p _receive_data(zmq_pollitem_t * poller, bxilog_record_p * rec);
 static bxierr_p _dispatch_log(tsd_p tsd, bxilog_record_p record, size_t data_len);
-static bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, char ** urls, int nb);
+static bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, const char ** urls, int nb);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -60,7 +60,7 @@ static bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, char *
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxierr_p bxilog_remote_recv(int nb_urls, char ** urls) {
+bxierr_p bxilog_remote_recv(int nb_urls, const char ** urls) {
     int rc;
     bool more;
     bxierr_p err;
@@ -259,7 +259,7 @@ bxierr_p _dispatch_log(tsd_p tsd, bxilog_record_p record, size_t data_len) {
 }
 
 
-bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, char ** urls, int nb) {
+bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, const char ** urls, int nb) {
     bxierr_p err = BXIERR_OK;
 
     void * ctx = NULL;
