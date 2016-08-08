@@ -1,5 +1,5 @@
 /**
- * @file    monitor_handler.h
+ * @file    remote_handler.h
  * @authors Sébastien Miquée <sebastien.miquee@atos.net>
  * @copyright 2016  Bull S.A.S.  -  All rights reserved.\n
  *         This is not Free or Open Source software.\n
@@ -7,7 +7,7 @@
  *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
  * @brief  The Monitor Logging Handler
  *
- * The monitor handler sends logs through a ZMQ socket.
+ * The remote handler sends logs through a ZMQ socket.
  */
 
 
@@ -33,7 +33,7 @@
 
 #ifndef BXICFFI
 /**
- * The Monitor Handler.
+ * The Remote Handler.
  *
  * Parameters for the ::bxilog_handler_p.param_new() function are given below:
  *
