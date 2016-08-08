@@ -9,7 +9,8 @@ cffi_files=\
 			 bxi/base/log/null_handler.h\
 			 bxi/base/log/syslog_handler.h\
 			 bxi/base/log/console_handler.h\
-			 bxi/base/log/remote_handler.h
+			 bxi/base/log/remote_handler.h\
+			 bxi/base/log/remote_receiver.h
 
 if HAVE_SNMP_LOG
 cffi_files+=\

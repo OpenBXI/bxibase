@@ -25,7 +25,8 @@ lib_libbxibase_la_SOURCES=\
 		  src/log/console_handler.c\
 		  src/log/syslog_handler.c\
 		  src/log/null_handler.c\
-		  src/log/remote_handler.c
+		  src/log/remote_handler.c\
+		  src/log/remote_receiver.c
 
 if HAVE_SNMP_LOG
 lib_libbxibase_la_SOURCES+=\
