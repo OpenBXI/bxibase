@@ -104,9 +104,9 @@ int main(int argc, char **argv) {
     bxierr_abort_ifko(err);
     DEBUG(MAIN_LOGGER, "fullprogname: %s", fullprogname);
 
-    bxilog_remote_recv_t param;
-    param.nb_urls = arguments.nb_urls;
-    param.urls = arguments.urls;
+    bxilog_remote_recv_p param = malloc(sizeof(*param));
+    param->nb_urls = arguments.nb_urls;
+    param->urls = arguments.urls;
     err = bxilog_remote_recv(param);
 
     int rc = err->code;
@@ -118,6 +118,8 @@ int main(int argc, char **argv) {
         BXIFREE(arguments.urls[i]);
     }
     BXIFREE(arguments.urls);
+
+    BXIFREE(param);
 
     return rc;
 }

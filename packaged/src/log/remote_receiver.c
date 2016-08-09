@@ -60,7 +60,14 @@ static bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, const 
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxierr_p bxilog_remote_recv(bxilog_remote_recv_t param) {
+//bxierr_p bxilog_remote_recv_async(bxilog_remote_recv_p param) {
+//    pthread_t thrd;
+//
+//    if (pthread_create (&thrd, NULL, &, &param) < 0) {
+//    return BXIERR_OK;
+//}
+
+bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
     int rc;
     bool more;
     bxierr_p err;
@@ -68,7 +75,7 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_t param) {
     void * context = NULL;
     zmq_pollitem_t * poller = bximem_calloc(sizeof(zmq_pollitem_t));
 
-    err = _connect_zocket(poller, &context, param.urls, param.nb_urls);
+    err = _connect_zocket(poller, &context, param->urls, param->nb_urls);
     if (bxierr_isko(err)) return err;
 
     tsd_p tsd;

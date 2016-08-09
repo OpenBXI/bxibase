@@ -52,7 +52,7 @@ typedef bxilog_remote_recv_t * bxilog_remote_recv_p;
  * @param[in] urls the urls list
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv(bxilog_remote_recv_t param);
+bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param);
 
 
 /**
@@ -65,7 +65,7 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_t param);
  * @param[in] urls the urls list
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv_async(bxilog_remote_recv_t param);
+bxierr_p bxilog_remote_recv_async(bxilog_remote_recv_p param);
 
 
 #endif
