@@ -28,6 +28,7 @@ lib_libbxibase_la_SOURCES=\
 		  src/log/remote_handler.c\
 		  src/log/remote_receiver.c
 
+
 if HAVE_SNMP_LOG
 lib_libbxibase_la_SOURCES+=\
 		  src/log/netsnmp_handler.c
@@ -46,6 +47,16 @@ lib_libbxibase_la_CFLAGS=\
 					 $(LIB_CFLAGS)
 
 lib_libbxibase_la_LIBADD=$(LIB_LIBS)
+
+
+bin_PROGRAMS=\
+			 bin/bxilog_monitor
+
+bin_bxilog_monitor_SOURCES=\
+			src/bxilog_monitor.c
+
+bin_bxilog_monitor_LDADD=\
+			lib/libbxibase.la
 
 
 SUBDIRS=include lib doc
