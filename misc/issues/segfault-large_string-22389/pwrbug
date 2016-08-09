@@ -1,0 +1,46 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import os
+import sys
+from configobj import ConfigObj
+import bxi.base.log as logging
+
+logger = logging.getLogger("power.bug")
+
+def main():
+
+    logging.set_config(ConfigObj({'handlers': ['console', 'history', 'syslog', 'debug'],
+                                  'console' : {
+                                      'module': 'bxi.base.log.console_handler',
+                                      'filters': ':output,power.:debug,power.history:off',
+                                      'stderr_level': 'notice',
+                                  },
+                                  'history': {
+                                      'module': 'bxi.base.log.file_handler',
+                                      'filters': 'power.history:lowest',
+                                      'file': '/tmp/bull-power.log',
+                                      'append': True,
+                                  },
+                                  'syslog': {
+                                      'module': 'bxi.base.log.syslog_handler',
+                                      'filters': 'power.syslog:debug',
+                                      'facility': 'LOG_LOCAL0',
+                                  },
+                                  'debug': {
+                                      'module': 'bxi.base.log.file_handler',
+                                      'filters': ':trace,power.history:off',
+                                      'file': '/tmp/%s-%d.dbg' % (os.path.basename(__file__), os.getpid()),
+                                      'append': False,
+                                  },
+                              }))
+
+    logger.debug("debug mode activated /tmp/%s-%d.dbg", os.path.basename(__file__), os.getpid())
+
+    logger.debug("long string %s", [None]*10*1024*1024)
+
+
+if __name__ == "__main__":
+    main()
+
+
