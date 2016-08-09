@@ -60,7 +60,7 @@ static bxierr_p _connect_zocket(zmq_pollitem_t * poller, void ** context, const 
 //********************************** Implementation    ****************************
 //*********************************************************************************
 
-bxierr_p bxilog_remote_recv(int nb_urls, const char ** urls) {
+bxierr_p bxilog_remote_recv(bxilog_remote_recv_t param) {
     int rc;
     bool more;
     bxierr_p err;
@@ -68,7 +68,7 @@ bxierr_p bxilog_remote_recv(int nb_urls, const char ** urls) {
     void * context = NULL;
     zmq_pollitem_t * poller = bximem_calloc(sizeof(zmq_pollitem_t));
 
-    err = _connect_zocket(poller, &context, urls, nb_urls);
+    err = _connect_zocket(poller, &context, param.urls, param.nb_urls);
     if (bxierr_isko(err)) return err;
 
     tsd_p tsd;

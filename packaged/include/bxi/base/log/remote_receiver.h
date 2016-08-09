@@ -26,6 +26,14 @@
 //*********************************  Types  ***************************************
 //*********************************************************************************
 
+typedef struct bxilog_remote_recv_s {
+    int nb_urls;
+    const char ** urls;
+} bxilog_remote_recv_t;
+
+typedef bxilog_remote_recv_t * bxilog_remote_recv_p;
+
+
 //*********************************************************************************
 //****************************  Global Variables  *********************************
 //*********************************************************************************
@@ -37,13 +45,27 @@
 /**
  * The Remote Receiver function.
  *
- * Note that this function blocking.
+ * Note that this function is blocking. A version starting a background thread
+ * is also available as `bxilog_remote_recv_async`.
  *
  * @param[in] nb_urls an integer indicating how many urls it should connect to
  * @param[in] urls the urls list
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv(int nb_urls, const char ** urls);
+bxierr_p bxilog_remote_recv(bxilog_remote_recv_t param);
+
+
+/**
+ * The Asynchrounous Remote Receiver function.
+ *
+ * This function starts a background thread to handle the remote bxilogs. A
+ * blocking version is also availalbe as `bxilog_remote_recv`.
+ *
+ * @param[in] nb_urls an integer indicating how many urls it should connect to
+ * @param[in] urls the urls list
+ * @return BXIERR_OK on success, anything else on error.
+ */
+bxierr_p bxilog_remote_recv_async(bxilog_remote_recv_t param);
 
 
 #endif
