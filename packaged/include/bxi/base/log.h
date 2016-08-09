@@ -51,6 +51,7 @@
  *      - `::BXILOG_CONSOLE_HANDLER`: log to standard output and standard error;
  *      - `::BXILOG_FILE_HANDLER`: log to a file;
  *      - `::BXILOG_SYSLOG_HANDLER`: log to syslog;
+ *      - `::BXILOG_REMOTE_HANDLER`: send logs through a ZMQ socket;
  *
  * ### Basic 5-steps usage
  *
