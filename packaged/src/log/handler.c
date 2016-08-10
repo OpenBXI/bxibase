@@ -48,7 +48,6 @@ typedef struct {
 #ifdef __linux__
     pid_t tid;                              // the thread pid
 #endif
-    uint16_t rank;                          // the thread rank
 } handler_data_s;
 
 typedef handler_data_s * handler_data_p;
@@ -163,10 +162,6 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
 #ifdef __linux__
     data.tid = (pid_t) syscall(SYS_gettid);
 #endif
-    // TODO: find something better for the rank of the subscriber thread
-    // Maybe, define already the related string instead of
-    // a rank number?
-    data.rank = (uint16_t) pthread_self();
 
     eerr2 = _init_handler(handler, param, &data);
     BXIERR_CHAIN(eerr, eerr2);
@@ -190,8 +185,8 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
-    //// Ok, we synced with BC. If now there is an error at that stage
-    //// no need to go in the loop, just cleanup and exit.
+    // Ok, we synced with BC. If now there is an error at that stage
+    // no need to go in the loop, just cleanup and exit.
     if (bxierr_isko(eerr)) goto CLEANUP;
 
     ierr = _loop(handler, param, &data);
@@ -357,11 +352,13 @@ bxierr_p _send_ready_status(bxilog_handler_p handler,
 
     BXIFREE(msg);
     if (bxierr_isok(err)) {
-        fatal_err = bxizmq_str_snd(READY_CTRL_MSG_REP, data->ctrl_zocket, ZMQ_SNDMORE, 0, 0);
+        fatal_err = bxizmq_str_snd(READY_CTRL_MSG_REP, data->ctrl_zocket,
+                                   ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, fatal_err);
         bxierr_abort_ifko(fatal_err);
 
-        fatal_err = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket, 0, 0, 0);
+        fatal_err = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket,
+                                    0, 0, 0);
         BXIERR_CHAIN(err, fatal_err);
         bxierr_abort_ifko(fatal_err);
 
@@ -373,7 +370,8 @@ bxierr_p _send_ready_status(bxilog_handler_p handler,
     fatal_err = bxizmq_str_snd(err_str, data->ctrl_zocket, ZMQ_SNDMORE, 0, 0);
     BXIFREE(err_str);
     bxierr_abort_ifko(fatal_err);
-    fatal_err = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket, 0, 0, 0);
+    fatal_err = bxizmq_data_snd(&param->rank, sizeof(param->rank), data->ctrl_zocket,
+                                0, 0, 0);
     bxierr_abort_ifko(fatal_err);
 
     return BXIERR_OK;
