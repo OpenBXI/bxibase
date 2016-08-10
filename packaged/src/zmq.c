@@ -76,10 +76,12 @@ bxierr_p bxizmq_context_destroy(void ** ctx) {
     int rc;
 
     if(NULL != *ctx) {
+        errno = 0;
         rc = zmq_ctx_shutdown(*ctx);
         if (-1 == rc) {
             return bxierr_errno("Unable to shutdown ZMQ context");
         }
+        errno = 0;
         rc = zmq_ctx_term(*ctx);
         if (-1 == rc) {
            return bxierr_errno("Unable to terminate ZMQ context");
@@ -312,10 +314,6 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
 }
 
 
-/*
- * Called for closing a zmq socket.
- * Returns 0, if ok.
- */
 bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     if (NULL == zocket) return BXIERR_OK;
     bxierr_p err = BXIERR_OK, err2;
@@ -483,6 +481,8 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
             // Now we will wait -> cancel the ZMQ_DONTWAIT bits
             flags = flags ^ ZMQ_DONTWAIT;
         }
+
+        if (0 == delay_ns) continue;
         // We try to fetch a pseudo random sleeping time.
         // We cannot use bxirng here, since this function is used by log which itself
         // is used by rng, leading to an infinite recursive loop with some patterns.
@@ -863,7 +863,9 @@ bxierr_p _zocket_create(void * const ctx, const int type, void ** result) {
     errno = 0;
 
     void * socket = zmq_socket(ctx, type);
-    if (socket == NULL) return _zmqerr(errno, "Can't create a zmq socket of type %d", type);
+    if (socket == NULL) return _zmqerr(errno,
+                                       "Can't create a zmq socket of type %d",
+                                       type);
 
     int linger = 500;
 
