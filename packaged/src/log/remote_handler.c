@@ -12,7 +12,7 @@
  */
 
 
-#include <zmq.h>
+#include <string.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
@@ -106,7 +106,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxilog_remote_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
-    result->url = url;
+    result->url = strdup(url);
     result->ctx = NULL;
     result->zock = NULL;
 
@@ -174,37 +174,31 @@ bxierr_p _process_log(bxilog_record_p record,
                       char * logmsg,
                       bxilog_remote_handler_param_p data) {
 
-    int rc;
+    bxierr_p err = BXIERR_OK, err2;
 
     if (NULL != data->zock) {
-      rc = zmq_send(data->zock, (void *) record, sizeof(*record), ZMQ_SNDMORE);
+        err2 = bxizmq_data_snd(record, sizeof(*record), data->zock,
+                               ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
 
-      if (-1 == rc) {
-        return bxierr_errno("Unable to send the log record through the socket");
-      }
+        err2 = bxizmq_data_snd(filename, record->filename_len, data->zock,
+                               ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
 
-      rc = zmq_send(data->zock, (void *) filename, record->filename_len, ZMQ_SNDMORE);
-      if (-1 == rc) {
-        return bxierr_errno("Unable to send the filename through the socket");
-      }
+        err2 = bxizmq_data_snd(funcname, record->funcname_len, data->zock,
+                               ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
 
-      rc = zmq_send(data->zock, (void *) funcname, record->funcname_len, ZMQ_SNDMORE);
-      if (-1 == rc) {
-        return bxierr_errno("Unable to send the funcname through the socket");
-      }
+        err2 = bxizmq_data_snd(loggername, record->logname_len, data->zock,
+                               ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
 
-      rc = zmq_send(data->zock, (void *) loggername, record->logname_len, ZMQ_SNDMORE);
-      if (-1 == rc) {
-        return bxierr_errno("Unable to send the loggername through the socket");
-      }
-
-      rc = zmq_send(data->zock, (void *) logmsg, record->logmsg_len, 0);
-      if (-1 == rc) {
-        return bxierr_errno("Unable to send the filename through the socket");
-      }
+        err2 = bxizmq_data_snd(logmsg, record->logmsg_len, data->zock,
+                               0, 0, 0);
+        BXIERR_CHAIN(err, err2);
     }
 
-    return BXIERR_OK;
+    return err;
 }
 
 
@@ -225,6 +219,8 @@ bxierr_p _process_cfg(bxilog_remote_handler_param_p data) {
 bxierr_p _param_destroy(bxilog_remote_handler_param_p * data_p) {
     bxilog_remote_handler_param_p data = *data_p;
     bxilog_handler_clean_param(&data->generic);
+
+    BXIFREE(data->url);
 
     bximem_destroy((char**) data_p);
 
