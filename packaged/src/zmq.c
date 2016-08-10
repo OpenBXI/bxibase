@@ -496,7 +496,7 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
         uint32_t sleep =  (uint32_t) (now.tv_nsec % delay_ns);
         new = bxitime_sleep(CLOCK_MONOTONIC, 0, (long)sleep);
         BXIERR_CHAIN(current, new);
-        delay_ns *= 2;
+//        delay_ns *= 2;
     }
 
     bxierr_unreachable_statement(__FILE__, __LINE__, __FUNCTION__);
