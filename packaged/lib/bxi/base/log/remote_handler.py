@@ -13,7 +13,7 @@
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
-
+import bxi.base.log.filter as bxilogfilter
 
 # Find the C library
 __FFI__ = bxiffi.get_ffi()
@@ -29,8 +29,13 @@ def add_handler(configobj, section_name, c_config):
     @param[inout] c_config the bxilog configuration where the handler must be added to
     """
     section = configobj[section_name]
-    url = section['url']
 
+    filters_str = section['filters']
+
+    filters = bxilogfilter.parse_filters(filters_str)
+
+    url = __FFI__.new('char[]', section['url'])
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,
+                                               filters,
                                                url)
