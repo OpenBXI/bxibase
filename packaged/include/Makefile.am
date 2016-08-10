@@ -1,4 +1,3 @@
-
 #file to be installed
 cffi_files=\
 			 bxi/base/mem.h\
@@ -9,8 +8,10 @@ cffi_files=\
 			 bxi/base/log/file_handler.h\
 			 bxi/base/log/null_handler.h\
 			 bxi/base/log/syslog_handler.h\
-			 bxi/base/log/console_handler.h
-			 
+			 bxi/base/log/console_handler.h\
+			 bxi/base/log/remote_handler.h\
+			 bxi/base/log/remote_receiver.h
+
 if HAVE_SNMP_LOG
 cffi_files+=\
 		  bxi/base/log/netsnmp_handler.h
@@ -35,7 +36,7 @@ nobase_include_HEADERS = \
 						 bxi/base/log/registry.h
 
 if HAVE_PYTHON
-../lib/bxi/base/cffi_h.py: $(cffi_files) 
+../lib/bxi/base/cffi_h.py: $(cffi_files)
 	mkdir -p $$(dirname $@)
 	for i in $^; do \
 		echo "#include <$$i>";\

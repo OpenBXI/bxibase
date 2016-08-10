@@ -1,11 +1,11 @@
 /* -*- coding: utf-8 -*-
  ###############################################################################
- # Authors: Sébastien Miquée <sebastien.miquee@bull.net>
- #          Pierre Vignéras <pierre.vigneras@bull.net>
+ # Authors: Sébastien Miquée <sebastien.miquee@atos.net>
+ #          Pierre Vignéras <pierre.vigneras@atos.net>
  # Created on: 2013/11/21
  # Contributors:
  ###############################################################################
- # Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
+ # Copyright (C) 2013 - 2016  Bull S. A. S.  -  All rights reserved
  # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
  # This is not Free or Open Source software.
  # Please contact Bull S. A. S. for details about its license.
@@ -66,33 +66,58 @@
 // *********************************************************************************
 
 #ifndef BXICFFI
+
 /**
- * Create a zmq socket, connect to the given url and set the specified option on it.
+ * Create a zmq context.
  *
  * Any error encountered leads to a NULL pointer returned.
  *
+ * @param ctx the newly created context (NULL on error)
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_context_new(void ** ctx);
+
+
+/**
+ * Close and destroy a zmq context. It cleans all the underlying sockets and
+ * liberate the threads. At the end, the context variable is NULL.
+ *
+ * @param ctx the context to destroy
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_context_destroy(void ** ctx);
+
+
+/**
+ * Bind the socket to the given url and set the specified option on it. If the
+ * socket given as a parameter is NULL, then it will be created.
+ *
+ * Any error encountered leads to a NULL pointer for the socket.
+ *
  * @param ctx the zeromq context
  * @param type the type of zeromq socket to create
- * @param url the url to connect to or bind to
+ * @param url the url to bind to
  * @param affected_port is the port selected by zmq for addresses like 'tcp://localhost:!'
- * @param self the newly created socket (NULL on error)
+ * @param self the socket (NULL on error)
  * @return BXIERR_OK on success, any other on failure.
  */
 bxierr_p bxizmq_zocket_bind(void * const ctx,
-                           const int type,
-                           const char * const url,
-                           int  * affected_port,
-                           void ** self);
+                            const int type,
+                            const char * const url,
+                            int  * affected_port,
+                            void ** self);
+
 
 /**
- * Create a zmq socket, connect to the given url and an hwm (high water mark) to 0.
+ * Connect the socket to the given url and set the hwm (high water mark) to 0. If the
+ * socket given as a parameter is NULL, then it will be created.
  *
- * Any error encountered leads to a NULL pointer returned.
+ * Any error encountered leads to a NULL pointer for the socket.
  *
  * @param ctx the zeromq context
  * @param type the type of zeromq socket to create
- * @param url the url to connect to or bind to
- * @param self the newly created socket (NULL on error)
+ * @param url the url to connect to
+ * @param self the socket (NULL on error)
  *
  * @return BXIERR_OK on success, any other on failure.
  */
@@ -100,8 +125,10 @@ bxierr_p bxizmq_zocket_connect(void * const ctx,
                                const int type,
                                const char * const url,
                                void ** self);
+
+
 /**
- * set the specified option on the zmq socket
+ * Set the specified option on the zmq socket
  *
  * @param self socket on which the option should be apply
  * @param option_name the name of the option
@@ -115,6 +142,7 @@ bxierr_p bxizmq_zocket_setopt(void * self,
                               const void * const option_value,
                               const size_t option_len
                              );
+
 
 /**
  * Cleanup the given zeromq socket, releasing all underlying resources.
@@ -285,6 +313,7 @@ bxierr_p bxizmq_data_snd_zc(const void * data, size_t size, void * zocket,
                             long delay_ns,
                             zmq_free_fn *ffn, void *hint);
 
+
 /**
  * Receive a zmq message through the given zocket with the given ZMQ flags,
  * fills the given `*result` pointer with the received content and return the number of
@@ -408,6 +437,7 @@ bxierr_p bxizmq_str_snd_zc(const char * const str, void * zocket, int flags,
  */
 bxierr_p bxizmq_str_rcv(void * zocket, int flags, bool check_more, char ** result);
 
+
 /**
  * Function utility to be used with bximisc_snd_data_zc()
  * and bxizmq_snd_str_zc() functions.
@@ -417,6 +447,7 @@ bxierr_p bxizmq_str_rcv(void * zocket, int flags, bool check_more, char ** resul
  */
 void bxizmq_data_free(void * data, void * hint);
 #endif
+
 
 /**
  * Synchronize a publish zmq socket
@@ -437,8 +468,9 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
                          const size_t sync_url_len,
                          const double timeout);
 
+
 /**
- * synchronized the subscribe socket.
+ * Synchronize the subscribe socket.
  *
  * @param zmq_ctx required for socket creation
  * @param sub_zocket to be synchronized

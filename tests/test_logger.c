@@ -39,6 +39,7 @@
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/syslog_handler.h"
+#include "bxi/base/log/remote_handler.h"
 
 SET_LOGGER(TEST_LOGGER, "test.bxibase.log");
 SET_LOGGER(BAD_LOGGER1, "test.bad.logger");
@@ -827,6 +828,10 @@ void test_handlers(void) {
                               BXILOG_SYSLOG_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
                               PROGNAME, LOG_CONS | LOG_PERROR, LOG_LOCAL0);
+    bxilog_config_add_handler(config,
+                              BXILOG_REMOTE_HANDLER,
+                              BXILOG_FILTERS_ALL_OFF,
+                              "inproc://dummy.zmq");
 #ifdef HAVE_LIBNETSNMP
     bxilog_config_add_handler(config,
                               BXILOG_SNMPLOG_HANDLER,
@@ -843,11 +848,12 @@ void test_handlers(void) {
 
 
     bxierr_p err = bxilog_init(config);
-    bxierr_report(&err, STDERR_FILENO);
+    bxierr_abort_ifko(err);
+//    bxierr_report(&err, STDERR_FILENO);
 
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
-    
+
     OUT(TEST_LOGGER, "Starting test_handlers");
     produce_simple_logs(TEST_LOGGER);
 

@@ -57,6 +57,45 @@ bxierr_p _zmqerr(int errnum, const char * fmt, ...);
 // ********************************** Implementation   *****************************
 // *********************************************************************************
 
+/************************************** Context ***********************************/
+bxierr_p bxizmq_context_new(void ** ctx) {
+    void * context = NULL;
+
+    context = zmq_ctx_new();
+    if (NULL == context) {
+      return bxierr_errno("ZMQ context creation failed");
+    }
+
+    *ctx = context;
+
+    return BXIERR_OK;
+}
+
+
+bxierr_p bxizmq_context_destroy(void ** ctx) {
+    int rc;
+
+    if(NULL != *ctx) {
+        errno = 0;
+        rc = zmq_ctx_shutdown(*ctx);
+        if (-1 == rc) {
+            return bxierr_errno("Unable to shutdown ZMQ context");
+        }
+        errno = 0;
+        rc = zmq_ctx_term(*ctx);
+        if (-1 == rc) {
+           return bxierr_errno("Unable to terminate ZMQ context");
+        }
+    }
+
+    // NULLify the pointer
+    *ctx = NULL;
+
+    return BXIERR_OK;
+}
+
+/********************************** END Context ***********************************/
+
 /*************************************** Zocket ***********************************/
 bxierr_p bxizmq_zocket_bind(void * const ctx,
                             const int type,
@@ -111,7 +150,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         hints.ai_socktype = SOCK_STREAM;
 
         errno = 0;
-        if ( (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)) != 0) 
+        if ( (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)) != 0)
         {
             err2 = bxierr_gen("Translation address error: getaddrinfo: %s", gai_strerror(rv));
             BXIERR_CHAIN(err, err2);
@@ -275,10 +314,6 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
 }
 
 
-/*
- * Called for closing a zmq socket.
- * Returns 0, if ok.
- */
 bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     if (NULL == zocket) return BXIERR_OK;
     bxierr_p err = BXIERR_OK, err2;
@@ -446,6 +481,8 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
             // Now we will wait -> cancel the ZMQ_DONTWAIT bits
             flags = flags ^ ZMQ_DONTWAIT;
         }
+
+        if (0 == delay_ns) continue;
         // We try to fetch a pseudo random sleeping time.
         // We cannot use bxirng here, since this function is used by log which itself
         // is used by rng, leading to an infinite recursive loop with some patterns.
@@ -459,7 +496,7 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
         uint32_t sleep =  (uint32_t) (now.tv_nsec % delay_ns);
         new = bxitime_sleep(CLOCK_MONOTONIC, 0, (long)sleep);
         BXIERR_CHAIN(current, new);
-        delay_ns *= 2;
+//        delay_ns *= 2;
     }
 
     bxierr_unreachable_statement(__FILE__, __LINE__, __FUNCTION__);
@@ -826,7 +863,9 @@ bxierr_p _zocket_create(void * const ctx, const int type, void ** result) {
     errno = 0;
 
     void * socket = zmq_socket(ctx, type);
-    if (socket == NULL) return _zmqerr(errno, "Can't create a zmq socket of type %d", type);
+    if (socket == NULL) return _zmqerr(errno,
+                                       "Can't create a zmq socket of type %d",
+                                       type);
 
     int linger = 500;
 
