@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <libgen.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
@@ -76,6 +77,7 @@ static const struct argp argp = { .options = OPTIONS,
     .args_doc = ARGS_DOC,
     .doc = DOC };
 
+
 // *********************************************************************************
 // ********************************** MAIN *****************************************
 // *********************************************************************************
@@ -107,19 +109,33 @@ int main(int argc, char **argv) {
     bxilog_remote_recv_p param = malloc(sizeof(*param));
     param->nb_urls = arguments.nb_urls;
     param->urls = arguments.urls;
+
     err = bxilog_remote_recv(param);
+
+    /*
+    // *** In the following using the asynchronous function
+    err = bxilog_remote_recv_async(param);
+
+    if (bxierr_isko(err)) {
+        BXILOG_REPORT(MAIN_LOGGER, BXILOG_CRITICAL, err, "An error occured, exiting");
+        exit(1);
+    }
+
+    sleep(10);
+
+    err = bxilog_remote_recv_async_stop();
+    */
 
     int rc = err->code;
     BXILOG_REPORT(MAIN_LOGGER, BXILOG_CRITICAL, err, "An error occured, exiting");
-    bxilog_finalize(true);
+
     BXIFREE(fullprogname);
 
-    for (int i = 0; i < argc; i++) {
-        BXIFREE(arguments.urls[i]);
-    }
     BXIFREE(arguments.urls);
 
     BXIFREE(param);
+
+    bxilog_finalize(true);
 
     return rc;
 }
