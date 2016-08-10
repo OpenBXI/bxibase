@@ -686,35 +686,29 @@ bxierr_p _sync_handler(size_t handler_rank) {
 
 
     bxierr_p err = BXIERR_OK, err2;
-    while(BXILOG__GLOBALS->config->handlers_params[handler_rank]->status != BXI_LOG_HANDLER_READY) {
-        size_t retry = 1000;
-        while(true) {
-            err2 = bxizmq_str_snd(READY_CTRL_MSG_REQ, tsd->ctrl_channel, ZMQ_DONTWAIT, 0, 0);
-            if (bxierr_isok(err2)) break;
-            if (EAGAIN != err2->code) break;
-            if (retry == 0) break;
-            bxierr_report(&err2, STDERR_FILENO);
-            err2  = bxitime_sleep(CLOCK_MONOTONIC_COARSE, 0, 1000);
-            bxierr_report(&err2, STDERR_FILENO);
-            retry--;
-        }
+    bxilog_handler_param_p param = BXILOG__GLOBALS->config->handlers_params[handler_rank];
+
+    while(BXI_LOG_HANDLER_READY != param->status) {
+
+        err2 = bxizmq_str_snd(READY_CTRL_MSG_REQ, tsd->ctrl_channel,
+                              ZMQ_DONTWAIT, 1000, 1e3); // Retry 1000, wait 1 µs max
         BXIERR_CHAIN(err, err2);
         if (bxierr_isko(err)) return err;
 
         char * msg;
         err2 = bxizmq_str_rcv(tsd->ctrl_channel, 0, false, &msg);
         BXIERR_CHAIN(err, err2);
-
+        // We always expect the rank to be sent!
+        size_t *rank = NULL;
+        size_t received_size;
+        err2 = bxizmq_data_rcv((void**)&rank, sizeof(*rank), tsd->ctrl_channel,
+                               0, true, &received_size);
+        BXIERR_CHAIN(err, err2);
 
         if (0 != strncmp(READY_CTRL_MSG_REP, msg, ARRAYLEN(READY_CTRL_MSG_REP))) {
-            fprintf(stderr,"####dkjnskjn######%s##########", msg);
-            BXIFREE(msg);
-            size_t *rank = NULL;
-            size_t received_size;
-            err2 = bxizmq_data_rcv((void**)&rank, sizeof(*rank), tsd->ctrl_channel, 0, 0, &received_size);
-            BXIERR_CHAIN(err, err2);
-            BXILOG__GLOBALS->config->handlers_params[*rank]->status = BXI_LOG_HANDLER_ERROR;
             // Ok, the handler sends us an error msg.
+            // We expect the handler to display its own error message so we can free it
+            BXILOG__GLOBALS->config->handlers_params[*rank]->status = BXI_LOG_HANDLER_ERROR;
             // We expect it to die and the actual error will be returned
             bxierr_p handler_err;
             fatal_err = _join_handler(*rank, &handler_err);
@@ -723,29 +717,12 @@ bxierr_p _sync_handler(size_t handler_rank) {
             bxiassert(bxierr_isko(handler_err));
             err2 = handler_err;
             BXIERR_CHAIN(err, err2);
-            BXIFREE(rank);
-            return err;
-        }
-
-        int64_t more = 0;
-        size_t more_size = sizeof(more);
-
-        int rc = zmq_getsockopt(tsd->ctrl_channel, ZMQ_RCVMORE, &more, &more_size);
-        BXIASSERT(LOGGER, rc == 0);
-
-        if (bxierr_isko(err)) {
-            bxierr_report(&err, STDERR_FILENO);
+        } else {
+            BXILOG__GLOBALS->config->handlers_params[*rank]->status = BXI_LOG_HANDLER_READY;
         }
         BXIFREE(msg);
-
-        size_t *rank = NULL;
-        size_t received_size;
-        err2 = bxizmq_data_rcv((void**)&rank, sizeof(*rank), tsd->ctrl_channel, 0, 0, &received_size);
-        BXIERR_CHAIN(err, err2);
-        BXILOG__GLOBALS->config->handlers_params[*rank]->status = BXI_LOG_HANDLER_READY;
         BXIFREE(rank);
     }
-
     return err;
 }
 
