@@ -831,7 +831,7 @@ void test_handlers(void) {
     bxilog_config_add_handler(config,
                               BXILOG_REMOTE_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
-                              PROGNAME, LOG_CONS | LOG_PERROR, LOG_LOCAL0);
+                              "inproc://dummy.zmq");
 #ifdef HAVE_LIBNETSNMP
     bxilog_config_add_handler(config,
                               BXILOG_SNMPLOG_HANDLER,
@@ -848,7 +848,8 @@ void test_handlers(void) {
 
 
     bxierr_p err = bxilog_init(config);
-    bxierr_report(&err, STDERR_FILENO);
+    bxierr_abort_ifko(err);
+//    bxierr_report(&err, STDERR_FILENO);
 
     err = bxilog_install_sighandler();
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
