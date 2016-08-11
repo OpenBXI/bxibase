@@ -49,16 +49,17 @@ lib_libbxibase_la_CFLAGS=\
 lib_libbxibase_la_LIBADD=$(LIB_LIBS)
 
 AM_CFLAGS=\
-		  -I$(srcdir)/src\
-		  -I$(builddir)/src\
+		  -I$(srcdir)/include\
+		  -I$(builddir)/include\
 		  $(ZMQ_CFLAGS)
 
 AM_LDFLAGS=\
 		  $(ZMQ_CFLAGS)\
 		  $(ZMQ_LIBS)
 
+
 bin_PROGRAMS=\
-			 bin/bxilog_monitor
+			bin/bxilog_monitor
 
 bin_bxilog_monitor_SOURCES=\
 			src/bxilog_monitor.c
