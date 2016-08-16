@@ -360,9 +360,12 @@ size_t bxierr_backtrace_str(char ** result) {
         return strlen(*result) + 1;
     }
     void *addresses[BACKTRACE_MAX];
-    sigset_t old_set;
-    sigemptyset(&old_set);
-    int rc = pthread_sigmask(SIG_BLOCK, &old_set, NULL);
+    sigset_t orig_set;
+    sigset_t mask;
+    sigfillset(&mask);
+    sigemptyset(&orig_set);
+
+    int rc = pthread_sigmask(SIG_BLOCK, &mask, &orig_set);
     if (rc != 0) {
         error(0, errno, "Calling pthread_sigmask() failed");
         *result = strdup("Unavailable backtrace (pthread_sigmask() failed)");
@@ -372,7 +375,8 @@ size_t bxierr_backtrace_str(char ** result) {
     errno = 0;
     char **symbols = backtrace_symbols(addresses, c);
     char **strings = _pretty_backtrace(addresses, c);
-    rc = pthread_sigmask(SIG_UNBLOCK, &old_set, NULL);
+
+    rc = pthread_sigmask(SIG_UNBLOCK, &orig_set, NULL);
     if (rc != 0) {
         error(0, errno, "Calling pthread_sigmask() unblocking failed");
     }

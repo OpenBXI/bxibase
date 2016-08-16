@@ -85,6 +85,7 @@ static bxierr_p _start_handler_thread(bxilog_handler_p handler,
 static bxierr_p _sync_handler();
 static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
 static void _setprocname();
+static bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -271,12 +272,13 @@ bxierr_p bxilog_flush(void) {
             bxierr_list_append(errlist, err);
             continue;
         }
-        char * reply;
-        err = bxizmq_str_rcv(ctl_channel, 0, false, &reply);
+        char * reply = NULL;
+        err = _zmq_str_rcv_timeout(ctl_channel, &reply, 1500);
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
         // Warning, no not introduce recursive call here (using ERROR() for example
         // or any log message: we are currently flushing!
-        if (0 != strcmp(FLUSH_CTRL_MSG_REP, reply)) {
+        if (reply == NULL || 0 != strcmp(FLUSH_CTRL_MSG_REP, reply)) {
+            if (reply == NULL) reply = bxistr_new("timeout");
             bxierr_list_append(errlist,
                                bxierr_new(BXILOG_IHT2BC_PROTO_ERR,
                                           NULL, NULL, NULL, NULL,
@@ -481,44 +483,35 @@ bxierr_p bxilog__stop_handlers(void) {
         err2 = bxizmq_str_snd(EXIT_CTRL_MSG_REQ, zocket, 0, 0, 0);
         BXIERR_CHAIN(err, err2);
 
-        errno = 0;
-        zmq_pollitem_t poll_set[] = {
-        { zocket, 0, ZMQ_POLLIN, 0 },};
-        while(true) {
-            int rc = zmq_poll(poll_set, 1, 500);
-            if (-1 == rc) {
-                err2 = bxierr_errno("Calling zmq_poll() failed");
-                BXIERR_CHAIN(err, err2);
-                break;
-            }
+        char * msg = NULL;
+        err2 = _zmq_str_rcv_timeout(zocket, &msg, 1500);
+        if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
 
-            if (!(poll_set[0].revents & ZMQ_POLLIN)) break;
-            char * msg = NULL;
-            err2 = bxizmq_str_rcv(zocket, 0, 0, &msg);
-            BXIERR_CHAIN(err, err2);
 
-            if (0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
-                // We just notify the end user there is a minor problem, but
-                // returning such an error is useless at this point, we want to exit.
-                bxierr_p tmp = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, NULL,
-                                          "Wrong message received. Expected: %s, received: %s",
-                                          EXIT_CTRL_MSG_REP, msg);
-                bxierr_report(&tmp, STDERR_FILENO);
-            }
+        err2 = bxizmq_zocket_destroy(zocket);
+        BXIERR_CHAIN(err, err2);
+
+
+        if (NULL == msg || 0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
+            // We just notify the end user there is a minor problem, but
+            // returning such an error is useless at this point, we want to exit.
+            bxierr_p tmp = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, NULL,
+                                      "Wrong message received. Expected: %s, received: %s",
+                                      EXIT_CTRL_MSG_REP, msg);
+            bxierr_report(&tmp, STDERR_FILENO);
             BXIFREE(msg);
-            break;
+            continue;
         }
+        BXIFREE(msg);
 
         bxierr_p handler_err;
         err2 = _join_handler(i, &handler_err);
         BXIERR_CHAIN(err, err2);
 
-        err2 = bxizmq_zocket_destroy(zocket);
-        BXIERR_CHAIN(err, err2);
-
         if (bxierr_isko(handler_err)) bxierr_list_append(errlist, handler_err);
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
     }
+
     if (0 < errlist->errors_nb) {
         err2 = bxierr_from_list(BXIERR_GROUP_CODE, errlist,
                                  "Some errors occurred in at least"
@@ -731,4 +724,26 @@ void _setprocname(char * name) {
         bxierr_report(&err, STDERR_FILENO);
     }
 #endif
+}
+
+bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {
+    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
+    zmq_pollitem_t poll_set[] = {{ zocket, 0, ZMQ_POLLIN, 0 },};
+    int rc = zmq_poll(poll_set, 1, timeout);
+    if (-1 == rc) {
+        err2 = bxierr_errno("Calling zmq_poll() failed");
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    if (0 == (poll_set[0].revents & ZMQ_POLLIN)) {
+        err2 = bxierr_gen("Calling zmq_poll() timeout %ld", timeout);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    err = bxizmq_str_rcv(zocket, 0, false, reply);
+    BXIERR_CHAIN(err, err2);
+
+    return err;
 }
