@@ -366,7 +366,7 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
 
             size_t data_len = sizeof(*record_simple) + var_len + record_simple->logmsg_len;
 
-            TRACE(_REMOTE_LOGGER, "Reallocate record size to %lu", data_len);
+            TRACE(_REMOTE_LOGGER, "Reallocate record size to %zu", data_len);
             bxilog_record_p record = bximem_realloc(record_simple, sizeof(*record), data_len);
 
             DEBUG(_REMOTE_LOGGER, "Receiving the data");
