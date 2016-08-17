@@ -273,12 +273,11 @@ bxierr_p bxilog_flush(void) {
             continue;
         }
         char * reply = NULL;
-        err = _zmq_str_rcv_timeout(ctl_channel, &reply, 1500);
+        err = bxizmq_str_rcv(ctl_channel, 0, false, &reply);
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
         // Warning, no not introduce recursive call here (using ERROR() for example
         // or any log message: we are currently flushing!
-        if (reply == NULL || 0 != strcmp(FLUSH_CTRL_MSG_REP, reply)) {
-            if (reply == NULL) reply = bxistr_new("timeout");
+        if (0 != strcmp(FLUSH_CTRL_MSG_REP, reply)) {
             bxierr_list_append(errlist,
                                bxierr_new(BXILOG_IHT2BC_PROTO_ERR,
                                           NULL, NULL, NULL, NULL,
@@ -484,7 +483,7 @@ bxierr_p bxilog__stop_handlers(void) {
         BXIERR_CHAIN(err, err2);
 
         char * msg = NULL;
-        err2 = _zmq_str_rcv_timeout(zocket, &msg, 1500);
+        err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
         if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
 
 
@@ -742,7 +741,7 @@ bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {
         return err;
     }
 
-    err = bxizmq_str_rcv(zocket, 0, false, reply);
+    err2 = bxizmq_str_rcv(zocket, 0, false, reply);
     BXIERR_CHAIN(err, err2);
 
     return err;
