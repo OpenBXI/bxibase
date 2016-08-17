@@ -568,9 +568,9 @@ size_t _mkmsg(const size_t n, char buf[n],
 
 bxierr_p _get_file_fd(bxilog_file_handler_param_p data) {
     errno = 0;
-    if (0 == strcmp(data->filename, "-")) {
+    if (0 == strncmp("-", data->filename, ARRAYLEN("-"))) {
         data->fd = STDOUT_FILENO;
-    } else if (0 == strcmp(data->filename, "+")) {
+    } else if (0 == strncmp("+", data->filename, ARRAYLEN("+"))) {
         data->fd = STDERR_FILENO;
     } else {
         errno = 0;

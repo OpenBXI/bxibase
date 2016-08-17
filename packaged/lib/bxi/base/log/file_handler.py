@@ -46,7 +46,8 @@ def add_handler(configobj, section_name, c_config):
     filters_str = section['filters']
     # Use absolute path to prevent fork() problem with chdir().
     filename = section['file']
-    filename = os.path.abspath(filename)
+    if filename not in ['-', '+']:
+        filename = os.path.abspath(filename)
     section['file'] = filename
     append = section.as_bool('append')
 
