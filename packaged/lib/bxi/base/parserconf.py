@@ -100,7 +100,7 @@ class FilteredHelpFormatter(posless.HelpFormatter):
             super(FilteredHelpFormatter, self).add_argument(action, namespace)
 
 
-class _HelpActionFormatted(posless._HelpAction):
+class HelpActionFormatted(posless._HelpAction):
 
     def __call__(self, parser, namespace, values,
                  option_string=None, filter_function=_defaultfiltering):
@@ -112,13 +112,12 @@ class _HelpActionFormatted(posless._HelpAction):
 
 @staticmethod
 def _logfiltering(action):
-    print("%s: %s" % (action, action.GroupTitle))
     if action.GroupTitle is None or action.GroupTitle == 'BXI Log options':
         return True
     return False
 
 
-class _LoggedHelpAction(_HelpActionFormatted):
+class _LoggedHelpAction(HelpActionFormatted):
     def __call__(self, parser, namespace, values, option_string=None):
         super(_LoggedHelpAction, self).__call__(parser, namespace, values,
                                                 option_string,
@@ -130,7 +129,7 @@ def _fullfiltering(action):
     return True
 
 
-class _FullHelpAction(_HelpActionFormatted):
+class _FullHelpAction(HelpActionFormatted):
     def __call__(self, parser, namespace, values, option_string=None):
         super(_FullHelpAction, self).__call__(parser, namespace, values,
                                               option_string,

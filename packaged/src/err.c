@@ -376,7 +376,7 @@ size_t bxierr_backtrace_str(char ** result) {
     char **symbols = backtrace_symbols(addresses, c);
     char **strings = _pretty_backtrace(addresses, c);
 
-    rc = pthread_sigmask(SIG_UNBLOCK, &orig_set, NULL);
+    rc = pthread_sigmask(SIG_SETMASK, &orig_set, NULL);
     if (rc != 0) {
         error(0, errno, "Calling pthread_sigmask() unblocking failed");
     }
