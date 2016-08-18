@@ -39,6 +39,8 @@
  *
  * @param[in] progname a `char *` string; the program name (argv[0])
  * @param[in] url a `char *` string; the url to bind to
+ * @param[in] bind if true, tells that the url must be binded to, otherwise connect()
+ *            is called
  */
 
 extern const bxilog_handler_p BXILOG_REMOTE_HANDLER;

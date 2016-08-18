@@ -33,6 +33,7 @@
 SET_LOGGER(MAIN_LOGGER, "bxilog_monitor");
 
 #define OPT_LOGFILE_KEY 10            // The key should not be a printable character
+#define OPT_BIND_KEY 11               // The key should not be a printable character
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -44,6 +45,7 @@ struct arguments_s {
     const char ** urls; // The urls
     char *logfilters;
     char *logfile;
+    bool bind;
 };
 
 // *********************************************************************************
@@ -67,6 +69,8 @@ static struct argp_option OPTIONS[] = {
         .doc = "Print the program version" },
     { .name = "logfilters", .key = 'l', .arg = "prefix:level[,prefix:level]*",
         .doc = "Defines the logging level. Default: ':output'." },
+    { .name = "bind", .key=OPT_BIND_KEY,
+        .doc = "If set, bind to the given urls, otherwise, connect." },
     { .name = "logfile", .key=OPT_LOGFILE_KEY, .arg = "FILE",
         .doc = "Defines the file where logging should be output. "
             "Character '-' represents standard output. Default: '-'." },
@@ -88,6 +92,7 @@ int main(int argc, char **argv) {
     arguments.logfilters = ":output";
     arguments.logfile = NULL;
     arguments.nb_urls = 0;
+    arguments.bind = false;
     arguments.urls = bximem_calloc(sizeof(*arguments.urls) * (size_t)argc);
 
     /* Parse our arguments; every option seen by parse_opt will
@@ -109,6 +114,7 @@ int main(int argc, char **argv) {
     bxilog_remote_recv_p param = malloc(sizeof(*param));
     param->nb_urls = arguments.nb_urls;
     param->urls = arguments.urls;
+    param->bind = arguments.bind;
 
     err = bxilog_remote_recv(param);
 
@@ -152,9 +158,9 @@ error_t _parse_opt(int key, char *arg, struct argp_state * const state) {
        know is a pointer to our arguments structure. */
     struct arguments_s * const arguments = state->input;
     switch (key) {
-//        case 'v':
-//            printf("%s\n",get_bxiquickfix_version());
-//            exit(1);
+        case OPT_BIND_KEY:
+            arguments->bind = true;
+            break;
         case 'l':
             arguments->logfilters = arg;
             break;

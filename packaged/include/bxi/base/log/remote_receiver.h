@@ -31,10 +31,11 @@
  */
 typedef struct bxilog_remote_recv_s {
     int nb_urls;           //!< Number of urls to connect to
+    bool bind;             //!< If true, bind instead of connect
     const char ** urls;    //!< The urls
-} bxilog_remote_recv_t;
+} bxilog_remote_recv_s;
 
-typedef bxilog_remote_recv_t * bxilog_remote_recv_p;
+typedef bxilog_remote_recv_s * bxilog_remote_recv_p;
 
 
 //*********************************************************************************
@@ -66,7 +67,7 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param);
  * @param[in] param the bxilog_remote_recv_s parameters
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv_async(bxilog_remote_recv_p param);
+bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param);
 
 
 /**

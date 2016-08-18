@@ -40,7 +40,7 @@
 typedef struct bxilog_remote_handler_param_s_f * bxilog_remote_handler_param_p;
 typedef struct bxilog_remote_handler_param_s_f {
     bxilog_handler_param_s generic;
-    int port;
+    bool bind;
     char * url;
     void * ctx;
     void * zock;
@@ -101,12 +101,15 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxiassert(BXILOG_REMOTE_HANDLER == self);
 
     char * url = va_arg(ap, char *);
+    bool bind_flag = va_arg(ap, int); // YES, THIS IS *REQUIRED* IN C99,
+                                 // bool will be promoted to int
     va_end(ap);
 
     bxilog_remote_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
     result->url = strdup(url);
+    result->bind = bind_flag;
     result->ctx = NULL;
     result->zock = NULL;
 
@@ -125,34 +128,36 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
       return err;
     }
 
-    // Creating and binding the ZMQ socket
-    err = bxizmq_zocket_bind(data->ctx,
-                             ZMQ_PUB,
-                             data->url,
-                             &data->port,
-                             &data->zock);
+    if (data->bind) {
+        int port;
+        // Creating and binding the ZMQ socket
+        err = bxizmq_zocket_bind(data->ctx,
+                                 ZMQ_PUB,
+                                 data->url,
+                                 &port,
+                                 &data->zock);
+    } else {
+        err = bxizmq_zocket_connect(data->ctx,
+                                    ZMQ_PUB,
+                                    data->url,
+                                    &data->zock);
+    }
 
     return err;
 }
 
 bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
-    bxierr_p err;
-    int linger = 100;
+    bxierr_p err = BXIERR_OK, err2;
 
-    if(NULL != data->zock) {
-      err = bxizmq_zocket_setopt(data->zock, ZMQ_LINGER, &linger, sizeof(int));
+    if (NULL != data->zock) {
+        err2 = bxizmq_zocket_destroy(data->zock);
+        BXIERR_CHAIN(err, err2);
 
-      if (BXIERR_OK != err) {
-          return err;
-      }
-
-      err = bxizmq_zocket_destroy(data->zock);
-      if (BXIERR_OK != err) {
-          return err;
-      }
+        data->zock = NULL;
     }
 
-    err = bxizmq_context_destroy(&data->ctx);
+    err2 = bxizmq_context_destroy(&data->ctx);
+    BXIERR_CHAIN(err, err2);
 
     return err;
 }

@@ -831,7 +831,8 @@ void test_handlers(void) {
     bxilog_config_add_handler(config,
                               BXILOG_REMOTE_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
-                              "inproc://dummy.zmq");
+                              "inproc://dummy.zmq",
+                              true);
 #ifdef HAVE_LIBNETSNMP
     bxilog_config_add_handler(config,
                               BXILOG_SNMPLOG_HANDLER,
@@ -841,10 +842,6 @@ void test_handlers(void) {
                               BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
                               PROGNAME, FULLFILENAME, BXI_APPEND_OPEN_FLAGS);
-//    bxilog_config_add_handler(config,
-//                              BXILOG_FILE_HANDLER_STDIO,
-//                              BXILOG_FILTERS_ALL_ALL,
-//                              PROGNAME, FULLFILENAME);
 
 
     bxierr_p err = bxilog_init(config);

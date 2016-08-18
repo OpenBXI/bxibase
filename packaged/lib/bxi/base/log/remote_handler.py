@@ -35,7 +35,31 @@ def add_handler(configobj, section_name, c_config):
     filters = bxilogfilter.parse_filters(filters_str)
 
     url = __FFI__.new('char[]', section['url'])
+    bind = __FFI__.cast('bool', section['bind'])
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,
                                                filters,
-                                               url)
+                                               url,
+                                               bind)
+
+
+def remote_recv_async_start(urls, bind=False):
+    param_p = __FFI__.new('bxilog_remote_recv_s[1]')
+
+    param_p[0].nb_urls = len(urls)
+    curls = __FFI__.new('char*[%s]' % len(urls))
+
+    param_p[0].urls = curls
+    param_p[0].bind = bind
+
+    gc_keeper_urls = list() # Required to prevent GC
+    for i in xrange(len(urls)):
+        url = __FFI__.new('char[]', urls[i])
+        gc_keeper_urls.append(url)
+        param_p[0].urls[i] = url
+
+    __BXIBASE_CAPI__.bxilog_remote_recv_async_start(param_p)
+
+
+def remote_recv_async_stop():
+    __BXIBASE_CAPI__.bxilog_remote_recv_async_stop()

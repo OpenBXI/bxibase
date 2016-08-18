@@ -150,9 +150,10 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         hints.ai_socktype = SOCK_STREAM;
 
         errno = 0;
-        if ( (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)) != 0)
+        if (0 != (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)))
         {
-            err2 = bxierr_gen("Translation address error: getaddrinfo: %s", gai_strerror(rv));
+            err2 = bxierr_gen("Translation address error: getaddrinfo: %s",
+                              gai_strerror(rv));
             BXIERR_CHAIN(err, err2);
         }
 
@@ -171,7 +172,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
             if (h == NULL) {
                 continue;
             }
-            ip = bxistr_new("%s", inet_ntoa( h->sin_addr ) );
+            ip = bxistr_new("%s", inet_ntoa(h->sin_addr));
         }
         if (ip != NULL) {
             translate_url = bxistr_new("%s://%s:%s", elements[0], ip, elements[2]);

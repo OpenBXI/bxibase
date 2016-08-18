@@ -289,6 +289,7 @@ def addargs(parser, config_file=DEFAULT_CONFIG_FILE, setsighandler=True):
                         action=_FullHelpAction, default=posless.SUPPRESS,
                         help=_('show all options and exit'))
 
+
 def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None):
     def _return_dict_value(config, Sections):
         try:
