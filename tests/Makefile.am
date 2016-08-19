@@ -76,6 +76,7 @@ unit_t_SOURCES=\
 			   test_str.c\
 			   test_err.c\
 			   test_time.c\
+			   test_zmq.c\
 			   test_logger.c\
 			   unit_t.c
 

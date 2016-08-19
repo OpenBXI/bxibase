@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
+#include <pthread.h>
 
 #include <zmq.h>
 
@@ -708,7 +708,8 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
             // First frame: the SYNC header
             err2 = bxitime_get(CLOCK_MONOTONIC, &last_send);
             BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_HEADER, pub_zocket, ZMQ_SNDMORE, 0, 0);
+            err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_HEADER,
+                                  pub_zocket, ZMQ_SNDMORE, 0, 0);
             BXIERR_CHAIN(err, err2);
 
             // Second frame: the sync socket URL
@@ -758,7 +759,8 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_SUBSCRIBE,
-                                BXIZMQ_PUBSUB_SYNC_HEADER, ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
+                                BXIZMQ_PUBSUB_SYNC_HEADER,
+                                ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
     BXIERR_CHAIN(err, err2);
 
     char * sync_url = NULL;
@@ -800,7 +802,8 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     BXIFREE(sync_url);
 
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_UNSUBSCRIBE,
-                                BXIZMQ_PUBSUB_SYNC_HEADER, ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
+                                BXIZMQ_PUBSUB_SYNC_HEADER,
+                                ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
 
     zmq_pollitem_t poll_set[] = {
         { sync_zocket, 0, ZMQ_POLLIN, 0 },};
@@ -833,6 +836,39 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     return err;
 }
 
+bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
+    bxiassert(NULL != url);
+    bxiassert(NULL != result);
+
+    *result = NULL;
+
+    if ((0 == strncmp("inproc", url, strlen("inproc"))) ||
+        (0 == strncmp("ipc", url, strlen("ipc")))) {
+
+        pthread_t thread = pthread_self();
+        struct timespec time;
+
+        bxierr_p tmp = bxitime_get(CLOCK_MONOTONIC, &time);
+        if (bxierr_isko(tmp)) {
+            bxierr_report(&tmp, STDERR_FILENO);
+            *result = bxistr_new("%s-%x", url, (unsigned int) thread);
+        } else {
+            *result = bxistr_new("%s-%x.%x", url, (unsigned int) thread,
+                                 (unsigned int) (time.tv_sec * 1000000000 + time.tv_nsec));
+        }
+        return BXIERR_OK;
+    }
+    if (0 == strncmp("tcp", url, strlen("tcp"))) {
+        char * colon = strrchr(url + strlen("tcp://"), ':');
+        size_t len = (size_t) (colon - url);
+        *result = bximem_calloc((len + ARRAYLEN(":*")) * sizeof(**result));
+        memcpy(*result, url, len);
+        memcpy(*result + len, ":*", strlen(":*"));
+        return BXIERR_OK;
+    }
+
+    return bxierr_gen("Bad or non-supported zeromq URL: %s", url);
+}
 
 // *********************************************************************************
 // **************************** Static function ************************************
