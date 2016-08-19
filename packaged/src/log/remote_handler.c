@@ -141,6 +141,15 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
                                     ZMQ_PUB,
                                     data->url,
                                     &data->zock);
+
+        // TODO: Fix this hack: a real synchronization mechanism must be
+        // provided.
+        bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e6);
+        if (bxierr_isko(tmp)) {
+            bxierr_p dummy = bxierr_new(1057322, NULL, NULL, NULL,
+                                        tmp, "Messages might be lost");
+            bxierr_report(&dummy, STDERR_FILENO);
+        }
     }
 
     return err;
