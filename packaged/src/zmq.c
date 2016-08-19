@@ -765,16 +765,16 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
 
     char * sync_url = NULL;
     char * key = NULL;
+
     while(true) {
 
         err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
         BXIERR_CHAIN(err, err2);
 
-        if (NULL != key && strcmp(key, BXIZMQ_PUBSUB_SYNC_HEADER) == 0) {
+        if (NULL != key && 0 == strcmp(key, BXIZMQ_PUBSUB_SYNC_HEADER)) {
 
             err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
             BXIERR_CHAIN(err, err2);
-
             BXIFREE(key);
             // We received something
             if (NULL != sync_url) {

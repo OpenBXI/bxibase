@@ -41,6 +41,7 @@ typedef struct bxilog_remote_handler_param_s_f * bxilog_remote_handler_param_p;
 typedef struct bxilog_remote_handler_param_s_f {
     bxilog_handler_param_s generic;
     bool bind;
+    bool synced;
     char * url;
     void * ctx;
     void * zock;
@@ -66,6 +67,7 @@ static bxierr_p _process_explicit_flush(bxilog_remote_handler_param_p data);
 static bxierr_p _process_exit(bxilog_remote_handler_param_p data);
 static bxierr_p _process_cfg(bxilog_remote_handler_param_p data);
 static bxierr_p _param_destroy(bxilog_remote_handler_param_p *data_p);
+static bxierr_p _sync_pub_sub(bxilog_remote_handler_param_p data);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -89,6 +91,22 @@ static const bxilog_handler_s BXILOG_REMOTE_HANDLER_S = {
                   .param_destroy = (bxierr_p (*) (bxilog_handler_param_p*)) _param_destroy,
 };
 const bxilog_handler_p BXILOG_REMOTE_HANDLER = (bxilog_handler_p) &BXILOG_REMOTE_HANDLER_S;
+
+static const char * const _LOG_LEVEL_HEADER[] = {
+        "",                             // BXILOG_OFF
+        "LTFDIONWECAP",                 // BXILOG_PANIC
+        "LTFDIONWECA",                  // BXILOG_ALERT
+        "LTFDIONWEC",                   // BXILOG_CRITICAL
+        "LTFDIONWE",                    // BXILOG_ERROR
+        "LTFDIONW",                     // BXILOG_WARNING
+        "LTFDION",                      // BXILOG_NOTICE
+        "LTFDIO",                       // BXILOG_OUTPUT
+        "LTFDI",                        // BXILOG_INFO,
+        "LTFD",                         // BXILOG_DEBUG,
+        "LTF",                          // BXILOG_FINE,
+        "LT",                           // BXILOG_TRACE,
+        "L",                            // BXILOG_LOWEST
+};
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -122,35 +140,33 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
 
 bxierr_p _init(bxilog_remote_handler_param_p data) {
     // Creating the ZMQ context
-    bxierr_p err = bxizmq_context_new(&data->ctx);
+    bxierr_p err = BXIERR_OK, err2;
 
-    if (bxierr_isko(err)) {
-      return err;
-    }
+    err2 = bxizmq_context_new(&data->ctx);
+    BXIERR_CHAIN(err, err2);
+
+    if (bxierr_isko(err)) return err;
 
     if (data->bind) {
         int port;
         // Creating and binding the ZMQ socket
-        err = bxizmq_zocket_bind(data->ctx,
-                                 ZMQ_PUB,
-                                 data->url,
-                                 &port,
-                                 &data->zock);
-    } else {
-        err = bxizmq_zocket_connect(data->ctx,
-                                    ZMQ_PUB,
-                                    data->url,
-                                    &data->zock);
+        err2 = bxizmq_zocket_bind(data->ctx,
+                                  ZMQ_PUB,
+                                  data->url,
+                                  &port,
+                                  &data->zock);
+        BXIERR_CHAIN(err, err2);
 
-        // TODO: Fix this hack: a real synchronization mechanism must be
-        // provided.
-        bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e6);
-        if (bxierr_isko(tmp)) {
-            bxierr_p dummy = bxierr_new(1057322, NULL, NULL, NULL,
-                                        tmp, "Messages might be lost");
-            bxierr_report(&dummy, STDERR_FILENO);
-        }
+    } else {
+        // Creating and connecting the ZMQ socket
+        err2 = bxizmq_zocket_connect(data->ctx,
+                                     ZMQ_PUB,
+                                     data->url,
+                                     &data->zock);
+        BXIERR_CHAIN(err, err2);
+
     }
+    data->synced = false;
 
     return err;
 }
@@ -190,25 +206,35 @@ bxierr_p _process_log(bxilog_record_p record,
 
     bxierr_p err = BXIERR_OK, err2;
 
+    UNUSED(filename);
+    UNUSED(funcname);
+    UNUSED(loggername);
+    UNUSED(logmsg);
+
     if (NULL != data->zock) {
-        err2 = bxizmq_data_snd(record, sizeof(*record), data->zock,
-                               ZMQ_SNDMORE, 0, 0);
+
+        if (!data->synced) {
+            err2 = _sync_pub_sub(data);
+            BXIERR_CHAIN(err, err2);
+
+            if (bxierr_isok(err)) data->synced = true;
+        }
+
+        char * header = bxistr_new("%s%s",
+                                   BXILOG_REMOTE_HANDLER_HEADER,
+                                   _LOG_LEVEL_HEADER[record->level]);
+
+        err2 = bxizmq_str_snd_zc(header, data->zock, ZMQ_SNDMORE,
+                                 0, 0, true);
         BXIERR_CHAIN(err, err2);
 
-        err2 = bxizmq_data_snd(filename, record->filename_len, data->zock,
-                               ZMQ_SNDMORE, 0, 0);
-        BXIERR_CHAIN(err, err2);
+        size_t record_len = sizeof(*record) +\
+                record->filename_len +\
+                record->funcname_len +\
+                record->logname_len +\
+                record->logmsg_len;
 
-        err2 = bxizmq_data_snd(funcname, record->funcname_len, data->zock,
-                               ZMQ_SNDMORE, 0, 0);
-        BXIERR_CHAIN(err, err2);
-
-        err2 = bxizmq_data_snd(loggername, record->logname_len, data->zock,
-                               ZMQ_SNDMORE, 0, 0);
-        BXIERR_CHAIN(err, err2);
-
-        err2 = bxizmq_data_snd(logmsg, record->logmsg_len, data->zock,
-                               0, 0, 0);
+        err2 = bxizmq_data_snd(record, record_len, data->zock, 0, 0, 0);
         BXIERR_CHAIN(err, err2);
     }
 
@@ -239,4 +265,71 @@ bxierr_p _param_destroy(bxilog_remote_handler_param_p * data_p) {
     bximem_destroy((char**) data_p);
 
     return BXIERR_OK;
+}
+
+bxierr_p _sync_pub_sub(bxilog_remote_handler_param_p data) {
+    fprintf(stderr, "THERE Before\n");
+
+    char * bind_sync_url;
+    bxierr_p err = BXIERR_OK, err2;
+
+    err2 = bxizmq_generate_new_url_from(data->url, &bind_sync_url);
+    BXIERR_CHAIN(err, err2);
+
+    if (bxierr_isko(err)) goto FAILOVER;
+
+    void * sync_socket = NULL;
+    int port;
+
+    err2 = bxizmq_zocket_bind(data->ctx,
+                              ZMQ_REP,
+                              bind_sync_url,
+                              &port,
+                              &sync_socket);
+    BXIERR_CHAIN(err, err2);
+
+    char * sync_url;
+    if (0 == strncmp("tcp", bind_sync_url, ARRAYLEN("tcp")-1)) {
+        // Replace tcp://w.x.y.z:* into tcp://w.x.y.z:port
+        char * colon = strrchr(bind_sync_url + ARRAYLEN("tcp://")-1, ':');
+        *colon = '\0'; // Overwrite with the NUL terminating byte
+        sync_url = bxistr_new("%s:%d", bind_sync_url, port);
+        BXIFREE(bind_sync_url);
+    } else {
+        sync_url = bind_sync_url;
+    }
+
+    err2 = bxizmq_sync_pub(data->zock,
+                           sync_socket,
+                           sync_url,
+                           strlen(sync_url),
+                           0.5);
+    BXIERR_CHAIN(err, err2);
+    BXIFREE(sync_url);
+
+    if (bxierr_isok(err)) goto QUIT;
+
+FAILOVER:
+    err2 = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e6);
+    BXIERR_CHAIN(err, err2);
+
+    if (bxierr_isko(err)) {
+        bxierr_p dummy = bxierr_new(1057322, NULL, NULL, NULL,
+                                    err,
+                                    "Problem with zeromq "
+                                    "PUB/SUB synchronization in %s: "
+                                    "messages might be lost", INTERNAL_LOGGER_NAME);
+        bxierr_report(&dummy, STDERR_FILENO);
+    }
+
+QUIT:
+    {
+        fprintf(stderr, "Before\n");
+        bxierr_p tmp = bxizmq_zocket_destroy(sync_socket);
+        bxierr_report(&tmp, STDERR_FILENO);
+        fprintf(stderr, "After\n");
+    }
+
+    return BXIERR_OK;
+
 }
