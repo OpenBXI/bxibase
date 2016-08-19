@@ -555,7 +555,7 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
     if (NULL != poller[0].socket) {
         TRACE(_REMOTE_LOGGER, "Updating the subcription to everything on the socket");
         char * tree = "";
-        err = bxizmq_zocket_setopt(poller[0].socket, ZMQ_SUBSCRIBE, tree, strlen(tree));
+        err2 = bxizmq_zocket_setopt(poller[0].socket, ZMQ_SUBSCRIBE, tree, strlen(tree));
         BXIERR_CHAIN(err, err2);
     }
 
