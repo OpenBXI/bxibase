@@ -62,6 +62,9 @@ void test_bxierr_chain(void);
 // From test_time.c
 void test_time(void);
 
+// From test_zmq.c
+void test_bxizmq_generate_url(void);
+
 // From test_logger.c
 void test_logger_init(void);
 void test_logger_levels(void);
@@ -222,6 +225,22 @@ int main(int argc, char * argv[]) {
     /* add the tests to the suite */
     if (false
             || (NULL == CU_add_test(bxitime_suite, "test time", test_time))
+            || false) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+
+    CU_pSuite bxizmq_suite = CU_add_suite("bxizmq_suite",
+                                          init_suite_logger,
+                                          clean_suite_logger);
+    if (NULL == bxizmq_suite) {
+        CU_cleanup_registry();
+        return (CU_get_error());
+    }
+
+    /* add the tests to the suite */
+    if (false
+            || (NULL == CU_add_test(bxizmq_suite, "test bxizmq generate url", test_bxizmq_generate_url))
             || false) {
         CU_cleanup_registry();
         return (CU_get_error());

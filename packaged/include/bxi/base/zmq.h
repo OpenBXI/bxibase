@@ -482,5 +482,27 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
                          void * sub_zocket,
                          const double timeout);
 
+/**
+ * Generate a fresh new zeromq URL from the given one.
+ *
+ * The returned URL will share the same protocol than the one given.
+ *
+ * If the protocol is of the form 'inproc://something', the new URL will look like
+ * 'inproc://something-ID' where ID is a string unique to the whole calling process.
+ *
+ * If the protocol is of the form 'ipc://path/to/somewhere', the new URL will look like
+ * 'ipc://path/to/somewhere-ID' where ID is a string unique to the whole system.
+ *
+ * If the protocol is of the form 'tcp://host:port', the new URL will look like
+ * 'tcp://host:*'.
+ *
+ * @param url the URL to generate a new one from
+ * @param result a pointer on the result
+ *
+ * @return BXIERR_OK on success, anything else on error
+ *
+ *
+ */
+bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result);
 
 #endif /* BXIZMQ_H_ */
