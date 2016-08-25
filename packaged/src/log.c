@@ -483,12 +483,22 @@ bxierr_p bxilog__stop_handlers(void) {
         BXIERR_CHAIN(err, err2);
 
         char * msg = NULL;
-        err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
-        if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
+        while(ret != ESRCH && msg == NULL) {
+            bxierr_destroy(&err2);
+            err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
+            if (bxierr_isko(err2)) {
+                ret = pthread_kill(handler_thread, 0);
+            } else {
+                break;
+            }
+        }
+
 
 
         err2 = bxizmq_zocket_destroy(zocket);
         BXIERR_CHAIN(err, err2);
+
+        if (ESRCH == ret && msg == NULL) continue;
 
 
         if (NULL == msg || 0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
