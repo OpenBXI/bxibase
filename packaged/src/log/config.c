@@ -250,7 +250,7 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
         *level = BXILOG_TRACE;
         return BXIERR_OK;
     }
-    if (0 == strcasecmp("lowest", level_str)) {
+    if (0 == strcasecmp("lowest", level_str) || 0 == strcasecmp("all", level_str)) {
         *level = BXILOG_LOWEST;
         return BXIERR_OK;
     }
