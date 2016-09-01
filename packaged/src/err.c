@@ -97,7 +97,10 @@ bxierr_p bxierr_new(int code,
     self->backtrace = tmp;
     self->data = data;
     self->free_fn = free_fn;
-    self->add_to_report = (NULL == add_to_report) ? bxierr_report_add_from_limit : add_to_report;
+    self->add_to_report = (NULL == add_to_report) ?
+                                bxierr_report_add_from_limit :
+                                add_to_report;
+
     self->cause = bxierr_isok(cause) ? NULL : cause;
 
     if (self->cause != NULL) {
@@ -490,7 +493,8 @@ bxierr_set_p bxierr_set_new() {
 
     _err_list_init(&result->distinct_err);
 
-    result->seen_nb = bximem_calloc(result->distinct_err.errors_size * sizeof(*result->seen_nb));
+    result->seen_nb = bximem_calloc(result->distinct_err.errors_size * \
+                                                            sizeof(*result->seen_nb));
     result->total_seen_nb = 0;
 
     return result;
