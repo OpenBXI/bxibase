@@ -6,11 +6,10 @@
 #ifndef BXICFFI
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
-#include <sys/signalfd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 #endif
 
 
