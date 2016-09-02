@@ -98,10 +98,10 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         bxiassert(NULL != url);
         bxierr_p err = BXIERR_OK, err2;
 
-        err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_PUSH,
-                                     url,
-                                     &tsd->data_channel);
+        err2 = bxizmq_zocket_create_connected(BXILOG__GLOBALS->zmq_ctx,
+                                              ZMQ_PUSH,
+                                              url,
+                                              &tsd->data_channel);
         BXIERR_CHAIN(err, err2);
 
 //        fprintf(stderr, "Connecting %p to %s\n", tsd->data_channel, url);
@@ -113,10 +113,10 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         BXIERR_CHAIN(err, err2);
 
         url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url,
-        err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_REQ,
-                                     url,
-                                     &tsd->ctrl_channel);
+        err2 = bxizmq_zocket_create_connected(BXILOG__GLOBALS->zmq_ctx,
+                                              ZMQ_REQ,
+                                              url,
+                                              &tsd->ctrl_channel);
         BXIERR_CHAIN(err, err2);
 
 //        fprintf(stderr, "Connecting %p to %s\n", tsd->ctrl_channel, url);

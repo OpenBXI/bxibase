@@ -85,7 +85,7 @@ static bxierr_p _start_handler_thread(bxilog_handler_p handler,
 static bxierr_p _sync_handler();
 static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
 static void _setprocname();
-static bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout);
+//static bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -95,11 +95,8 @@ const bxilog_const_s bxilog_const = {
                                      .HB_PREFIX = BXILOG_HB_PREFIX,
 };
 
-
-
 // The internal logger
 SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog");
-
 
 static pthread_mutex_t BXILOG_INITIALIZED_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 
@@ -471,11 +468,10 @@ bxierr_p bxilog__stop_handlers(void) {
         bxiassert(NULL != url);
 
         void * zocket = NULL;
-
-        err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_REQ,
-                                     url,
-                                     &zocket);
+        err2 = bxizmq_zocket_create_connected(BXILOG__GLOBALS->zmq_ctx,
+                                              ZMQ_REQ,
+                                              url,
+                                              &zocket);
         BXIERR_CHAIN(err, err2);
         bxierr_abort_ifko(err);
 
@@ -483,8 +479,11 @@ bxierr_p bxilog__stop_handlers(void) {
         BXIERR_CHAIN(err, err2);
 
         char * msg = NULL;
-        err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
-        if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
+        err2 = bxizmq_str_rcv(zocket, 0, false, &msg);
+        BXIERR_CHAIN(err, err2);
+
+//        err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
+//        if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
 
 
         err2 = bxizmq_zocket_destroy(zocket);
@@ -725,24 +724,24 @@ void _setprocname(char * name) {
 #endif
 }
 
-bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {
-    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
-    zmq_pollitem_t poll_set[] = {{ zocket, 0, ZMQ_POLLIN, 0 },};
-    int rc = zmq_poll(poll_set, 1, timeout);
-    if (-1 == rc) {
-        err2 = bxierr_errno("Calling zmq_poll() failed");
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
-
-    if (0 == (poll_set[0].revents & ZMQ_POLLIN)) {
-        err2 = bxierr_gen("Calling zmq_poll() timeout %ld", timeout);
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
-
-    err2 = bxizmq_str_rcv(zocket, 0, false, reply);
-    BXIERR_CHAIN(err, err2);
-
-    return err;
-}
+//bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {
+//    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
+//    zmq_pollitem_t poll_set[] = {{ zocket, 0, ZMQ_POLLIN, 0 },};
+//    int rc = zmq_poll(poll_set, 1, timeout);
+//    if (-1 == rc) {
+//        err2 = bxierr_errno("Calling zmq_poll() failed");
+//        BXIERR_CHAIN(err, err2);
+//        return err;
+//    }
+//
+//    if (0 == (poll_set[0].revents & ZMQ_POLLIN)) {
+//        err2 = bxierr_gen("Calling zmq_poll() timeout %ld", timeout);
+//        BXIERR_CHAIN(err, err2);
+//        return err;
+//    }
+//
+//    err2 = bxizmq_str_rcv(zocket, 0, false, reply);
+//    BXIERR_CHAIN(err, err2);
+//
+//    return err;
+//}

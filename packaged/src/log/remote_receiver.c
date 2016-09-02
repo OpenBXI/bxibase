@@ -108,9 +108,9 @@ bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param) {
 
     TRACE(_REMOTE_LOGGER, "Creating and connecting the ZMQ socket to url: '%s'",
                           BXILOG_REMOTE_RECEIVER_SYNC_URL);
-    err2 = bxizmq_zocket_connect(context, ZMQ_PAIR,
-                                 BXILOG_REMOTE_RECEIVER_SYNC_URL,
-                                 &poller->socket);
+    err2 = bxizmq_zocket_create_connected(context, ZMQ_PAIR,
+                                          BXILOG_REMOTE_RECEIVER_SYNC_URL,
+                                          &poller->socket);
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) {
         return err;
@@ -173,9 +173,9 @@ bxierr_p bxilog_remote_recv_async_stop(void) {
           "Creating and connecting the ZMQ socket to url: '%s'",
           BXILOG_REMOTE_RECEIVER_SYNC_URL);
 
-    err2 = bxizmq_zocket_connect(context, ZMQ_PAIR,
-                                 BXILOG_REMOTE_RECEIVER_SYNC_URL,
-                                 &poller->socket);
+    err2 = bxizmq_zocket_create_connected(context, ZMQ_PAIR,
+                                          BXILOG_REMOTE_RECEIVER_SYNC_URL,
+                                          &poller->socket);
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) {
         return err;
@@ -231,9 +231,12 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
     if (bxierr_isko(err)) return err;
 
     if (param->bind) {
-        fprintf(stderr, "Syncing...\n");
-        err2 = bxizmq_sync_sub(_remote_receiver_ctx, &poller[0].socket, 0.5);
-        BXIERR_CHAIN(err, err2);
+        for (size_t i = 0; i < param->sync_nb; i++) {
+            TRACE(_REMOTE_LOGGER, "PUB/SUB Synchronization #%zu/%zu",
+                  i+1, param->sync_nb);
+            err2 = bxizmq_sync_sub(_remote_receiver_ctx, &poller[0].socket, 0.5);
+            BXIERR_CHAIN(err, err2);
+        }
     }
 
 
@@ -304,8 +307,12 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
     }
 
     if (param->bind) {
-        err2 = bxizmq_sync_sub(context, poller[0].socket, 0.5);
-        BXIERR_CHAIN(err, err2);
+        for (size_t i = 0; i < param->sync_nb; i++) {
+            TRACE(_REMOTE_LOGGER, "PUB/SUB Synchronization #%zu/%zu",
+                  i + 1, param->sync_nb);
+            err2 = bxizmq_sync_sub(context, poller[0].socket, 0.5);
+            BXIERR_CHAIN(err, err2);
+        }
     }
 
     err2 = _bxilog_remote_recv_loop(poller);
@@ -368,15 +375,16 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
             bxilog_record_p record;
             size_t record_len;
 
-            err2 = _recv_log_record(poller[0].socket, &record, &record_len);
-            BXIERR_CHAIN(err, err2);
+            bxierr_p tmp = _recv_log_record(poller[0].socket, &record, &record_len);
 
-            if (bxierr_isko(err)) {
-                if (_BAD_HEADER_ERR == err->code) {
-                    BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_LOWEST, err,
-                                  "The error below might just be normal");
+            if (bxierr_isko(tmp)) {
+                if (_BAD_HEADER_ERR == tmp->code) {
+                    LOWEST(_REMOTE_LOGGER,
+                           "Skipping bad header error, looks like a "
+                            "PUB/SUB sync. Error message is: %s", tmp->msg);
+                    bxierr_destroy(&tmp);
                 } else {
-                    BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_WARNING, err,
+                    BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_WARNING, tmp,
                                   "An error occured while retrieving a bxilog record, "
                                   "a message might be missing");
                 }
@@ -524,11 +532,13 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
               bind ? "binding" : "connecting", urls[i]);
         if (bind) {
             int port;
-            err2 = bxizmq_zocket_bind(*context, ZMQ_SUB, urls[i], &port, &poller[0].socket);
+            err2 = bxizmq_zocket_create_binded(*context, ZMQ_SUB,
+                                               urls[i], &port, &poller[0].socket);
             BXIERR_CHAIN(err, err2);
 
         } else {
-            err2 = bxizmq_zocket_connect(*context, ZMQ_SUB, urls[i], &poller[0].socket);
+            err2 = bxizmq_zocket_create_connected(*context, ZMQ_SUB,
+                                                  urls[i], &poller[0].socket);
             BXIERR_CHAIN(err, err2);
         }
     }
@@ -542,8 +552,9 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
 
     TRACE(_REMOTE_LOGGER, "Creating and connecting the control ZMQ socket to url: '%s'",
                           BXILOG_REMOTE_RECEIVER_SYNC_URL);
-    err2 = bxizmq_zocket_bind(*context, ZMQ_PAIR, BXILOG_REMOTE_RECEIVER_SYNC_URL, NULL,
-                              &poller[1].socket);
+    err2 = bxizmq_zocket_create_binded(*context, ZMQ_PAIR,
+                                       BXILOG_REMOTE_RECEIVER_SYNC_URL, NULL,
+                                       &poller[1].socket);
     BXIERR_CHAIN(err, err2);
 
     return err;

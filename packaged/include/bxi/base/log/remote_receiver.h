@@ -33,6 +33,7 @@ typedef struct bxilog_remote_recv_s {
     int nb_urls;           //!< Number of urls to connect to
     bool bind;             //!< If true, bind instead of connect
     const char ** urls;    //!< The urls
+    size_t sync_nb;        //!< How many PUB/SUB synchronization to do before starting
 } bxilog_remote_recv_s;
 
 typedef bxilog_remote_recv_s * bxilog_remote_recv_p;

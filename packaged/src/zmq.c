@@ -45,7 +45,6 @@
 // **************************** Static function declaration ************************
 // *********************************************************************************
 
-bxierr_p _zocket_create(void * const ctx, const int type, void ** result);
 bxierr_p _split_url(const char * const url, char * elements[3]);
 bxierr_p _zmqerr(int errnum, const char * fmt, ...);
 
@@ -97,36 +96,99 @@ bxierr_p bxizmq_context_destroy(void ** ctx) {
 /********************************** END Context ***********************************/
 
 /*************************************** Zocket ***********************************/
-bxierr_p bxizmq_zocket_bind(void * const ctx,
-                            const int type,
-                            const char * const url,
-                            int  * affected_port,
-                            void ** result) {
+
+bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) {
     bxiassert(NULL != ctx);
-    bxiassert(NULL != url);
     bxiassert(NULL != result);
+
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+
+    void * zocket = zmq_socket(ctx, type);
+    if (NULL == zocket) return _zmqerr(errno,
+                                       "Can't create a zmq socket of type %d",
+                                       type);
+
+    int linger = 500;
+
+    int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
+    if (0 != rc) {
+        err2 = _zmqerr(errno,
+                       "Can't set option ZMQ_LINGER=%d "
+                       "on zmq socket: %s", linger);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(zocket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    int _hwm = 0 ;
+    errno = 0;
+    rc = zmq_setsockopt(zocket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
+    if (0 != rc) {
+        err2 = _zmqerr(errno, "Can't set option ZMQ_RCVHWM=%d on zmq socket", _hwm);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(zocket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    _hwm = 0;
+    errno = 0;
+    rc = zmq_setsockopt(zocket, ZMQ_SNDHWM, &_hwm, sizeof(_hwm));
+    if (0 != rc) {
+        err2 = _zmqerr(errno, "Can't set option ZMQ_SNDHWM=%d on zmq socket", _hwm);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_zocket_destroy(zocket);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+    *result = zocket;
+    return BXIERR_OK;
+
+}
+
+bxierr_p bxizmq_zocket_destroy(void * const zocket) {
+    if (NULL == zocket) return BXIERR_OK;
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+    int linger = DEFAULT_CLOSING_LINGER;
+    int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
+    if (rc != 0) {
+        err2 = _zmqerr(errno, "Can't set linger for socket cleanup");
+        BXIERR_CHAIN(err, err2);
+    }
+
+    errno = 0;
+    rc = zmq_close(zocket);
+    if (rc != 0) {
+        while (rc == -1 && errno == EINTR) rc = zmq_close(zocket);
+        if (rc != 0) {
+            err2 = _zmqerr(errno, "Can't close socket");
+            BXIERR_CHAIN(err, err2);
+        }
+    }
+    return err;
+}
+bxierr_p bxizmq_zocket_bind(void * const zocket,
+                            const char * const url,
+                            int  * affected_port) {
+    bxiassert(NULL != url);
     bxierr_p err = BXIERR_OK, err2;
 
     unsigned long port = 0;
 
-    void * socket = *result;
-    if (NULL == socket) {
-        err2 = _zocket_create(ctx, type, &socket);
-        BXIERR_CHAIN(err, err2);
-        if (bxierr_isko(err)) return err;
-    }
-
-
     char * translate_url = (char *)url;
 
-    int rc = zmq_bind(socket, translate_url);
-    if (rc == -1) {
+    int rc = zmq_bind(zocket, translate_url);
+
+    if (-1 == rc) {
         err2 = _zmqerr(errno, "Can't bind zmq socket on %s", translate_url);
         BXIERR_CHAIN(err, err2);
 
         //Try by translating hostname into IP
-        if (strncmp(translate_url, TCP_PROTO, ARRAYLEN(TCP_PROTO) - 1) != 0) {
-            err2 = bxizmq_zocket_destroy(socket);
+        if (0 != strncmp(translate_url, TCP_PROTO, ARRAYLEN(TCP_PROTO) - 1)) {
+            err2 = bxizmq_zocket_destroy(zocket);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -137,7 +199,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         BXIERR_CHAIN(err, err2);
 
         if (bxierr_isko(err2)) {
-            err2 = bxizmq_zocket_destroy(socket);
+            err2 = bxizmq_zocket_destroy(zocket);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -150,15 +212,14 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         hints.ai_socktype = SOCK_STREAM;
 
         errno = 0;
-        if (0 != (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo)))
-        {
+        if (0 != (rv = getaddrinfo(elements[1] , NULL , &hints , &servinfo))) {
             err2 = bxierr_gen("Translation address error: getaddrinfo: %s",
                               gai_strerror(rv));
             BXIERR_CHAIN(err, err2);
         }
 
         if (bxierr_isko(err2)) {
-            err2 = bxizmq_zocket_destroy(socket);
+            err2 = bxizmq_zocket_destroy(zocket);
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -169,15 +230,15 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         struct sockaddr_in *h;
         for(p = servinfo; p != NULL && ip == NULL; p = p->ai_next) {
             h = (struct sockaddr_in *) p->ai_addr;
-            if (h == NULL) {
+            if (NULL == h) {
                 continue;
             }
             ip = bxistr_new("%s", inet_ntoa(h->sin_addr));
         }
-        if (ip != NULL) {
+        if (NULL != ip) {
             translate_url = bxistr_new("%s://%s:%s", elements[0], ip, elements[2]);
             BXIFREE(ip);
-            int rc = zmq_bind(socket, translate_url);
+            int rc = zmq_bind(zocket, translate_url);
             if (rc == -1) {
                 //Neither url works
                 err2 = _zmqerr(errno,
@@ -193,7 +254,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     }
 
     if (bxierr_isko(err)) {
-        err2 = bxizmq_zocket_destroy(socket);
+        err2 = bxizmq_zocket_destroy(zocket);
         BXIERR_CHAIN(err, err2);
         return err;
     }
@@ -201,15 +262,15 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
     char endpoint[512];
     endpoint[0] = '\0';
 
-    if (NULL != affected_port && strncmp(translate_url,
-                                         INPROC_PROTO,
-                                         ARRAYLEN(INPROC_PROTO) - 1) != 0) {
-        bxiassert(NULL != socket);
+    if (NULL != affected_port && 0 != strncmp(translate_url,
+                                              INPROC_PROTO,
+                                              ARRAYLEN(INPROC_PROTO) - 1)) {
+        bxiassert(NULL != zocket);
         size_t endpoint_len = 512;
         errno = 0 ;
 
-        rc = zmq_getsockopt(socket, ZMQ_LAST_ENDPOINT, &endpoint, &endpoint_len);
-        if (rc == -1) {
+        rc = zmq_getsockopt(zocket, ZMQ_LAST_ENDPOINT, &endpoint, &endpoint_len);
+        if (-1 == rc) {
             if (errno == EINVAL || errno == ETERM || errno == ENOTSOCK || errno == EINTR) {
                 err2 = _zmqerr(errno, "Can't retrieve the zocket endpoint option");
                 BXIERR_CHAIN(err, err2);
@@ -217,7 +278,7 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         }
     }
 
-    if (strlen(endpoint) > 0) {
+    if (0 < strlen(endpoint)) {
         char * ptr = strrchr(endpoint, ':');
         if (NULL == ptr) {
             err2 = bxierr_errno("Unable to retrieve the binded port number");
@@ -227,8 +288,8 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         char * endptr = NULL;
         errno = 0;
         port = strtoul(ptr+1, &endptr, 10);
-        if (errno == ERANGE) {
-            err2 = bxizmq_zocket_destroy(socket);
+        if (ERANGE == errno) {
+            err2 = bxizmq_zocket_destroy(zocket);
             BXIERR_CHAIN(err, err2);
             err2 = bxierr_errno("Unable to parse integer in: '%s'", ptr+1);
             BXIERR_CHAIN(err, err2);
@@ -240,35 +301,26 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
         *affected_port = (int) port;
     }
     //if (NULL != affected_port)  *affected_port = rc;
-    *result = socket;
     return err;
 }
 
-bxierr_p bxizmq_zocket_connect(void * const ctx,
-                               const int type,
-                               const char * const url,
-                               void ** result) {
-    bxiassert(NULL != ctx);
+bxierr_p bxizmq_zocket_connect(void * zocket,
+                               const char * const url) {
     bxiassert(NULL != url);
-    bxiassert(NULL != result);
+    bxiassert(NULL != url);
     bxierr_p err = BXIERR_OK, err2;
 
-    void * socket = *result;
-    if (NULL == socket) {
-        err2 = _zocket_create(ctx, type, &socket);
-        BXIERR_CHAIN(err, err2);
-        if (bxierr_isko(err)) return err;
-    }
-
-    long sleep = 128; // nanoseconds
     struct timespec start;
     err2 = bxitime_get(CLOCK_MONOTONIC, &start);
     BXIERR_CHAIN(err, err2);
+
+    long sleep = 128; // nanoseconds
     double delay = 0.0;
     int tries = 0;
-    while(delay < MAX_CONNECTION_TIMEOUT) {
+
+    while(MAX_CONNECTION_TIMEOUT > delay) {
         errno = 0;
-        int rc = zmq_connect(socket, url);
+        int rc = zmq_connect(zocket, url);
         if (0 == rc) break;
         if (ECONNREFUSED != errno) {
             err2 = _zmqerr(errno, "Can't connect zmq socket on %s", url);
@@ -284,12 +336,11 @@ bxierr_p bxizmq_zocket_connect(void * const ctx,
         tries++;
     }
     if (bxierr_isko(err)) {
-        err2 = bxizmq_zocket_destroy(socket);
+        err2 = bxizmq_zocket_destroy(zocket);
         BXIERR_CHAIN(err, err2);
         return err;
     }
 
-    *result = socket;
     return err;
 }
 
@@ -314,28 +365,31 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
     return err;
 }
 
+bxierr_p bxizmq_zocket_create_connected(void *const ctx,
+                                        const int type,
+                                        const char *const url,
+                                        void **zocket_p) {
 
-bxierr_p bxizmq_zocket_destroy(void * const zocket) {
-    if (NULL == zocket) return BXIERR_OK;
-    bxierr_p err = BXIERR_OK, err2;
-    errno = 0;
-    int linger = DEFAULT_CLOSING_LINGER;
-    int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
-    if (rc != 0) {
-        err2 = _zmqerr(errno, "Can't set linger for socket cleanup");
-        BXIERR_CHAIN(err, err2);
+    if (NULL == *zocket_p) {
+        bxierr_p err = bxizmq_zocket_create(ctx, type, zocket_p);
+        if (bxierr_isko(err)) return err;
     }
 
-    errno = 0;
-    rc = zmq_close(zocket);
-    if (rc != 0) {
-        while (rc == -1 && errno == EINTR) rc = zmq_close(zocket);
-        if (rc != 0) {
-            err2 = _zmqerr(errno, "Can't close socket");
-            BXIERR_CHAIN(err, err2);
-        }
+    return bxizmq_zocket_connect(*zocket_p, url);
+}
+
+bxierr_p bxizmq_zocket_create_binded(void *const ctx,
+                                     const int type,
+                                     const char *const url,
+                                     int * affected_port,
+                                     void **zocket_p) {
+
+    if (NULL == *zocket_p) {
+        bxierr_p err = bxizmq_zocket_create(ctx, type, zocket_p);
+        if (bxierr_isko(err)) return err;
     }
-    return err;
+
+    return bxizmq_zocket_bind(*zocket_p, url, affected_port);
 }
 /*********************************** END Zocket ***********************************/
 
@@ -701,7 +755,6 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
     double send_delay = timeout_s;
     double nb_msg = 1000;
     do {
-
         err2 = bxitime_duration(CLOCK_MONOTONIC, last_send, &send_delay);
         BXIERR_CHAIN(err, err2);
         if (send_delay > (timeout_s / nb_msg)) {
@@ -794,7 +847,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     }
 
     void * sync_zocket = NULL;
-    err2 = bxizmq_zocket_connect(zmq_ctx, ZMQ_REQ, sync_url, &sync_zocket);
+    err2 = bxizmq_zocket_create_connected(zmq_ctx, ZMQ_REQ, sync_url, &sync_zocket);
     BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_str_snd(sync_url, sync_zocket, ZMQ_DONTWAIT, 0, 0);
@@ -893,55 +946,6 @@ bxierr_p _zmqerr(int errnum, const char * fmt, ...) {
     return result;
 }
 
-bxierr_p _zocket_create(void * const ctx, const int type, void ** result) {
-    bxiassert(NULL != ctx);
-    bxiassert(NULL != result);
-    bxierr_p err = BXIERR_OK, err2;
-    errno = 0;
-
-    void * socket = zmq_socket(ctx, type);
-    if (socket == NULL) return _zmqerr(errno,
-                                       "Can't create a zmq socket of type %d",
-                                       type);
-
-    int linger = 500;
-
-    int rc = zmq_setsockopt(socket, ZMQ_LINGER, &linger, sizeof(linger));
-    if (rc != 0) {
-        err2 = _zmqerr(errno,
-                       "Can't set option ZMQ_LINGER=%d "
-                       "on zmq socket: %s", linger);
-        BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_destroy(socket);
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
-
-    int _hwm = 0 ;
-    errno = 0;
-    rc = zmq_setsockopt(socket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
-    if (rc != 0) {
-        err2 = _zmqerr(errno, "Can't set option ZMQ_RCVHWM=%d on zmq socket", _hwm);
-        BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_destroy(socket);
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
-
-    _hwm = 0;
-    errno = 0;
-    rc = zmq_setsockopt(socket, ZMQ_SNDHWM, &_hwm, sizeof(_hwm));
-    if (rc != 0) {
-        err2 = _zmqerr(errno, "Can't set option ZMQ_SNDHWM=%d on zmq socket", _hwm);
-        BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_destroy(socket);
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
-    *result = socket;
-    return BXIERR_OK;
-
-}
 
 bxierr_p _split_url(const char * const url, char * elements[3]) {
     if (url == NULL) {

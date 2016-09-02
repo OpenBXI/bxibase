@@ -87,6 +87,24 @@ bxierr_p bxizmq_context_new(void ** ctx);
  */
 bxierr_p bxizmq_context_destroy(void ** ctx);
 
+/**
+ * Create a zeromq socket.
+ *
+ * @param ctx the zeromq context
+ * @param type the zeromq socket type (ZMQ_REQ, ZMQ_REP, ZMQ_PUB, ...)
+ * @param zocket a pointer on the result
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
+
+/**
+ * Cleanup the given zeromq socket, releasing all underlying resources.
+ *
+ * @param zocket the socket to cleanup
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_destroy(void * const zocket);
 
 /**
  * Bind the socket to the given url and set the specified option on it. If the
@@ -94,18 +112,15 @@ bxierr_p bxizmq_context_destroy(void ** ctx);
  *
  * Any error encountered leads to a NULL pointer for the socket.
  *
- * @param ctx the zeromq context
- * @param type the type of zeromq socket to create
+ * @param zocket the socket to bind
  * @param url the url to bind to
  * @param affected_port is the port selected by zmq for addresses like 'tcp://localhost:!'
- * @param self the socket (NULL on error)
+
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_bind(void * const ctx,
-                            const int type,
+bxierr_p bxizmq_zocket_bind(void * const zocket,
                             const char * const url,
-                            int  * affected_port,
-                            void ** self);
+                            int  * affected_port);
 
 
 /**
@@ -114,17 +129,13 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
  *
  * Any error encountered leads to a NULL pointer for the socket.
  *
- * @param ctx the zeromq context
- * @param type the type of zeromq socket to create
+ * @param zocket the socket to connect
  * @param url the url to connect to
- * @param self the socket (NULL on error)
  *
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_connect(void * const ctx,
-                               const int type,
-                               const char * const url,
-                               void ** self);
+bxierr_p bxizmq_zocket_connect(void * zocket,
+                               const char * const url);
 
 
 /**
@@ -143,14 +154,39 @@ bxierr_p bxizmq_zocket_setopt(void * self,
                               const size_t option_len
                              );
 
-
 /**
- * Cleanup the given zeromq socket, releasing all underlying resources.
+ * Short cut for zocket creation and connection to a single url.
  *
- * @param zocket the socket to cleanup
+ * @param ctx a zeromq context
+ * @param type the zeromq socket type to create
+ * @param url the url to connect the socket to
+ * @param zocket the resulting socket (NULL on error)
+ *
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_destroy(void * const zocket);
+bxierr_p bxizmq_zocket_create_connected(void *const ctx,
+                                        const int type,
+                                        const char *const url,
+                                        void **zocket);
+
+
+/**
+ * Short cut for zocket creation and binding to a single url.
+ *
+ * @param ctx a zeromq context
+ * @param type the zeromq socket type to create
+ * @param url the url to bind the socket to
+ * @param affected_port the port selected by zmq for addresses like 'tcp://localhost:!'
+ * @param zocket the resulting socket (NULL on error)
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_create_binded(void *const ctx,
+                                     const int type,
+                                     const char *const url,
+                                     int * affected_port,
+                                     void **zocket);
+
 
 
 /**

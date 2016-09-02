@@ -150,19 +150,19 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
     if (data->bind) {
         int port;
         // Creating and binding the ZMQ socket
-        err2 = bxizmq_zocket_bind(data->ctx,
-                                  ZMQ_PUB,
-                                  data->url,
-                                  &port,
-                                  &data->zock);
+        err2 = bxizmq_zocket_create_binded(data->ctx,
+                                           ZMQ_PUB,
+                                           data->url,
+                                           &port,
+                                           &data->zock);
         BXIERR_CHAIN(err, err2);
 
     } else {
         // Creating and connecting the ZMQ socket
-        err2 = bxizmq_zocket_connect(data->ctx,
-                                     ZMQ_PUB,
-                                     data->url,
-                                     &data->zock);
+        err2 = bxizmq_zocket_create_connected(data->ctx,
+                                              ZMQ_PUB,
+                                              data->url,
+                                              &data->zock);
         BXIERR_CHAIN(err, err2);
 
     }
@@ -281,11 +281,11 @@ bxierr_p _sync_pub_sub(bxilog_remote_handler_param_p data) {
     void * sync_socket = NULL;
     int port;
 
-    err2 = bxizmq_zocket_bind(data->ctx,
-                              ZMQ_REP,
-                              bind_sync_url,
-                              &port,
-                              &sync_socket);
+    err2 = bxizmq_zocket_create_binded(data->ctx,
+                                       ZMQ_REP,
+                                       bind_sync_url,
+                                       &port,
+                                       &sync_socket);
     BXIERR_CHAIN(err, err2);
 
     char * sync_url;

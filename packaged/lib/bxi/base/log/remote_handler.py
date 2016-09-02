@@ -51,6 +51,9 @@ def remote_recv_async_start(urls, bind=False):
 
     param_p[0].urls = curls
     param_p[0].bind = bind
+    # We need 2 synchro, one for the child process and 
+    # the other for the actual scriptlet process
+    param_p[0].sync_nb = 1
 
     gc_keeper_urls = list() # Required to prevent GC
     for i in xrange(len(urls)):

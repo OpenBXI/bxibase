@@ -105,5 +105,43 @@ void test_bxizmq_generate_url() {
     bxierr_destroy(&err);
 
 }
-
+//
+//struct pub_param_s {
+//    size_t urls_nb;
+//    char ** urls;
+//};
+//
+//static void * pub_thread(void * data) {
+//    ;
+//}
+//
+//struct sub_param_s {
+//    size_t urls_nb;
+//    char ** urls;
+//};
+//
+//static void * sub_thread(void * data) {
+//    struct sub_param_s param = (struct sub_param_s) data;
+//
+//    void * ctx = NULL;
+//    bxierr_p err = bxizmq_context_new(&ctx);
+//    bxierr_abort_ifko(err);
+//
+//    void * zocket;
+//    err = bxizmq_zocket_create(ctx, ZMQ_SUB, &zocket);
+//    bxierr_abort_ifko(err);
+//
+//    for (size_t i = 0; i < param.urls_nb; i++) {
+//        err = bxizmq_zocket_connect(zocket, param.urls[i]);
+//        bxierr_abort_ifko(err);
+//    }
+//
+//
+//    bxierr_p err = bxizmq_sync_sub(ctx, zocket, n, 1);
+//
+//}
+//
+//void test_pub_sub_sync() {
+//
+//}
 

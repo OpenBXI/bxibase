@@ -41,7 +41,7 @@ SET_LOGGER(MAIN_LOGGER, "bxilog_monitor");
 
 /* Used by main to communicate with parse_opt. */
 struct arguments_s {
-    int nb_urls; // How many urls to connect to
+    int nb_urls; // How many urls to connect/bind to
     const char ** urls; // The urls
     char *logfilters;
     char *logfile;

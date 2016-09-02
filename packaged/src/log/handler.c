@@ -275,17 +275,13 @@ bxierr_p _bind_ctrl_zocket(bxilog_handler_p handler,
     UNUSED(handler);
     bxierr_p err = BXIERR_OK, err2;
 
-
-
     int affected_port;
-    err2 = bxizmq_zocket_bind(param->zmq_context,
-                              ZMQ_REP,
-                              param->ctrl_url,
-                              &affected_port,
-                              &data->ctrl_zocket);
+    err2 = bxizmq_zocket_create_binded(param->zmq_context,
+                                       ZMQ_REP,
+                                       param->ctrl_url,
+                                       &affected_port,
+                                       &data->ctrl_zocket);
     BXIERR_CHAIN(err, err2);
-
-//    fprintf(stderr, "Binding %p to %s\n", data->ctrl_zocket, param->ctrl_url);
 
     err2 = bxizmq_zocket_setopt(data->ctrl_zocket,
                                 ZMQ_RCVHWM,
@@ -302,11 +298,11 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
     UNUSED(handler);
     bxierr_p err = BXIERR_OK, err2;
     int affected_port;
-    err2 = bxizmq_zocket_bind(param->zmq_context,
-                              ZMQ_PULL,
-                              param->data_url,
-                              &affected_port,
-                              &data->data_zocket);
+    err2 = bxizmq_zocket_create_binded(param->zmq_context,
+                                       ZMQ_PULL,
+                                       param->data_url,
+                                       &affected_port,
+                                       &data->data_zocket);
     BXIERR_CHAIN(err, err2);
 
 //    fprintf(stderr, "Binding %p to %s\n", data->data_zocket, param->data_url);
