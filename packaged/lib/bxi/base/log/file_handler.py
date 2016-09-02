@@ -74,6 +74,7 @@ def add_handler(configobj, section_name, c_config):
         filters_str = configobj[section]['filters']
         console_filters = bxilogfilter.parse_filters(filters_str)
         file_filters = bxilogfilter.new_detailed_filters(console_filters)
+        #__BXIBASE_CAPI__.bxilog_filters_free(console_filters);
     else:
         file_filters = bxilogfilter.parse_filters(filters_str)
 
@@ -88,3 +89,4 @@ def add_handler(configobj, section_name, c_config):
                                                progname,
                                                filename,
                                                open_flags)
+#    __BXIBASE_CAPI__.bxilog_filters_free(file_filters);
