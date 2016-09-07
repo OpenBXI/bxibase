@@ -17,6 +17,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <search.h>
 
 #include <zmq.h>
 
@@ -44,9 +45,11 @@
 // *********************************************************************************
 // **************************** Static function declaration ************************
 // *********************************************************************************
+static bxierr_p _sync_sub_step1_send_eos(void* zmq_ctx,
+                                         zmq_pollitem_t * poll_set,
+                                         int *nitems);
 
-bxierr_p _split_url(const char * const url, char * elements[3]);
-bxierr_p _zmqerr(int errnum, const char * fmt, ...);
+static bxierr_p _zmqerr(int errnum, const char * fmt, ...);
 
 // *********************************************************************************
 // ********************************** Global Variables *****************************
@@ -195,7 +198,7 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
 
         char * elements[3];
         //Get the protocol the hostname and the port
-        err2 = _split_url(url, elements);
+        err2 = bxizmq_split_url(url, elements);
         BXIERR_CHAIN(err, err2);
 
         if (bxierr_isko(err2)) {
@@ -362,6 +365,9 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
         BXIERR_CHAIN(err, err2);
         return err;
     }
+
+    if (option_name == ZMQ_SUBSCRIBE) fprintf(stderr, "subscribing: '%s'\n", (char*) option_value);
+    if (option_name == ZMQ_UNSUBSCRIBE) fprintf(stderr, "unsubscribing: '%s'\n", (char*) option_value);
     return err;
 }
 
@@ -562,7 +568,7 @@ bxierr_p bxizmq_msg_snd(zmq_msg_t * const zmsg,
 /*********************************  DATA   ****************************************/
 
 
-bxierr_p bxizmq_data_snd(void * const data, const size_t size,
+bxierr_p bxizmq_data_snd(const void * const data, const size_t size,
                          void * const zocket, const int flags,
                          const size_t retries_max, long delay_ns) {
     bxiassert(NULL != data);
@@ -661,7 +667,7 @@ END:
 /********************************* END DATA ****************************************/
 /*********************************   STR    ****************************************/
 
-inline bxierr_p bxizmq_str_snd(char * const str, void * zsocket, int flags,
+inline bxierr_p bxizmq_str_snd(const char * const str, void * zsocket, int flags,
                                size_t retries_max, long delay_ns) {
     // Since we use strlen() it means the last '\0' is not sent!
     // Therefore the corresponding rcv() function cannot rely on the
@@ -735,156 +741,234 @@ void bxizmq_data_free(void * const data, void * const hint) {
 }
 
 
-bxierr_p bxizmq_sync_pub(void * pub_zocket,
-                         void * sync_zocket,
-                         char * const sync_url,
-                         const size_t sync_url_len,
+bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
+                         void * const pub_zocket,
+                         const char * const pub_url,
+                         size_t sub_nb,
                          const double timeout_s) {
     bxiassert(NULL != pub_zocket);
-    bxiassert(NULL != sync_zocket);
-    bxiassert(NULL != sync_url);
-    bxiassert(0 < sync_url_len);
     bxiassert(0 <= timeout_s);
+    bxiassert(NULL != pub_url);
+
     bxierr_p err = BXIERR_OK, err2;
 
     struct timespec start, last_send = {0,0};
     err2 = bxitime_get(CLOCK_MONOTONIC, &start);
     BXIERR_CHAIN(err, err2);
 
+    // Create the REP zocket
+    void * sync_zocket;
+    err2 = bxizmq_zocket_create(zmq_ctx, ZMQ_REP, &sync_zocket);
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) return err;
+
+    // Generate a new URL from the given pub_url
+    char * sync_url;
+    err2 = bxizmq_generate_new_url_from(pub_url, &sync_url);
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) return err;
+
+    // Bind this socket to the URL
+    int tcp_port = 0;
+    err2 = bxizmq_zocket_bind(sync_zocket, sync_url, &tcp_port);
+    BXIERR_CHAIN(err, err2);
+
+    const char * const url = bxizmq_create_url_from(sync_url, tcp_port);
+    // We generate a key of the format: .bxizmq/sync|url
+    // This key will be unique (hopefully) among multiple publishers
+    // so subscribers can discriminate and unsubscribe only to those
+    // publishers for which they have already subscribed.
+    const char * const key = bxistr_new("%s|%s", BXIZMQ_PUBSUB_SYNC_HEADER, url);
+
+    // Start publishing SYNC message
     double delay = 0.0;
     double send_delay = timeout_s;
-    double nb_msg = 1000;
-    do {
+    const double nb_msg = 1000;
+
+    while (true) {
+
+        if (0 == sub_nb) break; // All subscribers synced
+        if (delay >= timeout_s) {
+            err2 = bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
+                              err,
+                              "Timeout %f reached (%f) "
+                              "while syncing %s",
+                              timeout_s, delay, url);
+            BXIERR_CHAIN(err, err2);
+            break; // Timeout reached
+        }
+
+        // To prevent a big amount of sync messages to overload the network
+        // we send only a nb_msg
         err2 = bxitime_duration(CLOCK_MONOTONIC, last_send, &send_delay);
         BXIERR_CHAIN(err, err2);
+
         if (send_delay > (timeout_s / nb_msg)) {
             // First frame: the SYNC header
             err2 = bxitime_get(CLOCK_MONOTONIC, &last_send);
             BXIERR_CHAIN(err, err2);
-            err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_HEADER,
-                                  pub_zocket, ZMQ_SNDMORE, 0, 0);
+
+            err2 = bxizmq_str_snd(key, pub_zocket, ZMQ_SNDMORE, 0, 0);
             BXIERR_CHAIN(err, err2);
 
-            // Second frame: the sync socket URL
-            err2 = bxizmq_str_snd(sync_url, pub_zocket, 0, 0, 0);
+            // Second frame: the REP socket URL
+            err2 = bxizmq_str_snd(url, pub_zocket, 0, 0, 0);
             BXIERR_CHAIN(err, err2);
         }
 
-        char * synced = NULL;
-        err2 = bxizmq_str_rcv(sync_zocket, ZMQ_DONTWAIT, false, &synced);
+        char * msg = NULL;
+        err2 = bxizmq_str_rcv(sync_zocket, ZMQ_DONTWAIT, false, &msg);
         BXIERR_CHAIN(err, err2);
 
-        // Ok we received the synced message
-        if (NULL != synced) {
-            err2 = bxizmq_str_snd(synced, sync_zocket, 0, 0, 0);
-            BXIERR_CHAIN(err, err2);
-            // Check it is the expected one
-            if (strncmp(sync_url, synced, sync_url_len) == 0) {
-                BXIFREE(synced);
-                return err;
-            }
-            return bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, err,
-                              "Expected PUB/SUB synced message: '%s', received: '%s'",
-                              sync_url, synced);
-        }
+        if (NULL != msg) { // We received something
+            fprintf(stderr, "REP: rcv '%s'\n", msg);
+            // Check what we received
+            if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_EOS,
+                             msg,
+                             ARRAYLEN(BXIZMQ_PUBSUB_SYNC_EOS) - 1)) {
 
-        // Check the timeout did not expire
-        err2 = bxitime_duration(CLOCK_MONOTONIC, start, &delay);
-        BXIERR_CHAIN(err, err2);
-    } while(delay < timeout_s);
+                //  EOSync message received, reply with READY? message
+                err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_READY, sync_zocket, 0, 0, 0);
+                BXIERR_CHAIN(err, err2);
 
-    return bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
-                      err,
-                      "Timeout %f reached (%f) "
-                      "while syncing %s",
-                      timeout_s, delay, sync_url);
-}
+            } else if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_GO,
+                                   msg,
+                                   ARRAYLEN(BXIZMQ_PUBSUB_SYNC_GO) - 1)) {
 
-bxierr_p bxizmq_sync_sub(void * zmq_ctx,
-                         void * sub_zocket,
-                         const double timeout_s) {
-    bxiassert(NULL != sub_zocket);
-    bxiassert(0 <= timeout_s);
-    bxierr_p err = BXIERR_OK, err2;
-
-    struct timespec now;
-    err2 = bxitime_get(CLOCK_MONOTONIC, &now);
-    BXIERR_CHAIN(err, err2);
-
-    err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_SUBSCRIBE,
-                                BXIZMQ_PUBSUB_SYNC_HEADER,
-                                ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
-    BXIERR_CHAIN(err, err2);
-
-    char * sync_url = NULL;
-    char * key = NULL;
-
-    while(true) {
-
-        err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
-        BXIERR_CHAIN(err, err2);
-
-        if (NULL != key && 0 == strcmp(key, BXIZMQ_PUBSUB_SYNC_HEADER)) {
-
-            err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
-            BXIERR_CHAIN(err, err2);
-            BXIFREE(key);
-            // We received something
-            if (NULL != sync_url) {
+                // GO! message received, we expect sub_nb such messages
+                sub_nb--;
+                // Reply with number of subscribers still expected
+                // First frame: header
+                err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_WAITING, sync_zocket,
+                                      ZMQ_SNDMORE, 0, 0);
+                BXIERR_CHAIN(err, err2);
+                // Second frame: number of subscribers still expected
+                err2 = bxizmq_data_snd(&sub_nb, sizeof(sub_nb), sync_zocket, 0, 0 ,0);
+                BXIERR_CHAIN(err, err2);
+            } else {
+                err2 = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, err,
+                                  "Unexpected PUB/SUB synced message: '%s' from '%s'",
+                                  msg, url);
+                BXIERR_CHAIN(err, err2);
                 break;
             }
         }
 
         // Check the timeout did not expire
-        double delay;
-        err2 = bxitime_duration(CLOCK_MONOTONIC, now, &delay);
+        err2 = bxitime_duration(CLOCK_MONOTONIC, start, &delay);
         BXIERR_CHAIN(err, err2);
-        if (delay > timeout_s) return bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
-                                                 err,
-                                                 "Timeout %f reached (%f) "
-                                                 "while syncing",
-                                                 timeout_s, delay);
     }
 
-    void * sync_zocket = NULL;
-    err2 = bxizmq_zocket_create_connected(zmq_ctx, ZMQ_REQ, sync_url, &sync_zocket);
-    BXIERR_CHAIN(err, err2);
+    if (NULL != sync_zocket) {
+        // Don't care here
+        bxierr_p tmp = bxizmq_zocket_destroy(sync_zocket);
+        bxierr_report(&tmp, STDERR_FILENO);
+    }
+    return err;
 
-    err2 = bxizmq_str_snd(sync_url, sync_zocket, ZMQ_DONTWAIT, 0, 0);
-    BXIERR_CHAIN(err, err2);
-    BXIFREE(sync_url);
+}
 
-    err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_UNSUBSCRIBE,
+bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
+                         void * const sub_zocket,
+                         size_t pub_nb,
+                         const double timeout_s) {
+
+    bxiassert(NULL != sub_zocket);
+    bxiassert(0 <= timeout_s);
+    bxierr_p err = BXIERR_OK, err2;
+
+    // Subscribes to SYNC messages
+    err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_SUBSCRIBE,
                                 BXIZMQ_PUBSUB_SYNC_HEADER,
                                 ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
+    BXIERR_CHAIN(err, err2);
+
+
+    struct timespec now;
+    err2 = bxitime_get(CLOCK_MONOTONIC, &now);
+    BXIERR_CHAIN(err, err2);
+    long remaining_time = (long) (timeout_s * 1000);
 
     zmq_pollitem_t poll_set[] = {
-        { sync_zocket, 0, ZMQ_POLLIN, 0 },};
+        { sub_zocket, 0, ZMQ_POLLIN, 0 },
+        { NULL, 0, ZMQ_POLLIN, 0} ,
+    };
+    int nitems = 1;
 
     while(true) {
-        int rc = zmq_poll(poll_set, 1, (long)timeout_s/10);
+        errno = 0;
+        int rc = zmq_poll(poll_set, nitems, remaining_time);
         if (-1 == rc) {
             err2 = _zmqerr(errno, "Calling zmq_poll() failed");
             BXIERR_CHAIN(err, err2);
             break;
         }
 
-        if (!(poll_set[0].revents & ZMQ_POLLIN)) break;
-        key = NULL;
-        err2 = bxizmq_str_rcv(sync_zocket, 0, false, &key);
-        BXIERR_CHAIN(err, err2);
-        break;
+        if (0 == rc) {
+            err2 = bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
+                              err,
+                              "Timeout %f reached "
+                              "while syncing",
+                              timeout_s);
+            BXIERR_CHAIN(err, err2);
+            break;
+        }
+
+        if (poll_set[0].revents & ZMQ_POLLIN) {
+            err2  = _sync_sub_step1_send_eos(zmq_ctx, poll_set, &nitems);
+            BXIERR_CHAIN(err, err2);
+            // From now, we must not receive any sync messages on the SUB socket
+            // for this publisher: communication only through the REQ socket
+            // So we remove the SUB socket from the poller
+            poll_set[0].events = 0;
+        }
+
+        if ((NULL != poll_set[1].socket) && (poll_set[1].revents & ZMQ_POLLIN)) {
+            // We received something from the REQ socket
+            char * msg;
+            err2 = bxizmq_str_rcv(poll_set[1].socket, 0, false, &msg);
+            BXIERR_CHAIN(err, err2);
+            fprintf(stderr, "REQ: rcv '%s'\n", msg);
+
+            if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_READY, msg,
+                             ARRAYLEN(BXIZMQ_PUBSUB_SYNC_READY) - 1)) {
+                pub_nb--;
+
+                if (0 == pub_nb) { // All publisher synced,
+                    // Sending the GO message
+                    err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_GO, poll_set[1].socket,
+                                          ZMQ_DONTWAIT, 0, 0);
+                    BXIERR_CHAIN(err, err2);
+                }
+            } else if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_WAITING, msg,
+                                    ARRAYLEN(BXIZMQ_PUBSUB_SYNC_WAITING) - 1)) {
+
+                // Second frame is the number of subscribers the publisher is waiting
+                // This is just informational...
+                size_t sub_nb;
+                size_t * sub_nb_p = &sub_nb;
+                err2 = bxizmq_data_rcv((void**) &sub_nb_p, sizeof(*sub_nb_p),
+                                       poll_set[1].socket, 0, true, NULL);
+                BXIERR_CHAIN(err, err2);
+
+                fprintf(stderr, "REQ: rcv '%zu'\n", sub_nb);
+                BXIFREE(msg);
+                break;
+            } else {
+                err2 = bxierr_simple(BXIZMQ_PROTOCOL_ERR,
+                                     "Wrong header message received: '%s'", msg);
+                BXIERR_CHAIN(err, err2);
+                BXIFREE(msg);
+                break;
+            }
+        }
     }
 
-    while(key != NULL) {
-        BXIFREE(key);
-        key = NULL;
-        err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
-        BXIERR_CHAIN(err, err2);
+    if (NULL != poll_set[1].socket) {
+        bxierr_p tmp = bxizmq_zocket_destroy(poll_set[1].socket);
+        // We don't care here!
+        bxierr_report(&tmp, STDERR_FILENO);
     }
-
-    err2 = bxizmq_zocket_destroy(sync_zocket);
-    BXIERR_CHAIN(err, err2);
 
     return err;
 }
@@ -895,8 +979,8 @@ bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
 
     *result = NULL;
 
-    if ((0 == strncmp("inproc", url, strlen("inproc"))) ||
-        (0 == strncmp("ipc", url, strlen("ipc")))) {
+    if ((0 == strncmp("inproc", url, ARRAYLEN("inproc") - 1)) ||
+        (0 == strncmp("ipc", url, ARRAYLEN("ipc") - 1))) {
 
         pthread_t thread = pthread_self();
         struct timespec time;
@@ -911,8 +995,8 @@ bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
         }
         return BXIERR_OK;
     }
-    if (0 == strncmp("tcp", url, strlen("tcp"))) {
-        char * colon = strrchr(url + strlen("tcp://"), ':');
+    if (0 == strncmp("tcp", url, ARRAYLEN("tcp") - 1)) {
+        char * colon = strrchr(url + ARRAYLEN("tcp://") - 1, ':');
         size_t len = (size_t) (colon - url);
         *result = bximem_calloc((len + ARRAYLEN(":*")) * sizeof(**result));
         memcpy(*result, url, len);
@@ -921,6 +1005,16 @@ bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
     }
 
     return bxierr_gen("Bad or non-supported zeromq URL: %s", url);
+}
+
+char * bxizmq_create_url_from(const char * const url, const int tcp_port) {
+    if (0 != strncmp("tcp://", url, ARRAYLEN("tcp://") - 1)) return strdup(url);
+
+    const char * port;
+    bxistr_rsub(url, strlen(url), ':', &port);
+    if (port[0] == '*') {
+        return bxistr_new("%.*s%d", (int) (port - url), url, tcp_port);
+    } else return strdup(url);
 }
 
 // *********************************************************************************
@@ -947,7 +1041,7 @@ bxierr_p _zmqerr(int errnum, const char * fmt, ...) {
 }
 
 
-bxierr_p _split_url(const char * const url, char * elements[3]) {
+bxierr_p bxizmq_split_url(const char * const url, char * elements[3]) {
     if (url == NULL) {
         return bxierr_gen("Url should be defined");
     }
@@ -982,3 +1076,70 @@ bxierr_p _split_url(const char * const url, char * elements[3]) {
         return bxierr_gen("Url doesn't contain '://' after protocol name");
     }
 }
+
+bxierr_p _sync_sub_step1_send_eos(void * zmq_ctx,
+                                  zmq_pollitem_t * poll_set,
+                                  int * nitems) {
+    bxierr_p err = BXIERR_OK, err2;
+
+    // We received something from the SUB socket
+    char * key;
+    // First frame: the header
+    err2 = bxizmq_str_rcv(poll_set[0].socket, ZMQ_DONTWAIT, false, &key);
+    BXIERR_CHAIN(err, err2);
+
+    fprintf(stderr, "SUB: rcv '%s'\n", key);
+
+    if (0 != strncmp(BXIZMQ_PUBSUB_SYNC_HEADER, key,
+                     ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
+
+        err2 = bxierr_simple(BXIZMQ_PROTOCOL_ERR,
+                             "Wrong header message received. "
+                             "Expected: '%s', received: '%s'",
+                             BXIZMQ_PUBSUB_SYNC_HEADER, key);
+        BXIERR_CHAIN(err, err2);
+        BXIFREE(key);
+        return err;
+    }
+
+    // Second frame: the sync url
+    char * sync_url;
+    err2 = bxizmq_str_rcv(poll_set[0].socket, ZMQ_DONTWAIT, true, &sync_url);
+    BXIERR_CHAIN(err, err2);
+
+    fprintf(stderr, "SUB: rcv '%s'\n", sync_url);
+
+    // Unsubscribe from this specific publisher
+    err2 = bxizmq_zocket_setopt(poll_set[0].socket, ZMQ_UNSUBSCRIBE, key, strlen(key));
+    BXIERR_CHAIN(err, err2);
+    BXIFREE(key);
+
+    // Create the REQ socket
+    void * sync_zocket = NULL;
+    err2 = bxizmq_zocket_create_connected(zmq_ctx, ZMQ_REQ,
+                                          sync_url, &sync_zocket);
+    BXIERR_CHAIN(err, err2);
+    BXIFREE(sync_url);
+
+    // Update the poller
+    poll_set[1].socket = sync_zocket;
+    *nitems = 2;
+
+    // Send EOSync message
+    err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_EOS, sync_zocket,
+                          ZMQ_DONTWAIT, 0, 0);
+    BXIERR_CHAIN(err, err2);
+
+    // Drop all other remaining in-transit messages sent by it meanwhile
+    while (true) {
+        char * tmp;
+        err2 = bxizmq_str_rcv(poll_set[0].socket, ZMQ_DONTWAIT, false, &tmp);
+        BXIERR_CHAIN(err, err2);
+        if (NULL == tmp) break;
+        fprintf(stderr, "SUB->dropped: rcv '%s'\n", tmp);
+        BXIFREE(tmp);
+    }
+
+    return err;
+}
+

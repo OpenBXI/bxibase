@@ -35,10 +35,15 @@
 // ********************************** Defines **************************************
 // *********************************************************************************
 
-#define BXIZMQ_RETRIES_MAX_ERR 1
-#define BXIZMQ_FSM_ERR 2
-#define BXIZMQ_MISSING_FRAME_ERR 3
-#define BXIZMQ_PUBSUB_SYNC_HEADER ".bxizmq/sync"
+#define BXIZMQ_RETRIES_MAX_ERR      1
+#define BXIZMQ_FSM_ERR              2
+#define BXIZMQ_MISSING_FRAME_ERR    3
+#define BXIZMQ_PUBSUB_SYNC_HEADER   ".bxizmq/sync"
+#define BXIZMQ_PUBSUB_SYNC_EOS      "END OF SYNC"
+#define BXIZMQ_PUBSUB_SYNC_READY    "READY?"
+#define BXIZMQ_PUBSUB_SYNC_GO       "GO!"
+#define BXIZMQ_PUBSUB_SYNC_WAITING  "WAITING!"
+
 
 /**
  * The bxierr code for protocol error
@@ -314,7 +319,7 @@ bxierr_p bxizmq_msg_has_more(void *zocket, bool* result);
  *
  * @see bxizmq_msg_snd()
  */
-bxierr_p bxizmq_data_snd(void * data, size_t size, void * zocket,
+bxierr_p bxizmq_data_snd(const void * data, size_t size, void * zocket,
                          int flags, size_t retries_max,
                          long delay_ns);
 
@@ -414,7 +419,7 @@ bxierr_p bxizmq_data_rcv(void ** result, size_t expected_size,
  *
  * @see bxizmq_msg_snd()
  */
-bxierr_p bxizmq_str_snd(char * const str, void * zocket, int flags,
+bxierr_p bxizmq_str_snd(const char * const str, void * zocket, int flags,
                         size_t retries_max, long delay_ns);
 
 
@@ -498,10 +503,10 @@ void bxizmq_data_free(void * data, void * hint);
  *
  * @return BXIERR_OK if the synchronization is done.
  */
-bxierr_p bxizmq_sync_pub(void * pub_zocket,
-                         void * sync_zocket,
-                         char * const sync_url,
-                         const size_t sync_url_len,
+bxierr_p bxizmq_sync_pub(void * zmq_ctx,
+                         void * pub_zocket,
+                         const char * url,
+                         size_t sub_nb,
                          const double timeout);
 
 
@@ -516,6 +521,7 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
  */
 bxierr_p bxizmq_sync_sub(void * zmq_ctx,
                          void * sub_zocket,
+                         size_t pub_nb,
                          const double timeout);
 
 /**
@@ -541,4 +547,8 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
  */
 bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result);
 
+
+char * bxizmq_create_url_from(const char * const url, const int tcp_port);
+
+bxierr_p bxizmq_split_url(const char * const url, char * elements[3]);
 #endif /* BXIZMQ_H_ */

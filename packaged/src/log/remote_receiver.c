@@ -231,14 +231,17 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
     if (bxierr_isko(err)) return err;
 
     if (param->bind) {
-        for (size_t i = 0; i < param->sync_nb; i++) {
-            TRACE(_REMOTE_LOGGER, "PUB/SUB Synchronization #%zu/%zu",
-                  i+1, param->sync_nb);
-            err2 = bxizmq_sync_sub(_remote_receiver_ctx, &poller[0].socket, 0.5);
-            BXIERR_CHAIN(err, err2);
+        TRACE(_REMOTE_LOGGER,
+              "PUB/SUB Synchronization with %zu publishers", param->sync_nb);
+
+        bxierr_p tmp = bxizmq_sync_sub(_remote_receiver_ctx,
+                                       &poller[0].socket, param->sync_nb, 0.5);
+        if (bxierr_isko(tmp)) {
+            BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_NOTICE, tmp,
+                   "PUB/SUB synchronization failed. First published messages might "
+                   "have been lost!");
         }
     }
-
 
     err2 = _bxilog_remote_recv_loop(poller);
     BXIERR_CHAIN(err, err2);
@@ -307,11 +310,15 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
     }
 
     if (param->bind) {
-        for (size_t i = 0; i < param->sync_nb; i++) {
-            TRACE(_REMOTE_LOGGER, "PUB/SUB Synchronization #%zu/%zu",
-                  i + 1, param->sync_nb);
-            err2 = bxizmq_sync_sub(context, poller[0].socket, 0.5);
-            BXIERR_CHAIN(err, err2);
+        TRACE(_REMOTE_LOGGER,
+              "PUB/SUB Synchronization with %zu publishers", param->sync_nb);
+
+        bxierr_p tmp = bxizmq_sync_sub(_remote_receiver_ctx,
+                                       &poller[0].socket, param->sync_nb, 0.5);
+        if (bxierr_isko(tmp)) {
+            BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_NOTICE, tmp,
+                          "PUB/SUB synchronization failed. First published messages might "
+                          "have been lost!");
         }
     }
 
