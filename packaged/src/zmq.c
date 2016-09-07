@@ -37,6 +37,13 @@
 #define INPROC_PROTO "inproc"
 #define TCP_PROTO "tcp"
 
+#ifdef __DBG__
+#define DBG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
+
+
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -365,9 +372,10 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
         BXIERR_CHAIN(err, err2);
         return err;
     }
-
-    if (option_name == ZMQ_SUBSCRIBE) fprintf(stderr, "subscribing: '%s'\n", (char*) option_value);
-    if (option_name == ZMQ_UNSUBSCRIBE) fprintf(stderr, "unsubscribing: '%s'\n", (char*) option_value);
+#ifdef __DBG__
+    if (option_name == ZMQ_SUBSCRIBE) DBG("subscribing: '%s'\n", (char*) option_value);
+    if (option_name == ZMQ_UNSUBSCRIBE) DBG("unsubscribing: '%s'\n", (char*) option_value);
+#endif
     return err;
 }
 
@@ -829,7 +837,7 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
         BXIERR_CHAIN(err, err2);
 
         if (NULL != msg) { // We received something
-            fprintf(stderr, "REP: rcv '%s'\n", msg);
+            DBG("REP: rcv '%s'\n", msg);
             // Check what we received
             if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_PONG,
                              msg,
@@ -933,7 +941,7 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
             err2 = bxizmq_str_rcv(poll_set[0].socket, ZMQ_DONTWAIT, false, &header);
             BXIERR_CHAIN(err, err2);
 
-            fprintf(stderr, "SUB: rcv '%s'\n", header);
+            DBG("SUB: rcv '%s'\n", header);
 
             if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_PING, header,
                              ARRAYLEN(BXIZMQ_PUBSUB_SYNC_PING) - 1)) {
@@ -969,7 +977,7 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
             char * msg;
             err2 = bxizmq_str_rcv(poll_set[1].socket, 0, false, &msg);
             BXIERR_CHAIN(err, err2);
-            fprintf(stderr, "REQ: rcv '%s'\n", msg);
+            DBG("REQ: rcv '%s'\n", msg);
 
             if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_READY, msg,
                              ARRAYLEN(BXIZMQ_PUBSUB_SYNC_READY) - 1)) {
@@ -993,7 +1001,7 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
                                        poll_set[1].socket, 0, true, NULL);
                 BXIERR_CHAIN(err, err2);
 
-                fprintf(stderr, "REQ: rcv '%zu'\n", sub_nb);
+                DBG("REQ: rcv '%zu'\n", sub_nb);
                 BXIFREE(msg);
             } else {
                 err2 = bxierr_simple(BXIZMQ_PROTOCOL_ERR,
@@ -1128,7 +1136,7 @@ bxierr_p _sync_sub_step1_send_eos(void * zmq_ctx,
     err2 = bxizmq_str_rcv(poll_set[0].socket, ZMQ_DONTWAIT, true, &sync_url);
     BXIERR_CHAIN(err, err2);
 
-    fprintf(stderr, "SUB: rcv '%s'\n", sync_url);
+    DBG("SUB: rcv '%s'\n", sync_url);
 
     // Create the REQ socket
     void * sync_zocket = NULL;
@@ -1152,7 +1160,7 @@ bxierr_p _sync_sub_step1_send_eos(void * zmq_ctx,
         err2 = bxizmq_str_rcv(poll_set[0].socket, ZMQ_DONTWAIT, false, &tmp);
         BXIERR_CHAIN(err, err2);
         if (NULL == tmp) break;
-        fprintf(stderr, "SUB->dropped: rcv '%s'\n", tmp);
+        DBG("SUB->dropped: rcv '%s'\n", tmp);
         BXIFREE(tmp);
     }
 
