@@ -378,18 +378,17 @@ def get_logger(name):
     return bxilogger.BXILogger(logger_p[0])
 
 
-def cleanup(flush=True):
+def cleanup():
     """
     Called at exit time to cleanup the underlying BXI C library.
 
-    @param[in] flush if true, do a flush before releasing all resources.
     @return
     """
     global _INITIALIZED
     global _CONFIG
     global _DEFAULT_LOGGER
     if _INITIALIZED:
-        err_p = __BXIBASE_CAPI__.bxilog_finalize(flush)
+        err_p = __BXIBASE_CAPI__.bxilog_finalize()
         bxierr.BXICError.raise_if_ko(err_p)
     _INITIALIZED = False
     _DEFAULT_LOGGER = None

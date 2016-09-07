@@ -50,6 +50,7 @@ static bxierr_p _connect_zocket(zmq_pollitem_t * poller,
                                 void ** context, const char ** urls, int nb, bool bind);
 static bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller);
 static bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param);
+static void _sync_sub(bxilog_remote_recv_p param, void *context, void *sub_socket);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -230,18 +231,7 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
 
     if (bxierr_isko(err)) return err;
 
-    if (param->bind) {
-        TRACE(_REMOTE_LOGGER,
-              "PUB/SUB Synchronization with %zu publishers", param->sync_nb);
-
-        bxierr_p tmp = bxizmq_sync_sub(_remote_receiver_ctx,
-                                       &poller[0].socket, param->sync_nb, 0.5);
-        if (bxierr_isko(tmp)) {
-            BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_NOTICE, tmp,
-                   "PUB/SUB synchronization failed. First published messages might "
-                   "have been lost!");
-        }
-    }
+    if (param->bind) _sync_sub(param, context, poller[0].socket);
 
     err2 = _bxilog_remote_recv_loop(poller);
     BXIERR_CHAIN(err, err2);
@@ -263,7 +253,6 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
 
     return err;
 }
-
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
@@ -287,6 +276,7 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
         BXIERR_CHAIN(err, err2);
 
         err2 = bxizmq_zocket_destroy(poller[1].socket);
+        BXIERR_CHAIN(err, err2);
 
         err2 = bxizmq_zocket_destroy(poller[0].socket);
         BXIERR_CHAIN(err, err2);
@@ -309,18 +299,7 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
         }
     }
 
-    if (param->bind) {
-        TRACE(_REMOTE_LOGGER,
-              "PUB/SUB Synchronization with %zu publishers", param->sync_nb);
-
-        bxierr_p tmp = bxizmq_sync_sub(_remote_receiver_ctx,
-                                       &poller[0].socket, param->sync_nb, 0.5);
-        if (bxierr_isko(tmp)) {
-            BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_NOTICE, tmp,
-                          "PUB/SUB synchronization failed. First published messages might "
-                          "have been lost!");
-        }
-    }
+    if (param->bind) _sync_sub(param, context, poller[0].socket);
 
     err2 = _bxilog_remote_recv_loop(poller);
     BXIERR_CHAIN(err, err2);
@@ -568,3 +547,15 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
 }
 
 
+
+void _sync_sub(bxilog_remote_recv_p param, void *context, void *sub_socket) {
+    TRACE(_REMOTE_LOGGER,
+          "PUB/SUB Synchronization with %zu publishers", param->sync_nb);
+    bxierr_p tmp = bxizmq_sync_sub(context, sub_socket, param->sync_nb, 0.5);
+    if (bxierr_isko(tmp)){
+        BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_NOTICE,
+                      tmp,
+                      "PUB/SUB synchronization failed. First published messages "
+                      "might have been lost!");
+    }
+}

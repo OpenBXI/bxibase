@@ -148,6 +148,7 @@ static void * pub_thread(void * data) {
         char * str = bxistr_new("Message %zu", i);
         err = bxizmq_str_snd(str, zocket, 0, 0, 0);
         bxierr_abort_ifko(err);
+        BXIFREE(str);
     }
 
     err = bxizmq_str_snd("NO MORE MESSAGE", zocket, 0, 0, 0);
@@ -215,6 +216,8 @@ static void * sub_thread(void * data) {
 
     err = bxizmq_context_destroy(&ctx);
     bxierr_abort_ifko(err);
+
+    if (param->bind) BXIFREE(param->url);
 
     return NULL;
 }

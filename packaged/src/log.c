@@ -183,8 +183,7 @@ UNLOCK:
     return err;
 }
 
-bxierr_p bxilog_finalize(bool flush) {
-    UNUSED(flush);
+bxierr_p bxilog_finalize() {
     bxierr_p err = BXIERR_OK;
     int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) {
