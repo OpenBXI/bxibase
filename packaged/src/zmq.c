@@ -956,7 +956,6 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
                 // We received a 'last' message
                 err2 = _process_sub_last_msg(sync_zocket, &missing_last_msg_nb, pub_nb);
                 BXIERR_CHAIN(err, err2);
-                BXIFREE(header);
             } else {
                 err2 = bxierr_simple(BXIZMQ_PROTOCOL_ERR,
                                      "Wrong pub/sub sync header message received: '%s'",
@@ -965,6 +964,8 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
                 BXIFREE(header);
                 break;
             }
+            // Do not free header here, it is inserted in the binary tree already_pinged_root
+            // BXIFREE(header);
         }
 
         if (poll_set[1].revents & ZMQ_POLLIN) {
@@ -986,6 +987,7 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
                 BXIFREE(msg);
                 break;
             }
+            BXIFREE(msg);
         }
     }
 
@@ -1276,6 +1278,8 @@ bxierr_p _sync_sub_send_pong(void * sub_zocket, void * sync_zocket) {
     err2 = bxizmq_str_snd(BXIZMQ_PUBSUB_SYNC_PONG, sync_zocket, 0, 0, 0);
     BXIERR_CHAIN(err, err2);
     DBG("DEALER: snd '%s'\n", BXIZMQ_PUBSUB_SYNC_PONG);
+
+    BXIFREE(sync_url);
 
     return err;
 }
