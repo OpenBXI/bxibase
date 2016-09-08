@@ -66,6 +66,7 @@ void test_time(void);
 void test_bxizmq_generate_url(void);
 void test_1pub_1sub_sync(void);
 void test_2pub_1sub_sync(void);
+void test_2pub_2sub_sync(void);
 
 // From test_logger.c
 void test_logger_init(void);
@@ -261,6 +262,7 @@ int main(int argc, char * argv[]) {
                 || (NULL == CU_add_test(bxizmq_suite, "test bxizmq generate url", test_bxizmq_generate_url))
                 || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 1pub/1sub sync", test_1pub_1sub_sync))
                 || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 2pub/1sub sync", test_2pub_1sub_sync))
+                || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 2pub/2sub sync", test_2pub_2sub_sync))
                 || false) {
             CU_cleanup_registry();
             return (CU_get_error());

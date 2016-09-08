@@ -875,6 +875,7 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
         bxierr_p tmp = bxizmq_zocket_destroy(sync_zocket);
         bxierr_report(&tmp, STDERR_FILENO);
     }
+
     return err;
 
 }
@@ -991,7 +992,9 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
     bxierr_p tmp = bxizmq_zocket_destroy(sync_zocket);
     // We don't care here!
     bxierr_report(&tmp, STDERR_FILENO);
-
+    // Destroy the binary tree
+    // TODO: tdestroy(already_pinged_root, free);
+    // Use twalk() instead since tdestroy() does not exist without GNU
     return err;
 }
 
