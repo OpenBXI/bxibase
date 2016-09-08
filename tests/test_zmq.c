@@ -198,17 +198,18 @@ static void * sub_thread(void * data) {
 
     fprintf(stderr, "SUB URL: %s\n", param->url);
 
-    while(true) {
+    size_t remaining = param->sync_nb;
+    while(0 < remaining) {
         char * str;
         err = bxizmq_str_rcv(zocket, 0, false, &str);
         bxierr_abort_ifko(err);
 
         if (0 == strcmp("NO MORE MESSAGE", str)) {
-            BXIFREE(str);
-            break;
+            remaining--;
+        } else {
+            param->msg_nb++;
         }
         BXIFREE(str);
-        param->msg_nb++;
     }
 
     err = bxizmq_zocket_destroy(zocket);
@@ -222,7 +223,7 @@ static void * sub_thread(void * data) {
     return NULL;
 }
 
-void test_pub_sub_simple_sync() {
+void test_1pub_1sub_sync() {
     char * sub_url = "tcp://127.0.0.1:*";
     thread_param_p sub_param = bximem_calloc(sizeof(*sub_param));
     sub_param->msg_nb = 0;
@@ -269,5 +270,70 @@ void test_pub_sub_simple_sync() {
 
     BXIFREE(sub_param);
     BXIFREE(pub_param);
+}
+
+void test_2pub_1sub_sync() {
+    char * sub_url = "tcp://127.0.0.1:*";
+    thread_param_p sub_param = bximem_calloc(sizeof(*sub_param));
+    sub_param->msg_nb = 0;
+
+    sub_param->url = sub_url;
+    sub_param->bind = true;
+    sub_param->sync_nb = 2;
+    sub_param->quit = false;
+
+    // The urls will be changed while binding
+    char * old_url = sub_param->url;
+
+    pthread_t sub;
+    int rc = pthread_create(&sub, NULL, sub_thread, sub_param);
+    bxiassert(0 == rc);
+
+    while (old_url == sub_param->url) {
+        ; // Just wait
+    }
+
+    char * pub_url = sub_param->url;
+    thread_param_s * pubs_param = bximem_calloc(2 * sizeof(*pubs_param));
+    pubs_param[0].msg_nb = 7;
+    pubs_param[0].url = pub_url;
+    pubs_param[0].bind = false;
+    pubs_param[0].sync_nb = 1;
+    pubs_param[0].quit = false;
+
+    pubs_param[1].msg_nb = 5;
+    pubs_param[1].url = pub_url;
+    pubs_param[1].bind = false;
+    pubs_param[1].sync_nb = 1;
+    pubs_param[1].quit = false;
+
+    pthread_t pub[2];
+    rc = pthread_create(&pub[0], NULL, pub_thread, &pubs_param[0]);
+    bxiassert(0 == rc);
+
+    rc = pthread_create(&pub[1], NULL, pub_thread, &pubs_param[1]);
+    bxiassert(0 == rc);
+
+
+    pthread_join(sub, NULL);
+    bxiassert(0 == rc);
+
+    pubs_param[0].quit = true;
+    pubs_param[1].quit = true;
+
+    rc = pthread_join(pub[0], NULL);
+    bxiassert(0 == rc);
+    rc = pthread_join(pub[1], NULL);
+    bxiassert(0 == rc);
+
+    size_t total = pubs_param[0].msg_nb + pubs_param[1].msg_nb;
+    OUT(TEST_LOGGER,
+        "Nb published: %zu, Nb received: %zu",
+        total, sub_param->msg_nb);
+
+    CU_ASSERT_EQUAL(total, sub_param->msg_nb);
+
+    BXIFREE(sub_param);
+    BXIFREE(pubs_param);
 }
 
