@@ -140,7 +140,6 @@ static void * pub_thread(void * data) {
     }
     bxierr_abort_ifko(err);
 
-    fprintf(stderr, "PUB URL: %s\n", param->url);
     err = bxizmq_sync_pub(ctx, zocket, param->url, param->sync_nb, 60);
     bxierr_abort_ifko(err);
 
@@ -195,8 +194,6 @@ static void * sub_thread(void * data) {
 
     err = bxizmq_sync_sub(ctx, zocket, param->sync_nb, 60);
     bxierr_abort_ifko(err);
-
-    fprintf(stderr, "SUB URL: %s\n", param->url);
 
     size_t remaining = param->sync_nb;
     while(0 < remaining) {
