@@ -847,9 +847,12 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
         if (10 < bxierr_get_depth(err)) break;
 
         if (poll_set[0].revents & ZMQ_POLLOUT) { // We can send on the pub_zocket
-            err2 = _process_pub_snd(pub_zocket, key, url,
-                                    &last_send_date, ((double) poll_timeout) / 1000);
-            BXIERR_CHAIN(err, err2);
+            // We send until all subscribers have seen the last message
+            if (0 != sub_not_almost_ready_nb) {
+                err2 = _process_pub_snd(pub_zocket, key, url,
+                                        &last_send_date, ((double) poll_timeout) / 1000);
+                BXIERR_CHAIN(err, err2);
+            }
         }
 
         if (poll_set[1].revents & ZMQ_POLLIN) { // We received something on the sync_zocket
