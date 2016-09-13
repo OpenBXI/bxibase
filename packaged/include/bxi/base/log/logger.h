@@ -189,12 +189,22 @@ typedef struct bxilog_logger_s * bxilog_logger_p;
 // *********************************************************************************
 
 /**
+ * Free the given logger. Use destroy() instead.
+ *
+ * @note: this is mainly for internal purpose, do not use unless you understand the
+ * relationship with logging registry.
+ *
+ * @param[in] self a pointer on a logger instance
+ */
+void bxilog_logger_free(bxilog_logger_p self);
+
+/**
  * Destroy the given logger.
  *
  * @note: this is mainly for internal purpose, do not use unless you understand the
  * relationship with logging registry.
  *
- * @param[in] self_p a pointer on a logger instance
+ * @param[inout] self_p a pointer on a logger instance
  */
 void bxilog_logger_destroy(bxilog_logger_p * self_p);
 

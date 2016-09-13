@@ -104,14 +104,20 @@ void bxilog_logger_set_level(const bxilog_logger_p logger, const bxilog_level_e 
 extern bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger,
                                          const bxilog_level_e level);
 
-void bxilog_logger_destroy(bxilog_logger_p * self_p) {
-    if (NULL == *self_p) return;
-    if (!(*self_p)->allocated) return;
 
-    BXIFREE((*self_p)->name);
-    BXIFREE(*self_p);
+void bxilog_logger_free(bxilog_logger_p self) {
+    if (NULL == self) return;
+    if (!(self)->allocated) return;
+
+    BXIFREE((self)->name);
+    BXIFREE(self);
 }
 
+void bxilog_logger_destroy(bxilog_logger_p * self_p) {
+    if (NULL == *self_p) return;
+    bxilog_logger_free(*self_p);
+    *self_p = NULL;
+}
 
 bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
                                   char * filename, size_t filename_len,
