@@ -82,20 +82,22 @@ bxilog_filters_p  bxilog_filters_new() {
     return filters;
 }
 
-void bxilog_filters_destroy(bxilog_filters_p * filters_p) {
-    bxiassert(NULL != filters_p);
-    bxilog_filters_p filters = *filters_p;
+void bxilog_filters_free(bxilog_filters_p filters) {
     if (NULL == filters) return;
-    if (!filters->allocated) {
-        *filters_p = NULL;
-        return;
-    }
+    if (!filters->allocated) return;
 
     for (size_t i = 0; i < filters->nb; i++) {
         BXIFREE(filters->list[i]->prefix);
         BXIFREE(filters->list[i]);
     }
-    bximem_destroy((char**)filters_p);
+    BXIFREE(filters);
+}
+
+void bxilog_filters_destroy(bxilog_filters_p * filters_p) {
+    bxiassert(NULL != filters_p);
+
+    bxilog_filters_free(*filters_p);
+    *filters_p = NULL;
 }
 
 void bxilog_filters_add(bxilog_filters_p * filters_p,

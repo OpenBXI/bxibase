@@ -487,6 +487,11 @@ bxierr_p bxilog__stop_handlers(void) {
             bxierr_destroy(&err2);
             err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
             if (bxierr_isko(err2)) {
+                if (BXIZMQ_TIMEOUT_ERR != err2->code){
+                    bxierr_report(&err2, STDERR_FILENO);
+                } else {
+                    bxierr_destroy(&err2);
+                }
                 ret = pthread_kill(handler_thread, 0);
             } else {
                 break;
@@ -494,12 +499,10 @@ bxierr_p bxilog__stop_handlers(void) {
         }
 
 
-
         err2 = bxizmq_zocket_destroy(zocket);
         BXIERR_CHAIN(err, err2);
 
         if (ESRCH == ret && msg == NULL) continue;
-
 
         if (NULL == msg || 0 != strncmp(EXIT_CTRL_MSG_REP, msg, ARRAYLEN(EXIT_CTRL_MSG_REP) - 1)) {
             // We just notify the end user there is a minor problem, but
