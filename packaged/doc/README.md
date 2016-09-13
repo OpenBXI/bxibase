@@ -1,4 +1,4 @@
-BXI Test Base Library                                   {#index}
+BXI Base Library                                   {#index}
 =====================
 
 [TOC]
