@@ -428,8 +428,9 @@ def get_all_loggers_iter():
     nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
     from . import logger as bxilogger
     for i in xrange(nb):
-        yield bxilogger.BXILogger(__FFI__.gc(loggers[0][i],
-                                             __BXIBASE_CAPI__.bxilog_logger_free))
+        yield bxilogger.BXILogger(loggers[0][i])
+
+    __BXIBASE_CAPI__.free(loggers[0])
 
 
 def get_default_logger():
