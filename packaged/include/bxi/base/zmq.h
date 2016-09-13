@@ -53,6 +53,16 @@
  */
 #define BXIZMQ_TIMEOUT_ERR 71307
 
+// Protocol
+#define BXIZMQ_PUBSUB_SYNC_HEADER   ".bxizmq/sync/"
+#define BXIZMQ_PUBSUB_SYNC_PING     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: ping"
+#define BXIZMQ_PUBSUB_SYNC_PONG     BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: pong"
+#define BXIZMQ_PUBSUB_SYNC_READY    BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: ready?"
+#define BXIZMQ_PUBSUB_SYNC_ALMOST   BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: almost!"
+#define BXIZMQ_PUBSUB_SYNC_LAST     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: last"
+#define BXIZMQ_PUBSUB_SYNC_GO       BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: go!"
+
+
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************

@@ -43,14 +43,6 @@
 #define DBG(...)
 #endif
 
-#define BXIZMQ_PUBSUB_SYNC_HEADER   ".bxizmq/sync/"
-#define BXIZMQ_PUBSUB_SYNC_PING     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: ping"
-#define BXIZMQ_PUBSUB_SYNC_PONG     BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: pong"
-#define BXIZMQ_PUBSUB_SYNC_READY    BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: ready?"
-#define BXIZMQ_PUBSUB_SYNC_ALMOST   BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: almost!"
-#define BXIZMQ_PUBSUB_SYNC_LAST     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: last"
-#define BXIZMQ_PUBSUB_SYNC_GO       BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: go!"
-
 
 // *********************************************************************************
 // ********************************** Types ****************************************
@@ -67,8 +59,8 @@ static bxierr_p _process_pub_snd(void * pub_zocket, const char * key, const char
                                  struct timespec * last_send_date, double max_snd_delay);
 static bxierr_p _process_pub_sync_msg(void * pub_zocket,
                                       void * sync_zocket,
-                                      size_t * sub_not_almost_ready_nb,
-                                      size_t * sub_not_ready_nb,
+                                      size_t * missing_almost,
+                                      size_t * missing_go,
                                       const char * url);
 
 static bxierr_p _sync_sub_send_pong(void * sub_zocket, void * sync_zocket);
@@ -139,15 +131,15 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
     bxiassert(NULL != result);
 
     bxierr_p err = BXIERR_OK, err2;
-    errno = 0;
 
+    errno = 0;
     void * zocket = zmq_socket(ctx, type);
     if (NULL == zocket) return _zmqerr(errno,
                                        "Can't create a zmq socket of type %d",
                                        type);
 
     int linger = 500;
-
+    errno = 0;
     int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
     if (0 != rc) {
         err2 = _zmqerr(errno,
@@ -780,6 +772,7 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
                          const char * const pub_url,
                          size_t sub_nb,
                          const double timeout_s) {
+    bxiassert(NULL != zmq_ctx);
     bxiassert(NULL != pub_zocket);
     bxiassert(0 <= timeout_s);
     bxiassert(NULL != pub_url);
@@ -793,7 +786,6 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
     void * sync_zocket = NULL;
     char * sync_url = NULL;
     int tcp_port;
-
     err2 = _create_pub_sync_socket(zmq_ctx, &sync_zocket, pub_url, &sync_url, &tcp_port);
     BXIERR_CHAIN(err, err2);
 
@@ -816,10 +808,10 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
                                  { sync_zocket, 0, ZMQ_POLLIN, 0} ,
     };
     int nitems = 2;
-    size_t sub_not_almost_ready_nb = sub_nb;
-    size_t sub_not_ready_nb = sub_nb;
+    size_t missing_almost = sub_nb;
+    size_t missing_go = sub_nb;
 
-    while (0 < sub_not_ready_nb) {
+    while (0 < missing_go) {
         errno = 0;
         int rc = zmq_poll(poll_set, nitems, poll_timeout);
         if (-1 == rc) {
@@ -846,12 +838,16 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
 
         if (10 < bxierr_get_depth(err)) break;
 
+        bool something_changed = false;
+
         if (poll_set[0].revents & ZMQ_POLLOUT) { // We can send on the pub_zocket
             // We send until all subscribers have seen the last message
-            if (0 != sub_not_almost_ready_nb) {
+            if (0 != missing_almost) {
+                struct timespec tmp = last_send_date;
                 err2 = _process_pub_snd(pub_zocket, key, url,
                                         &last_send_date, ((double) poll_timeout) / 1000);
                 BXIERR_CHAIN(err, err2);
+                if (tmp.tv_nsec != last_send_date.tv_nsec) something_changed = true;
             }
         }
 
@@ -859,10 +855,16 @@ bxierr_p bxizmq_sync_pub(void * const zmq_ctx,
 
             err2 = _process_pub_sync_msg(pub_zocket,
                                          sync_zocket,
-                                         &sub_not_almost_ready_nb,
-                                         &sub_not_ready_nb,
+                                         &missing_almost,
+                                         &missing_go,
                                          url);
             BXIERR_CHAIN(err, err2);
+            something_changed = true;
+        }
+
+        if (something_changed) {
+            DBG("PUB[%s]: missing almost msg: %zu, missing go msg: %zu\n",
+                url, missing_almost, missing_go);
         }
 
         // Check the timeout did not expire
@@ -894,8 +896,8 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
 
     // Subscribes to SYNC messages
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_SUBSCRIBE,
-                                BXIZMQ_PUBSUB_SYNC_PING,
-                                ARRAYLEN(BXIZMQ_PUBSUB_SYNC_PING) - 1);
+                                BXIZMQ_PUBSUB_SYNC_HEADER,
+                                ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
     BXIERR_CHAIN(err, err2);
 
     // Create the DEALER socket
@@ -918,7 +920,6 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
     size_t missing_ready_msg_nb = pub_nb;
     size_t missing_last_msg_nb = pub_nb;
 
-
     while(0 < missing_last_msg_nb) {
         errno = 0;
         int rc = zmq_poll(poll_set, 2, remaining_time);
@@ -940,14 +941,15 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
 
         if (10 < bxierr_get_depth(err)) break;
 
+        DBG("SUB: missing ready msg: %zu, missing last msg: %zu\n",
+            missing_ready_msg_nb, missing_last_msg_nb);
+
         if (poll_set[0].revents & ZMQ_POLLIN) {
             // We received something from the SUB socket
             char * header;
             // First frame: the header
             err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &header);
             BXIERR_CHAIN(err, err2);
-
-            DBG("SUB: rcv '%s'\n", header);
 
             if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_PING, header,
                              ARRAYLEN(BXIZMQ_PUBSUB_SYNC_PING) - 1)) {
@@ -1000,6 +1002,13 @@ bxierr_p bxizmq_sync_sub(void * const zmq_ctx,
     // Destroy the binary tree
     // TODO: tdestroy(already_pinged_root, free);
     // Use twalk() instead since tdestroy() does not exist without GNU
+
+    // Unsubscribe from SYNC messages
+    err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_UNSUBSCRIBE,
+                                BXIZMQ_PUBSUB_SYNC_HEADER,
+                                ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1);
+    BXIERR_CHAIN(err, err2);
+
     return err;
 }
 
@@ -1112,10 +1121,18 @@ bxierr_p _create_pub_sync_socket(void * zmq_ctx, void ** sync_zocket,
                                  const char * const pub_url,
                                  char ** const sync_url,
                                  int * const tcp_port) {
+    bxiassert(NULL != zmq_ctx);
+    bxiassert(NULL != sync_zocket);
+    bxiassert(NULL != pub_url);
+    bxiassert(NULL != sync_url);
+    bxiassert(NULL != tcp_port);
+
     bxierr_p err = BXIERR_OK, err2;
     // Create the ROUTER zocket
     err2 = bxizmq_zocket_create(zmq_ctx, ZMQ_ROUTER, sync_zocket);
     BXIERR_CHAIN(err, err2);
+
+    bxierr_abort_ifko(err);
 
     // Generate a new URL from the given pub_url
     err2 = bxizmq_generate_new_url_from(pub_url, sync_url);
@@ -1162,8 +1179,8 @@ bxierr_p _process_pub_snd(void * pub_zocket, const char * key, const char * url,
 
 bxierr_p _process_pub_sync_msg(void * const pub_zocket,
                                void * const sync_zocket,
-                               size_t * const sub_not_almost_ready_nb,
-                               size_t * const sub_not_ready_nb,
+                               size_t * const missing_almost,
+                               size_t * const missing_go,
                                const char * const url) {
 
     bxierr_p err = BXIERR_OK, err2;
@@ -1203,8 +1220,8 @@ bxierr_p _process_pub_sync_msg(void * const pub_zocket,
                             ARRAYLEN(BXIZMQ_PUBSUB_SYNC_ALMOST) - 1)) {
 
         // ALMOST! message received, we expect *sub_almost_ready_nb such messages
-        (*sub_not_almost_ready_nb)--;
-        if (0 == *sub_not_almost_ready_nb) {
+        (*missing_almost)--;
+        if (0 == *missing_almost) {
             // All subscribers send their 'almost' message -> send the last message
             const char * const last = bxistr_new("%s|%s", BXIZMQ_PUBSUB_SYNC_LAST, url);
             err2 = bxizmq_str_snd(last, pub_zocket, 0, 0, 0);
@@ -1218,7 +1235,7 @@ bxierr_p _process_pub_sync_msg(void * const pub_zocket,
                             ARRAYLEN(BXIZMQ_PUBSUB_SYNC_GO) - 1)) {
 
         // GO! message received, we expect sub_ready_nb such messages
-        (*sub_not_ready_nb)--;
+        (*missing_go)--;
     } else {
         err2 = bxierr_new(BXIZMQ_PROTOCOL_ERR, NULL, NULL, NULL, err,
                           "Unexpected PUB/SUB synced message: '%s' from '%s'",

@@ -36,14 +36,16 @@ def add_handler(configobj, section_name, c_config):
 
     url = __FFI__.new('char[]', section['url'])
     bind = __FFI__.cast('bool', bool(section['bind']))
+    sub_nb = __FFI__.cast('int', int(section['sub_nb']))
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,
                                                filters,
                                                url,
-                                               bind)
+                                               bind,
+                                               sub_nb)
 
 
-def remote_recv_async_start(urls, bind=False):
+def remote_recv_async_start(urls, sync_nb=0, bind=False):
     param_p = __FFI__.new('bxilog_remote_recv_s[1]')
 
     param_p[0].nb_urls = len(urls)
@@ -51,9 +53,7 @@ def remote_recv_async_start(urls, bind=False):
 
     param_p[0].urls = curls
     param_p[0].bind = bind
-    # We need 2 synchro, one for the child process and 
-    # the other for the actual scriptlet process
-    param_p[0].sync_nb = 1
+    param_p[0].sync_nb = sync_nb
 
     gc_keeper_urls = list() # Required to prevent GC
     for i in xrange(len(urls)):
@@ -61,7 +61,15 @@ def remote_recv_async_start(urls, bind=False):
         gc_keeper_urls.append(url)
         param_p[0].urls[i] = url
 
-    __BXIBASE_CAPI__.bxilog_remote_recv_async_start(param_p)
+    binded_curls = __FFI__.new('char*[%s]' % len(urls))
+    binded_curls_p = __FFI__.new('char**[1]')
+    binded_curls_p[0] = binded_curls
+    __BXIBASE_CAPI__.bxilog_remote_recv_async_start(param_p, binded_curls_p)
+    result = []
+
+    for i in xrange(len(urls)):
+        result.append(__FFI__.string(binded_curls[i])) # TODO: how to gc the C memory?
+    return result
 
 
 def remote_recv_async_stop():

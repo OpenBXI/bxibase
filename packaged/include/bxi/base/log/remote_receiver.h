@@ -66,9 +66,11 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param);
  * blocking version is also availalbe as `bxilog_remote_recv`.
  *
  * @param[in] param the bxilog_remote_recv_s parameters
+ * @param[out] urls the list of urls the SUB socket has been binded to if any
+ *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param);
+bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param, char ***urls);
 
 
 /**

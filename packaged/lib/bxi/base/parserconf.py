@@ -188,8 +188,8 @@ def _configure_log(parser):
                            envvar='BXILOGFILE',
                            mustbeprinted=False,
                            default=default_value,
-                           help="the file where logs should be output "
-                                "(in addition to stdout/stderr). "
+                           help="the file where logs should be output."
+                                "Speficy '-' for stdout, '+' for stderr. "
                                 "Default: %(default)s")
 
         try:
@@ -211,7 +211,7 @@ def _configure_log(parser):
             default = parser.config.get('Defaults')
             default_value = default['file_filters']
         except:
-            default_value = bxilog_filehandler.FILE_HANDLER_FILTERS_AUTO
+            default_value = bxilog_filehandler.FILTERS_AUTO
 
         group.add_argument("--file_filters",
                            metavar='file_filters',
@@ -219,7 +219,7 @@ def _configure_log(parser):
                            envvar='BXILOG_FILE_FILTERS',
                            default=default_value,
                            help="define the logging filters of the file handler. "
-                                "If set to '%s', " % bxilog_filehandler.FILE_HANDLER_FILTERS_AUTO +
+                                "If set to '%s', " % bxilog_filehandler.FILTERS_AUTO +
                                 "filters are automatically computed to "
                                 "provide two levels more details than console_filters and "
                                 "at least error levels and above. "

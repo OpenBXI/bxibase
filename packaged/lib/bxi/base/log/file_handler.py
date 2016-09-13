@@ -31,7 +31,9 @@ Specifies that file handler filters must be computed automatically.
 @see ::bxilog_handler_p
 @see ::BXILOG_FILE_HANDLER
 """
-FILE_HANDLER_FILTERS_AUTO = 'auto'
+FILTERS_AUTO = 'auto'
+STDOUT = '-'
+STDERR = '+'
 
 
 def add_handler(configobj, section_name, c_config):
@@ -46,12 +48,12 @@ def add_handler(configobj, section_name, c_config):
     filters_str = section['filters']
     # Use absolute path to prevent fork() problem with chdir().
     filename = section['file']
-    if filename not in ['-', '+']:
+    if filename not in [STDOUT, STDERR]:
         filename = os.path.abspath(filename)
     section['file'] = filename
     append = section.as_bool('append')
 
-    if filters_str == FILE_HANDLER_FILTERS_AUTO:
+    if filters_str == FILTERS_AUTO:
         # Compute file filters automatically according to console handler filters
         # Find console filters
         found = None
