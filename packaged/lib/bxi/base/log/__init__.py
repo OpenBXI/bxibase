@@ -426,7 +426,7 @@ def get_all_loggers_iter():
     """
     loggers = __FFI__.new("bxilog_logger_p **")
     nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
-    loggers[0] = __FFI__.gc(loggers[0], __BXIBASE_CAPI__.free)
+    loggers_array = __FFI__.gc(loggers[0], __BXIBASE_CAPI__.free)
     from . import logger as bxilogger
     for i in xrange(nb):
         yield bxilogger.BXILogger(loggers[0][i])
