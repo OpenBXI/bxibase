@@ -626,7 +626,7 @@ char * bxierr_str_limit(bxierr_p self, size_t depth);
 inline void bxierr_report_destroy(bxierr_report_p * report_p) {
     bxiassert(NULL != report_p);
     bxierr_report_free(*report_p);
-    bximem_destroy((char**) report_p);
+    *report_p = NULL;;
 }
 
 /**

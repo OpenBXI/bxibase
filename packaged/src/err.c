@@ -184,6 +184,7 @@ void bxierr_report_free(bxierr_report_p report) {
     BXIFREE(report->err_btslens);
     BXIFREE(report->err_msgs);
     BXIFREE(report->err_bts);
+    BXIFREE(report);
 }
 
 

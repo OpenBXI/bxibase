@@ -182,6 +182,7 @@ class BXILogger(object):
                                            lineno,
                                            msg_str,
                                            msg_str_len)
+        __BXIBASE_CAPI__.bxierr_report_free(report_c)
 
     @property
     def name(self):
