@@ -31,7 +31,7 @@ Specifies that file handler filters must be computed automatically.
 @see ::bxilog_handler_p
 @see ::BXILOG_FILE_HANDLER
 """
-FILE_HANDLER_FILTERS_AUTO = 'auto'
+FILTERS_AUTO = 'auto'
 
 
 def add_handler(configobj, section_name, c_config):
@@ -51,7 +51,7 @@ def add_handler(configobj, section_name, c_config):
     section['file'] = filename
     append = section.as_bool('append')
 
-    if filters_str == FILE_HANDLER_FILTERS_AUTO:
+    if filters_str == FILTERS_AUTO:
         # Compute file filters automatically according to console handler filters
         # Find console filters
         found = None

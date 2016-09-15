@@ -39,7 +39,9 @@ PARSER = posless.PARSER
 REMAINDER = posless.REMAINDER
 SUPPRESS = posless.SUPPRESS
 ZERO_OR_MORE = posless.ZERO_OR_MORE
-DEFAULT_CONFIG_FILE = '/etc/bxi/common.conf'
+DEFAULT_CONFIG_FILENAME = 'default.conf'
+DEFAULT_CONFIG_DIRNAME = 'bxi'
+DEFAULT_CONFIG_SUFFIX = '.conf'
 
 
 class LogLevelsAction(posless.Action):
@@ -136,14 +138,43 @@ class _FullHelpAction(HelpActionFormatted):
                                               filter_function=_fullfiltering)
 
 
-def _add_config(parser, config_file):
+def _get_config_from_include_file(filename):
+    with open(filename, 'r') as f:
+        config = ConfigObj(f, interpolation=False)
+
+        if 'include' not in config or config['include'] is None:
+            return config
+
+        include_filename = config['include']
+        included = _get_config_from_include_file(include_filename)
+        included.merge(config)
+        return included
+
+
+def _add_config(parser,
+                default_config_dirname,
+                default_config_filename,
+                cmd_config_file_suffix):
+
+    if os.getuid() == 0:
+        config_dir_prefix = '/etc/'
+    else:
+        config_dir_prefix = os.path.join(os.path.expanduser('~'), '.config')
+
+    full_config_dir = os.path.join(config_dir_prefix, default_config_dirname)
+    cmd_config = os.path.join(full_config_dir,
+                              os.path.basename(sys.argv[0]) + cmd_config_file_suffix)
+    if not os.path.exists(cmd_config):
+        cmd_config = os.path.join(full_config_dir, default_config_filename)
 
     def _add_config_file_arg(target_parser):
-        group = target_parser.add_argument_group('BXI Config options')
-        group.add_argument("-C", "--common-config-file", default=config_file,
+        group = target_parser.add_argument_group('Configuration file')
+        group.add_argument("-C", "--config-file",
                            help="configuration file %(default)s"
                            ", environment variable: %(envvar)s",
-                           envvar="BXICONFIG", metavar="FILE")
+                           default=cmd_config,
+                           envvar="BXICONFIG",
+                           metavar="FILE")
 
     dummy = posless.ArgumentParser(add_help=False)
     _add_config_file_arg(dummy)
@@ -151,10 +182,9 @@ def _add_config(parser, config_file):
 
     known_args = dummy.parse_known_args()[0]
 
-    if os.path.isfile(known_args.common_config_file):
+    if os.path.exists(known_args.config_file):
         try:
-            with open(known_args.common_config_file, 'r') as f:
-                parser.config = ConfigObj(f, interpolation=False)
+            parser.config = _get_config_from_include_file(known_args.config_file)
         except IOError as err:
             sys.stderr.write('Configuration file error: %s' % err)
             logging.cleanup()
@@ -211,7 +241,7 @@ def _configure_log(parser):
             default = parser.config.get('Defaults')
             default_value = default['file_filters']
         except:
-            default_value = bxilog_filehandler.FILE_HANDLER_FILTERS_AUTO
+            default_value = bxilog_filehandler.FILTERS_AUTO
 
         group.add_argument("--file_filters",
                            metavar='file_filters',
@@ -219,7 +249,7 @@ def _configure_log(parser):
                            envvar='BXILOG_FILE_FILTERS',
                            default=default_value,
                            help="define the logging filters of the file handler. "
-                                "If set to '%s', " % bxilog_filehandler.FILE_HANDLER_FILTERS_AUTO +
+                                "If set to '%s', " % bxilog_filehandler.FILTERS_AUTO +
                                 "filters are automatically computed to "
                                 "provide two levels more details than console_filters and "
                                 "at least error levels and above. "
@@ -281,8 +311,12 @@ def _configure_log(parser):
                         help=_('show detailed logging options and exit'))
 
 
-def addargs(parser, config_file=DEFAULT_CONFIG_FILE, setsighandler=True):
-    _add_config(parser, config_file)
+def addargs(parser,
+            config_dirname=DEFAULT_CONFIG_DIRNAME,
+            config_filename=DEFAULT_CONFIG_FILENAME,
+            filename_suffix=DEFAULT_CONFIG_SUFFIX,
+            setsighandler=True):
+    _add_config(parser, config_dirname, config_filename, filename_suffix)
     _configure_log(parser)
 
     parser.add_argument('--help-full',
@@ -308,16 +342,16 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
                 config = parser.config
         except AttributeError:
             _LOGGER.exception("No configuration provided."
-                            " Using %s as default for value %s from section %s",
-                            default, value, Sections, level=logging.DEBUG)
+                              " Using %s as default for value %s from section %s",
+                              default, value, Sections, level=logging.DEBUG)
             return default
 
         try:
             dictonary = _return_dict_value(config, Sections)
         except bxierr.BXIError as e:
             _LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
-                        " using %s as default for value %s from (sub)section [%s]", e.msg,
-                            default, value, ']['.join(Sections))
+                          " using %s as default for value %s from (sub)section [%s]", e.msg,
+                          default, value, ']['.join(Sections))
             return default
 
         try:
@@ -326,9 +360,9 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
             return dictonary[value]
         except (KeyError, TypeError, AttributeError):
             _LOGGER.exception("No value %s in the (sub)sections [%s]."
-                            " using %s as default for value %s from (sub)section [%s]",
-                            value, ']['.join(Sections),
-                            default, value, ']['.join(Sections), level=logging.DEBUG)
+                              " using %s as default for value %s from (sub)section [%s]",
+                              value, ']['.join(Sections),
+                              default, value, ']['.join(Sections), level=logging.DEBUG)
             return default
     except:
-        _LOGGER.exception("Log erro")
+        _LOGGER.exception("Unknown error")
