@@ -5,12 +5,15 @@ import os,sys
 
 # [BXI Log and Python multiprocessing module]
 @bxilog.multiprocessing_target
-def f():
+def f(args):
     # Using the bxilog.multiprocessing_target decorator guarantees that 
     # uncaught exception will be reported by the logging system
     # and that the logging system will be cleanup properly (and therefore
     # flushed).
+    bxilog.set_config(args)
+    print("Call f %s" % args)
     bxilog.out("In subprocess")
+    bxilog.flush()
 
     try: 
         raise ValueError("An expected exception in subprocess")
@@ -28,7 +31,7 @@ if __name__ == '__main__':
         os.unlink(filename)
     
     bxilog.basicConfig(filename=filename, filemode='w')
-    p = multiprocessing.Process(target=f)
+    p = multiprocessing.Process(target=f, args=[bxilog.get_config()])
     p.start()
     p.join()
     

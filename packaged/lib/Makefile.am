@@ -22,6 +22,7 @@ nobase_python_PYTHON=\
 		  bxi/base/err.py \
 		  bxi/base/posless.py\
 		  bxi/base/parserconf.py\
+		  bxi/base/summary.py\
 		  bxi/base/log/__init__.py\
 		  bxi/base/log/config.py\
 		  bxi/base/log/logger.py\

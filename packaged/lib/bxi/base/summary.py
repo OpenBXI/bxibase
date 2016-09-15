@@ -14,11 +14,21 @@ The reporting is done by dispatching issues on different logger and ordering the
 """
 
 import bxi.base.log as bxilog
+import bxi.base.parserconf as bxiparserconf
 
 DEFAULT_BXI_REPORT_ORDER = 'BXI_REPORT_ORDER'
 
+_LOGGER = bxilog.getLogger(bxilog.LIB_PREFIX + 'bxibasesummary')
 
-def addargs(parser):
+def addargs(parser, config=None):
+    """
+    Configure the arg parser with summary options.
+
+    @param parser of the command line
+
+    @return
+    """
+
     default_value = bxiparserconf.getdefaultvalue(parser, ['Defaults'],
                                                   'reporting_order', _LOGGER,
                                                   'level', config)
@@ -34,18 +44,37 @@ def addargs(parser):
 
 
 class Issue(object):
+    '''
+    Represent an encounter error.
+    '''
     def __init__(self,
                  name,
                  msg,
                  details='',):
+        '''
+        Build an issue.
+
+        @param name of the component in error.
+        @param msg describing the error
+        @param details about the error
+        @return
+        '''
         self.name = name
         self.details = details
         self.msg = msg
 
     def get_name(self):
+        '''
+        Return the name of the issue
+
+        @return The name associated to the issue
+        '''
         return self.name
 
     def get_error(self):
+        """
+        Return the error message
+        """
         return self.msg
 
 
@@ -54,6 +83,13 @@ class Issues(object):
     Container of issues to be reported
     """
     def __init__(self, resolution, prefix):
+        """
+        Build a container of errors.
+        @param resolution how the errors are generally fixed.
+        @param prefix of the logger use the report the issues.
+
+        @return
+        """
         self.logger_prefix = prefix
         self.errors = [[] for _ in bxilog.get_all_loggers_iter()]
         self.resolution = resolution
@@ -61,6 +97,9 @@ class Issues(object):
     def append(self, level, error):
         """
         Store the error to display it on request
+
+        @param level at which the issue is reported
+        @param error add to the container
         """
         self.errors[level].append(error)
 
@@ -216,18 +255,26 @@ class Summary(object):
     Handle Reporting of issues
     """
     def __init__(self, order='level'):
+        """
+        Build a reporter of errors
+        @param order in which the issues are reported
+        @return
+        """
         self.order = order
         self.issues = dict()
 
     def set_order(self, order):
         """
         Change the order the issues are displayed
+        @param order in which the issues are reported
+        @return
         """
         self.order = order
 
     def display(self):
         """
         Display all issues in the current order
+        @return
         """
         for key_issues in self.issues:
             for issues in self.issues[key_issues]:
@@ -236,6 +283,8 @@ class Summary(object):
     def add_issues(self, issues):
         """
         Add issues for the report
+        @param issues add the container of errors
+        @return
         """
         try:
             self.issues[issues.resolution].append(issues)
