@@ -330,6 +330,7 @@ def _configure_log(parser):
         config = configobj.ConfigObj(infile=baseconf)
         for l in config.write():
             print(l)
+
     # If at least one of other options has been set, it overrides the 
     # logging configuration file
     if known_args.logcfgfile is None or None in [known_args.console_filters,
@@ -337,6 +338,8 @@ def _configure_log(parser):
                                                  known_args.logfile]:
 
         config = configobj.ConfigObj(infile=baseconf)
+    elif not os.path.exists(known_args.logcfgfile):
+        parser.print_help()
     else:
         config = configobj.ConfigObj(infile=known_args.logcfgfile)
 
