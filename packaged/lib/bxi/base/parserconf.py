@@ -39,9 +39,21 @@ PARSER = posless.PARSER
 REMAINDER = posless.REMAINDER
 SUPPRESS = posless.SUPPRESS
 ZERO_OR_MORE = posless.ZERO_OR_MORE
+
 DEFAULT_CONFIG_FILENAME = 'default.conf'
 DEFAULT_CONFIG_DIRNAME = 'bxi'
 DEFAULT_CONFIG_SUFFIX = '.conf'
+
+DEFAULT_CONSOLE_COLORS = '216_dark'
+DEFAULT_CONSOLE_FILTERS = ':output'
+
+BXILOG_DEFAULT_CONFIGFILE = 'bxilog.default.configfile'
+
+
+def get_default_logfile():
+    return '%s%s%s.bxilog' % (tempfile.gettempdir(),
+                              os.path.sep,
+                              os.path.basename(sys.argv[0]))
 
 
 class LogLevelsAction(posless.Action):
@@ -138,16 +150,17 @@ class _FullHelpAction(HelpActionFormatted):
                                               filter_function=_fullfiltering)
 
 
-def _get_config_from_include_file(filename):
+def _get_config_from_file(filename):
     with open(filename, 'r') as f:
         config = ConfigObj(f, interpolation=False)
 
-        if 'include' not in config or config['include'] is None:
+        if 'includes' not in config or config['includes'] is None:
             return config
 
-        include_filename = config['include']
-        included = _get_config_from_include_file(include_filename)
-        included.merge(config)
+        for include_filename in config['includes']:
+            included = _get_config_from_file(include_filename)
+            included.merge(config)
+
         return included
 
 
@@ -162,18 +175,27 @@ def _add_config(parser,
         config_dir_prefix = os.path.join(os.path.expanduser('~'), '.config')
 
     full_config_dir = os.path.join(config_dir_prefix, default_config_dirname)
+    full_config_dir = os.getenv('BXICONFIGDIR', full_config_dir)
     cmd_config = os.path.join(full_config_dir,
                               os.path.basename(sys.argv[0]) + cmd_config_file_suffix)
     if not os.path.exists(cmd_config):
         cmd_config = os.path.join(full_config_dir, default_config_filename)
 
     def _add_config_file_arg(target_parser):
+        group = target_parser.add_argument_group('Configuration directory')
+        group.add_argument("--config-directory",
+                           help="Configuration directory. Default: %(default)s"
+                           ", environment variable: %(envvar)s",
+                           default=full_config_dir,
+                           envvar="BXICONFIGDIR",
+                           metavar="DIR")
+
         group = target_parser.add_argument_group('Configuration file')
         group.add_argument("-C", "--config-file",
                            help="configuration file %(default)s"
                            ", environment variable: %(envvar)s",
                            default=cmd_config,
-                           envvar="BXICONFIG",
+                           envvar="BXICONFIGFILE",
                            metavar="FILE")
 
     dummy = posless.ArgumentParser(add_help=False)
@@ -184,7 +206,7 @@ def _add_config(parser,
 
     if os.path.exists(known_args.config_file):
         try:
-            parser.config = _get_config_from_include_file(known_args.config_file)
+            parser.config = _get_config_from_file(known_args.config_file)
         except IOError as err:
             sys.stderr.write('Configuration file error: %s' % err)
             logging.cleanup()
@@ -198,110 +220,125 @@ def _add_config(parser,
 
 
 def _configure_log(parser):
-    def _add_log(target_parser):
+    def _add_common(target_parser):
         group = target_parser.add_argument_group('BXI Log options')
         group.add_argument("--loglevels",
                            mustbeprinted=False,
                            action=LogLevelsAction,
                            help="displays all log levels and exit.")
-
-        try:
-            default = parser.config.get('Defaults')
-            default_value = default['logfile']
-        except:
-            default_value = '%s%s%s.bxilog' % (tempfile.gettempdir(),
-                                               os.path.sep,
-                                               os.path.basename(sys.argv[0]))
-
-        group.add_argument("--logfile",
-                           metavar='FILE',
-                           envvar='BXILOGFILE',
+        group.add_argument("--output-default-logcfg",
+                           action='store_true',
                            mustbeprinted=False,
-                           default=default_value,
-                           help="the file where logs should be output "
-                                "(in addition to stdout/stderr). "
-                                "Default: %(default)s")
+                           help="Output the default logging configuration.")
 
-        try:
-            default = parser.config.get('Defaults')
-            default_value = default['console_filters']
-        except:
-            default_value = ':output'
+        default_logcfgfile = getdefaultvalue(target_parser,
+                                             ['Defaults'],
+                                             BXILOG_DEFAULT_CONFIGFILE,
+                                             None)
+        group.add_argument("--logcfgfile", type=posless.FileType('r'),
+                           mustbeprinted=False,
+                           metavar='logcfgfile',
+                           default=default_logcfgfile,
+                           help="Logging configuration file "
+                           "(overridden by other logging options).")
+        return group
+
+    def _add_others(target_parser, args, group):
+        if args.logcfgfile is None:
+            default = DEFAULT_CONSOLE_FILTERS
+        else:
+            default = None
 
         group.add_argument("-l", "--console_filters",
+                           mustbeprinted=False,
                            metavar='console_filters',
                            envvar='BXILOG_CONSOLE_FILTERS',
-                           default=default_value,
-                           help="define the logging filters for the console output. "
+                           default=default,
+                           help="define the logging filters for the console handler "
+                                "of the default logging configuration. "
+                                "If set, the default logging configuration is used. "
                                 "Default: '%(default)s'. "
                                 "Logging filters are defined by the following format: "
                                 "logger_name_prefix:level[,prefix:level]*")
-
-        try:
-            default = parser.config.get('Defaults')
-            default_value = default['file_filters']
-        except:
-            default_value = bxilog_filehandler.FILTERS_AUTO
+ 
+        if args.logcfgfile is None:
+            default = bxilog_filehandler.FILTERS_AUTO
+        else:
+            default = None
 
         group.add_argument("--file_filters",
                            metavar='file_filters',
                            mustbeprinted=False,
                            envvar='BXILOG_FILE_FILTERS',
-                           default=default_value,
-                           help="define the logging filters of the file handler. "
+                           default=default,
+                           help="define the logging filters for the file handler "
+                                "of the default logging configuration. "
                                 "If set to '%s', " % bxilog_filehandler.FILTERS_AUTO +
                                 "filters are automatically computed to "
                                 "provide two levels more details than console_filters and "
                                 "at least error levels and above. "
                                 "The format is the one defined by console_filters option. "
+                                "If set, the default logging configuration is used. "
                                 "Default: '%(default)s'. ")
 
-        try:
-            default = parser.config.get('Defaults')
-            default_value = default['bxilogcolors']
-        except:
-            default_value = '216_dark'
-        colors = bxilog_consolehandler.COLORS.keys()
-        group.add_argument("--colors", type=str,
-                           choices=colors,
-                           metavar='colors',
-                           mustbeprinted=False,
-                           envvar='BXILOG_COLORS',
-                           default=default_value,
-                           help="define the output colors: "
-                           " %s." % ", ".join(colors) + "Default: '%(default)s'.")
+        if args.logcfgfile is None:
+            default = get_default_logfile()
+        else:
+            default = None
 
-        group.add_argument("--logcfgfile", type=posless.FileType('r'),
+        group.add_argument("--logfile",
+                           metavar='FILE',
+                           envvar='BXILOGFILE',
                            mustbeprinted=False,
-                           metavar='logcfgfile',
-                           help="logging configuration file. If set, other bxilog "
-                           "options are ignored.")
+                           default=default,
+                           help="define the destination file for the file handler "
+                                "of the default logging configuration"
+                                "If set, the default logging configuration is used. "
+                                "Default: %(default)s")
 
     dummy = posless.ArgumentParser(add_help=False)
-    _add_log(dummy)
-    _add_log(parser)
+    group1 = _add_common(dummy)
+    group = _add_common(parser)
+
+    known_args = dummy.parse_known_args()[0]
+    _add_others(dummy, known_args, group1)
+    _add_others(parser, known_args, group)
 
     known_args = dummy.parse_known_args()[0]
 
     logging.captureWarnings(True)
 
-    if known_args.logcfgfile is not None:
-        config = configobj.ConfigObj(infile=known_args.logcfgfile)
-    else:
-        baseconf = {'handlers': ['console', 'file'],
-                    'setsighandler': True,
-                    'console': {'module': bxilog_consolehandler.__name__,
-                                'filters': known_args.console_filters,
-                                'stderr_level': 'WARNING',
-                                'colors': known_args.colors,
-                                },
-                    'file': {'module': bxilog_filehandler.__name__,
-                             'filters': known_args.file_filters,
-                             'file': known_args.logfile,
-                             'append': True,
-                             }
-                    }
+    # Create the default logging configuration
+    console_filters = known_args.console_filters if known_args.console_filters is not None else DEFAULT_CONSOLE_FILTERS
+    file_filters = known_args.file_filters if known_args.file_filters is not None else bxilog_filehandler.FILTERS_AUTO
+    logfile = known_args.logfile if known_args.logfile is not None else get_default_logfile()
+    baseconf = {'handlers': ['console', 'file'],
+                'setsighandler': True,
+                'console': {'module': bxilog_consolehandler.__name__,
+                            'filters': console_filters,
+                            'stderr_level': 'WARNING',
+                            'colors': '216_dark',
+                            },
+                'file': {'module': bxilog_filehandler.__name__,
+                         'filters': file_filters,
+                         'file': logfile,
+                         'append': True,
+                         }
+                }
+
+    if known_args.output_default_logcfg:
         config = configobj.ConfigObj(infile=baseconf)
+        for l in config.write():
+            print(l)
+    # If at least one of other options has been set, it overrides the 
+    # logging configuration file
+    if known_args.logcfgfile is None or None in [known_args.console_filters,
+                                                 known_args.file_filters,
+                                                 known_args.logfile]:
+
+        config = configobj.ConfigObj(infile=baseconf)
+    else:
+        config = configobj.ConfigObj(infile=known_args.logcfgfile)
 
     logging.set_config(config)
 
@@ -334,35 +371,38 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
         except bxierr.BXIError as e:
             raise bxierr.BXIError("[%s]%s" % (Sections[0], e.msg))
         except:
-            _LOGGER.exception("Initial error:", level=logging.DEBUG)
+            if _LOGGER is not None:
+                _LOGGER.exception("Initial error:", level=logging.DEBUG)
             raise bxierr.BXIError("[%s]" % Sections[0])
+
     try:
-        try:
-            if config is None:
-                config = parser.config
-        except AttributeError:
+        if config is None:
+            config = parser.config
+    except AttributeError:
+        if _LOGGER is not None:
             _LOGGER.exception("No configuration provided."
                               " Using %s as default for value %s from section %s",
                               default, value, Sections, level=logging.DEBUG)
-            return default
+        return default
 
-        try:
-            dictonary = _return_dict_value(config, Sections)
-        except bxierr.BXIError as e:
+    try:
+        dictonary = _return_dict_value(config, Sections)
+    except bxierr.BXIError as e:
+        if _LOGGER is not None:
             _LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
                           " using %s as default for value %s from (sub)section [%s]", e.msg,
                           default, value, ']['.join(Sections))
-            return default
+        return default
 
-        try:
+    try:
+        if _LOGGER is not None:
             _LOGGER.debug("Return %s for value %s in section %s",
                           dictonary[value], value, Sections)
-            return dictonary[value]
-        except (KeyError, TypeError, AttributeError):
+        return dictonary[value]
+    except (KeyError, TypeError, AttributeError):
+        if _LOGGER is not None:
             _LOGGER.exception("No value %s in the (sub)sections [%s]."
                               " using %s as default for value %s from (sub)section [%s]",
                               value, ']['.join(Sections),
                               default, value, ']['.join(Sections), level=logging.DEBUG)
-            return default
-    except:
-        _LOGGER.exception("Unknown error")
+        return default
