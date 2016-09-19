@@ -32,15 +32,15 @@ It provides the following plain C modules:
     (see [Object like API](#OO_c)).
 
 ### Memory allocation ###                                       {#Allocation_c}
-Use bximem_calloc() for memory allocation, which provides the following guarantees:
+For memory allocation, use bximem_calloc(), which provides the following guarantees:
 
-1. Returned memory is nullified.
-2. The underlying returned code is checked.
+- Returned memory is nullified.
+- The underlying returned code is checked.
 
-Use the BXIFREE() macro for releasing a pointer, which provides the following guarantees:
+To release a pointer, use the BXIFREE() macro, which provides the following guarantees:
 
-1. Releasing a NULL pointer causes no problem.
-2. The pointer is nullified.
+- Releasing a NULL pointer causes no problem.
+- The pointer is nullified.
 
 Example:
 
@@ -52,10 +52,14 @@ Example:
 
 ### Module Initialization ###                                   {#Initialization_c}
 Module initialization, when required, is done using `bxi*_init()`.
-Library cleanup is done using `bxi*_finalize()`. See bxilog_init() and bxilog_finalize() for example.
+
+Library cleanup is done using `bxi*_finalize()`. 
+
+See bxilog_init() and bxilog_finalize() for example.
 
 ### Object like API ###                                         {#OO_c}
 Object like module provides `bxi*_new()` and `bxi*_destroy()` functions. 
+
 See for example: bxizmq_zocket_connect() and bxizmq_zocket_destroy().
 
 Note: `bxi*_destroy()` 
@@ -69,8 +73,12 @@ actually *nullify* the pointer as shown in the following example:
     assert(NULL == result);  // This is true
 
 Objects are always referred to through pointers and 
-their type name always ends with a '_p' to clearly state it. See for example:
-`::bxierr_p`, `::bxilog_logger_p`. Therefore, instantiating, using and destroying a BXI object always look like the following code snippet: 
+their type name always ends with a '_p' to clearly state it. 
+
+See for example:
+`::bxierr_p`, `::bxilog_logger_p`. 
+
+Therefore, instantiating, using and destroying a BXI object always look like the following code snippet: 
 
     bxifoo_p object = bxifoo_new(...);
     ...
