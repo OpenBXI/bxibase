@@ -12,12 +12,12 @@ BXI Base Library for C Language                    {#BXIBase4C}
 The BXI Base Library is the basic library for most BXI projects. 
 It provides the following plain C modules:
 
-- mem.h: used for memory allocation and release
-- str.h: used for string manipulation
-- err.h: used for error handling
-- time.h: provides timing related functions with error handling
-- zmq.h: provides easy wrapper around ZeroMQ functions
-- log.h: a high performance logging library
+- mem.h: memory allocation and release
+- str.h: string manipulation
+- err.h: error handling
+- time.h: timing related functions with error handling
+- zmq.h: easy wrapper around ZeroMQ functions
+- log.h: high performance logging library
 
 ## BXI General API Conventions ##                        {#Conventions_c}
 
@@ -51,13 +51,14 @@ Example:
 
 
 ### Module Initialization ###                                   {#Initialization_c}
-Module initialization when required is done using `bxi*_init()`, 
-and library cleanup is done using `bxi*_finalize()`. See bxilog_init() and bxilog_finalize() for example.
+Module initialization, when required, is done using `bxi*_init()`.
+Library cleanup is done using `bxi*_finalize()`. See bxilog_init() and bxilog_finalize() for example.
 
 ### Object like API ###                                         {#OO_c}
 Object like module provides `bxi*_new()` and `bxi*_destroy()` functions. 
-See for example bxizmq_zocket_connect() and bxizmq_zocket_destroy().
-Note that `bxi*_destroy()` 
+See for example: bxizmq_zocket_connect() and bxizmq_zocket_destroy().
+
+Note: `bxi*_destroy()` 
 actually *nullify* the pointer as shown in the following example:
 
     void * result;
@@ -82,8 +83,8 @@ Dealing with errors in C is known to be difficult. The BXI base library provides
 the err.h module that helps a lot for this. The following convention holds 
 for most BXI functions:
 
-- Functions that deal with errors internally (using assert() internally, 
-  or error() for example) use a traditional signature. See for example:
+- Functions that deal with errors internally (using for example, assert() internally, 
+  or error() ) use a traditional signature. See for example:
   bximem_calloc(), bxistr_new(), bxilog_get_level().
   
 - Functions that ask the caller to deal with the error (most functions actually),
