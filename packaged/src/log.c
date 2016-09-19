@@ -485,6 +485,7 @@ bxierr_p bxilog__stop_handlers(void) {
         char * msg = NULL;
         while(ret != ESRCH && msg == NULL) {
             bxierr_destroy(&err2);
+            ret = pthread_kill(handler_thread, 0);
             err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
             if (bxierr_isko(err2)) {
                 if (BXIZMQ_TIMEOUT_ERR != err2->code){
@@ -492,7 +493,6 @@ bxierr_p bxilog__stop_handlers(void) {
                 } else {
                     bxierr_destroy(&err2);
                 }
-                ret = pthread_kill(handler_thread, 0);
             } else {
                 break;
             }

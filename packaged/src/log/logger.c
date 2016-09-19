@@ -160,7 +160,7 @@ bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
     size_t logmsg_len = BXILOG__GLOBALS->config->tsd_log_buf_size;
     bool logmsg_allocated = false; // When true,  means that a new special buffer has been
                                    // allocated -> it will have to be freed
-    while(true) {
+    while (true) {
         va_list arglist_copy;
         va_copy(arglist_copy, arglist);
         // Does not include the null terminated byte
