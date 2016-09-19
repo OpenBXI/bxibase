@@ -487,7 +487,7 @@ bxierr_p bxilog__stop_handlers(void) {
             bxierr_destroy(&err2);
             ret = pthread_kill(handler_thread, 0);
             err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
-            if (ret != ESRCH && msg == NULL) {
+            if (ret == ESRCH && msg == NULL) {
                 BXIERR_CHAIN(err, err2);
                 break;
             }
