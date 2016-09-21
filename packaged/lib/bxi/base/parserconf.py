@@ -331,4 +331,4 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
                             default, value, ']['.join(Sections), level=logging.DEBUG)
             return default
     except:
-        _LOGGER.exception("Log erro")
+        _LOGGER.exception("Log error")
