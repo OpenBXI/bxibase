@@ -322,6 +322,22 @@ def _configure_log(parser):
                                help="define the destination file for the %s handler " % 
                                     section + "Value: %(default)s")
 
+    def _override_logconfig(config, known_args):
+        def _override_kv(option, key, config, args):
+            # option has the following format: --handler-key=value
+            if option.endswith(key):
+                handler_name = option[0:option.index(key) - 1] 
+                assert handler_name in config
+                # replace in config
+#                 print("Overriding: %s -> %s[%s]=%s" % 
+#                       (option, handler_name, key, args[option]))
+                config[handler_name][key] = args[option]
+
+        args = vars(known_args)
+        for option in args:
+            _override_kv(option, 'filters', config, args)
+            _override_kv(option, 'path', config, args)
+
     dummy = posless.ArgumentParser(add_help=False)
     group1 = _add_common(dummy)
     group = _add_common(parser)
@@ -349,7 +365,11 @@ def _configure_log(parser):
         sys.exit(0)
 
     if known_args.logcfgfile is None:
-        config = configobj.ConfigObj(infile=dummy.get_default('logcfgfile'))
+        infile = dummy.get_default('logcfgfile')
+        if infile is None or not os.path.exists(infile):
+            # Default case: no logging configuration given and no file found
+            infile = baseconf
+        config = configobj.ConfigObj(infile=infile)
     elif not os.path.exists(known_args.logcfgfile):
         dummy.error("File not found: %s" % known_args.logcfgfile)
     else:
@@ -360,11 +380,10 @@ def _configure_log(parser):
 
     known_args = dummy.parse_known_args()[0]
 
-#     FAIRE LES T.U avant.
-#     ICI : il faut overridé la config avec les options lues.
-
+#     print(config)
+    _override_logconfig(config, known_args)
+#     print(config)
     logging.captureWarnings(True)
-    config = configobj.ConfigObj(baseconf)
     logging.set_config(config)
 
     parser.add_argument('--help-logs',

@@ -143,8 +143,20 @@ class ParserConfTest(unittest.TestCase):
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-        self.assertEquals(len(stdout.strip().split('\n')), 2) # Only the output line
+        print(stdout)
+        print(stderr)
+        self.assertEquals(len(stdout.strip().split('\n')), 2) # output and notice lines
         self.assertEquals(len(stderr.strip().split('\n')), 5) # All above warning
+        
+        process = subprocess.Popen([exe, "--console_filters=:error"],
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        print(stdout)
+        print(stderr)
+        self.assertEquals(len(stdout.strip().split('\n')), 1) # Empty line
+        self.assertEquals(len(stdout.strip().split('\n')[0]), 0) # Empty line
+        self.assertEquals(len(stderr.strip().split('\n')), 4) # All above error
 
     
     def test_log_console_conf(self):
