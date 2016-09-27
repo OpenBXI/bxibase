@@ -689,7 +689,7 @@ def basicConfig(**kwargs):
         import bxi.base.log.file_handler as bxilog_filehandler
         section['module'] = bxilog_filehandler.__name__
         section['filters'] = ':%s' % kwargs.get('level', OUTPUT)
-        section['file'] = kwargs['filename']
+        section['path'] = kwargs['filename']
         mode = kwargs.get('filemode', 'a')
         section['append'] = mode == 'a'
         config['filehandler'] = section

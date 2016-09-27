@@ -6,7 +6,7 @@ if HAVE_PYTHON
 check-local: 
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-	nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS}; \
+	coverage run ${top_srcdir}/tests/bxilog_suite.py; \
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 	coverage run ${top_srcdir}/tests/posless_suite.py
@@ -31,6 +31,7 @@ inst_check_PROGRAMS= \
 
 dist_inst_check_SCRIPTS=\
 						simple_bxilog_user.py \
+						simple_bxilogger.py \
 						testbxilog.py\
 						uncaught.py\
 						posless_suite.py\

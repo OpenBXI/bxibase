@@ -15,6 +15,10 @@ import tempfile
 from shutil import rmtree
 import subprocess
 import string
+import bxi.base.log.console_handler as bxilog_consolehandler
+import bxi.base.log.null_handler as bxilog_nullhandler
+import bxi.base.parserconf as bxiparserconf
+
 
 
 """Unit tests of BXI parserconf module.
@@ -44,14 +48,7 @@ class ParserConfTest(unittest.TestCase):
             del os.environ['BXICONFIGFILE']
         except KeyError:
             pass
-        cmd = os.path.basename(sys.argv[0])
-        path = os.path.join(os.path.expanduser('~'),
-                            '.config',
-                            parserconf.DEFAULT_CONFIG_DIRNAME)
-        filename = os.path.join(path, cmd + parserconf.DEFAULT_CONFIG_SUFFIX)
-        if os.path.exists(filename):
-            os.unlink(filename)
-            
+
     def tearDown(self):
         pass
 #         if os.path.exist(self.bxiconfigdir):
@@ -65,7 +62,7 @@ class ParserConfTest(unittest.TestCase):
         suffix = os.path.join(self.bxiconfigdir,
                               parserconf.DEFAULT_CONFIG_FILENAME)
         self.assertTrue(args.config_file.endswith(suffix), args.config_file)
-        
+
     def test_specific_dir_config(self):
         del os.environ['BXICONFIGDIR']
         parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
@@ -74,7 +71,7 @@ class ParserConfTest(unittest.TestCase):
 
         suffix = os.path.join('foo', parserconf.DEFAULT_CONFIG_FILENAME)
         self.assertTrue(args.config_file.endswith(suffix), args.config_file)
-        
+
     def test_default_cmd_config(self):
         path_created = False
         file_created = False
@@ -97,7 +94,7 @@ class ParserConfTest(unittest.TestCase):
                 os.unlink(filename)
             if path_created:
                 os.unlink(path)
-                
+
     def test_include_config(self):
         default_cfg = configobj.ConfigObj()
         default_cfg['foo0'] = 'bar0'
@@ -134,40 +131,108 @@ class ParserConfTest(unittest.TestCase):
         self.assertEquals(result['foo1'], 'bar1.2')
         self.assertEquals(result['foo2'], 'bar2')
         
-        
-    def test_log_no_conf(self):
-        "Default is console handler when no configuration is found."
+    def _test_logs(self, param):
         exe = os.path.join(os.path.dirname(__file__), "simple_bxilogger.py")
         
-        process = subprocess.Popen([exe],
+        args = [exe]
+        args.extend(param)
+        process = subprocess.Popen(args,
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-        print(stdout)
-        print(stderr)
+#         print(stdout)
+#         print(stderr)
         self.assertEquals(len(stdout.strip().split('\n')), 2) # output and notice lines
         self.assertEquals(len(stderr.strip().split('\n')), 5) # All above warning
         
-        process = subprocess.Popen([exe, "--console_filters=:error"],
+        args.append("--console_filters=:error")
+        process = subprocess.Popen(args,
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-        print(stdout)
-        print(stderr)
+#         print(stdout)
+#         print(stderr)
         self.assertEquals(len(stdout.strip().split('\n')), 1) # Empty line
         self.assertEquals(len(stdout.strip().split('\n')[0]), 0) # Empty line
         self.assertEquals(len(stderr.strip().split('\n')), 4) # All above error
 
-    
-    def test_log_console_conf(self):
-        pass
-    
-    def test_log_file_conf(self):
-        pass
-    
-    def test_log_console_file_conf(self):
-        pass
+    def test_log_no_conf(self):
+        "Default is console handler when no configuration is found."
+        self._test_logs([])
 
+    def test_log_simple_conf(self):
+        config = {'handlers': ['console',],
+                  'setsighandler': True,
+                  'console': {'module': bxilog_consolehandler.__name__,
+                              'filters': ':output',
+                              'stderr_level': 'WARNING',
+                              'colors': '216_dark',
+                              },
+                 }
+        fileconf = os.path.join(self.bxiconfigdir, 'bxilog.conf')
+        with open(fileconf, 'w') as f:
+            configobj.ConfigObj(config).write(f)
+        self._test_logs(['--logcfgfile=%s' % fileconf])
+    
+    def test_log_directref_conf(self):
+        config = {'handlers': ['console',],
+                  'setsighandler': True,
+                  'console': {'module': bxilog_consolehandler.__name__,
+                              'filters': ':output',
+                              'stderr_level': 'WARNING',
+                              'colors': '216_dark',
+                              },
+                 }
+        fileconf = os.path.join(self.bxiconfigdir, 'bxilog.conf')
+        with open(fileconf, 'w') as f:
+            configobj.ConfigObj(config).write(f)
+        
+        globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE: fileconf}
+        globalconf_file = os.path.join(self.bxiconfigdir, 'global.conf')
+        with open(globalconf_file, 'w') as f:
+            configobj.ConfigObj(globalconfig).write(f)
+            
+        self._test_logs(['--config-file=%s' % globalconf_file])
+        
+    def test_log_indirectref_conf(self):
+         # This one will be overwritten
+        config = {'handlers': ['none',],
+                  'setsighandler': True,
+                  'none': {'module': bxilog_nullhandler.__name__,
+                           'filters': ':trace',
+                           },
+                 }
+        fileconf = os.path.join(self.bxiconfigdir, 'bxilog.conf')
+        with open(fileconf, 'w') as f:
+            configobj.ConfigObj(config).write(f)
+        
+        globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE: fileconf}
+        globalconf_file = os.path.join(self.bxiconfigdir, 'global.conf')
+        with open(globalconf_file, 'w') as f:
+            configobj.ConfigObj(globalconfig).write(f)
+        
+        # This one will be used
+        config = {'handlers': ['console',],
+                  'setsighandler': True,
+                  'console': {'module': bxilog_consolehandler.__name__,
+                              'filters': ':output',
+                              'stderr_level': 'WARNING',
+                              'colors': '216_dark',
+                              },
+                 }
+        fileconf = os.path.join(self.bxiconfigdir, 'specific.log.conf')
+        with open(fileconf, 'w') as f:
+            configobj.ConfigObj(config).write(f)
+        
+        specific_config = {'include': globalconf_file,
+                           bxiparserconf.BXILOG_DEFAULT_CONFIGFILE: fileconf}
+        specificconf_file = os.path.join(self.bxiconfigdir, 'specific.conf')
+        with open(specificconf_file, 'w') as f:
+            configobj.ConfigObj(specific_config).write(f)
+            
+#         print("Config file: %s" % specificconf_file)
+        self._test_logs(['--config-file=%s' % specificconf_file])
+    
 
 
 ###############################################################################

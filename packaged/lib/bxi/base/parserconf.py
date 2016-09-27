@@ -338,24 +338,24 @@ def _configure_log(parser):
             _override_kv(option, 'filters', config, args)
             _override_kv(option, 'path', config, args)
 
+    parser.add_argument('--help-logs',
+                        action=_LoggedHelpAction,
+                        default=posless.SUPPRESS,
+                        help=_('show detailed logging options and exit'))
+
     dummy = posless.ArgumentParser(add_help=False)
     group1 = _add_common(dummy)
     group = _add_common(parser)
 
     known_args = dummy.parse_known_args()[0]
 
-    baseconf = {'handlers': ['console', 'file'],
+    baseconf = {'handlers': ['console'],
                 'setsighandler': True,
                 'console': {'module': bxilog_consolehandler.__name__,
                             'filters': ':output',
                             'stderr_level': 'WARNING',
                             'colors': '216_dark',
                             },
-                'file': {'module': bxilog_filehandler.__name__,
-                         'filters': 'auto',
-                         'path': get_default_logfile(),
-                         'append': True,
-                         }
                 }
 
     if known_args.output_default_logcfg:
@@ -365,10 +365,17 @@ def _configure_log(parser):
         sys.exit(0)
 
     if known_args.logcfgfile is None:
-        infile = dummy.get_default('logcfgfile')
-        if infile is None or not os.path.exists(infile):
-            # Default case: no logging configuration given and no file found
+        infile = parser.get_default('logcfgfile')
+        if infile is None:
+            # Default case: no logging configuration given and no file found by default
             infile = baseconf
+        elif not os.path.exists(infile):
+#             config_file = known_args.config_file
+#             if config_file is None:
+#                 config_file = parser.get_default('config_file')
+            config_file = 'Unavailable (see mantis#22687)'
+            parser.error("Default logging configuration file not found: %s. " % infile +\
+                         "Check your configuration from file: %s" % config_file)
         config = configobj.ConfigObj(infile=infile)
     elif not os.path.exists(known_args.logcfgfile):
         dummy.error("File not found: %s" % known_args.logcfgfile)
@@ -385,11 +392,6 @@ def _configure_log(parser):
 #     print(config)
     logging.captureWarnings(True)
     logging.set_config(config)
-
-    parser.add_argument('--help-logs',
-                        action=_LoggedHelpAction,
-                        default=posless.SUPPRESS,
-                        help=_('show detailed logging options and exit'))
 
 
 def addargs(parser,
