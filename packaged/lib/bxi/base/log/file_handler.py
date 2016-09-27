@@ -45,10 +45,10 @@ def add_handler(configobj, section_name, c_config):
     section = configobj[section_name]
     filters_str = section['filters']
     # Use absolute path to prevent fork() problem with chdir().
-    filename = section['file']
+    filename = section['path']
     if filename not in ['-', '+']:
         filename = os.path.abspath(filename)
-    section['file'] = filename
+    section['path'] = filename
     append = section.as_bool('append')
 
     if filters_str == FILTERS_AUTO:

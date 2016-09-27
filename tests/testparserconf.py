@@ -13,6 +13,8 @@ from os.path import expanduser
 from tempfile import NamedTemporaryFile
 import tempfile
 from shutil import rmtree
+import subprocess
+import string
 
 
 """Unit tests of BXI parserconf module.
@@ -131,6 +133,30 @@ class ParserConfTest(unittest.TestCase):
         self.assertEquals(result['foo0'], 'bar0')
         self.assertEquals(result['foo1'], 'bar1.2')
         self.assertEquals(result['foo2'], 'bar2')
+        
+        
+    def test_log_no_conf(self):
+        "Default is console handler when no configuration is found."
+        exe = os.path.join(os.path.dirname(__file__), "simple_bxilogger.py")
+        
+        process = subprocess.Popen([exe],
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        self.assertEquals(len(stdout.strip().split('\n')), 2) # Only the output line
+        self.assertEquals(len(stderr.strip().split('\n')), 5) # All above warning
+
+    
+    def test_log_console_conf(self):
+        pass
+    
+    def test_log_file_conf(self):
+        pass
+    
+    def test_log_console_file_conf(self):
+        pass
+
+
 
 ###############################################################################
 
