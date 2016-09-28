@@ -195,28 +195,40 @@ def _add_config(parser,
     if not os.path.exists(cmd_config):
         cmd_config = os.path.join(full_config_dir, default_config_filename)
 
-    def _add_config_file_arg(target_parser):
-        group = target_parser.add_argument_group('Configuration')
+    def _add_config_dir_arg(target_parser, known_args=None):
+        group = target_parser.add_argument_group('Configuration file')
         group.add_argument("--config-directory",
-                           help="The directory containing configuration files."
-                           " Value: %(default)s. "
-                           "Environment variable: %(envvar)s",
+                           help="The directory where the configuration file "
+                                "must be looked for."
+                                " Value: %(default)s. "
+                                "Environment variable: %(envvar)s",
                            default=full_config_dir,
                            envvar="BXICONFIGDIR",
                            metavar="DIR")
+
+        if known_args is None:
+            default = cmd_config
+        else:
+            default = os.path.join(known_args.config_directory,
+                                   os.path.basename(sys.argv[0]) + cmd_config_file_suffix) 
+            if not os.path.exists(default):
+                default = os.path.join(known_args.config_directory,
+                                       default_config_filename)
+
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
                            help="The configuration file to use. Value: %(default)s. "
                            "Environment variable: %(envvar)s",
-                           default=cmd_config,
+                           default=default,
                            envvar="BXICONFIGFILE",
                            metavar="FILE")
 
     dummy = posless.ArgumentParser(add_help=False)
-    _add_config_file_arg(dummy)
-    _add_config_file_arg(parser)
+    _add_config_dir_arg(dummy)
 
     known_args = dummy.parse_known_args()[0]
+
+    _add_config_dir_arg(parser, known_args)
 
     if os.path.exists(known_args.config_file):
         try:

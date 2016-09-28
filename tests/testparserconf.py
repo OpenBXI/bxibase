@@ -78,7 +78,8 @@ class ParserConfTest(unittest.TestCase):
 
         try:
             cmd = os.path.basename(sys.argv[0])
-            filename = os.path.join(self.bxiconfigdir, cmd + parserconf.DEFAULT_CONFIG_SUFFIX)
+            filename = os.path.join(self.bxiconfigdir, 
+                                    cmd + parserconf.DEFAULT_CONFIG_SUFFIX)
 
             if not os.path.exists(filename):
                 with open(filename, 'w'):
@@ -130,6 +131,7 @@ class ParserConfTest(unittest.TestCase):
         self.assertEquals(result['foo0'], 'bar0')
         self.assertEquals(result['foo1'], 'bar1.2')
         self.assertEquals(result['foo2'], 'bar2')
+        
         
     def _test_logs(self, param):
         exe = os.path.join(os.path.dirname(__file__), "simple_bxilogger.py")
