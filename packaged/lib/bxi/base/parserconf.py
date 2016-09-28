@@ -196,8 +196,8 @@ def _add_config(parser,
         cmd_config = os.path.join(full_config_dir, default_config_filename)
 
     def _add_config_dir_arg(target_parser, known_args=None):
-        group = target_parser.add_argument_group('Configuration file')
-        group.add_argument("--config-directory",
+        group = target_parser.add_argument_group('File Based Configuration')
+        group.add_argument("--config-dir",
                            help="The directory where the configuration file "
                                 "must be looked for."
                                 " Value: %(default)s. "
@@ -209,10 +209,10 @@ def _add_config(parser,
         if known_args is None:
             default = cmd_config
         else:
-            default = os.path.join(known_args.config_directory,
+            default = os.path.join(known_args.config_dir,
                                    os.path.basename(sys.argv[0]) + cmd_config_file_suffix) 
             if not os.path.exists(default):
-                default = os.path.join(known_args.config_directory,
+                default = os.path.join(known_args.config_dir,
                                        default_config_filename)
 
         group.add_argument("-C", "--config-file",
@@ -241,6 +241,8 @@ def _add_config(parser,
             logging.cleanup()
     else:
         parser.config = ConfigObj()
+
+    parser.known_config_file = known_args.config_file
 
 
 def _configure_log(parser):
@@ -371,7 +373,7 @@ def _configure_log(parser):
                 }
 
     if known_args.output_default_logcfg:
-        config = configobj.ConfigObj(infile=baseconf)
+        config = configobj.ConfigObj(infile=baseconf, interpolation=False)
         for l in config.write():
             print(l)
         sys.exit(0)
@@ -381,18 +383,23 @@ def _configure_log(parser):
         if infile is None:
             # Default case: no logging configuration given and no file found by default
             infile = baseconf
-        elif not os.path.exists(infile):
-#             config_file = known_args.config_file
-#             if config_file is None:
-#                 config_file = parser.get_default('config_file')
-            config_file = 'Unavailable (see mantis#22687)'
-            parser.error("Default logging configuration file not found: %s. " % infile +\
-                         "Check your configuration from file: %s" % config_file)
-        config = configobj.ConfigObj(infile=infile)
+        else:
+            if not os.path.isabs(infile):
+                # Find the absolute path from config-file...
+                config_dir = os.path.dirname(parser.known_config_file)
+                infile = os.path.join(config_dir, infile)
+
+            if not os.path.exists(infile):
+                parser.error("Default logging configuration file "
+                             "not found: %s. " % infile +\
+                             "Check your configuration "
+                             "from file: %s" % parser.known_config_file)
+
+        config = configobj.ConfigObj(infile=infile, interpolation=False)
     elif not os.path.exists(known_args.logcfgfile):
         dummy.error("File not found: %s" % known_args.logcfgfile)
     else:
-        config = configobj.ConfigObj(infile=known_args.logcfgfile)
+        config = configobj.ConfigObj(infile=known_args.logcfgfile, interpolation=False)
 
     _add_others(dummy, known_args, group1, config)
     _add_others(parser, known_args, group, config)
