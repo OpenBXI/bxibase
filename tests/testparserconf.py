@@ -95,6 +95,29 @@ class ParserConfTest(unittest.TestCase):
                 os.unlink(filename)
             if path_created:
                 os.unlink(path)
+                
+    def test_domain_config(self):
+        path_created = False
+        file_created = False
+
+        try:
+            filename = os.path.join(self.bxiconfigdir, 
+                                    'foo' + parserconf.DEFAULT_CONFIG_SUFFIX)
+
+            if not os.path.exists(filename):
+                with open(filename, 'w'):
+                    created = True
+            parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+            parserconf.addargs(parser, domain_name='foo')
+            args = parser.parse_args()
+            
+            self.assertTrue(os.path.exists(filename))
+            self.assertEquals(args.config_file, filename)
+        finally:
+            if file_created:
+                os.unlink(filename)
+            if path_created:
+                os.unlink(path)
 
     def test_include_config(self):
         default_cfg = configobj.ConfigObj()

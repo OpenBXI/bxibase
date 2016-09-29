@@ -40,9 +40,10 @@ REMAINDER = posless.REMAINDER
 SUPPRESS = posless.SUPPRESS
 ZERO_OR_MORE = posless.ZERO_OR_MORE
 
-DEFAULT_CONFIG_FILENAME = 'default.conf'
+
 DEFAULT_CONFIG_DIRNAME = 'bxi'
 DEFAULT_CONFIG_SUFFIX = '.conf'
+DEFAULT_CONFIG_FILENAME = 'default' + DEFAULT_CONFIG_SUFFIX
 
 DEFAULT_CONSOLE_COLORS = '216_dark'
 DEFAULT_CONSOLE_FILTERS = ':output'
@@ -181,6 +182,7 @@ def _get_config_from_file(filename):
 def _add_config(parser,
                 default_config_dirname,
                 default_config_filename,
+                domain_name,
                 cmd_config_file_suffix):
 
     if os.getuid() == 0:
@@ -190,10 +192,18 @@ def _add_config(parser,
 
     full_config_dir = os.path.join(config_dir_prefix, default_config_dirname)
     full_config_dir = os.getenv('BXICONFIGDIR', full_config_dir)
+
+    # First, we try to fetch a configuration for the command line
     cmd_config = os.path.join(full_config_dir,
                               os.path.basename(sys.argv[0]) + cmd_config_file_suffix)
     if not os.path.exists(cmd_config):
-        cmd_config = os.path.join(full_config_dir, default_config_filename)
+        # Second we try to fetch a configuration for the domain name
+        if domain_name is not None:
+            cmd_config = os.path.join(full_config_dir,
+                                      domain_name + cmd_config_file_suffix)
+        if not os.path.exists(cmd_config):
+            # Third we try the default path
+            cmd_config = os.path.join(full_config_dir, default_config_filename)
 
     def _add_config_dir_arg(target_parser, known_args=None):
         group = target_parser.add_argument_group('File Based Configuration')
@@ -209,11 +219,17 @@ def _add_config(parser,
         if known_args is None:
             default = cmd_config
         else:
+            # First, we try to fetch a configuration for the command line
             default = os.path.join(known_args.config_dir,
-                                   os.path.basename(sys.argv[0]) + cmd_config_file_suffix) 
+                                   os.path.basename(sys.argv[0]) + cmd_config_file_suffix)
             if not os.path.exists(default):
-                default = os.path.join(known_args.config_dir,
-                                       default_config_filename)
+                # Second we try to fetch a configuration for the domain name
+                if domain_name is not None:
+                    default = os.path.join(known_args.config_dir,
+                                           domain_name + cmd_config_file_suffix)
+                if not os.path.exists(default):
+                    # Third we try the default path
+                    default = os.path.join(known_args.config_dir, default_config_filename)
 
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
@@ -414,11 +430,12 @@ def _configure_log(parser):
 
 
 def addargs(parser,
-            config_dirname=DEFAULT_CONFIG_DIRNAME,
-            config_filename=DEFAULT_CONFIG_FILENAME,
-            filename_suffix=DEFAULT_CONFIG_SUFFIX,
+            config_dirname=DEFAULT_CONFIG_DIRNAME,              # /etc/*bxi*
+            config_filename=DEFAULT_CONFIG_FILENAME,            # /etc/bxi/*default.conf*
+            domain_name=None,                                   # /etc/bxi/*domain*.conf
+            filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
             setsighandler=True):
-    _add_config(parser, config_dirname, config_filename, filename_suffix)
+    _add_config(parser, config_dirname, config_filename, domain_name, filename_suffix)
     _configure_log(parser)
 
     parser.add_argument('--help-full',
