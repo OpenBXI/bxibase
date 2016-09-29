@@ -170,7 +170,7 @@ class ParserConfTest(unittest.TestCase):
         self.assertEquals(len(stdout.strip().split('\n')), 2) # output and notice lines
         self.assertEquals(len(stderr.strip().split('\n')), 5) # All above warning
         
-        args.append("--console_filters=:error")
+        args.append("--log-console-filters=:error")
         process = subprocess.Popen(args,
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
@@ -212,7 +212,7 @@ class ParserConfTest(unittest.TestCase):
         with open(fileconf, 'w') as f:
             configobj.ConfigObj(config).write(f)
         
-        globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE: fileconf}
+        globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE_KEY: fileconf}
         globalconf_file = os.path.join(self.bxiconfigdir, 'global.conf')
         with open(globalconf_file, 'w') as f:
             configobj.ConfigObj(globalconfig).write(f)
@@ -231,7 +231,7 @@ class ParserConfTest(unittest.TestCase):
         with open(fileconf, 'w') as f:
             configobj.ConfigObj(config).write(f)
         
-        globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE: fileconf}
+        globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE_KEY: fileconf}
         globalconf_file = os.path.join(self.bxiconfigdir, 'global.conf')
         with open(globalconf_file, 'w') as f:
             configobj.ConfigObj(globalconfig).write(f)
@@ -250,7 +250,7 @@ class ParserConfTest(unittest.TestCase):
             configobj.ConfigObj(config).write(f)
         
         specific_config = {'include': globalconf_file,
-                           bxiparserconf.BXILOG_DEFAULT_CONFIGFILE: fileconf}
+                           bxiparserconf.BXILOG_DEFAULT_CONFIGFILE_KEY: fileconf}
         specificconf_file = os.path.join(self.bxiconfigdir, 'specific.conf')
         with open(specificconf_file, 'w') as f:
             configobj.ConfigObj(specific_config).write(f)

@@ -48,7 +48,7 @@ DEFAULT_CONFIG_FILENAME = 'default' + DEFAULT_CONFIG_SUFFIX
 DEFAULT_CONSOLE_COLORS = '216_dark'
 DEFAULT_CONSOLE_FILTERS = ':output'
 
-BXILOG_DEFAULT_CONFIGFILE = 'bxilog.default.configfile'
+BXILOG_DEFAULT_CONFIGFILE_KEY = 'bxilog.default.configfile'
 
 
 def get_default_logfile():
@@ -238,6 +238,7 @@ def _add_config(parser,
                            default=default,
                            envvar="BXICONFIGFILE",
                            metavar="FILE")
+        target_parser.known_config_file = default
 
     dummy = posless.ArgumentParser(add_help=False)
     _add_config_dir_arg(dummy)
@@ -246,9 +247,9 @@ def _add_config(parser,
 
     _add_config_dir_arg(parser, known_args)
 
-    if os.path.exists(known_args.config_file):
+    if os.path.exists(parser.known_config_file):
         try:
-            parser.config = _get_config_from_file(known_args.config_file)
+            parser.config = _get_config_from_file(parser.known_config_file)
         except IOError as err:
             parser.error('Configuration file error: %s' % err)
             logging.cleanup()
@@ -257,8 +258,6 @@ def _add_config(parser,
             logging.cleanup()
     else:
         parser.config = ConfigObj()
-
-    parser.known_config_file = known_args.config_file
 
 
 def _configure_log(parser):
@@ -275,7 +274,7 @@ def _configure_log(parser):
 
         default_logcfgfile = getdefaultvalue(target_parser,
                                              ['Defaults'],
-                                             BXILOG_DEFAULT_CONFIGFILE,
+                                             BXILOG_DEFAULT_CONFIGFILE_KEY,
                                              None)
         group.add_argument("--logcfgfile",
                            mustbeprinted=False,
@@ -302,9 +301,9 @@ def _configure_log(parser):
                                     "in section '%s' of config %s" % (console_handler,
                                                                       config))
             default = console_section['filters']
-            group.add_argument("-l", "--%s_filters" % console_handler,
+            group.add_argument("-l", "--log-%s-filters" % console_handler,
                                mustbeprinted=False,
-                               metavar='%s_filters' % console_handler,
+                               metavar='log-%s-filters' % console_handler,
                                envvar='BXILOG_%s_FILTERS' % console_handler,
                                default=default,
                                help="define the logging filters for the %s handler " % 
@@ -328,8 +327,8 @@ def _configure_log(parser):
                                 "and at least error levels and above. "
             else:
                 auto_help_msg = ""
-            group.add_argument("--%s_filters" % section,
-                               metavar='%s_filters' % section,
+            group.add_argument("--log-%s-filters" % section,
+                               metavar='log-%s-filters' % section,
                                mustbeprinted=False,
                                envvar='BXILOG_%s_FILTERS' % section,
                                default=default,
@@ -344,7 +343,7 @@ def _configure_log(parser):
                 target_parser.error("Bad logging configuration: 'path' is missing "
                                     "in section '%s' of config %s" % (section, config))
             default = conf['path']
-            group.add_argument("--%s_path" % section,
+            group.add_argument("--log-%s-path" % section,
                                metavar='PATH',
                                envvar='BXILOGPATH',
                                mustbeprinted=False,
@@ -354,9 +353,9 @@ def _configure_log(parser):
 
     def _override_logconfig(config, known_args):
         def _override_kv(option, key, config, args):
-            # option has the following format: --handler-key=value
+            # option has the following format: --log-handler-key=value
             if option.endswith(key):
-                handler_name = option[0:option.index(key) - 1] 
+                handler_name = option[len('log_'):option.index(key) - 1]
                 assert handler_name in config
                 # replace in config
 #                 print("Overriding: %s -> %s[%s]=%s" % 
@@ -465,6 +464,10 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
             _LOGGER.exception("No configuration provided."
                               " Using %s as default for value %s from section %s",
                               default, value, Sections, level=logging.DEBUG)
+#         else:
+#             print("No configuration provided."
+#                   " Using %s as default for value %s from section %s" % 
+#                   (default, value, Sections))
         return default
 
     try:
