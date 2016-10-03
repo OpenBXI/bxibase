@@ -19,7 +19,7 @@ TESTS = \
 		../packaged/doc/examples/bxilog-cfg
 if HAVE_PYTHON
 TESTS += \
-		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing.py
+		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing
 endif
 
 inst_checkdir=$(docdir)/tests/
@@ -93,7 +93,7 @@ EXTRA_DIST=\
 		   ../packaged/doc/examples/bxistr-examples.c\
 		   ../packaged/doc/examples/bxilog-err.c\
 		   ../packaged/doc/examples/bxilog-cfg.c\
-		   ../packaged/doc/examples/bxilog-multiprocessing.py
+		   ../packaged/doc/examples/bxilog-multiprocessing
 
 
 ___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la

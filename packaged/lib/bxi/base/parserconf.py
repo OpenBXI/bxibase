@@ -173,6 +173,9 @@ def _get_config_from_file(filename):
             return config
 
         for include_filename in config['includes']:
+            if not os.path.isabs(include_filename):
+                dir = os.path.dirname(filename)
+                include_filename = os.path.join(dir, include_filename)
             included = _get_config_from_file(include_filename)
             included.merge(config)
 
@@ -219,17 +222,23 @@ def _add_config(parser,
         if known_args is None:
             default = cmd_config
         else:
-            # First, we try to fetch a configuration for the command line
-            default = os.path.join(known_args.config_dir,
-                                   os.path.basename(sys.argv[0]) + cmd_config_file_suffix)
-            if not os.path.exists(default):
-                # Second we try to fetch a configuration for the domain name
-                if domain_name is not None:
-                    default = os.path.join(known_args.config_dir,
-                                           domain_name + cmd_config_file_suffix)
+            # First, we try to fetch a configuration from the command line
+            if hasattr(known_args, 'config_file'):
+                default = known_args.config_file
+            else:
+                default = os.path.join(known_args.config_dir,
+                                       os.path.basename(sys.argv[0]) + \
+                                       cmd_config_file_suffix)
                 if not os.path.exists(default):
-                    # Third we try the default path
-                    default = os.path.join(known_args.config_dir, default_config_filename)
+                    # Second we try to fetch a configuration for the domain name
+                    if domain_name is not None:
+                        default = os.path.join(known_args.config_dir,
+                                               domain_name + \
+                                               cmd_config_file_suffix)
+                    if not os.path.exists(default):
+                        # Third we try the default path
+                        default = os.path.join(known_args.config_dir,
+                                               default_config_filename)
 
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
