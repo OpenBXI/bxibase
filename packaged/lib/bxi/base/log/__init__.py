@@ -335,6 +335,8 @@ def _init():
             bxilogconfig.add_handler(_CONFIG, section, c_config)
     except KeyError as ke:
         raise bxierr.BXIError("Bad bxilog configuration: %s, can't find %s" % (_CONFIG, ke))
+    except Exception as e:
+        raise bxierr.BXIError("Bad bxilog configuration: %s." % _CONFIG, cause=e)
 
     err_p = __BXIBASE_CAPI__.bxilog_init(c_config)
     bxierr.BXICError.raise_if_ko(err_p)
