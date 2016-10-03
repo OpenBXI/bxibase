@@ -378,13 +378,19 @@ def _configure_log(parser):
 
     known_args = dummy.parse_known_args()[0]
 
-    baseconf = {'handlers': ['console'],
+    baseconf = {'handlers': ['console', 'file'],
                 'setsighandler': True,
                 'console': {'module': bxilog_consolehandler.__name__,
                             'filters': ':output',
                             'stderr_level': 'WARNING',
                             'colors': '216_dark',
                             },
+                'file': {'module': bxilog_filehandler.__name__,
+                         'filters': 'auto',
+                         'path': os.path.join(tempfile.gettempdir(),
+                                              os.path.basename(sys.argv[0])) + '.bxilog',
+                         'append': True, 
+                         }
                 }
 
     if known_args.output_default_logcfg:
