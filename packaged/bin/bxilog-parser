@@ -1,0 +1,355 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@file bxilogparser
+@authors Pierre Vignéras <pierre.vigneras@bull.net>
+@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+           This is not Free or Open Source software.\n
+           Please contact Bull SAS for details about its license.\n
+           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+@namespace bxilogparser BXI logging Parser.
+
+"""
+
+from __future__ import print_function
+
+from Queue import Empty
+import string
+from datetime import datetime, timedelta
+import errno
+from multiprocessing import Process, Queue
+import re
+import subprocess
+import os
+import sys
+import shlex
+
+import bxi.base.log as bxilog
+import bxi.util as bxiutil
+import bxi.base.posless as posless
+import bxi.base.parserconf as bxiparserconf
+from subprocess import CalledProcessError
+
+
+# from threading  import Thread
+# try:
+#     from Queue import Queue, Empty
+# except ImportError:
+#     from queue import Queue, Empty  # python 3.x
+ON_POSIX = 'posix' in sys.builtin_module_names
+
+TIME_HEADER = "TIMESTAMP"
+LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
+                'A': (5, 0, 4),  # Alert
+                'C': (5, 0, 2),  # Critical
+                'E': (5, 0, 0),  # Error
+                'W': (5, 5, 0),  # Warning
+                'N': (5, 5, 3),  # Notify
+                'O': (5, 5, 5),  # Output
+                'I': (0, 5, 0),  # Info
+                'D': (1, 5, 1),  # Debug
+                'F': (1, 4, 1),  # Fine
+                'T': (1, 3, 1),  # Trace
+                'L': (1, 2, 1),  # Lowest
+                }
+
+#I|20160208T104136.033206346|31029.31164=46848:dvDaemon|divio_agent.c:437@lltc_receive|bxivirt.divio.agent|link on port 7 is now up
+LOGLINE_RE = re.compile(r'^(?P<level>\w+)\|'
+                        '(?P<timestamp>\d+T\d+.\d+)\|'
+                        '(?P<pkrid>\d+.\d+=\d+):(?P<process>.+)\|'
+                        '(?P<source>.+:\d+@.*)\|'
+                        '(?P<logger>.*)\|'
+                        '(?P<logmsg>.*)$')
+BT_RE = re.compile('^(?P<prefix>##trce##\s\[\d{2}\]\s)'
+                   '(?P<filename>.+)'
+                   '\((?P<funcname>\w*)\+(?P<addr>0x[0-9A-Fa-f]+).*$')
+
+
+
+_LOGGER = bxilog.getLogger(os.path.basename(sys.argv[0]))
+
+
+def hsv_to_rgb(h, s, v, max):
+    """
+    HSV values in [0..1[
+
+    Returns [r, g, b] values from 0 to max inclusive
+
+    """
+    h_i = int(h * 6)
+    f = h * 6 - h_i
+    p = v * (1 - s)
+    q = v * (1 - f * s)
+    t = v * (1 - (1 - f) * s)
+    if h_i == 0: r, g, b = v, t, p
+    elif h_i == 1: r, g, b = q, v, p
+    elif h_i == 2: r, g, b = p, v, t
+    elif h_i == 3: r, g, b = p, q, v
+    elif h_i == 4: r, g, b = t, p, v
+    elif h_i == 5: r, g, b = v, p, q
+
+    return int(r * max + 1), int(g * max + 1), int(b * max + 1)
+
+
+def addr2line(prefix, log, filename, addr):
+    cmd = "addr2line --exe=%s --demangle --addresses --functions --inlines" \
+          " --pretty-print addr" % filename
+    _LOGGER.debug("Calling: '%s'", cmd)
+    param = shlex.split(cmd)
+    bt_log = subprocess.check_output(param)
+    if '??' in bt_log:
+        return log
+    return prefix + bt_log
+
+
+def parse_backtrace_log(log):
+    result = BT_RE.match(log)
+    if result is None:
+        return log
+    prefix = result.group('prefix')
+    filename = result.group('filename')
+    funcname = result.group('funcname')
+    addr = result.group('addr')
+    try:
+        if (len(funcname) == 0):
+            return addr2line(prefix, log, filename, addr)
+        else:
+            with open('/dev/null', 'w') as sink:
+                cmd = "nm %s | grep %s" % (filename, funcname)
+                _LOGGER.debug("Calling '%s'", cmd)
+                out = subprocess.check_output(cmd,
+                                              stderr=sink,
+                                              shell=True)
+                faddr = eval('hex(0x%s+%s)' % (out.split()[0], addr))
+                return addr2line(prefix, log, filename, faddr)
+    except CalledProcessError:
+        _LOGGER.exception("Can't exec subprocess for backtrace parsing,"
+                          " returning raw backtrace", level=bxilog.FINE)
+        return log
+
+
+def _parse_logline(n, line):
+    """
+    Parse a bxilog line and return a tuple:
+
+     (n, level, timestamp, pkrid, process, filename, logger, log)
+
+    where:
+        level: is the log level
+        timestamp: is the log timestamp
+        pkrid: is the process/kernel task/thread rank id
+        process: is the process name from which the log was emmitted
+        source: is the source code from where the log line has been emitted
+        logger: is the logger which emitted the log line
+        log: is the actual message
+    """
+    result = LOGLINE_RE.match(line)
+    if result is None:
+        return None
+    level = result.group('level')
+    timestamp = result.group('timestamp')
+    pkrid = result.group('pkrid')
+    process = result.group('process')
+    source = result.group('source')
+    logger = result.group('logger')
+    logmsg = result.group('logmsg')
+
+    _LOGGER.trace("%d: level=%s, timestamp=%s, pkrid=%s, process=%s, source=%s logger=%s",
+                  n, level, timestamp, pkrid, process, source, logger)
+
+    log = parse_backtrace_log(logmsg.rstrip())
+
+    return n, level, timestamp, pkrid, process, source, logger, log
+
+
+def enqueue_input(input_, queue):
+    input = sys.stdin if input_ == '-' else open(input_, 'rb')
+    try:
+        n = 0
+        for line in iter(input.readline, b''):
+            n += 1
+            # Remove all non printable char by their decimal value
+            pline = bxiutil.blob2str(line)
+            if len(pline.strip()) > 0:
+                parsed_line = _parse_logline(n, pline)
+                if parsed_line is None:
+                    _LOGGER.warn("Ignoring non bxilog line %d: %s", n, line)
+                    continue
+                queue.put(parsed_line)
+    finally:
+        _LOGGER.debug("EOF reached, closing input file")
+        input.close()
+        _LOGGER.debug("Putting end mark for reader termination")
+        queue.put(None)
+
+
+def _flush_frame(logs, output):
+    """
+    Flush the given logs time frame.
+
+    So that all of its entries is printed through the given output.
+
+    """
+    for timestamp in sorted(logs):
+        entries = logs[timestamp]
+        (level, color, pkrid, process, source, logger, log) = entries[0]
+        try:
+            lcolor = LEVEL_COLORS[level]
+        except KeyError:
+            lcolor = LEVEL_COLORS['E']
+        # print the first line with the timestamp
+        print("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]),
+               end='', file=output)
+        print("%s|" % level, end='', file=output)
+        print(timestamp, end='', file=output)
+        print("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m" % (16 + 36 * color[0] + 6 * color[1] + color[2],
+                                                        pkrid,
+                                                        process,
+                                                        source,
+                                                        logger,
+                                                        log), file=output)
+
+        # then print all remaining lines (for the considered timestamp)
+        for (level, color, pkrid, process, source, logger, log) in entries[1:]:
+            lcolor = LEVEL_COLORS[level]
+            print("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]),
+               end='', file=output)
+            print("%s|" % level, end='', file=output)
+            print('.' * len(timestamp), end='', file=output)
+            print("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m" % (16 + 36 * color[0] + 6 * color[1] + color[2],
+                                                            pkrid,
+                                                            process,
+                                                            source,
+                                                            logger,
+                                                            log), file=output)
+
+
+@bxilog.multiprocessing_target
+def parse(output_, time_frame, flush_limit, q, bxilog_config):
+    """
+    Parse the given input (that should present bxilog line)
+    and print using the given output using the given time frame_size.
+    """
+    bxilog.set_config(bxilog_config)
+    output = sys.stdout if output_ == '-' else open(output_, 'w')
+    frame_size = timedelta(seconds=time_frame)
+    before_logs = dict()
+    current_logs = dict()
+    after_logs = dict()
+    pkrids_color = dict()
+    # use golden ratio
+    # See: http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+    # for details
+    golden_ratio_conjugate = 0.618033988749895
+    h = 0
+    current_frame = None
+    after_frame = None
+    try:
+        while True:
+            try:
+                logdata = q.get(timeout=.1)
+            except Empty:
+                _LOGGER.info("Flushing (empty queue): len(before)=%d, len(current)=%d, len(after)=%d",
+                             len(before_logs), len(current_logs), len(after_logs))
+                _flush_frame(before_logs, output)
+                before_logs = current_logs
+                current_logs = after_logs
+                after_logs = dict()
+                current_frame = after_frame
+                after_frame = current_frame + frame_size if current_frame is not None else None
+                continue
+            # got line
+            if logdata is None:
+                break
+            if len(logdata) != 8:
+                _LOGGER.warning("Ignoring non bxilog line: %s", repr(logdata[1].strip()))
+                continue
+
+            number, level, timestamp, pkrid, process, source, logger, log = logdata
+            color = pkrids_color.get(pkrid, None)
+            if color is None:
+                h += golden_ratio_conjugate
+                h %= 1
+                # ASCII Control 38;5 requires RGB between 0 and 5.
+                color = hsv_to_rgb(h, 0.5, 0.95, 5)
+                pkrids_color[pkrid] = color
+            try:
+                subsecond_idx = timestamp.rfind('.') + 1
+                if len(timestamp) - subsecond_idx > 6:
+                    # Truncate to microseconds since Python cannot deal with something better
+                    timestamp = timestamp[:subsecond_idx + 6]
+                ts = datetime.strptime(timestamp, '%Y%m%dT%H%M%S.%f')
+            except (ValueError,TypeError) as err:
+                _LOGGER.warning("Ignoring line %d - %s - %s", number, timestamp, str(err))
+                continue
+            if current_frame is None:
+                current_frame = ts
+                after_frame = ts + frame_size
+                target_frame = current_logs
+            else:
+                if ts > after_frame:
+                    target_frame = after_logs
+                    _LOGGER.debug("%s > %s -> after", ts, after_frame)
+                elif ts > current_frame:
+                    target_frame = current_logs
+                    _LOGGER.debug("%s > %s -> current", ts, current_frame)
+                else:
+                    target_frame = before_logs
+                    _LOGGER.debug("%s <= %s -> before", ts, current_frame)
+
+            entries = target_frame.setdefault(timestamp, [])
+            entries.append((level, color, pkrid, process, source, logger, log))
+
+            # Empirical: if the log timestamp exceeds 2 times the after_frame
+            # perform a flush.
+            if ts > after_frame + flush_limit * frame_size:
+                _LOGGER.debug("%s > %s -> flush", ts, after_frame + flush_limit * frame_size)
+                _flush_frame(before_logs, output)
+                _LOGGER.info("Flushing (limit = %d): len(before)=%d, len(current)=%d, len(after)=%d",
+                             flush_limit, len(before_logs), len(current_logs), len(after_logs))
+                before_logs = current_logs
+                current_logs = after_logs
+                after_logs = dict()
+                current_frame = after_frame
+                after_frame = current_frame + frame_size
+
+        _flush_frame(before_logs, output)
+        _flush_frame(current_logs, output)
+        _flush_frame(after_logs, output)
+    except IOError as e:
+        if e.errno == errno.EPIPE:
+            pass
+    finally:
+        # multiprocessing close stdout for us
+        if output is not sys.stdout:
+            output.close()
+
+
+def main():
+    """Main function."""
+    parser = posless.ArgumentParser(description='BXI Log Parser',
+                                   formatter_class=bxiparserconf.FilteredHelpFormatter)
+    bxiparserconf.addargs(parser, domain_name='log')
+    parser.add_argument("input", type=str, nargs='?', default='-',
+                        help="The logging file. Default is '-' for standard input")
+    parser.add_argument("output", type=str, nargs='?', default='-',
+                        help="The output file. Default is '-' for standard output")
+    parser.add_argument("--frame", metavar='frame', type=float, default=0.5,
+                        help="Time frame in seconds default: %(default)s")
+    parser.add_argument("--flush_limit", metavar='flush_limit', type=int, default=1,
+                        help="Flush when a log timestamp exceeds this "
+                        "number of time frames. Default: %(default)s")
+
+    args = parser.parse_args()
+
+    q = Queue()
+    t = Process(target=parse, args=(args.output, args.frame, args.flush_limit, q,
+                                    bxilog.get_config()))
+    t.daemon = False  # thread dies with the program
+    t.start()
+    enqueue_input(args.input, q)
+
+
+if __name__ == '__main__':
+    main()
+
