@@ -14,20 +14,20 @@ endif
 
 TESTS = \
 		unit_t\
-		../packaged/doc/examples/bxistr_examples\
-		../packaged/doc/examples/bxilog_err\
-		../packaged/doc/examples/bxilog_cfg
+		../packaged/doc/examples/bxistr-examples\
+		../packaged/doc/examples/bxilog-err\
+		../packaged/doc/examples/bxilog-cfg
 if HAVE_PYTHON
 TESTS += \
-		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py
+		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing.py
 endif
 
 inst_checkdir=$(docdir)/tests/
 inst_check_PROGRAMS= \
 					 unit_t\
-					 ../packaged/doc/examples/bxistr_examples\
-					 ../packaged/doc/examples/bxilog_err\
-					 ../packaged/doc/examples/bxilog_cfg
+					 ../packaged/doc/examples/bxistr-examples\
+					 ../packaged/doc/examples/bxilog-err\
+					 ../packaged/doc/examples/bxilog-cfg
 
 dist_inst_check_SCRIPTS=\
 						simple_bxilog_user.py \
@@ -90,10 +90,10 @@ DISTCLEANFILES=\
 			   report/${PACKAGE_NAME}-Listing.xml
 
 EXTRA_DIST=\
-		   ../packaged/doc/examples/bxistr_examples.c\
-		   ../packaged/doc/examples/bxilog_err.c\
-		   ../packaged/doc/examples/bxilog_cfg.c\
-		   ../packaged/doc/examples/bxilog_multiprocessing.py
+		   ../packaged/doc/examples/bxistr-examples.c\
+		   ../packaged/doc/examples/bxilog-err.c\
+		   ../packaged/doc/examples/bxilog-cfg.c\
+		   ../packaged/doc/examples/bxilog-multiprocessing.py
 
 
 ___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
