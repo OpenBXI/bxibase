@@ -38,86 +38,182 @@ import bxi.base.parserconf as parserconf
 
 class ParserConfTest(unittest.TestCase):
     """Unit tests for the BXI parserconf module
+    
+    Abbreviations:
+        Def: Default value in the code
+        CD: --config-dir option has been given
+        CF: --config-file option has been given
+        ENV: Environment variable has been given
+        CL: --variable option has been given
+        V: value of the variable
+        
+    The matrix use cases is the following
+    
+    Def | CD | CF | ENV | CL | V
+     1    0    0    0     0    Def -> the value is the one given by the code 
+     1    1    0    0     0    CD  -> the value is the one given by a file in the config dir
+     1    0    1    0     0    CF  -> the value is given by the given file
+     1    1    1    ?     ?    Error -> cannot have both --config-dir and --config-file
+     1    ?    ?    1     0    Env -> the value is given by the environment variable
+     1    ?    ?    ?     1    CL  -> the value is given by the option --variable
     """
+
     def setUp(self):
         unittest.TestCase.setUp(self)
+        if not hasattr(self, 'bxilog_config'):
+            self.bxilog_config = bxilog.get_config()
+
+        bxilog.set_config(self.bxilog_config)
         
         try:
             self.bxiconfigdir = tempfile.mkdtemp()
-            os.environ['BXICONFIGDIR'] = self.bxiconfigdir
-            del os.environ['BXICONFIGFILE']
         except KeyError:
             pass
 
     def tearDown(self):
-        pass
-#         if os.path.exist(self.bxiconfigdir):
-#             rmtree(self.bxiconfigdir)
+        bxilog.cleanup()
+        if os.path.exists(self.bxiconfigdir):
+            rmtree(self.bxiconfigdir)
 
-    def test_default_config(self):
+    def _populate_parser(self, parser):
+        default = bxiparserconf.getdefaultvalue(parser, ['My Section'], 'variable',
+                                                bxilog.getLogger('config'),
+                                                'Default_Value',
+                                                None,
+                                                )
+        parser.add_argument('--variable', default=default,
+                            envvar='VAR',
+                            help="Do something with variable. Current: %(default)s.")
+        default = bxiparserconf.getdefaultvalue(parser, ['My Section'], 'stuff',
+                                                bxilog.getLogger('config'),
+                                                'Default_stuff',
+                                                None,
+                                                )
+        parser.add_argument('--stuff', default=default,
+                            help="Do something with stuff. Current: %(default)s.")
+
+    def test_def(self):
+        # Hack around posless/argparse problem with argv parsing.
+        SAVED_ARGV = sys.argv
+        sys.argv = [sys.argv[0], '--config-dir', self.bxiconfigdir]
         parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
-        parserconf.addargs(parser)
+        
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
         args = parser.parse_args()
         
         suffix = os.path.join(self.bxiconfigdir,
                               parserconf.DEFAULT_CONFIG_FILENAME)
         self.assertTrue(args.config_file.endswith(suffix), args.config_file)
-
+        self.assertEquals(args.variable, 'Default_Value')
+        self.assertEquals(args.stuff, 'Default_stuff')
+        
+        bxilog.cleanup()
+        fileconf = os.path.join(self.bxiconfigdir, parserconf.DEFAULT_CONFIG_FILENAME)
+        with open(fileconf, 'w') as f:
+            f.write("""
+[My Section]
+    variable = 'foo'
+""")
+        parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+        
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
+        args = parser.parse_args()
+        
+        self.assertEquals(os.path.basename(args.config_file),
+                          parserconf.DEFAULT_CONFIG_FILENAME)
+        self.assertEquals(args.variable, 'foo')
+        self.assertEquals(args.stuff, 'Default_stuff')
+        
+        bxilog.cleanup()
+        fileconf = os.path.join(self.bxiconfigdir, 'bar.conf')
+        with open(fileconf, 'w') as f:
+            f.write("""
+[My Section]
+    variable = 'bar'
+""")
+        parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+        
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
+        args = parser.parse_args()
+        
+        self.assertEquals(args.config_file, fileconf)
+        self.assertEquals(args.variable, 'bar')
+        self.assertEquals(args.stuff, 'Default_stuff')
+        
+        bxilog.cleanup()
+        fileconf = os.path.join(self.bxiconfigdir,
+                                os.path.basename(sys.argv[0]) + '.conf')
+        with open(fileconf, 'w') as f:
+            f.write("""
+[My Section]
+    variable = 'baz'
+""")
+        parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+        
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
+        args = parser.parse_args()
+        
+        self.assertEquals(args.config_file, fileconf)
+        self.assertEquals(args.variable, 'baz')
+        self.assertEquals(args.stuff, 'Default_stuff')
+    
+        
+        bxilog.cleanup()
+        fileconf = os.path.join(self.bxiconfigdir, 'specific.conf')
+        with open(fileconf, 'w') as f:
+            f.write("""
+[My Section]
+    variable = 'spec'
+""")
+        sys.argv = [sys.argv[0], '--config-file', fileconf]
+        parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+        
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
+        args = parser.parse_args()
+        self.assertEquals(args.config_file, fileconf)
+        self.assertEquals(args.variable, 'spec')
+        self.assertEquals(args.stuff, 'Default_stuff')
+        
+        os.environ['VAR'] = 'env'
+        bxilog.cleanup()
+        parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+        
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
+        args = parser.parse_args()
+        self.assertEquals(args.config_file, fileconf)
+        self.assertEquals(args.variable, 'env')
+        self.assertEquals(args.stuff, 'Default_stuff')
+        
+        
+        bxilog.cleanup()
+        parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
+        sys.argv = [sys.argv[0], '--config-file', fileconf, '--variable', 'command_line']
+        parserconf.addargs(parser, domain_name='bar')
+        self._populate_parser(parser)
+        args = parser.parse_args()
+        self.assertEquals(args.config_file, fileconf)
+        self.assertEquals(args.variable, 'command_line')
+        self.assertEquals(args.stuff, 'Default_stuff')
+        
+        
+        sys.argv = SAVED_ARGV
+    
     def test_specific_dir_config(self):
-        del os.environ['BXICONFIGDIR']
         parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
         parserconf.addargs(parser, config_dirname='foo')
+        self._populate_parser(parser)
         args = parser.parse_args()
 
         suffix = os.path.join('foo', parserconf.DEFAULT_CONFIG_FILENAME)
         self.assertTrue(args.config_file.endswith(suffix), args.config_file)
+        
 
-    def test_default_cmd_config(self):
-        path_created = False
-        file_created = False
-
-        try:
-            cmd = os.path.basename(sys.argv[0])
-            filename = os.path.join(self.bxiconfigdir, 
-                                    cmd + parserconf.DEFAULT_CONFIG_SUFFIX)
-
-            if not os.path.exists(filename):
-                with open(filename, 'w'):
-                    created = True
-            parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
-            parserconf.addargs(parser)
-            args = parser.parse_args()
-            
-            self.assertTrue(os.path.exists(filename))
-            self.assertEquals(args.config_file, filename)
-        finally:
-            if file_created:
-                os.unlink(filename)
-            if path_created:
-                os.unlink(path)
-                
-    def test_domain_config(self):
-        path_created = False
-        file_created = False
-
-        try:
-            filename = os.path.join(self.bxiconfigdir, 
-                                    'foo' + parserconf.DEFAULT_CONFIG_SUFFIX)
-
-            if not os.path.exists(filename):
-                with open(filename, 'w'):
-                    created = True
-            parser = posless.ArgumentParser(formatter_class=parserconf.FilteredHelpFormatter)
-            parserconf.addargs(parser, domain_name='foo')
-            args = parser.parse_args()
-            
-            self.assertTrue(os.path.exists(filename))
-            self.assertEquals(args.config_file, filename)
-        finally:
-            if file_created:
-                os.unlink(filename)
-            if path_created:
-                os.unlink(path)
 
     def test_include_config(self):
         default_cfg = configobj.ConfigObj()

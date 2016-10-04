@@ -210,44 +210,55 @@ def _add_config(parser,
 
     def _add_config_dir_arg(target_parser, known_args=None):
         group = target_parser.add_argument_group('File Based Configuration')
+
+        if known_args is None:
+            default_config_dir = None
+            default_config_file = None
+        else:
+            # Check if the --config-file option has been given
+            if known_args.config_file is not None:
+                default_config_dir = None
+                default_config_file = known_args.config_file
+            else:
+                if known_args.config_dir is None:
+                    default_config_dir = full_config_dir
+                    default_config_file = cmd_config
+                else:
+                    default_config_dir = known_args.config_dir
+                    candidate = os.path.join(default_config_dir,
+                                             os.path.basename(sys.argv[0]) + \
+                                             cmd_config_file_suffix)
+                    if not os.path.exists(candidate):
+                        # Second we try to fetch a configuration for the domain name
+                        if domain_name is not None:
+                            candidate = os.path.join(default_config_dir,
+                                                     domain_name + \
+                                                     cmd_config_file_suffix)
+                        if not os.path.exists(candidate):
+                            # Third we try the default path
+                            candidate = os.path.join(default_config_dir,
+                                                     default_config_filename)
+                    default_config_file = candidate
+
         group.add_argument("--config-dir",
                            help="The directory where the configuration file "
                                 "must be looked for."
                                 " Value: %(default)s. "
                                 "Environment variable: %(envvar)s",
-                           default=full_config_dir,
+                           default=default_config_dir,
                            envvar="BXICONFIGDIR",
                            metavar="DIR")
 
-        if known_args is None:
-            default = cmd_config
-        else:
-            # First, we try to fetch a configuration from the command line
-            if hasattr(known_args, 'config_file'):
-                default = known_args.config_file
-            else:
-                default = os.path.join(known_args.config_dir,
-                                       os.path.basename(sys.argv[0]) + \
-                                       cmd_config_file_suffix)
-                if not os.path.exists(default):
-                    # Second we try to fetch a configuration for the domain name
-                    if domain_name is not None:
-                        default = os.path.join(known_args.config_dir,
-                                               domain_name + \
-                                               cmd_config_file_suffix)
-                    if not os.path.exists(default):
-                        # Third we try the default path
-                        default = os.path.join(known_args.config_dir,
-                                               default_config_filename)
-
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
-                           help="The configuration file to use. Value: %(default)s. "
+                           help="The configuration file to use. If None, "
+                           "the file is taken from the configuration directory"
+                           "Value: %(default)s. "
                            "Environment variable: %(envvar)s",
-                           default=default,
+                           default=default_config_file,
                            envvar="BXICONFIGFILE",
                            metavar="FILE")
-        target_parser.known_config_file = default
+        target_parser.known_config_file = default_config_file
 
     dummy = posless.ArgumentParser(add_help=False)
     _add_config_dir_arg(dummy)
@@ -396,8 +407,8 @@ def _configure_log(parser):
                             },
                 'file': {'module': bxilog_filehandler.__name__,
                          'filters': 'auto',
-                         'path': os.path.join(tempfile.gettempdir(),
-                                              os.path.basename(sys.argv[0])) + '.bxilog',
+                          'path': os.path.join(tempfile.gettempdir(),
+                                               '%(prog)s') + '.bxilog',
                          'append': True, 
                          }
                 }
