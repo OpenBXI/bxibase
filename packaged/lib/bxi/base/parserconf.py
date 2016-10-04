@@ -282,12 +282,16 @@ def _add_config(parser,
 
 def _configure_log(parser):
     def _add_common(target_parser):
+        # Warning: do not introduce --log-STUFF unless STUFF is actually the name 
+        # of a bxilog handler.
         group = target_parser.add_argument_group('BXI Log options')
         group.add_argument("--loglevels",
                            mustbeprinted=False,
                            action=LogLevelsAction,
                            help="displays all log levels and exit.")
-        group.add_argument("--log-output-default-config",
+
+        group.add_argument("--logoutput-default-config",
+                           dest='output_default_logcfg',
                            action='store_true',
                            mustbeprinted=False,
                            help="Output the default logging configuration and exit.")
