@@ -287,7 +287,7 @@ def _configure_log(parser):
                            mustbeprinted=False,
                            action=LogLevelsAction,
                            help="displays all log levels and exit.")
-        group.add_argument("--output-default-logcfg",
+        group.add_argument("--log-output-default-config",
                            action='store_true',
                            mustbeprinted=False,
                            help="Output the default logging configuration and exit.")
