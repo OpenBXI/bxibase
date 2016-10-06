@@ -798,13 +798,22 @@ class TestCase(unittest.TestCase):
 
     Files are overwritten by default.
     """
-    BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
-                                   "%s.bxilog" % os.path.basename(sys.argv[0]))
+    # Do not initialize here as it can lead to exception such as:
+    # IOError: [Errno 2] No usable temporary directory found 
+    #                                      in ['/tmp', '/var/tmp', '/usr/tmp', '/root']
+    # This look strange when the end-user is just importing the bxi.base.log module
+    # and when there is no free storage space. 
+    # Therefore, the initialization is done only in the setUpClass().
+    BXILOG_FILENAME = None 
 
     FILEMODE = 'w'
 
     @classmethod
     def setUpClass(cls):
+        if TestCase.BXILOG_FILENAME is None:
+            name = "%s.bxilog" % os.path.basename(sys.argv[0])
+            TestCase.BXILOG_FILENAME = os.path.join(tempfile.gettempdir(), name)
+
         basicConfig(filename=cls.BXILOG_FILENAME,
                     level=LOWEST,
                     filemode=TestCase.FILEMODE)
