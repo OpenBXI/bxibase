@@ -145,7 +145,7 @@ def _add_config(parser, config_file):
                            ", environment variable: %(envvar)s",
                            envvar="BXICONFIG", metavar="FILE")
 
-    dummy = posless.ArgumentParser(add_help=False)
+    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
     _add_config_file_arg(dummy)
     _add_config_file_arg(parser)
 
@@ -181,7 +181,7 @@ def _configure_log(parser):
         except:
             default_value = '%s%s%s.bxilog' % (tempfile.gettempdir(),
                                                os.path.sep,
-                                               os.path.basename(sys.argv[0]))
+                                               os.path.basename(parser.prog))
 
         group.add_argument("--logfile",
                            metavar='FILE',
@@ -247,7 +247,7 @@ def _configure_log(parser):
                            help="logging configuration file. If set, other bxilog "
                            "options are ignored.")
 
-    dummy = posless.ArgumentParser(add_help=False)
+    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
     _add_log(dummy)
     _add_log(parser)
 
@@ -273,7 +273,7 @@ def _configure_log(parser):
                     }
         config = configobj.ConfigObj(infile=baseconf)
 
-    logging.set_config(config)
+    logging.set_config(config, parser.prog)
 
     parser.add_argument('--help-logs',
                         action=_LoggedHelpAction,

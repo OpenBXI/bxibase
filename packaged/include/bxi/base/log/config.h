@@ -61,7 +61,9 @@ typedef struct {
     int ctrl_hwm;                               //!< ZMQ High Water Mark of control zocket
     size_t tsd_log_buf_size;                    //!< Size in bytes of the logging buffer
     size_t handlers_nb;                         //!< Number of logging handlers
-    const char * progname;                      //!< Program name
+    const char * progname;                      //!< Program name used by bxilog_init()
+                                                //!< to set the process name (on linux
+                                                //!< at least)
     bxilog_handler_p * handlers;                //!< The handlers list
     bxilog_handler_param_p * handlers_params;   //!< The handler parameters list
 } bxilog_config_s;
