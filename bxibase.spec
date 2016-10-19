@@ -6,10 +6,7 @@
 #TODO: define your package name
 %define name bxibase
 
-# Bull software starts with 1.1-Bull.1.0
-# For versionning policy, please see wiki:
-# http://intran0x.frec.bull.fr/projet/HPC/wiki_etudes/index.php/How_to_generate_RPM#Bull_rpm_NAMING_CONVENTION
-%define version 6.1.1
+%define version 6.0.0
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
