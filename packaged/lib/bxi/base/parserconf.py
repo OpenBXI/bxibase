@@ -466,6 +466,9 @@ def _configure_log(parser):
     _override_logconfig(config, known_args)
 #     print(config)
     logging.captureWarnings(True)
+    if logging.is_configured():
+        logging.info("Reconfiguration of the logging system")
+        logging.cleanup()
     logging.set_config(config)
     if parser.known_config_file is not None:
         _LOGGER.info("Configuration based on '%s'", parser.known_config_file)
