@@ -252,7 +252,7 @@ def _add_config(parser,
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
                            help="The configuration file to use. If None, "
-                           "the file is taken from the configuration directory"
+                           "the file is taken from the configuration directory. "
                            "Value: %(default)s. "
                            "Environment variable: %(envvar)s",
                            default=default_config_file,
