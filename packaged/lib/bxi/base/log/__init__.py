@@ -201,6 +201,7 @@ _INITIALIZED = False
 # Set by set_config()
 _CONFIG = None
 _INIT_CALLER = None
+_PROGNAME = None
 
 DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
                                       'setsighandler': True,
@@ -237,7 +238,7 @@ def get_level_from_str(level_str):
     return level_p[0]
 
 
-def set_config(configobj):
+def set_config(configobj, progname=None):
     """
     Set the whole bxilog module from the given configobj
     """
@@ -259,6 +260,8 @@ def set_config(configobj):
 
     global _CONFIG
     _CONFIG = configobj
+    global _PROGNAME
+    _PROGNAME = progname
 
 
 def get_config():
@@ -320,14 +323,18 @@ def _init():
     global _INITIALIZED
     global _CONFIG
     global _INIT_CALLER
+    global _PROGNAME
 
     if _CONFIG is None:
         _CONFIG = DEFAULT_CONFIG
 
+    if _PROGNAME is None:
+        _PROGNAME = os.path.basename(sys.argv[0])
+
     from . import config as bxilogconfig
     from . import filter as bxilogfilter
 
-    c_config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
+    c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME)
 
     handlers = _CONFIG['handlers']
     for section in handlers:
@@ -442,9 +449,15 @@ def get_default_logger():
     @return
     """
     global _DEFAULT_LOGGER
-    
+    global _PROGNAME
+
+    if _PROGNAME is None:
+        default = os.path.basename(sys.argv[0])
+    else:
+        default = _PROGNAME
+
     if _DEFAULT_LOGGER is None:
-        _DEFAULT_LOGGER = getLogger(os.path.basename(sys.argv[0]))
+        _DEFAULT_LOGGER = getLogger(default)
     return _DEFAULT_LOGGER
 
 

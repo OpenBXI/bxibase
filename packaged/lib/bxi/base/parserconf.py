@@ -204,7 +204,7 @@ def _add_config(parser,
 
     # First, we try to fetch a configuration for the command line
     cmd_config = os.path.join(full_config_dir,
-                              os.path.basename(sys.argv[0]) + cmd_config_file_suffix)
+                              parser.prog + cmd_config_file_suffix)
     if not os.path.exists(cmd_config):
         # Second we try to fetch a configuration for the domain name
         if domain_name is not None:
@@ -232,7 +232,7 @@ def _add_config(parser,
                 else:
                     default_config_dir = known_args.config_dir
                     candidate = os.path.join(default_config_dir,
-                                             os.path.basename(sys.argv[0]) + \
+                                             os.path.basename(target_parser.prog) + \
                                              cmd_config_file_suffix)
                     if not os.path.exists(candidate):
                         # Second we try to fetch a configuration for the domain name
@@ -266,7 +266,7 @@ def _add_config(parser,
                            metavar="FILE")
         target_parser.known_config_file = default_config_file
 
-    dummy = posless.ArgumentParser(add_help=False)
+    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
     _add_config_dir_arg(dummy)
 
     known_args = dummy.parse_known_args()[0]
@@ -402,7 +402,7 @@ def _configure_log(parser):
                         default=posless.SUPPRESS,
                         help=_('show detailed logging options and exit'))
 
-    dummy = posless.ArgumentParser(add_help=False)
+    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
     group1 = _add_common(dummy)
     group = _add_common(parser)
 
