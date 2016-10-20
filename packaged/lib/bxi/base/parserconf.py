@@ -50,6 +50,8 @@ DEFAULT_CONSOLE_FILTERS = ':output'
 
 BXILOG_DEFAULT_CONFIGFILE_KEY = 'bxilog.default.configfile'
 
+_LOGGER = logging.get_logger(logging.LIB_PREFIX + 'bxi.base.parserconf')
+
 
 def get_default_logfile():
     return '%s%s%s.bxilog' % (tempfile.gettempdir(),
@@ -432,7 +434,7 @@ def _configure_log(parser):
         if infile is None:
             # Default case: no logging configuration given and no file found by default
             infile = baseconf
-            msg = "No logging configuration file given, using default."
+            logcfg_msg = "No logging configuration file given, using default."
         else:
             if not os.path.isabs(infile):
                 # Find the absolute path from config-file...
@@ -444,16 +446,16 @@ def _configure_log(parser):
                              "not found: %s. " % infile +\
                              "Check your configuration "
                              "from file: %s" % parser.known_config_file)
-            msg = "Using logging configuration file '%s' specified by '%s'" %\
-                  (infile, parser.known_config_file)
+            logcfg_msg = "Using logging configuration file '%s' specified by '%s'" %\
+                         (infile, parser.known_config_file)
 
         config = configobj.ConfigObj(infile=infile, interpolation=False)
     elif not os.path.exists(known_args.logcfgfile):
         dummy.error("File not found: %s" % known_args.logcfgfile)
     else:
         config = configobj.ConfigObj(infile=known_args.logcfgfile, interpolation=False)
-        msg = "Using logging configuration file '%s' specified by command line" %\
-              known_args.logcfgfile_file
+        logcfg_msg = "Using logging configuration file '%s' specified by command line" %\
+                     known_args.logcfgfile_file
 
     _add_others(dummy, known_args, group1, config)
     _add_others(parser, known_args, group, config)
@@ -465,7 +467,11 @@ def _configure_log(parser):
 #     print(config)
     logging.captureWarnings(True)
     logging.set_config(config)
-    logging.debug(msg)
+    if parser.known_config_file is not None:
+        _LOGGER.info("Configuration based on '%s'", parser.known_config_file)
+    else:
+        _LOGGER.info("No configuration file found, using default values")
+    _LOGGER.debug(logcfg_msg)
 
 
 def addargs(parser,

@@ -442,6 +442,7 @@ def get_default_logger():
     @return
     """
     global _DEFAULT_LOGGER
+    
     if _DEFAULT_LOGGER is None:
         _DEFAULT_LOGGER = getLogger(os.path.basename(sys.argv[0]))
     return _DEFAULT_LOGGER
