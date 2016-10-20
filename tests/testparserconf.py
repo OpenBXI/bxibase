@@ -226,21 +226,21 @@ class ParserConfTest(unittest.TestCase):
         
         cfg11 = configobj.ConfigObj()
         cfg11['foo1'] = 'bar1.1'
-        cfg11['includes'] = [default_filename]
+        cfg11['include'] = [default_filename]
         cfg11_filename = NamedTemporaryFile().name
         cfg11.filename = cfg11_filename
         cfg11.write()
         
         cfg12 = configobj.ConfigObj()
         cfg12['foo1'] = 'bar1.2'
-        cfg12['includes'] = [default_filename]
+        cfg12['include'] = [default_filename]
         cfg12_filename = NamedTemporaryFile().name
         cfg12.filename = cfg12_filename
         cfg12.write()
         
         cfg2 = configobj.ConfigObj()
         cfg2['foo2'] = 'bar2'
-        cfg2['includes'] = [cfg11_filename, cfg12_filename]
+        cfg2['include'] = [cfg11_filename, cfg12_filename]
         cfg2_filename = NamedTemporaryFile().name
         cfg2.filename = cfg2_filename
         cfg2.write()

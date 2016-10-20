@@ -169,10 +169,14 @@ def _get_config_from_file(filename):
     with open(filename, 'r') as f:
         config = ConfigObj(f, interpolation=False)
 
-        if 'includes' not in config or config['includes'] is None:
+        if 'include' not in config or config['include'] is None:
             return config
 
-        for include_filename in config['includes']:
+        if isinstance(config['include'], basestring):
+            includes = [config['include']]
+        else:
+            includes = config['include']
+        for include_filename in includes:
             if not os.path.isabs(include_filename):
                 dir = os.path.dirname(filename)
                 include_filename = os.path.join(dir, include_filename)
@@ -428,6 +432,7 @@ def _configure_log(parser):
         if infile is None:
             # Default case: no logging configuration given and no file found by default
             infile = baseconf
+            msg = "No logging configuration file given, using default."
         else:
             if not os.path.isabs(infile):
                 # Find the absolute path from config-file...
@@ -435,16 +440,20 @@ def _configure_log(parser):
                 infile = os.path.join(config_dir, infile)
 
             if not os.path.exists(infile):
-                parser.error("Default logging configuration file "
+                parser.error("Logging configuration file "
                              "not found: %s. " % infile +\
                              "Check your configuration "
                              "from file: %s" % parser.known_config_file)
+            msg = "Using logging configuration file '%s' specified by '%s'" %\
+                  (infile, parser.known_config_file)
 
         config = configobj.ConfigObj(infile=infile, interpolation=False)
     elif not os.path.exists(known_args.logcfgfile):
         dummy.error("File not found: %s" % known_args.logcfgfile)
     else:
         config = configobj.ConfigObj(infile=known_args.logcfgfile, interpolation=False)
+        msg = "Using logging configuration file '%s' specified by command line" %\
+              known_args.logcfgfile_file
 
     _add_others(dummy, known_args, group1, config)
     _add_others(parser, known_args, group, config)
@@ -456,6 +465,7 @@ def _configure_log(parser):
 #     print(config)
     logging.captureWarnings(True)
     logging.set_config(config)
+    logging.debug(msg)
 
 
 def addargs(parser,
