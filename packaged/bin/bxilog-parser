@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-@file bxilogparser
+@file bxilog-parser
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
 @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
-@namespace bxilogparser BXI logging Parser.
+@namespace bxilog-parser BXI logging Parser.
 
 """
 
@@ -25,7 +25,6 @@ import sys
 import shlex
 
 import bxi.base.log as bxilog
-import bxi.util as bxiutil
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
 from subprocess import CalledProcessError
@@ -64,6 +63,13 @@ BT_RE = re.compile('^(?P<prefix>##trce##\s\[\d{2}\]\s)'
                    '(?P<filename>.+)'
                    '\((?P<funcname>\w*)\+(?P<addr>0x[0-9A-Fa-f]+).*$')
 
+_NON_PRINTABLE_CHAR = set([chr(i) for i in range(256)]).difference(string.printable)
+_NON_PRINTABLE_STR = "".join(x for x in _NON_PRINTABLE_CHAR)
+_NON_PRINTABLE_SUB = "."*len(_NON_PRINTABLE_STR)
+BLOB2STR_TRANSLATE_TABLE = string.maketrans(_NON_PRINTABLE_STR, _NON_PRINTABLE_SUB)
+
+def blob2str(blob):
+    return blob.translate(BLOB2STR_TRANSLATE_TABLE)
 
 
 _LOGGER = bxilog.getLogger(os.path.basename(sys.argv[0]))
@@ -163,13 +169,13 @@ def _parse_logline(n, line):
 
 
 def enqueue_input(input_, queue):
-    input = sys.stdin if input_ == '-' else open(input_, 'rb')
+    input = sys.stdin if input_ == '-' else open(name=input_, mode='rU', buffering=1)
     try:
         n = 0
         for line in iter(input.readline, b''):
             n += 1
             # Remove all non printable char by their decimal value
-            pline = bxiutil.blob2str(line)
+            pline = blob2str(line)
             if len(pline.strip()) > 0:
                 parsed_line = _parse_logline(n, pline)
                 if parsed_line is None:
@@ -230,7 +236,7 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
     Parse the given input (that should present bxilog line)
     and print using the given output using the given time frame_size.
     """
-    bxilog.set_config(bxilog_config)
+    bxilog.set_config(bxilog_config, progname="bxilog-parser.output")
     output = sys.stdout if output_ == '-' else open(output_, 'w')
     frame_size = timedelta(seconds=time_frame)
     before_logs = dict()
@@ -328,8 +334,8 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
 def main():
     """Main function."""
     parser = posless.ArgumentParser(description='BXI Log Parser',
-                                   formatter_class=bxiparserconf.FilteredHelpFormatter)
-    bxiparserconf.addargs(parser, domain_name='log')
+                                    formatter_class=bxiparserconf.FilteredHelpFormatter)
+    bxiparserconf.addargs(parser, domain_name='bxilog')
     parser.add_argument("input", type=str, nargs='?', default='-',
                         help="The logging file. Default is '-' for standard input")
     parser.add_argument("output", type=str, nargs='?', default='-',
@@ -341,7 +347,6 @@ def main():
                         "number of time frames. Default: %(default)s")
 
     args = parser.parse_args()
-
     q = Queue()
     t = Process(target=parse, args=(args.output, args.frame, args.flush_limit, q,
                                     bxilog.get_config()))
