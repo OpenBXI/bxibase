@@ -215,7 +215,8 @@ def _add_config(parser,
             cmd_config = os.path.join(full_config_dir, default_config_filename)
 
     def _add_config_dir_arg(target_parser, known_args=None):
-        group = target_parser.add_argument_group('File Based Configuration')
+        group = target_parser.add_argument_group('File Based Configuration'
+                                                 ' (domain: %s)' % domain_name)
 
         if known_args is None:
             default_config_dir = None
