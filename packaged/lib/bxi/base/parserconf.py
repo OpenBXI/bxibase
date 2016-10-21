@@ -471,9 +471,9 @@ def _configure_log(parser):
         logging.cleanup()
     logging.set_config(config)
     if parser.known_config_file is not None:
-        _LOGGER.info("Configuration based on '%s'", parser.known_config_file)
+        _LOGGER.info("Configuration based on '%s': %s", parser.known_config_file, parser.config)
     else:
-        _LOGGER.info("No configuration file found, using default values")
+        _LOGGER.info("No configuration file found, using default values: %s", parser.config)
     _LOGGER.debug(logcfg_msg)
 
 
