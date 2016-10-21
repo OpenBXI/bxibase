@@ -306,9 +306,13 @@ def multiprocessing_target(func):
     """
     def wrapped(*args, **kwargs):
         try:
+            cleanup()
             func(*args, **kwargs)
         except Exception as e:
-            exception('Uncaught Exception: %s', e.__class__.__name__)
+            if not _INITIALIZED or not __BXIBASE_CAPI__.bxilog_is_ready():
+                raise e
+            else:
+                exception('Uncaught Exception: %s', e.__class__.__name__)
         finally:
             cleanup()
     return wrapped
