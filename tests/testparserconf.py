@@ -220,6 +220,7 @@ class ParserConfTest(unittest.TestCase):
         default_cfg['foo0'] = 'bar0'
         default_cfg['foo1'] = 'bar1'
         default_cfg['foo2'] = 'bar2'
+        default_cfg['new_section'] = {'var1': 'value1'}
         default_filename = NamedTemporaryFile().name
         default_cfg.filename = default_filename
         default_cfg.write()
@@ -227,6 +228,7 @@ class ParserConfTest(unittest.TestCase):
         cfg11 = configobj.ConfigObj()
         cfg11['foo1'] = 'bar1.1'
         cfg11['include'] = [default_filename]
+        cfg11['new_section11'] = {'var11': 'value11'}
         cfg11_filename = NamedTemporaryFile().name
         cfg11.filename = cfg11_filename
         cfg11.write()
@@ -234,6 +236,7 @@ class ParserConfTest(unittest.TestCase):
         cfg12 = configobj.ConfigObj()
         cfg12['foo1'] = 'bar1.2'
         cfg12['include'] = [default_filename]
+        cfg12['new_section12'] = {'var12': 'value12'}
         cfg12_filename = NamedTemporaryFile().name
         cfg12.filename = cfg12_filename
         cfg12.write()
@@ -245,12 +248,13 @@ class ParserConfTest(unittest.TestCase):
         cfg2.filename = cfg2_filename
         cfg2.write()
            
-            
         result = parserconf._get_config_from_file(cfg2.filename)
         self.assertEquals(result['foo0'], 'bar0')
         self.assertEquals(result['foo1'], 'bar1.2')
         self.assertEquals(result['foo2'], 'bar2')
-        
+        self.assertEquals(result['new_section']['var1'], 'value1')
+        self.assertEquals(result['new_section11']['var11'], 'value11')
+        self.assertEquals(result['new_section12']['var12'], 'value12')
         
     def _test_logs(self, param):
         exe = os.path.join(os.path.dirname(__file__), "simple_bxilogger.py")

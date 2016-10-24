@@ -178,14 +178,16 @@ def _get_config_from_file(filename):
             includes = [config['include']]
         else:
             includes = config['include']
+        new_conf = ConfigObj()
         for include_filename in includes:
             if not os.path.isabs(include_filename):
                 dir = os.path.dirname(filename)
                 include_filename = os.path.join(dir, include_filename)
             included = _get_config_from_file(include_filename)
-            included.merge(config)
-
-        return included
+            new_conf.merge(included)
+        
+        new_conf.merge(config)
+        return new_conf
 
 
 def _add_config(parser,
