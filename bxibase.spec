@@ -66,21 +66,27 @@ License:        'Bull S.A.S. proprietary : All rights reserved'
 BuildArch:	x86_64
 URL:            https://novahpc.frec.bull.fr
 
-#TODO: What do you provide
 Provides: %{name}
+
 #Conflicts:
-#TODO: What do you require
-Requires: zeromq
+
+# BXI
 Requires: backtrace
-BuildRequires: zeromq-devel
+Requires: net-snmp
+
 BuildRequires: backtrace-devel
+
+# External
+Requires: zeromq
 Requires: python-cffi >= 0.8.6
-BuildRequires: python-cffi >= 0.8.6
+
+BuildRequires: zeromq-devel
 BuildRequires: gcc
 buildRequires: gcc-c++
 BuildRequires: net-snmp-devel
 BuildRequires: CUnit-devel
-Requires: net-snmp
+#BuildRequires: python-cffi >= 0.8.6
+
 
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
@@ -88,6 +94,7 @@ Basic C and Python modules including the high performance BXI logging library.
 
 %package doc
 Summary: Documentation of Bxi Basic library for high-level C programming
+
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description doc
 Doxygen documentation of Bxi Basic library for high-level C and Python programming
