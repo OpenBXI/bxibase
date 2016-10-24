@@ -185,7 +185,7 @@ def _get_config_from_file(filename):
                 include_filename = os.path.join(dir, include_filename)
             included = _get_config_from_file(include_filename)
             new_conf.merge(included)
-        
+
         new_conf.merge(config)
         return new_conf
 
