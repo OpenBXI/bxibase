@@ -1723,13 +1723,13 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             self.add_argument(
                 default_prefix + 'h', default_prefix * 2 + 'help',
                 action='help', default=SUPPRESS,
-                help=_('show this help message and exit'))
+                help=_('Show this help message and exit'))
         if self.version:
             self.add_argument(
                 default_prefix + 'v', default_prefix * 2 + 'version',
                 action='version', default=SUPPRESS,
                 version=self.version,
-                help=_("show program's version number and exit"))
+                help=_("Show program's version number and exit"))
 
         # add parent arguments and defaults
         for parent in parents:

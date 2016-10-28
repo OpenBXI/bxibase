@@ -297,7 +297,7 @@ def _configure_log(parser):
         group.add_argument("--loglevels",
                            mustbeprinted=False,
                            action=LogLevelsAction,
-                           help="displays all log levels and exit.")
+                           help="Displays all log levels and exit.")
 
         group.add_argument("--logoutput-default-config",
                            dest='output_default_logcfg',
@@ -339,7 +339,7 @@ def _configure_log(parser):
                                metavar='log-%s-filters' % console_handler,
                                envvar='BXILOG_%s_FILTERS' % console_handler,
                                default=default,
-                               help="define the logging filters for the %s handler " % 
+                               help="Define the logging filters for the %s handler " % 
                                     console_handler +
                                     "Value: '%(default)s'. "
                                     "Logging filters are defined by the following format: "
@@ -365,7 +365,7 @@ def _configure_log(parser):
                                mustbeprinted=False,
                                envvar='BXILOG_%s_FILTERS' % section,
                                default=default,
-                               help="define the logging filters for the "
+                               help="Define the logging filters for the "
                                     "%s handler " % section +
                                     "of the default logging configuration. " +
                                     auto_help_msg + 
@@ -381,7 +381,7 @@ def _configure_log(parser):
                                envvar='BXILOGPATH',
                                mustbeprinted=False,
                                default=default,
-                               help="define the destination file for the %s handler " % 
+                               help="Define the destination file for the %s handler " % 
                                     section + "Value: %(default)s")
 
     def _override_logconfig(config, known_args):
@@ -403,7 +403,7 @@ def _configure_log(parser):
     parser.add_argument('--help-logs',
                         action=_LoggedHelpAction,
                         default=posless.SUPPRESS,
-                        help=_('show detailed logging options and exit'))
+                        help=_('Show detailed logging options and exit'))
 
     dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
     group1 = _add_common(dummy)
@@ -491,7 +491,7 @@ def addargs(parser,
 
     parser.add_argument('--help-full',
                         action=_FullHelpAction, default=posless.SUPPRESS,
-                        help=_('show all options and exit'))
+                        help=_('Show all options and exit'))
 
 
 def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None):
