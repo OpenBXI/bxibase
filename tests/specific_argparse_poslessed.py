@@ -1838,7 +1838,7 @@ class TestAddSubparsers(TestCase):
               {1,2}       command help
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               --foo       foo help
             '''))
 
@@ -1857,7 +1857,7 @@ class TestAddSubparsers(TestCase):
               {1,2}       command help
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               ++foo       foo help
             '''))
 
@@ -1876,7 +1876,7 @@ class TestAddSubparsers(TestCase):
               {1,2}       command help
 
             optional arguments:
-              +h, ++help  show this help message and exit
+              +h, ++help  Show this help message and exit
               ++foo       foo help
             '''))
 
@@ -1896,7 +1896,7 @@ class TestAddSubparsers(TestCase):
                 2         2 help
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               --foo       foo help
             '''))
 
@@ -1921,7 +1921,7 @@ class TestAddSubparsers(TestCase):
               bar         bar help
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               --foo       foo help
 
             subcommands:
@@ -1950,7 +1950,7 @@ class TestAddSubparsers(TestCase):
               {a,b,c}     x help
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               -w W        w help
             '''))
 
@@ -1964,7 +1964,7 @@ class TestAddSubparsers(TestCase):
               z           z help
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               -y {1,2,3}  y help
             '''))
 
@@ -2145,7 +2145,7 @@ class TestParentParsers(TestCase):
               z
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               -b B
               --w W
 
@@ -2175,7 +2175,7 @@ class TestParentParsers(TestCase):
             usage: {}{}[-h] [-w W] [-x X] [-y Y | -z Z]
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               -y Y
               -z Z
 
@@ -2220,7 +2220,7 @@ class TestMutuallyExclusiveGroupErrors(TestCase):
             usage: PROG [-h] [--foo | --bar] [--soup | --nuts]
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               --foo
               --bar
               --soup
@@ -2305,7 +2305,7 @@ class TestMutuallyExclusiveSimple(MEMixin, TestCase):
     help = '''\
 
         optional arguments:
-          -h, --help   show this help message and exit
+          -h, --help   Show this help message and exit
           --bar BAR    bar help
           --baz [BAZ]  baz help
         '''
@@ -2346,7 +2346,7 @@ class TestMutuallyExclusiveLong(MEMixin, TestCase):
     help = '''\
 
     optional arguments:
-      -h, --help     show this help message and exit
+      -h, --help     Show this help message and exit
       --abcde ABCDE  abcde help
       --fghij FGHIJ  fghij help
       --klmno KLMNO  klmno help
@@ -2382,7 +2382,7 @@ class TestMutuallyExclusiveFirstSuppressed(MEMixin, TestCase):
     help = '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           -y          y help
         '''
 
@@ -2419,7 +2419,7 @@ class TestMutuallyExclusiveManySuppressed(MEMixin, TestCase):
     help = '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
         '''
 
 
@@ -2462,7 +2462,7 @@ class TestMutuallyExclusiveOptionalAndPositional(MEMixin, TestCase):
           badger       BADGER
 
         optional arguments:
-          -h, --help   show this help message and exit
+          -h, --help   Show this help message and exit
           --foo        FOO
           --spam SPAM  SPAM
         '''
@@ -2501,7 +2501,7 @@ class TestMutuallyExclusiveOptionalsMixed(MEMixin, TestCase):
     help = '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           -x          x help
           -a          a help
           -b          b help
@@ -2540,7 +2540,7 @@ class TestMutuallyExclusiveInGroup(MEMixin, TestCase):
     help = '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
 
         Titled group:
           Group description
@@ -2585,7 +2585,7 @@ class TestMutuallyExclusiveOptionalsAndPositionalsMixed(MEMixin, TestCase):
           a           a help
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           -y          y help
           -b          b help
           -c          c help
@@ -2896,8 +2896,8 @@ class TestHelpBiggerOptionals(HelpTestCase):
           bar            BAR HELP
 
         optional arguments:
-          -h, --help     show this help message and exit
-          -v, --version  show program's version number and exit
+          -h, --help     Show this help message and exit
+          -v, --version  Show program's version number and exit
           -x             X HELP
           --y Y          Y HELP
 
@@ -2936,8 +2936,8 @@ class TestHelpBiggerOptionalGroups(HelpTestCase):
           bar            BAR HELP
 
         optional arguments:
-          -h, --help     show this help message and exit
-          -v, --version  show program's version number and exit
+          -h, --help     Show this help message and exit
+          -v, --version  Show program's version number and exit
           -x             X HELP
           --y Y          Y HELP
 
@@ -2977,7 +2977,7 @@ class TestHelpBiggerPositionals(HelpTestCase):
           bar              BAR HELP
 
         optional arguments:
-          -h, --help       show this help message and exit
+          -h, --help       Show this help message and exit
           -x               X HELP
           --y Y            Y HELP
         '''
@@ -3024,7 +3024,7 @@ multiple
           yyy         normal y help
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           -x XX       oddly formatted -x help
 
         title:
@@ -3064,7 +3064,7 @@ YHYH YHYH
                       YHYH YHYH YHYH YHYH YHYH YHYH YHYH YH
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           -x XX       XHH HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH \
 HXXHH HXXHH
                       HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH HXXHH HX
@@ -3107,8 +3107,8 @@ YHYH YHYH
                                 YHYH YHYH YHYH YHYH YHYH YHYH YHYH YHYH YHYH YH
 
         optional arguments:
-          -h, --help            show this help message and exit
-          -v, --version         show program's version number and exit
+          -h, --help            Show this help message and exit
+          -v, --version         Show program's version number and exit
           -x XXXXXXXXXXXXXXXXXXXXXXXXX
                                 XH XHXH XHXH XHXH XHXH XHXH XHXH XHXH XHXH \
 XHXH XHXH
@@ -3162,7 +3162,7 @@ class TestHelpUsage(HelpTestCase):
           c               c
 
         optional arguments:
-          -h, --help      show this help message and exit
+          -h, --help      Show this help message and exit
           -w W [W ...]    w
           -x [X [X ...]]  x
 
@@ -3228,7 +3228,7 @@ class TestHelpUsageLongProg(HelpTestCase):
           b
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           -w W
           -x X
         '''
@@ -3262,7 +3262,7 @@ class TestHelpUsageLongProgOptionsWrap(HelpTestCase):
           b
 
         optional arguments:
-          -h, --help            show this help message and exit
+          -h, --help            Show this help message and exit
           -w WWWWWWWWWWWWWWWWWWWWWWWWW
           -x XXXXXXXXXXXXXXXXXXXXXXXXX
           -y YYYYYYYYYYYYYYYYYYYYYYYYY
@@ -3325,7 +3325,7 @@ class TestHelpUsageOptionalsWrap(HelpTestCase):
           c
 
         optional arguments:
-          -h, --help            show this help message and exit
+          -h, --help            Show this help message and exit
           -w WWWWWWWWWWWWWWWWWWWWWWWWW
           -x XXXXXXXXXXXXXXXXXXXXXXXXX
           -y YYYYYYYYYYYYYYYYYYYYYYYYY
@@ -3360,7 +3360,7 @@ class TestHelpUsagePositionalsWrap(HelpTestCase):
           ccccccccccccccccccccccccc
 
         optional arguments:
-          -h, --help            show this help message and exit
+          -h, --help            Show this help message and exit
           -x X
           -y Y
           -z Z
@@ -3396,7 +3396,7 @@ class TestHelpUsageOptionalsPositionalsWrap(HelpTestCase):
           ccccccccccccccccccccccccc
 
         optional arguments:
-          -h, --help            show this help message and exit
+          -h, --help            Show this help message and exit
           -x XXXXXXXXXXXXXXXXXXXXXXXXX
           -y YYYYYYYYYYYYYYYYYYYYYYYYY
           -z ZZZZZZZZZZZZZZZZZZZZZZZZZ
@@ -3422,7 +3422,7 @@ class TestHelpUsageOptionalsOnlyWrap(HelpTestCase):
     help = usage + '''\
 
         optional arguments:
-          -h, --help            show this help message and exit
+          -h, --help            Show this help message and exit
           -x XXXXXXXXXXXXXXXXXXXXXXXXX
           -y YYYYYYYYYYYYYYYYYYYYYYYYY
           -z ZZZZZZZZZZZZZZZZZZZZZZZZZ
@@ -3487,7 +3487,7 @@ class TestHelpVariableExpansion(HelpTestCase):
           badger         badger PROG 0.5
 
         optional arguments:
-          -h, --help     show this help message and exit
+          -h, --help     Show this help message and exit
           -x X           x PROG None int %
           -y             y PROG 42 XXX
           --foo {a,b,c}  foo PROG None a, b, c
@@ -3512,7 +3512,7 @@ class TestHelpVariableExpansionUsageSupplied(HelpTestCase):
     help = usage + '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
         '''
     version = ''
 
@@ -3544,7 +3544,7 @@ class TestHelpSuppressUsage(HelpTestCase):
           spam        spam help
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO   foo help
         '''
     usage = ''
@@ -3591,7 +3591,7 @@ class TestHelpSuppressOptionalGroup(HelpTestCase):
           spam        spam help
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO   foo help
         '''
     version = ''
@@ -3612,7 +3612,7 @@ class TestHelpSuppressPositional(HelpTestCase):
     help = usage + '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO   foo help
         '''
     version = ''
@@ -3632,7 +3632,7 @@ class TestHelpRequiredOptional(HelpTestCase):
     help = usage + '''\
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO   foo help
         '''
     version = ''
@@ -3700,8 +3700,8 @@ class TestHelpVersionOptional(HelpTestCase):
           spam           spam help
 
         optional arguments:
-          -h, --help     show this help message and exit
-          -v, --version  show program's version number and exit
+          -h, --help     Show this help message and exit
+          -v, --version  Show program's version number and exit
           --foo FOO      foo help
         '''
     version = '''\
@@ -3727,7 +3727,7 @@ class TestHelpNone(HelpTestCase):
           spam
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO
         '''
     version = ''
@@ -3751,7 +3751,7 @@ class TestHelpTupleMetavar(HelpTestCase):
     help = usage + '''\
 
         optional arguments:
-          -h, --help        show this help message and exit
+          -h, --help        Show this help message and exit
           -w W1 [W2 ...]    w
           -x [X1 [X2 ...]]  x
           -y Y1 Y2 Y3       y
@@ -3795,7 +3795,7 @@ class TestHelpRawText(HelpTestCase):
           spam        spam help
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO       foo help should also
                       appear as given here
 
@@ -3844,7 +3844,7 @@ class TestHelpRawDescription(HelpTestCase):
           spam        spam help
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO   foo help should not retain this odd formatting
 
         title:
@@ -3886,7 +3886,7 @@ class TestHelpArgumentDefaults(HelpTestCase):
           badger      badger help (default: wooden)
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
           --foo FOO   foo help - oh and by the way, None
           --bar       bar help (default: False)
 
@@ -3911,8 +3911,8 @@ class TestHelpVersionAction(HelpTestCase):
         description
 
         optional arguments:
-          -h, --help     show this help message and exit
-          -V, --version  show program's version number and exit
+          -h, --help     Show this help message and exit
+          -V, --version  Show program's version number and exit
         '''
     version = ''
 
@@ -3937,8 +3937,8 @@ class TestHelpSubparsersOrdering(HelpTestCase):
           {a,b,c,d,e}
 
         optional arguments:
-          -h, --help     show this help message and exit
-          -v, --version  show program's version number and exit
+          -h, --help     Show this help message and exit
+          -v, --version  Show program's version number and exit
         '''
 
     version = '''\
@@ -3978,8 +3978,8 @@ class TestHelpSubparsersWithHelpOrdering(HelpTestCase):
             e            e subcommand help
 
         optional arguments:
-          -h, --help     show this help message and exit
-          -v, --version  show program's version number and exit
+          -h, --help     Show this help message and exit
+          -v, --version  Show program's version number and exit
         '''
 
     version = '''\
@@ -4179,7 +4179,7 @@ class TestConflictHandling(TestCase):
             usage: PROG [-h] [-x X]
 
             optional arguments:
-              -h, --help  show this help message and exit
+              -h, --help  Show this help message and exit
               -x X        NEW X
             '''))
 
@@ -4189,7 +4189,7 @@ class TestConflictHandling(TestCase):
             usage: PROG [-h] [-x X] [--spam NEW_SPAM]
 
             optional arguments:
-              -h, --help       show this help message and exit
+              -h, --help       Show this help message and exit
               -x X             NEW X
               --spam NEW_SPAM
             '''))
@@ -4638,7 +4638,7 @@ class TestHelpPositionalTupleMetavar(HelpTestCase):
           Z1          z
 
         optional arguments:
-          -h, --help  show this help message and exit
+          -h, --help  Show this help message and exit
         '''
     version = ''
 
