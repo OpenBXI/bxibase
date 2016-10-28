@@ -458,7 +458,7 @@ def _configure_log(parser):
     else:
         config = configobj.ConfigObj(infile=known_args.logcfgfile, interpolation=False)
         logcfg_msg = "Using logging configuration file '%s' specified by command line" %\
-                     known_args.logcfgfile_file
+                     known_args.logcfgfile
 
     _add_others(dummy, known_args, group1, config)
     _add_others(parser, known_args, group, config)
