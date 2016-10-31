@@ -139,6 +139,7 @@ no-docstring-rgx=__.*__
 [FORMAT]
 
 # Maximum number of characters on a single line.
+#max-line-length=90
 max-line-length=90
 
 # Maximum number of lines in a module
