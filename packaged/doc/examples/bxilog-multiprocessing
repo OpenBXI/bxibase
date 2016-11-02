@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import bxi.base.log as bxilog
 import multiprocessing
+import tempfile
 import os,sys
 
 # [BXI Log and Python multiprocessing module]
 @bxilog.multiprocessing_target
-def f():
+def f(logfilename):
+    # Since a fork() has been made, the logging module must be initialized
+    bxilog.basicConfig(filename=logfilename, filemode='w')
     # Using the bxilog.multiprocessing_target decorator guarantees that 
     # uncaught exception will be reported by the logging system
     # and that the logging system will be cleanup properly (and therefore
@@ -23,12 +26,11 @@ def f():
 # [BXI Log and Python multiprocessing module]
 
 if __name__ == '__main__':
-    filename = os.path.basename(sys.argv[0]) + '.bxilog'
-    if os.path.exists(filename):
-        os.unlink(filename)
     
-    bxilog.basicConfig(filename=filename, filemode='w')
-    p = multiprocessing.Process(target=f)
+    filename = tempfile.NamedTemporaryFile(prefix=os.path.basename(sys.argv[0]),
+                                           suffix='.bxilog', delete=False).name
+    
+    p = multiprocessing.Process(target=f, args=[filename])
     p.start()
     p.join()
     
