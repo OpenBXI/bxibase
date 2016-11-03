@@ -6,7 +6,7 @@ if HAVE_PYTHON
 check-local: 
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-	nosetests -v -w ${top_srcdir} ${NOSETESTS_ARGS}; \
+	coverage run ${top_srcdir}/tests/bxilog_suite.py; \
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 	coverage run ${top_srcdir}/tests/posless_suite.py
@@ -14,23 +14,24 @@ endif
 
 TESTS = \
 		unit_t\
-		../packaged/doc/examples/bxistr_examples\
-		../packaged/doc/examples/bxilog_err\
-		../packaged/doc/examples/bxilog_cfg
+		../packaged/doc/examples/bxistr-examples\
+		../packaged/doc/examples/bxilog-err\
+		../packaged/doc/examples/bxilog-cfg
 if HAVE_PYTHON
 TESTS += \
-		${abs_top_srcdir}/packaged/doc/examples/bxilog_multiprocessing.py
+		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing
 endif
 
 inst_checkdir=$(docdir)/tests/
 inst_check_PROGRAMS= \
 					 unit_t\
-					 ../packaged/doc/examples/bxistr_examples\
-					 ../packaged/doc/examples/bxilog_err\
-					 ../packaged/doc/examples/bxilog_cfg
+					 ../packaged/doc/examples/bxistr-examples\
+					 ../packaged/doc/examples/bxilog-err\
+					 ../packaged/doc/examples/bxilog-cfg
 
 dist_inst_check_SCRIPTS=\
 						simple_bxilog_user.py \
+						simple_bxilogger.py \
 						testbxilog.py\
 						uncaught.py\
 						posless_suite.py\
@@ -89,10 +90,10 @@ DISTCLEANFILES=\
 			   report/${PACKAGE_NAME}-Listing.xml
 
 EXTRA_DIST=\
-		   ../packaged/doc/examples/bxistr_examples.c\
-		   ../packaged/doc/examples/bxilog_err.c\
-		   ../packaged/doc/examples/bxilog_cfg.c\
-		   ../packaged/doc/examples/bxilog_multiprocessing.py
+		   ../packaged/doc/examples/bxistr-examples.c\
+		   ../packaged/doc/examples/bxilog-err.c\
+		   ../packaged/doc/examples/bxilog-cfg.c\
+		   ../packaged/doc/examples/bxilog-multiprocessing
 
 
 ___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la

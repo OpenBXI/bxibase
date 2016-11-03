@@ -58,11 +58,15 @@ AM_LDFLAGS=\
 		  $(ZMQ_LIBS)
 
 
+dist_bin_SCRIPTS=\
+				 bin/bxilog-producer\
+				 bin/bxilog-parser
+
 bin_PROGRAMS=\
-			bin/bxilog_monitor
+			bin/bxilog-monitor
 
 bin_bxilog_monitor_SOURCES=\
-			src/bxilog_monitor.c
+			src/bxilog-monitor.c
 
 bin_bxilog_monitor_LDADD=\
 			lib/libbxibase.la

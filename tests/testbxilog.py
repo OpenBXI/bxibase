@@ -287,7 +287,7 @@ class BXILogTest(unittest.TestCase):
                 'setsighandler': True,
                 'out':{'module': 'bxi.base.log.file_handler',
                        'filters': ':output,foo:debug,foo.bar:trace',
-                       'file': FILENAME,
+                       'path': FILENAME,
                        'append': True}
                 }
         bxilog.set_config(configobj.ConfigObj(conf))
