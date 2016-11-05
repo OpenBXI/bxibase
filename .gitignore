@@ -86,9 +86,9 @@
 /packaged/doc/doxygen.warn
 
 # /packaged/doc/examples/
-/packaged/doc/examples/bxilog_multiprocessing.py.bxilog
-/packaged/doc/examples/bxilog_multiprocessing.log
-/packaged/doc/examples/bxilog_multiprocessing.trs
+/packaged/doc/examples/bxilog-multiprocessing.py.bxilog
+/packaged/doc/examples/bxilog-multiprocessing.log
+/packaged/doc/examples/bxilog-multiprocessing.trs
 
 # /packaged/include/
 /packaged/include/*.ffih
