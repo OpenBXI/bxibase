@@ -5,6 +5,7 @@ encoding//misc/bench/bxilog/bench_clmtrace_mp.py=utf-8
 encoding//misc/bench/bxilog/bench_clmtrace_thr.py=utf-8
 encoding//misc/bench/bxilog/bench_logging_mp.py=utf-8
 encoding//misc/bench/bxilog/bench_logging_thr.py=utf-8
+encoding//misc/issues/init_in_filename/logging_init.py=utf-8
 encoding//packaged/bin/bxilog-parser=utf-8
 encoding//packaged/bin/bxilog-producer=utf-8
 encoding//packaged/lib/bxi/__init__.py=utf-8
