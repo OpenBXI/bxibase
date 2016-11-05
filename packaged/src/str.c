@@ -285,47 +285,29 @@ size_t bxistr_count(const char * s, const char c) {
 }
 
 char * bxistr_mkshorter(char * s, size_t max_len, char sep) {
-    // TODO: unfinished yet!
-    // When there are very few sep, but max_len is wide enough,
-    // still the process will produce strings way too short.
-    // We must be smarter.
     bxiassert(NULL != s);
     bxiassert(0 < max_len);
 
     char * const result = bximem_calloc((max_len + 1) * sizeof(*result));
 
-    size_t n = bxistr_count(s, sep) + 1;
-    if (1 == n) n = max_len;
-    // We have n subnames. We want to allocate
-    // at least 1 char for the last level
-    // at least 2 char for the last - 1 level
-    // ...
-    // at least n chars for the first level
-    size_t max_in_slot[n];
-    for (size_t i = 0; i < n; i++) max_in_slot[i] = n - i;
+    size_t sep_nb = bxistr_count(s, sep);
+    size_t i = 0;
 
-    const char * next = s;
-    size_t slot = 0;
-    for (size_t i = 0; i < max_len; i++) {
-        result[i] = *next;              // Allocate the character
-        next++;
-        max_in_slot[slot]--;            // Count the allocation
-
-        if (0 == max_in_slot[slot]) { // We allocated all characters for this level
-            next = strchr(next, sep); // Find next separator
-            if (NULL == next) break; // This is the end
-        }
-        if (sep == *next) { // We reached the next separator
-            next++;                     // Next character is just after
-            if (NULL == next) break;    // This is the end
-            // Distribute the remaining char in slot to all others
-            size_t remaining = max_in_slot[slot];
-            for (size_t k = slot + 1; k < n; k++) {
-                max_in_slot[k] += remaining / (n - slot);
+    if (sep_nb > 0) {
+        // We have some seps, we will have to terminate with a sep.
+        size_t current_sep = 0;
+        while (current_sep < sep_nb && current_sep < max_len) {
+            result[i++] = *(s++);
+            while (sep != *(s++)) {
+                ; // Move towards next sep
             }
-            slot++;
+            current_sep++;
         }
-
+        if (max_len > current_sep) result[i++] = sep;
+    }
+    while (max_len > i) {
+        if ('\0' == *s) break;
+        result[i++] = *(s++);
     }
     return result;
 }

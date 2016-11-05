@@ -232,11 +232,6 @@ void test_bxistr_mkshorter(void) {
     CU_ASSERT_STRING_EQUAL(r, "foo");
     BXIFREE(r);
 
-    r = bxistr_mkshorter(s, 4, '.');
-    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
-    CU_ASSERT_STRING_EQUAL(r, "foo");
-    BXIFREE(r);
-
     s = "foo.bar";
     r = bxistr_mkshorter(s, 1, '.');
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
@@ -245,12 +240,37 @@ void test_bxistr_mkshorter(void) {
 
     r = bxistr_mkshorter(s, 2, '.');
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
-    CU_ASSERT_STRING_EQUAL(r, "fo");
+    CU_ASSERT_STRING_EQUAL(r, "f.");
     BXIFREE(r);
 
     r = bxistr_mkshorter(s, 3, '.');
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
-    CU_ASSERT_STRING_EQUAL(r, "fob");
+    CU_ASSERT_STRING_EQUAL(r, "f.b");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 4, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f.ba");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 5, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f.bar");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 6, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f.bar");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 7, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f.bar");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 8, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "f.bar");
     BXIFREE(r);
 
     s = "bxi.base.log.config";
@@ -261,18 +281,88 @@ void test_bxistr_mkshorter(void) {
 
     r = bxistr_mkshorter(s, 2, '.');
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
-    CU_ASSERT_STRING_EQUAL(r, "bx");
+    CU_ASSERT_STRING_EQUAL(r, "bb");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 3, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 4, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 5, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.c");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 6, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.co");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 7, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.con");
     BXIFREE(r);
 
     r = bxistr_mkshorter(s, 8, '.');
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
-    CU_ASSERT_STRING_EQUAL(r, "bxibaslo");
+    CU_ASSERT_STRING_EQUAL(r, "bbl.conf");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 9, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.confi");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 10, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.config");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 11, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.config");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 12, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "bbl.config");
     BXIFREE(r);
 
     s = "a.b.c.d.e";
+    r = bxistr_mkshorter(s, 1, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "a");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 2, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "ab");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 3, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "abc");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 4, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "abcd");
+    BXIFREE(r);
+
     r = bxistr_mkshorter(s, 5, '.');
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
-    CU_ASSERT_STRING_EQUAL(r, "abcde");
+    CU_ASSERT_STRING_EQUAL(r, "abcd.");
+    BXIFREE(r);
+
+    r = bxistr_mkshorter(s, 6, '.');
+    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    CU_ASSERT_STRING_EQUAL(r, "abcd.e");
     BXIFREE(r);
 }
 
