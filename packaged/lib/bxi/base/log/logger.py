@@ -71,7 +71,20 @@ def _bxierr_report(bxierr_p):
     bxierr_pp = __FFI__.new('bxierr_p[1]')
     bxierr_pp[0] = bxierr_p
     __BXIBASE_CAPI__.bxierr_report(bxierr_pp, 2)
-
+    
+def _get_usable_filename_from(fullfilename):
+    """
+    Try to find a usable filename from the given filename
+    
+    Currently handle only when filename is __init__.py, 
+    it returns: (module)/__init__.py instead. 
+    """
+    filename = os.path.basename(fullfilename)
+    if filename == '__init__.py':
+        directory = os.path.dirname(fullfilename)
+        module = os.path.basename(directory)
+        return os.path.join(module, filename)
+    return filename
 
 class BXILogger(object):
     """
@@ -106,7 +119,8 @@ class BXILogger(object):
             bxilog._init()
         if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
             msg_str = msg % args if len(args) > 0 else str(msg)
-            filename, lineno, funcname = _FindCaller()
+            fullfilename, lineno, funcname = _FindCaller()
+            filename = _get_usable_filename_from(fullfilename)
             filename_len = len(filename) + 1
             funcname_len = len(funcname) + 1
             msg_str_len = len(msg_str) + 1
@@ -167,7 +181,8 @@ class BXILogger(object):
             ei = (type(value.cause), value.cause, None)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
-        filename, lineno, funcname = _FindCaller()
+        fullfilename, lineno, funcname = _FindCaller()
+        filename = _get_usable_filename_from(fullfilename)
         filename_len = len(filename) + 1
         funcname_len = len(funcname) + 1
         msg_str_len = len(msg_str) + 1

@@ -233,7 +233,7 @@ void bxilog_logger_destroy(bxilog_logger_p * self_p);
  * @see bxierr_p
  */
 bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
-                                  char * filename, size_t filename_len,
+                                  const char * filename, size_t filename_len,
                                   const char * funcname, size_t funcname_len,
                                   int line,
                                   const char * rawstr, size_t rawstr_len);
@@ -251,8 +251,8 @@ bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_lev
  *
  * @param[in] logger the logger to perform the log with
  * @param[in] level the level at which the log must be emitted
- * @param[in] filename the name of the source file the log comes from
- * @param[in] filename_len the length of 'filename' including the NULL terminating byte
+ * @param[in] fullfilename the name of the source file the log comes from
+ * @param[in] fullfilename_len the length of 'filename' including the NULL terminating byte
  * @param[in] funcname the name of the function the log comes from
  * @param[in] funcname_len the length of 'funcname' including the NULL terminating byte
  * @param[in] line the line number in file 'filename' the log comes from
@@ -264,7 +264,7 @@ bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_lev
  * @see bxierr_p
  */
 bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
-                                        char * filename, size_t filename_len,
+                                        char * fullfilename, size_t fullfilename_len,
                                         const char * funcname, size_t funcname_len,
                                         int line,
                                         const char * fmt, ...)
@@ -281,8 +281,8 @@ bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxil
  *
  * @param[in] logger the logger to perform the log with
  * @param[in] level the level at which the log must be emitted
- * @param[in] filename the name of the source file the log comes from
- * @param[in] filename_len the length of 'filename' including the NULL terminating byte
+ * @param[in] fullfilename the name of the source file the log comes from
+ * @param[in] fullfilename_len the length of 'filename' including the NULL terminating byte
  * @param[in] funcname the name of the function the log comes from
  * @param[in] funcname_len the length of 'funcname' including the NULL terminating byte
  * @param[in] line the line number in file 'filename' the log comes from
@@ -293,7 +293,7 @@ bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxil
  * @see bxilog_logger_log_nolevelcheck
  */
 bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
-                                         char * filename, size_t filename_len,
+                                         const char * fullfilename, size_t fullfilename_len,
                                          const char * funcname, size_t funcname_len,
                                          const int line,
                                          const char * fmt, va_list arglist);

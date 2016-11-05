@@ -68,15 +68,15 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_e level,
-                            void * log_channel,
+                               void * log_channel,
 #ifdef __linux__
-                            pid_t tid,
+                               pid_t tid,
 #endif
-                            uint16_t thread_rank,
-                            char * fullfilename, size_t filename_len,
-                            const char * funcname, size_t funcname_len,
-                            int line,
-                            const char * rawstr, size_t rawstr_len);
+                               uint16_t thread_rank,
+                               const char * filename, size_t filename_len,
+                               const char * funcname, size_t funcname_len,
+                               int line,
+                               const char * rawstr, size_t rawstr_len);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -120,10 +120,10 @@ void bxilog_logger_destroy(bxilog_logger_p * self_p) {
 }
 
 bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_level_e level,
-                                  char * filename, size_t filename_len,
-                                  const char * funcname, size_t funcname_len,
-                                  int line,
-                                  const char * rawstr, size_t rawstr_len) {
+                                  const char * const filename, const size_t filename_len,
+                                  const char * const funcname, const size_t funcname_len,
+                                  const int line,
+                                  const char * const rawstr, const size_t rawstr_len) {
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
     tsd_p tsd;
     bxierr_p err = bxilog__tsd_get(&tsd);
@@ -142,10 +142,10 @@ bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_lev
 
 bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
                                          const bxilog_level_e level,
-                                         char * filename, size_t filename_len,
-                                         const char * funcname, size_t funcname_len,
+                                         const char * const fullfilename, const size_t fullfilename_len,
+                                         const char * const funcname, const size_t funcname_len,
                                          const int line,
-                                         const char * fmt, va_list arglist) {
+                                         const char * const fmt, va_list arglist) {
 
     if (INITIALIZED != BXILOG__GLOBALS->state) return BXIERR_OK;
 
@@ -193,6 +193,9 @@ bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
 
     bxiassert(bxierr_isok(err));
 
+    const char * filename;
+    size_t filename_len = bxistr_rsub(fullfilename, fullfilename_len, '/', &filename);
+
     err = _send2handlers(logger, level, tsd->data_channel,
 #ifdef __linux__
                          tsd->tid,
@@ -237,27 +240,21 @@ bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxil
 
 bxierr_p _send2handlers(const bxilog_logger_p logger,
                         const bxilog_level_e level,
-                        void * log_channel,
+                        void * const log_channel,
 #ifdef __linux__
-                        pid_t tid,
+                        const pid_t tid,
 #endif
-                        uint16_t thread_rank,
-                        char * fullfilename, size_t fullfilename_len,
-                        const char * funcname, size_t funcname_len,
-                        int line,
-                        const char * rawstr, size_t rawstr_len) {
+                        const uint16_t thread_rank,
+                        const char * const filename, const size_t filename_len,
+                        const char * const funcname, const size_t funcname_len,
+                        const int line,
+                        const char * const rawstr, const size_t rawstr_len) {
 
     bxierr_p err = BXIERR_OK, err2;
     bxilog_record_p record;
     char * data;
 
-    const char * filename;
-    size_t filename_len = bxistr_rsub(fullfilename, fullfilename_len, '/', &filename);
-
-    size_t var_len = filename_len\
-            + funcname_len\
-            + logger->name_length;
-
+    size_t var_len = filename_len + funcname_len + logger->name_length;
     size_t data_len = sizeof(*record) + var_len + rawstr_len;
 
     // We need a mallocated buffer to prevent ZMQ from making its own copy

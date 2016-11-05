@@ -78,7 +78,6 @@ def add_handler(configobj, section_name, c_config):
     else:
         file_filters = bxilogfilter.parse_filters(filters_str)
 
-    progname = __FFI__.new('char[]', sys.argv[0])
     filename = __FFI__.new('char[]', filename)
     open_flags = __FFI__.cast('int',
                               os.O_CREAT |
@@ -86,6 +85,6 @@ def add_handler(configobj, section_name, c_config):
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
                                                file_filters,
-                                               progname,
+                                               c_config.progname,
                                                filename,
                                                open_flags)
