@@ -369,8 +369,6 @@ inline bxierr_p _process_log(bxilog_record_p record,
                                      .logmsg = logmsg,
     };
 
-//    BXIFREE(loggername);
-
     bxierr_p err;
     if (record->level > data->stderr_level) {
         param.out = stdout;
@@ -386,6 +384,7 @@ inline bxierr_p _process_log(bxilog_record_p record,
                                  &param);
     }
 
+    BXIFREE(short_loggername);
     return err;
 }
 
