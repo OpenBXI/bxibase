@@ -494,7 +494,22 @@ def addargs(parser,
                         help=_('Show all options and exit'))
 
 
-def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None):
+def getdefaultvalue(parser, Sections, value, LOGGER, default=None, config=None):
+    """return default value for a given cli parameter.
+
+    value is searched for in the "config" configuration file,
+    otherwise the parser configuration file,
+    otherwise the default argument.
+    The value searched for is identified by the couple (Sections, value)
+    @param[in] parser to search conf from (used only if no config provided)
+    @param[in] Sections sections where value is searched
+    @param[in] value name under which value is stored in config
+    @param[in] LOGGER where messages are logged
+    @param[in] default default value in case search in configs fails
+    @param[in] config provided config to search value from.
+
+
+    """
     def _return_dict_value(config, Sections):
         try:
             if len(Sections) > 1:
@@ -504,16 +519,16 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
         except bxierr.BXIError as e:
             raise bxierr.BXIError("[%s]%s" % (Sections[0], e.msg))
         except:
-            if _LOGGER is not None:
-                _LOGGER.exception("Initial error:", level=logging.DEBUG)
+            if LOGGER is not None:
+                LOGGER.exception("Initial error:", level=logging.DEBUG)
             raise bxierr.BXIError("[%s]" % Sections[0])
 
     try:
         if config is None:
             config = parser.config
     except AttributeError:
-        if _LOGGER is not None:
-            _LOGGER.exception("No configuration provided."
+        if LOGGER is not None:
+            LOGGER.exception("No configuration provided."
                               " Using %s as default for value %s from section %s",
                               default, value, Sections, level=logging.DEBUG)
 #         else:
@@ -525,19 +540,19 @@ def getdefaultvalue(parser, Sections, value, _LOGGER, default=None, config=None)
     try:
         dictonary = _return_dict_value(config, Sections)
     except bxierr.BXIError as e:
-        if _LOGGER is not None:
-            _LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
+        if LOGGER is not None:
+            LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
                           " using %s as default for value %s from (sub)section [%s]", e.msg,
                           default, value, ']['.join(Sections))
         return default
 
     try:
-        if _LOGGER is not None:
-            _LOGGER.debug("Return %s for value %s in section %s",
+        if LOGGER is not None:
+            LOGGER.debug("Return %s for value %s in section %s",
                           dictonary[value], value, Sections)
         return dictonary[value]
     except (KeyError, TypeError, AttributeError):
-        if _LOGGER is not None:
+        if LOGGER is not None:
             _LOGGER.exception("No value %s in the (sub)sections [%s]."
                               " using %s as default for value %s from (sub)section [%s]",
                               value, ']['.join(Sections),
