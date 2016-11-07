@@ -3,7 +3,7 @@ all-local:
 	mkdir -p report
 
 if HAVE_PYTHON
-check-local: 
+check-local:
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 	coverage run ${top_srcdir}/tests/bxilog_suite.py; \
@@ -19,7 +19,7 @@ TESTS = \
 		../packaged/doc/examples/bxilog-cfg
 if HAVE_PYTHON
 TESTS += \
-		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing
+		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing.py
 endif
 
 inst_checkdir=$(docdir)/tests/
@@ -49,7 +49,7 @@ unit_t_LDFLAGS =\
 				@TST_LDFLAGS@\
 				$(ZMQ_LIBS)\
 				$(UUID_LIBS)
-				
+
 unit_t_LDADD=$(top_builddir)/packaged/lib/libbxibase.la\
 				   @TST_LIBS@
 
@@ -93,7 +93,7 @@ EXTRA_DIST=\
 		   ../packaged/doc/examples/bxistr-examples.c\
 		   ../packaged/doc/examples/bxilog-err.c\
 		   ../packaged/doc/examples/bxilog-cfg.c\
-		   ../packaged/doc/examples/bxilog-multiprocessing
+		   ../packaged/doc/examples/bxilog-multiprocessing.py
 
 
 ___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
