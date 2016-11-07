@@ -93,7 +93,7 @@ EXTRA_DIST=\
 		   ../packaged/doc/examples/bxistr-examples.c\
 		   ../packaged/doc/examples/bxilog-err.c\
 		   ../packaged/doc/examples/bxilog-cfg.c\
-		   ../packaged/doc/examples/bxilog-multiprocessing
+		   ../packaged/doc/examples/bxilog-multiprocessing.py
 
 
 ___packaged_doc_examples_bxistr_examples_LDADD=$(top_builddir)/packaged/lib/libbxibase.la
