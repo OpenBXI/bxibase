@@ -3,7 +3,7 @@ all-local:
 	mkdir -p report
 
 if HAVE_PYTHON
-check-local: 
+check-local:
 	PYTHONPATH=${abs_top_srcdir}/packaged/lib:${abs_top_builddir}/packaged/lib/:$${PYTHONPATH} \
 	LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
 	coverage run ${top_srcdir}/tests/bxilog_suite.py; \
@@ -49,7 +49,7 @@ unit_t_LDFLAGS =\
 				@TST_LDFLAGS@\
 				$(ZMQ_LIBS)\
 				$(UUID_LIBS)
-				
+
 unit_t_LDADD=$(top_builddir)/packaged/lib/libbxibase.la\
 				   @TST_LIBS@
 
