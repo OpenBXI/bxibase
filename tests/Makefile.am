@@ -19,7 +19,7 @@ TESTS = \
 		../packaged/doc/examples/bxilog-cfg
 if HAVE_PYTHON
 TESTS += \
-		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing
+		${abs_top_srcdir}/packaged/doc/examples/bxilog-multiprocessing.py
 endif
 
 inst_checkdir=$(docdir)/tests/
