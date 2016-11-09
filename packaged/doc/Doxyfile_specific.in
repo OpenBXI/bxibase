@@ -4,3 +4,4 @@ INPUT += @top_srcdir@/packaged/include \
          @abs_top_builddir@/packaged/include
 
 EXAMPLE_PATH           +=  @top_srcdir@/packaged/doc/examples/
+GENERATE_TAGFILE = @top_srcdir@/build/packaged/doc/doxygen.tag
