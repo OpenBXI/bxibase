@@ -266,7 +266,7 @@ bxierr_p bxizmq_zocket_connect(void * const ctx,
     BXIERR_CHAIN(err, err2);
     double delay = 0.0;
     int tries = 0;
-    while(delay < MAX_CONNECTION_TIMEOUT) {
+    while (delay < MAX_CONNECTION_TIMEOUT) {
         errno = 0;
         int rc = zmq_connect(socket, url);
         if (0 == rc) break;
@@ -394,7 +394,7 @@ bxierr_p bxizmq_msg_rcv_async(void * const zocket, zmq_msg_t * const msg,
     bxierr_p err = BXIERR_OK, err2;
     size_t n = retries_max;
 
-    while(n-- > 0) {
+    while (n-- > 0) {
         errno = 0;
         bxierr_p tmp = bxizmq_msg_rcv(zocket, msg, ZMQ_DONTWAIT);
         if (bxierr_isok(tmp)) return tmp;
@@ -738,7 +738,7 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
         // Check the timeout did not expire
         err2 = bxitime_duration(CLOCK_MONOTONIC, start, &delay);
         BXIERR_CHAIN(err, err2);
-    } while(delay < timeout_s);
+    } while (delay < timeout_s);
 
     return bxierr_new(BXIZMQ_TIMEOUT_ERR, NULL, NULL, NULL,
                       err,
@@ -765,7 +765,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
 
     char * sync_url = NULL;
     char * key = NULL;
-    while(true) {
+    while (true) {
 
         err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);
         BXIERR_CHAIN(err, err2);
@@ -808,7 +808,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
     zmq_pollitem_t poll_set[] = {
         { sync_zocket, 0, ZMQ_POLLIN, 0 },};
 
-    while(true) {
+    while (true) {
         int rc = zmq_poll(poll_set, 1, (long)timeout_s/10);
         if (-1 == rc) {
             err2 = _zmqerr(errno, "Calling zmq_poll() failed");
@@ -823,7 +823,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
         break;
     }
 
-    while(key != NULL) {
+    while (key != NULL) {
         BXIFREE(key);
         key = NULL;
         err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &key);

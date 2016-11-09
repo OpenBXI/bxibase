@@ -559,8 +559,10 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
         BXIERR_CHAIN(err, err2);
     }
 
-    TRACE(_REMOTE_LOGGER, "Creating and connecting the control ZMQ socket to url: '%s'",
-                          BXILOG_REMOTE_RECEIVER_SYNC_URL);
+    TRACE(_REMOTE_LOGGER,
+          "Creating and connecting the control ZMQ socket to url: '%s'",
+          BXILOG_REMOTE_RECEIVER_SYNC_URL);
+
     err2 = bxizmq_zocket_bind(*context, ZMQ_PAIR, BXILOG_REMOTE_RECEIVER_SYNC_URL, NULL,
                               &poller[1].socket);
     BXIERR_CHAIN(err, err2);
