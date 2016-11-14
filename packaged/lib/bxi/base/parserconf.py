@@ -353,7 +353,7 @@ def _configure_log(parser):
             group.add_argument("--log-%s-colors" % console_handler,
                                mustbeprinted=False,
                                metavar='log-%s-colors' % console_handler,
-                               envvar='BXILOG_%s_FILTERS' % console_handler,
+                               envvar='BXILOG_%s_COLORS' % console_handler,
                                default=default,
                                choices=bxilog_consolehandler.COLORS.keys(),
                                help="Define the logging colors for the %s handler " % 
