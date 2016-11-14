@@ -345,6 +345,22 @@ def _configure_log(parser):
                                     "Logging filters are defined by the following format: "
                                     "logger_name_prefix:level[,prefix:level]*")
 
+            if 'colors' not in console_section:
+                default = DEFAULT_CONSOLE_COLORS
+            else:
+                default = console_section['colors']
+
+            group.add_argument("--log-%s-colors" % console_handler,
+                               mustbeprinted=False,
+                               metavar='log-%s-colors' % console_handler,
+                               envvar='BXILOG_%s_FILTERS' % console_handler,
+                               default=default,
+                               choices=bxilog_consolehandler.COLORS.keys(),
+                               help="Define the logging colors for the %s handler " % 
+                                    console_handler +
+                                    "Value: '%(default)s'. " + 
+                                    "choices=%s. " % bxilog_consolehandler.COLORS.keys())
+
         sections = find_logconfigs(bxilog_filehandler.__name__, config)
         for section in sections:
             conf = config[section]
@@ -398,6 +414,7 @@ def _configure_log(parser):
         args = vars(known_args)
         for option in args:
             _override_kv(option, 'filters', config, args)
+            _override_kv(option, 'colors', config, args)
             _override_kv(option, 'path', config, args)
 
     parser.add_argument('--help-logs',
