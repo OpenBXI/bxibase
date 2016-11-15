@@ -23,6 +23,7 @@ import subprocess
 import os
 import sys
 import shlex
+import mmap
 
 import bxi.base.log as bxilog
 import bxi.base.posless as posless
@@ -63,6 +64,8 @@ BT_RE = re.compile('^(?P<prefix>##trce##\s\[\d{2}\]\s)'
                    '(?P<filename>.+)'
                    '\((?P<funcname>\w*)\+(?P<addr>0x[0-9A-Fa-f]+).*$')
 
+_LOG_LEVEL_STR = bxilog.__BXIBASE_CAPI__.BXILOG_FILE_HANDLER_LOG_LEVEL_STR
+
 _NON_PRINTABLE_CHAR = set([chr(i) for i in range(256)]).difference(string.printable)
 _NON_PRINTABLE_STR = "".join(x for x in _NON_PRINTABLE_CHAR)
 _NON_PRINTABLE_SUB = "."*len(_NON_PRINTABLE_STR)
@@ -72,8 +75,8 @@ def blob2str(blob):
     return blob.translate(BLOB2STR_TRANSLATE_TABLE)
 
 
-_LOGGER = bxilog.getLogger(os.path.basename(sys.argv[0]))
-
+_LOGGER_PARSER = bxilog.getLogger(os.path.basename(sys.argv[0]) + '.parser')
+_LOGGER_MERGER = bxilog.getLogger(os.path.basename(sys.argv[0]) + '.merger')
 
 def hsv_to_rgb(h, s, v, max):
     """
@@ -100,7 +103,7 @@ def hsv_to_rgb(h, s, v, max):
 def addr2line(prefix, log, filename, addr):
     cmd = "addr2line --exe=%s --demangle --addresses --functions --inlines" \
           " --pretty-print addr" % filename
-    _LOGGER.debug("Calling: '%s'", cmd)
+    _LOGGER_PARSER.debug("Calling: '%s'", cmd)
     param = shlex.split(cmd)
     bt_log = subprocess.check_output(param)
     if '??' in bt_log:
@@ -122,15 +125,15 @@ def parse_backtrace_log(log):
         else:
             with open('/dev/null', 'w') as sink:
                 cmd = "nm %s | grep %s" % (filename, funcname)
-                _LOGGER.debug("Calling '%s'", cmd)
+                _LOGGER_PARSER.debug("Calling '%s'", cmd)
                 out = subprocess.check_output(cmd,
                                               stderr=sink,
                                               shell=True)
                 faddr = eval('hex(0x%s+%s)' % (out.split()[0], addr))
                 return addr2line(prefix, log, filename, faddr)
     except CalledProcessError:
-        _LOGGER.exception("Can't exec subprocess for backtrace parsing,"
-                          " returning raw backtrace", level=bxilog.FINE)
+        _LOGGER_PARSER.exception("Can't exec subprocess for backtrace parsing,"
+                                 " returning raw backtrace", level=bxilog.FINE)
         return log
 
 
@@ -160,7 +163,7 @@ def _parse_logline(n, line):
     logger = result.group('logger')
     logmsg = result.group('logmsg')
 
-    _LOGGER.trace("%d: level=%s, timestamp=%s, pkrid=%s, process=%s, source=%s logger=%s",
+    _LOGGER_PARSER.trace("%d: level=%s, timestamp=%s, pkrid=%s, process=%s, source=%s logger=%s",
                   n, level, timestamp, pkrid, process, source, logger)
 
     log = parse_backtrace_log(logmsg.rstrip())
@@ -168,8 +171,43 @@ def _parse_logline(n, line):
     return n, level, timestamp, pkrid, process, source, logger, log
 
 
-def enqueue_input(input_, queue):
-    input = sys.stdin if input_ == '-' else open(name=input_, mode='rU', buffering=1)
+def _start_from_last_level(name, level, n):
+    with open(name, 'rb') as f:
+        log = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
+        pattern = '\n%s' % _LOG_LEVEL_STR[bxilog.get_level_from_str(level)]
+        last_seen = -1
+        found = 0
+        while found < n:
+            pos = log.rfind(pattern, 0, last_seen - len(pattern))
+            _LOGGER_PARSER.debug("Found %s at %s", level, pos)
+            if pos == -1:
+                _LOGGER_PARSER.notice('No more that %d logs at level %s found', found, level)
+                break
+            last_seen = pos
+            found += 1
+        # TODO: We find last line with the pattern. However such a log might hold 
+        # multiple lines. We must start from the first line of a possibly
+        # multilog line message. All such lines starts with exactly the same pattern
+        # E|same-date|same-process|same-line|same-logger|might-be-different
+        _LOGGER_PARSER.debug("Seeking to %s", last_seen)
+        if last_seen != -1:
+            log.seek(last_seen, os.SEEK_SET)
+        else:
+            log.seek(0, os.SEEK_END)
+        return log
+
+def enqueue_input(input_, queue, leveln_format=None):
+    if input_ == '-':
+        if leveln_format is not None:
+            raise ValueError("Can't find last error %s on standard input '-')" % find_errors)
+        else:
+            input = sys.stdin
+    else:
+        if leveln_format is not None:
+            level, n = leveln_format.split(':')
+            input = _start_from_last_level(input_, level, int(n))            
+        else:
+            input = open(name=input_, mode='rU', buffering=1)
     try:
         n = 0
         for line in iter(input.readline, b''):
@@ -179,13 +217,13 @@ def enqueue_input(input_, queue):
             if len(pline.strip()) > 0:
                 parsed_line = _parse_logline(n, pline)
                 if parsed_line is None:
-                    _LOGGER.warn("Ignoring non bxilog line %d: %s", n, line)
+                    _LOGGER_PARSER.warn("Ignoring non bxilog line %d: %s", n, line)
                     continue
                 queue.put(parsed_line)
     finally:
-        _LOGGER.debug("EOF reached, closing input file")
+        _LOGGER_PARSER.debug("EOF reached, closing input file")
         input.close()
-        _LOGGER.debug("Putting end mark for reader termination")
+        _LOGGER_PARSER.debug("Putting end mark for reader termination")
         queue.put(None)
 
 
@@ -229,16 +267,15 @@ def _flush_frame(logs, output):
                                                             logger,
                                                             log), file=output)
 
-
 @bxilog.multiprocessing_target
-def parse(output_, time_frame, flush_limit, q, bxilog_config):
+def merger(args, q, bxilog_config):
     """
-    Parse the given input (that should present bxilog line)
-    and print using the given output using the given time frame_size.
+    Merge lines coming from the given queue 'q' and outputs the result.
     """
-    bxilog.set_config(bxilog_config, progname="bxilog-parser.output")
-    output = sys.stdout if output_ == '-' else open(output_, 'w')
-    frame_size = timedelta(seconds=time_frame)
+    bxilog.set_config(bxilog_config, progname="bxilog-parser.merger")
+    output = sys.stdout if args.output == '-' else open(args.output, 'w') 
+    frame_size = timedelta(seconds=args.frame)
+    flush_limit = args.flush_limit
     before_logs = dict()
     current_logs = dict()
     after_logs = dict()
@@ -255,8 +292,8 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
             try:
                 logdata = q.get(timeout=.1)
             except Empty:
-                _LOGGER.info("Flushing (empty queue): len(before)=%d, len(current)=%d, len(after)=%d",
-                             len(before_logs), len(current_logs), len(after_logs))
+                _LOGGER_MERGER.info("Flushing (empty queue): len(before)=%d, len(current)=%d, len(after)=%d",
+                                    len(before_logs), len(current_logs), len(after_logs))
                 _flush_frame(before_logs, output)
                 before_logs = current_logs
                 current_logs = after_logs
@@ -268,7 +305,7 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
             if logdata is None:
                 break
             if len(logdata) != 8:
-                _LOGGER.warning("Ignoring non bxilog line: %s", repr(logdata[1].strip()))
+                _LOGGER_MERGER.warning("Ignoring non bxilog line: %s", repr(logdata[1].strip()))
                 continue
 
             number, level, timestamp, pkrid, process, source, logger, log = logdata
@@ -286,7 +323,7 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
                     timestamp = timestamp[:subsecond_idx + 6]
                 ts = datetime.strptime(timestamp, '%Y%m%dT%H%M%S.%f')
             except (ValueError,TypeError) as err:
-                _LOGGER.warning("Ignoring line %d - %s - %s", number, timestamp, str(err))
+                _LOGGER_MERGER.warning("Ignoring line %d - %s - %s", number, timestamp, str(err))
                 continue
             if current_frame is None:
                 current_frame = ts
@@ -295,13 +332,13 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
             else:
                 if ts > after_frame:
                     target_frame = after_logs
-                    _LOGGER.debug("%s > %s -> after", ts, after_frame)
+                    _LOGGER_MERGER.debug("%s > %s -> after", ts, after_frame)
                 elif ts > current_frame:
                     target_frame = current_logs
-                    _LOGGER.debug("%s > %s -> current", ts, current_frame)
+                    _LOGGER_MERGER.debug("%s > %s -> current", ts, current_frame)
                 else:
                     target_frame = before_logs
-                    _LOGGER.debug("%s <= %s -> before", ts, current_frame)
+                    _LOGGER_MERGER.debug("%s <= %s -> before", ts, current_frame)
 
             entries = target_frame.setdefault(timestamp, [])
             entries.append((level, color, pkrid, process, source, logger, log))
@@ -309,10 +346,10 @@ def parse(output_, time_frame, flush_limit, q, bxilog_config):
             # Empirical: if the log timestamp exceeds 2 times the after_frame
             # perform a flush.
             if ts > after_frame + flush_limit * frame_size:
-                _LOGGER.debug("%s > %s -> flush", ts, after_frame + flush_limit * frame_size)
+                _LOGGER_MERGER.debug("%s > %s -> flush", ts, after_frame + flush_limit * frame_size)
                 _flush_frame(before_logs, output)
-                _LOGGER.info("Flushing (limit = %d): len(before)=%d, len(current)=%d, len(after)=%d",
-                             flush_limit, len(before_logs), len(current_logs), len(after_logs))
+                _LOGGER_MERGER.info("Flushing (limit = %d): len(before)=%d, len(current)=%d, len(after)=%d",
+                                    flush_limit, len(before_logs), len(current_logs), len(after_logs))
                 before_logs = current_logs
                 current_logs = after_logs
                 after_logs = dict()
@@ -345,14 +382,20 @@ def main():
     parser.add_argument("--flush_limit", metavar='flush_limit', type=int, default=1,
                         help="Flush when a log timestamp exceeds this "
                         "number of time frames. Default: %(default)s")
-
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--last", metavar='level:n',
+                        help="Start from Nth last logs with LEVEL. For example, 'error:1'"
+                        " starts from the last error.")
+    group.add_argument("-e", action='store_true',
+                        help="Shortcut for --last=error:1, that is start from the last error.")
     args = parser.parse_args()
+    if args.e:
+        args.last = 'error:1'
     q = Queue()
-    t = Process(target=parse, args=(args.output, args.frame, args.flush_limit, q,
-                                    bxilog.get_config()))
+    t = Process(target=merger, args=(args, q, bxilog.get_config()))
     t.daemon = False  # thread dies with the program
     t.start()
-    enqueue_input(args.input, q)
+    enqueue_input(args.input, q, args.last)
 
 
 if __name__ == '__main__':
