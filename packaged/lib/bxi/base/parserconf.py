@@ -337,7 +337,7 @@ def _configure_log(parser):
             group.add_argument("-l", "--log-%s-filters" % console_handler,
                                mustbeprinted=False,
                                metavar='log-%s-filters' % console_handler,
-                               envvar='BXILOG_%s_FILTERS' % console_handler,
+                               envvar='BXILOG_%s_FILTERS' % console_handler.upper(),
                                default=default,
                                help="Define the logging filters for the %s handler " % 
                                     console_handler +
@@ -353,7 +353,7 @@ def _configure_log(parser):
             group.add_argument("--log-%s-colors" % console_handler,
                                mustbeprinted=False,
                                metavar='log-%s-colors' % console_handler,
-                               envvar='BXILOG_%s_COLORS' % console_handler,
+                               envvar='BXILOG_%s_COLORS' % console_handler.upper(),
                                default=default,
                                choices=bxilog_consolehandler.COLORS.keys(),
                                help="Define the logging colors for the %s handler " % 
@@ -379,7 +379,7 @@ def _configure_log(parser):
             group.add_argument("--log-%s-filters" % section,
                                metavar='log-%s-filters' % section,
                                mustbeprinted=False,
-                               envvar='BXILOG_%s_FILTERS' % section,
+                               envvar='BXILOG_%s_FILTERS' % section.upper(),
                                default=default,
                                help="Define the logging filters for the "
                                     "%s handler " % section +
