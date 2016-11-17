@@ -113,6 +113,7 @@ Test for the BXI base library
 %package tools
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
+
 %description tools
 Commands to manipulate and interact with bxilogs
 

@@ -20,7 +20,7 @@ AC_CHECK_LIB([pthread], [pthread_create], [],
              [AC_MSG_ERROR([Could not find pthread library])])
 AC_CHECK_LIB([rt], [clock_gettime], [],
              [AC_MSG_ERROR([Could not find rt library])])
-AC_CHECK_LIB([backtrace], [backtrace_full], [], 
+AC_CHECK_LIB([backtrace], [backtrace_full], [],
              [AC_MSG_ERROR([Could not find backtrace library])])
 
 PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
@@ -59,7 +59,7 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_STRERROR_R
 AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 
-SUBPACKAGES="debuginfo doc devel tests"
+SUBPACKAGES="debuginfo doc devel tests tools"
 AC_SUBST([SUBPACKAGES])
 AC_BXIEXTRA_DIST="h2py.sh"
 AC_SUBST([AC_BXIEXTRA_DIST])
