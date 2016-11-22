@@ -56,9 +56,11 @@
  */
 extern const bxilog_handler_p BXILOG_FILE_HANDLER;
 extern const bxilog_handler_p BXILOG_FILE_HANDLER_STDIO;
+extern const char BXILOG_FILE_HANDLER_LOG_LEVEL_STR[];
 #else
 extern bxilog_handler_p BXILOG_FILE_HANDLER;
 extern bxilog_handler_p BXILOG_FILE_HANDLER_STDIO;
+extern char BXILOG_FILE_HANDLER_LOG_LEVEL_STR[];
 #endif
 
 //*********************************************************************************
