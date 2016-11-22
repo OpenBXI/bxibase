@@ -89,6 +89,8 @@ typedef bxilog_config_s * bxilog_config_p;
  * and a file_handler_p.
  *
  * @note if the given filename is NULL, the bxilog_file_handler_p is not installed.
+ * @note if the environment variable BXILOG_CONSOLE_HANDLER_LOGGERNAME_WIDTH is found,
+ *       it is parsed as an int and given as a parameter to BXILOG_CONSOLE_HANDLER.
  *
  * @param[in] progname the program name (usually argv[0])
  * @param[in] filename if not NULL, the full file name where the bxilog_file_handler_p
