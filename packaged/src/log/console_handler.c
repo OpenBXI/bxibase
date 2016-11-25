@@ -357,15 +357,12 @@ inline bxierr_p _process_log(bxilog_record_p record,
                              char * logmsg,
                              bxilog_console_handler_param_p data) {
 
-    char * short_loggername = bxistr_mkshorter(loggername,
-                                               (size_t) data->loggername_width, '.');
-
     log_single_line_param_s param = {
                                      .data = data,
                                      .record = record,
                                      .filename = filename,
                                      .funcname = funcname,
-                                     .loggername = short_loggername,
+                                     .loggername = loggername,
                                      .logmsg = logmsg,
     };
 
@@ -384,7 +381,6 @@ inline bxierr_p _process_log(bxilog_record_p record,
                                  &param);
     }
 
-    BXIFREE(short_loggername);
     return err;
 }
 
@@ -420,9 +416,7 @@ bxierr_p _process_ierr(bxierr_p *err, bxilog_console_handler_param_p data) {
                             NULL,
                             "Fatal, exiting from thread %d",
                             data->tid);
-
     }
-
     return result;
 }
 
