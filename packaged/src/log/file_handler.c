@@ -173,7 +173,7 @@ static void _record_new_error(bxilog_file_handler_param_p data, bxierr_p * err);
 
 // The various log levels specific characters
 const char BXILOG_FILE_HANDLER_LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
-							   'I', 'D', 'F', 'T', 'L'};
+                                                   'I', 'D', 'F', 'T', 'L'};
 // The log format used by the IHT when writing
 // WARNING: If you change this format, change also different #define above
 // along with FIXED_LOG_SIZE
