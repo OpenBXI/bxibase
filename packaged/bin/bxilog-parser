@@ -384,10 +384,15 @@ def main():
                         "number of time frames. Default: %(default)s")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--last", metavar='level:n',
-                        help="Start from Nth last logs with LEVEL. For example, 'error:1'"
-                        " starts from the last error.")
+                       help=posless.SUPPRESS)
+    # Beta features
+#                        help="Start from Nth last logs with LEVEL. For example, 'error:1'"
+#                        " starts from the last error.")
     group.add_argument("-e", action='store_true',
-                        help="Shortcut for --last=error:1, that is start from the last error.")
+                       help=posless.SUPPRESS)
+    # Beta features
+#                        help="Shortcut for --last=error:1, that is "
+#                             "start from the last error.")
     args = parser.parse_args()
     if args.e:
         args.last = 'error:1'
