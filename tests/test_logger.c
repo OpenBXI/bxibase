@@ -823,7 +823,7 @@ void test_handlers(void) {
     bxilog_config_add_handler(config,
                               BXILOG_CONSOLE_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
-                              BXILOG_WARNING);
+                              BXILOG_WARNING, 12, BXILOG_COLORS_216_DARK);
     bxilog_config_add_handler(config,
                               BXILOG_SYSLOG_HANDLER,
                               BXILOG_FILTERS_ALL_OFF,
