@@ -1,0 +1,12 @@
+FROM local/centos-epel:latest
+
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+RUN yum -y install autoconf libtool make
+RUN yum -y install gcc gcc-c++
+RUN yum -y install git
+RUN yum -y install net-snmp-devel net-snmp-libs
+RUN yum -y install python python-cffi
+RUN yum -y install rpm-build
+RUN yum -y install zeromq zeromq-devel
+
