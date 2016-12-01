@@ -65,6 +65,19 @@ BT_RE = re.compile('^(?P<prefix>##trce##\s\[\d{2}\]\s)'
                    '\((?P<funcname>\w*)\+(?P<addr>0x[0-9A-Fa-f]+).*$')
 
 _LOG_LEVEL_STR = bxilog.__BXIBASE_CAPI__.BXILOG_FILE_HANDLER_LOG_LEVEL_STR
+_LOG_STR_LEVEL = { '-':bxilog.OFF,
+                   'P':bxilog.PANIC,
+                   'A':bxilog.ALERT,
+                   'C':bxilog.CRITICAL,
+                   'E':bxilog.ERROR,
+                   'W':bxilog.WARNING,
+                   'N':bxilog.NOTICE,
+                   'O':bxilog.OUTPUT,
+                   'I':bxilog.INFO,
+                   'D':bxilog.DEBUG,
+                   'F':bxilog.FINE,
+                   'T':bxilog.TRACE,
+                   'L':bxilog.LOWEST}
 
 _NON_PRINTABLE_CHAR = set([chr(i) for i in range(256)]).difference(string.printable)
 _NON_PRINTABLE_STR = "".join(x for x in _NON_PRINTABLE_CHAR)
@@ -171,18 +184,28 @@ def _parse_logline(n, line):
     return n, level, timestamp, pkrid, process, source, logger, log
 
 
-def _start_from_last_level(name, level, n):
+def _start_from_last_level(name, level_str, n):
+    level = bxilog.get_level_from_str(level_str)
     with open(name, 'rb') as f:
         log = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
-        pattern = '\n%s' % _LOG_LEVEL_STR[bxilog.get_level_from_str(level)]
         last_seen = -1
+        last_pos = -1
         found = 0
         while found < n:
-            pos = log.rfind(pattern, 0, last_seen - len(pattern))
-            _LOGGER_PARSER.debug("Found %s at %s", level, pos)
+            pos = log.rfind('\n', 0, last_pos - len('\n'))
+            line_level_str = log[pos + 1:pos+2]
+            line_level = _LOG_STR_LEVEL[line_level_str]
+            _LOGGER_PARSER.trace("Checking %s > %s at %s: %s",
+                                 line_level_str, level_str, pos, log[pos:pos+10])
+            if line_level > level:
+                last_pos = pos
+                continue
+            _LOGGER_PARSER.debug("Found %s at %s", level_str, pos)
             if pos == -1:
-                _LOGGER_PARSER.notice('No more that %d logs at level %s found', found, level)
+                _LOGGER_PARSER.notice('No more that %d logs at level %s found',
+                                      found, level_str)
                 break
+            last_pos = pos
             last_seen = pos
             found += 1
         # TODO: We find last line with the pattern. However such a log might hold 
@@ -199,7 +222,7 @@ def _start_from_last_level(name, level, n):
 def enqueue_input(input_, queue, leveln_format=None):
     if input_ == '-':
         if leveln_format is not None:
-            raise ValueError("Can't find last error %s on standard input '-')" % find_errors)
+            raise ValueError("Finding last error on standard input '-' is unsupported")
         else:
             input = sys.stdin
     else:
