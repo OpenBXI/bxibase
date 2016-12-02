@@ -302,7 +302,7 @@ def multiprocessing_target(func):
     - uncaught exception are correctly reported by bxilog
     - the bxi logging library is cleaned up on exit
 
-### @snippet bxilog_multiprocessing.py BXI Log and Python multiprocessing module
+### @snippet bxilog-multiprocessing.py BXI Log and Python multiprocessing module
     """
     def wrapped(*args, **kwargs):
         try:
@@ -845,7 +845,7 @@ class TestCase(unittest.TestCase):
 
 
 ##
-# @example bxilog_multiprocessing.py
+# @example bxilog-multiprocessing.py
 # Using bxilog with the Python multiprocessing module
 #
 

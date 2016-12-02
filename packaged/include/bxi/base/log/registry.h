@@ -120,7 +120,7 @@ void bxilog_registry_reset();
  * @warning: the given filters_p object is nullified after this call. You cannot use
  * it anymore after this call (but you can create another filters object of course).
  *
- * See @link bxilog_cfg.c bxilog_cfg.c for a full running example@endlink
+ * See @link bxilog-cfg.c bxilog-cfg.c for a full running example@endlink
  *
  *
  *

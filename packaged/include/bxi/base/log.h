@@ -89,8 +89,8 @@
  *
  * ### Full Running Examples
  *
- * - @link bxilog_err.c logging and error handling @endlink
- * - @link bxilog_cfg.c configuring the bxilog library @endlink
+ * - @link bxilog-err.c logging and error handling @endlink
+ * - @link bxilog-cfg.c configuring the bxilog library @endlink
  */
 
 // *********************************************************************************
@@ -247,14 +247,14 @@ void bxilog_display_loggers(int fd);
 void bxilog_rawprint(char* msg, int fd);
 
 /**
- * @example bxilog_err.c
+ * @example bxilog-err.c
  * An example on how to use the BXI Logging API with high-level error
  * management. Compile with `-lbxibase`.
  *
  */
 
 /**
- * @example bxilog_cfg.c
+ * @example bxilog-cfg.c
  * An example on how to configure the BXI Logging API. Compile with `-lbxibase`.
  *
  */

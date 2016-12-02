@@ -166,7 +166,7 @@ void bxistr_prefixer_init(bxistr_prefixer_p self,
  *
  * @note: this function should not be used directly. Instead, use it in combination
  * with bxistr_apply_lines such as in the following code snippet:
- * @snippet bxistr_examples.c Multi-line prefixer
+ * @snippet bxistr-examples.c Multi-line prefixer
  *
  * @param[in] line the line to prefix
  * @param[in] line_len the length of the line
@@ -306,7 +306,7 @@ bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps);
 
 
 /**
- * @example bxistr_examples.c
+ * @example bxistr-examples.c
  * Examples of the bxistr.h module. Compile with `-lbxibase`.
  *
  */
