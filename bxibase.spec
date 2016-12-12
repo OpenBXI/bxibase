@@ -40,6 +40,10 @@ Prefix: /usr
 %define target_python_lib_dir %{python2_sitearch}
 %define target_man_dir %{_mandir}
 %define target_doc_dir /usr/share/doc/%{name}
+%define src_tagfiles_prefix %{?tagfiles_prefix}%{?!tagfiles_prefix:/usr/share/doc}
+%define src_tagfiles_suffix %{?tagfiles_suffix}%{?!tagfiles_suffix:%{version}/doxygen.tag}
+%define target_htmldirs_prefix ../
+%define target_htmldirs_suffix /
 
 # TODO: Give your summary
 Summary:    Basic library for high-level C and Python programming (logging, error, string, zmq)
@@ -126,7 +130,11 @@ Commands to manipulate and interact with bxilogs
 test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %setup
 #TODO put the doc again when working
-%configure --disable-debug %{?checkdoc}
+%configure --disable-debug %{?checkdoc} \
+    --with-tagfiles-prefix=%{src_tagfiles_prefix} \
+    --with-tagfiles-suffix=%{src_tagfiles_suffix} \
+    --with-htmldirs-prefix=%{target_htmldirs_prefix} \
+    --with-htmldirs-suffix=%{target_htmldirs_suffix}
 
 ###############################################################################
 # The current directory is the one main directory of the tar
@@ -151,7 +159,23 @@ rm -f $RPM_BUILD_ROOT/%{target_lib_dir}/lib*.la
 
 %post
 
+%post doc
+rm -f %{target_doc_dir}/last
+ln -s $( \
+        ls %{target_doc_dir} | \
+            grep '^[0-9]\+[0-9.]*[0-9]\+$' | \
+            sort | tail -n1 \
+    ) %{target_doc_dir}/last
+
 %postun
+
+%postun doc
+rm -f %{target_doc_dir}/last
+ln -s $( \
+        ls %{target_doc_dir} | \
+            grep '^[0-9]\+[0-9.]*[0-9]\+$' | \
+            sort | tail -n1 \
+    ) %{target_doc_dir}/last
 
 %preun
 
