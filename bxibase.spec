@@ -43,7 +43,7 @@ Prefix: /usr
 %define src_tagfiles_prefix %{?tagfiles_prefix}%{?!tagfiles_prefix:/usr/share/doc}
 %define src_tagfiles_suffix %{?tagfiles_suffix}%{?!tagfiles_suffix:%{version}/doxygen.tag}
 %define target_htmldirs_prefix ../
-%define target_htmldirs_suffix /
+%define target_htmldirs_suffix /last/
 
 # TODO: Give your summary
 Summary:    Basic library for high-level C and Python programming (logging, error, string, zmq)
