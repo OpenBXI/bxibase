@@ -36,7 +36,9 @@ from subprocess import CalledProcessError
 #     from Queue import Queue, Empty
 # except ImportError:
 #     from queue import Queue, Empty  # python 3.x
-ON_POSIX = 'posix' in sys.builtin_module_names
+
+"""Time limit to search backward for matching multi-line log messages """
+MAX_MULTILINE_LOG_TIME = timedelta(milliseconds=200)
 
 TIME_HEADER = "TIMESTAMP"
 LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
@@ -149,6 +151,13 @@ def parse_backtrace_log(log):
                                  " returning raw backtrace", level=bxilog.FINE)
         return log
 
+def _parse_timestamp(timestamp):
+    subsecond_idx = timestamp.rfind('.') + 1
+    if len(timestamp) - subsecond_idx > 6:
+        # Truncate to microseconds since Python cannot deal with something better
+        timestamp = timestamp[:subsecond_idx + 6]
+    return datetime.strptime(timestamp, '%Y%m%dT%H%M%S.%f')
+
 
 def _parse_logline(n, line):
     """
@@ -183,6 +192,24 @@ def _parse_logline(n, line):
 
     return n, level, timestamp, pkrid, process, source, logger, log
 
+def _back_in_time(log, last_seen, MAX_MULTILINE_LOG_TIME):
+    idx = log.find('|', last_seen + 3, -1)
+    timestamp = log[last_seen + 3:idx]
+    ts = _parse_timestamp(timestamp)
+    ts_limit = ts - MAX_MULTILINE_LOG_TIME
+    last_pos = last_seen
+    while True:
+        pos = log.rfind('\n', 0, last_pos - len('\n'))
+        if pos == -1:
+            break
+        idx = log.find('|', pos + 3, last_pos)
+        timestamp = log[pos + 3:idx]
+        ts = _parse_timestamp(timestamp)
+        if ts < ts_limit:
+            break
+        last_pos = pos
+    
+    return last_pos
 
 def _start_from_last_level(name, level_str, n):
     level = bxilog.get_level_from_str(level_str)
@@ -193,7 +220,9 @@ def _start_from_last_level(name, level_str, n):
         found = 0
         while found < n:
             pos = log.rfind('\n', 0, last_pos - len('\n'))
-            line_level_str = log[pos + 1:pos+2]
+            if pos == -1:
+                break
+            line_level_str = log[pos+1:pos+2]
             line_level = _LOG_STR_LEVEL[line_level_str]
             _LOGGER_PARSER.trace("Checking %s > %s at %s: %s",
                                  line_level_str, level_str, pos, log[pos:pos+10])
@@ -208,13 +237,17 @@ def _start_from_last_level(name, level_str, n):
             last_pos = pos
             last_seen = pos
             found += 1
-        # TODO: We find last line with the pattern. However such a log might hold 
-        # multiple lines. We must start from the first line of a possibly
-        # multilog line message. All such lines starts with exactly the same pattern
-        # E|same-date|same-process|same-line|same-logger|might-be-different
         _LOGGER_PARSER.debug("Seeking to %s", last_seen)
         if last_seen != -1:
-            log.seek(last_seen, os.SEEK_SET)
+            # We find last line with the pattern. However such a log might hold 
+            # multiple lines. We must start from the first line of a possibly
+            # multilog line message. All such lines starts with exactly the same pattern
+            # E|same-date|same-process|same-line|same-logger|might-be-different
+            # A good trick is to suppose that a multi-line message is not processed in less
+            # than MAX_MULTILINE_LOG_TIME. Therefore, we 
+            # continue to seek in the file back in time up to MAX_MULTILINE_LOG_TIME 
+            back = _back_in_time(log, last_seen, MAX_MULTILINE_LOG_TIME)
+            log.seek(back, os.SEEK_SET)
         else:
             log.seek(0, os.SEEK_END)
         return log
@@ -228,7 +261,7 @@ def enqueue_input(input_, queue, leveln_format=None):
     else:
         if leveln_format is not None:
             level, n = leveln_format.split(':')
-            input = _start_from_last_level(input_, level, int(n))            
+            input = _start_from_last_level(input_, level, int(n))
         else:
             input = open(name=input_, mode='rU', buffering=1)
     try:
@@ -340,11 +373,7 @@ def merger(args, q, bxilog_config):
                 color = hsv_to_rgb(h, 0.5, 0.95, 5)
                 pkrids_color[pkrid] = color
             try:
-                subsecond_idx = timestamp.rfind('.') + 1
-                if len(timestamp) - subsecond_idx > 6:
-                    # Truncate to microseconds since Python cannot deal with something better
-                    timestamp = timestamp[:subsecond_idx + 6]
-                ts = datetime.strptime(timestamp, '%Y%m%dT%H%M%S.%f')
+                ts = _parse_timestamp(timestamp)
             except (ValueError,TypeError) as err:
                 _LOGGER_MERGER.warning("Ignoring line %d - %s - %s", number, timestamp, str(err))
                 continue
@@ -407,15 +436,11 @@ def main():
                         "number of time frames. Default: %(default)s")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--last", metavar='level:n',
-                       help=posless.SUPPRESS)
-    # Beta features
-#                        help="Start from Nth last logs with LEVEL. For example, 'error:1'"
-#                        " starts from the last error.")
+                       help="Start from Nth last logs with LEVEL. For example, 'error:1'"
+                            " starts from the last error.")
     group.add_argument("-e", action='store_true',
-                       help=posless.SUPPRESS)
-    # Beta features
-#                        help="Shortcut for --last=error:1, that is "
-#                             "start from the last error.")
+                       help="Shortcut for --last=error:1, that is "
+                            "start from the last error.")
     args = parser.parse_args()
     if args.e:
         args.last = 'error:1'
