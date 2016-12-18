@@ -13,7 +13,7 @@
 
 
 #define URL "inproc://test"
-#define BUF_SIZE 100
+#define BUF_SIZE 1000
 #define MAX_RETRIES 3
 
 size_t SENDER_NB; // Initialized in the main
@@ -29,6 +29,12 @@ void * thread_receiver(void * dummy) {
     void *worker = zmq_socket(CONTEXT, ZMQ_PULL);
     int rc = zmq_bind(worker, URL);
     assert(0 == rc);
+    int hwm;
+    size_t hwm_size = sizeof(hwm);
+    rc = zmq_getsockopt(worker, ZMQ_RCVHWM, &hwm, &hwm_size);
+    assert(-1 != rc);
+
+    printf("RCV_HWM: %d\n", hwm);
 
     size_t nb[SENDER_NB];
     bool end[SENDER_NB];
@@ -80,7 +86,6 @@ void * thread_receiver(void * dummy) {
 //        if (0 == (n % 1000)) {
 //            printf("Received %zd messages\n", n);
 //        }
-//        usleep(1);
     }
     printf("All terminated messages received\n");
     rc = zmq_close(worker);
@@ -101,12 +106,23 @@ void * thread_sender(void * vid) {
     assert(NULL != master);
     int rc = zmq_connect(master, URL);
     assert(0 == rc);
-    struct blob_t blob = { .id = id};
+    int hwm;
+    size_t hwm_size = sizeof(hwm);
+    rc = zmq_getsockopt(master, ZMQ_SNDHWM, &hwm, &hwm_size);
+    assert(-1 != rc);
+
+    printf("SND_HWM: %d\n", hwm);
+
+    struct blob_t * blob_p = NULL;
 
     for (size_t i = 0; i < LOOP_NB; i++) {
+        blob_p = malloc(sizeof(*blob_p));
+        assert(NULL != blob_p);
+        blob_p->id = id;
+
         zmq_msg_t mzg;
-        rc = zmq_msg_init_size(&mzg, sizeof(blob));
-        memcpy(zmq_msg_data(&mzg), &blob, sizeof(blob));
+        rc = zmq_msg_init_size(&mzg, sizeof(*blob_p));
+        memcpy(zmq_msg_data(&mzg), blob_p, sizeof(*blob_p));
 //        printf("Sender %zu: sending %zu bytes\n", id, sizeof(blob));
         size_t tries = 1;
         int flags = ZMQ_DONTWAIT;
@@ -129,16 +145,22 @@ void * thread_sender(void * vid) {
         rc = zmq_msg_close(&mzg);
         assert(0 == rc);
         //      if (0 == (i %  1000)) printf("Nb of messages sent: %zu\n", i);
+        free(blob_p);
     }
 
     zmq_msg_t mzg;
     zmq_msg_init_size(&mzg, sizeof(id));
     memcpy(zmq_msg_data(&mzg), &id, sizeof(id));
     rc = zmq_msg_send(&mzg, master, 0);
+    assert(-1 != rc);
+    rc = zmq_msg_close(&mzg);
+    assert(0 == rc);
 
     printf("Terminating message sent\n");
+
     rc = zmq_close(master);
     assert(0 == rc);
+
     return NULL;
 }
 
