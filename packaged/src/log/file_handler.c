@@ -172,8 +172,8 @@ static void _record_new_error(bxilog_file_handler_param_p data, bxierr_p * err);
 //*********************************************************************************
 
 // The various log levels specific characters
-static const char LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
-                                      'I', 'D', 'F', 'T', 'L'};
+const char BXILOG_FILE_HANDLER_LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
+                                                   'I', 'D', 'F', 'T', 'L'};
 // The log format used by the IHT when writing
 // WARNING: If you change this format, change also different #define above
 // along with FIXED_LOG_SIZE
@@ -483,7 +483,7 @@ bxierr_p _log_single_line(char * line,
     // Include the NULL terminating byte in the size given to
     // underlying snprintf() call, it is required.
     _mkmsg(prefix_size + 1, buf,
-           LOG_LEVEL_STR[record->level],
+           BXILOG_FILE_HANDLER_LOG_LEVEL_STR[record->level],
            &record->detail_time,
            record->pid,
 #ifdef __linux__

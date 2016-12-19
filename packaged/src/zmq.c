@@ -17,7 +17,6 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <search.h>
 
 #include <zmq.h>
 
@@ -347,7 +346,7 @@ bxierr_p bxizmq_zocket_connect(void * zocket,
     double delay = 0.0;
     int tries = 0;
 
-    while(MAX_CONNECTION_TIMEOUT > delay) {
+    while (MAX_CONNECTION_TIMEOUT > delay) {
         errno = 0;
         int rc = zmq_connect(zocket, url);
         if (0 == rc) break;
@@ -481,7 +480,7 @@ bxierr_p bxizmq_msg_rcv_async(void * const zocket, zmq_msg_t * const msg,
     bxierr_p err = BXIERR_OK, err2;
     size_t n = retries_max;
 
-    while(n-- > 0) {
+    while (n-- > 0) {
         errno = 0;
         bxierr_p tmp = bxizmq_msg_rcv(zocket, msg, ZMQ_DONTWAIT);
         if (bxierr_isok(tmp)) return tmp;
@@ -1056,6 +1055,39 @@ char * bxizmq_create_url_from(const char * const url, const int tcp_port) {
     } else return strdup(url);
 }
 
+bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
+    bxiassert(NULL != url);
+    bxiassert(NULL != result);
+
+    *result = NULL;
+
+    if ((0 == strncmp("inproc", url, strlen("inproc"))) ||
+        (0 == strncmp("ipc", url, strlen("ipc")))) {
+
+        pthread_t thread = pthread_self();
+        struct timespec time;
+
+        bxierr_p tmp = bxitime_get(CLOCK_MONOTONIC, &time);
+        if (bxierr_isko(tmp)) {
+            bxierr_report(&tmp, STDERR_FILENO);
+            *result = bxistr_new("%s-%x", url, (unsigned int) thread);
+        } else {
+            *result = bxistr_new("%s-%x.%x", url, (unsigned int) thread,
+                                 (unsigned int) (time.tv_sec * 1000000000 + time.tv_nsec));
+        }
+        return BXIERR_OK;
+    }
+    if (0 == strncmp("tcp", url, strlen("tcp"))) {
+        char * colon = strrchr(url + strlen("tcp://"), ':');
+        size_t len = (size_t) (colon - url);
+        *result = bximem_calloc((len + ARRAYLEN(":*")) * sizeof(**result));
+        memcpy(*result, url, len);
+        memcpy(*result + len, ":*", strlen(":*"));
+        return BXIERR_OK;
+    }
+
+    return bxierr_gen("Bad or non-supported zeromq URL: %s", url);
+}
 
 // *********************************************************************************
 // **************************** Static function ************************************

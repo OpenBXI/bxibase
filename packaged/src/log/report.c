@@ -40,7 +40,7 @@
 //*********************************************************************************
 
 static void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err_p,
-                        char * file, size_t filelen,
+                        const char * filename, size_t filename_len,
                         const char * func, size_t funclen,
                         int line,
                         const char * fmt, va_list arglist);
@@ -82,27 +82,27 @@ void bxilog_report_keep(bxilog_logger_p logger, bxilog_level_e level, bxierr_p *
 
 void bxilog_report_raw(bxierr_report_p self,
                        bxilog_logger_p logger, bxilog_level_e level,
-                       char * file, size_t filelen,
-                       const char * func, size_t funclen,
-                       int line,
-                       const char * msg, size_t msglen) {
+                       const char * const filename, const size_t filename_len,
+                       const char * const func, const size_t funclen,
+                       const int line,
+                       const char * const msg, const size_t msglen) {
 
     bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
-                                               file, filelen,
+                                               filename, filename_len,
                                                func, funclen, line,
                                                msg, msglen);
     bxierr_report(&logerr, STDERR_FILENO);
 
     for (size_t i = 0; i < self->err_nb; i++) {
         bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
-                                                   file, filelen,
+                                                   filename, filename_len,
                                                    func, funclen, line,
                                                    self->err_msgs[i],
                                                    self->err_msglens[i]);
         bxierr_report(&logerr, STDERR_FILENO);
 
         logerr = bxilog_logger_log_rawstr(logger, BXILOG_TRACE,
-                                          file, filelen,
+                                          filename, filename_len,
                                           func, funclen, line,
                                           self->err_bts[i],
                                           self->err_btslens[i]);
@@ -118,10 +118,10 @@ void bxilog_report_raw(bxierr_report_p self,
 //*********************************************************************************
 
 void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err_p,
-                 char * file, size_t filelen,
-                 const char * func, size_t funclen,
-                 int line,
-                 const char * fmt, va_list arglist) {
+                 const char * const fullfilename, const size_t fullfilename_len,
+                 const char * func, const size_t funclen,
+                 const int line,
+                 const char * const fmt, va_list arglist) {
 
     if (*err_p == NULL) return;
     if (bxierr_isok(*err_p)) return;
@@ -143,8 +143,11 @@ void _report_err(bxilog_logger_p logger, bxilog_level_e level, bxierr_p * err_p,
     } else {
         bxierr_report_p report = bxierr_report_new();
         bxierr_report_add_from_limit(*err_p, report, BXIERR_ALL_CAUSES);
+        const char * filename;
+        size_t filename_len = bxistr_rsub(fullfilename, fullfilename_len, '/', &filename);
+
         bxilog_report_raw(report, logger, level,
-                          file, filelen,
+                          filename, filename_len,
                           func, funclen, line,
                           msg, len+1);
         bxierr_report_destroy(&report);

@@ -591,6 +591,7 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
     err2 = bxizmq_zocket_create_binded(*context, ZMQ_PAIR,
                                        BXILOG_REMOTE_RECEIVER_SYNC_URL, NULL,
                                        &poller[1].socket);
+
     BXIERR_CHAIN(err, err2);
 
     return err;

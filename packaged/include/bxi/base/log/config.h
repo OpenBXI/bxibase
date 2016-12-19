@@ -61,7 +61,9 @@ typedef struct {
     int ctrl_hwm;                               //!< ZMQ High Water Mark of control zocket
     size_t tsd_log_buf_size;                    //!< Size in bytes of the logging buffer
     size_t handlers_nb;                         //!< Number of logging handlers
-    const char * progname;                      //!< Program name
+    const char * progname;                      //!< Program name used by bxilog_init()
+                                                //!< to set the process name (on linux
+                                                //!< at least)
     bxilog_handler_p * handlers;                //!< The handlers list
     bxilog_handler_param_p * handlers_params;   //!< The handler parameters list
 } bxilog_config_s;
@@ -87,6 +89,8 @@ typedef bxilog_config_s * bxilog_config_p;
  * and a file_handler_p.
  *
  * @note if the given filename is NULL, the bxilog_file_handler_p is not installed.
+ * @note if the environment variable BXILOG_CONSOLE_HANDLER_LOGGERNAME_WIDTH is found,
+ *       it is parsed as an int and given as a parameter to BXILOG_CONSOLE_HANDLER.
  *
  * @param[in] progname the program name (usually argv[0])
  * @param[in] filename if not NULL, the full file name where the bxilog_file_handler_p

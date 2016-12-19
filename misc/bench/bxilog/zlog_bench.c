@@ -124,6 +124,10 @@ int main(int argc, char * argv[]) {
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("/tmp/%s%s", progname, ".log");
 
+    if( access(filename, F_OK) != -1) {
+        unlink(filename);
+    }
+
     int rc;
     zlog_category_t *c;
 

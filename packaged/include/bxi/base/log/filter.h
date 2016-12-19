@@ -109,9 +109,9 @@ extern bxilog_filters_p BXILOG_FILTERS_ALL_ALL;
 bxilog_filters_p  bxilog_filters_new();
 
 /**
- * Free the given set of filters. Use destroy() instead.
+ * Free a set of filters. Use bxilog_filters_destroy() instead.
  *
- * @param[in] filters the filters to free
+ * @param[inout] filters_p a pointer on filters
  */
 void bxilog_filters_free(bxilog_filters_p filters);
 

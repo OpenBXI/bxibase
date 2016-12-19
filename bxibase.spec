@@ -6,10 +6,7 @@
 #TODO: define your package name
 %define name bxibase
 
-# Bull software starts with 1.1-Bull.1.0
-# For versionning policy, please see wiki:
-# http://intran0x.frec.bull.fr/projet/HPC/wiki_etudes/index.php/How_to_generate_RPM#Bull_rpm_NAMING_CONVENTION
-%define version 6.1.1
+%define version 7.0.0
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
@@ -27,6 +24,9 @@
 # Predefined variables:
 # {%_mandir} => normally /usr/share/man (depends on the PDP)
 # %{perl_vendorlib} => /usr/lib/perl5/vendor_perl/
+
+Prefix: /etc
+Prefix: /usr
 
 # Other custom variables
 %define src_conf_dir conf
@@ -59,25 +59,31 @@ Distribution:	Bull HPC
 
 # Automatically filled in by PDP: it should not appear therefore!
 #Vendor:         Bull
-License:        GPL
+License:        'Bull S.A.S. proprietary : All rights reserved'
 BuildArch:	x86_64
 URL:            https://novahpc.frec.bull.fr
 
-#TODO: What do you provide
 Provides: %{name}
+
 #Conflicts:
-#TODO: What do you require
-Requires: zeromq
+
+# BXI
 Requires: backtrace
-BuildRequires: zeromq-devel
+Requires: net-snmp
+
 BuildRequires: backtrace-devel
+
+# External
+Requires: zeromq
 Requires: python-cffi >= 0.8.6
-BuildRequires: python-cffi >= 0.8.6
+
+BuildRequires: zeromq-devel
 BuildRequires: gcc
 buildRequires: gcc-c++
 BuildRequires: net-snmp-devel
 BuildRequires: CUnit-devel
-Requires: net-snmp
+#BuildRequires: python-cffi >= 0.8.6
+
 
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
@@ -85,6 +91,7 @@ Basic C and Python modules including the high performance BXI logging library.
 
 %package doc
 Summary: Documentation of Bxi Basic library for high-level C programming
+
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description doc
 Doxygen documentation of Bxi Basic library for high-level C and Python programming
@@ -106,6 +113,7 @@ Test for the BXI base library
 %package tools
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
+
 %description tools
 Commands to manipulate and interact with bxilogs
 

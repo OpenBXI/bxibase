@@ -256,14 +256,17 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxiassert(BXILOG_CONSOLE_HANDLER == self);
 
     bxilog_level_e level = (bxilog_level_e) va_arg(ap, int);
+    int loggername_width = va_arg(ap, int);
     char ** colors = va_arg(ap, char **);
     va_end(ap);
+
+    bxiassert(0 < loggername_width);
 
     bxilog_console_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
     result->stderr_level = level;
-    result->loggername_width = DEFAULT_LOGGERNAME_WIDTH;
+    result->loggername_width = loggername_width;
     result->colors = colors;
 
     if (NULL != result->colors) {
@@ -363,7 +366,6 @@ inline bxierr_p _process_log(bxilog_record_p record,
                                      .logmsg = logmsg,
     };
 
-
     bxierr_p err;
     if (record->level > data->stderr_level) {
         param.out = stdout;
@@ -414,9 +416,7 @@ bxierr_p _process_ierr(bxierr_p *err, bxilog_console_handler_param_p data) {
                             NULL,
                             "Fatal, exiting from thread %d",
                             data->tid);
-
     }
-
     return result;
 }
 

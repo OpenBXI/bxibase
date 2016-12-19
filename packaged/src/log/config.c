@@ -78,11 +78,12 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
-
+    const int loggername_width = 12; // Default
     bxilog_config_add_handler(config,
                               BXILOG_CONSOLE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
                               BXILOG_WARNING,
+                              loggername_width,
                               BXILOG_COLORS_TC_DARK);
     if (NULL != filename) {
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,

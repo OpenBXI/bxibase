@@ -33,8 +33,6 @@
 //********************************** Defines **************************************
 //*********************************************************************************
 
-#define DEFAULT_LOGGERNAME_WIDTH 8
-
 //*********************************************************************************
 //********************************** Types ****************************************
 //*********************************************************************************
@@ -67,6 +65,8 @@ typedef const char* bxilog_colors_p[];
  * @param[in] level a ::bxilog_level_e value; when a log is processed, if the log level
  *                  is less or equals to this level, the log is emitted on the standard
  *                  error, otherwise it is emitted on standard output.
+ * @param[in] loggername_width an int representing the maximal size used to display the
+ *                  logger name
  * @param[in] colors a ::bxilog_colors_p value representing the colors to use
  *                  according to different log levels
  *

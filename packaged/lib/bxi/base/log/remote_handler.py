@@ -35,7 +35,7 @@ def add_handler(configobj, section_name, c_config):
     filters = bxilogfilter.parse_filters(filters_str)
 
     url = __FFI__.new('char[]', section['url'])
-    bind = __FFI__.cast('bool', bool(section['bind']))
+    bind = __FFI__.cast('bool', section.as_bool('bind'))
     sub_nb = __FFI__.cast('int', int(section['sub_nb']))
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,

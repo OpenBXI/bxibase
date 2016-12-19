@@ -552,7 +552,6 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
  */
 bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result);
 
-
 char * bxizmq_create_url_from(const char * const url, const int tcp_port);
 
 bxierr_p bxizmq_split_url(const char * const url, char * elements[3]);

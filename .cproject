@@ -21,21 +21,74 @@
 					<folderInfo id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1474683561." name="/" resourcePath="">
 						<toolChain id="org.eclipse.linuxtools.cdt.autotools.core.toolChain.557727755" name="GNU Autotools Toolchain" resourceTypeBasedDiscovery="true" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolChain">
 							<targetPlatform id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.targetPlatform.126980774" isAbstract="false" name="GNU Autotools Target Platform" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.targetPlatform"/>
-							<builder autoBuildTarget="compile_tests" buildPath="${workspace_loc:/bxibase}/build" cleanBuildTarget="" enableAutoBuild="false" enableCleanBuild="true" enabledIncrementalBuild="true" id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.builder.1173508770" incrementalBuildTarget="" keepEnvironmentInBuildfile="false" managedBuildOn="false" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.builder"/>
+							<builder autoBuildTarget="compile_tests" buildPath="${workspace_loc:/bxibase}/build" cleanBuildTarget="" enableAutoBuild="false" enableCleanBuild="true" enabledIncrementalBuild="true" id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.builder.1173508770" incrementalBuildTarget="" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Autotools Makefile Generator" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.builder">
+								<outputEntries>
+									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="build"/>
+								</outputEntries>
+							</builder>
 							<tool id="org.eclipse.linuxtools.cdt.autotools.core.gnu.toolchain.tool.configure.1381810912" name="configure" superClass="org.eclipse.linuxtools.cdt.autotools.core.gnu.toolchain.tool.configure">
 								<option id="org.eclipse.linuxtools.cdt.autotools.core.option.configure.name.1497109781" name="Name" superClass="org.eclipse.linuxtools.cdt.autotools.core.option.configure.name" value="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1474683561" valueType="string"/>
 							</tool>
 							<tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen.922101200" name="autogen.sh" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.autogen"/>
 							<tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc.478210791" name="GCC C Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gcc">
+								<option id="gnu.c.compiler.option.include.paths.144070209" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxibase/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxibase/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/clustdock/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/clustdock/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxivirt/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxivirt/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiutil/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiutil/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxitopomanager/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxitopomanager/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxitools/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxitools/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxisupervision/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxisupervision/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxistream/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxistream/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxisnmp/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxisnmp/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiscriptlets/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiscriptlets/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxirouting/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxirouting/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiquickfix/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiquickfix/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiperfanalysis/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiperfanalysis/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxihwinterface/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxihwinterface/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxifm/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxifm/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiepp/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiepp/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxidashboarder/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxidashboarder/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiconfigutils/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiconfigutils/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxibackbone/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxibackbone/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiapi/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bxiapi/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bets/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/bets/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/backtrace/build/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/hpcbxi/backtrace/packaged/include"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/bxi-headers-generator/include"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="/home/vigneras/dev/scm/bxi-headers-generator/include/include"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1076415455" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp.1863726102" name="GCC C++ Compiler" superClass="org.eclipse.linuxtools.cdt.autotools.core.toolchain.tool.gpp"/>
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="packaged/include"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="packaged/src"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="tests"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="packaged/include"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="packaged/src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tests"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

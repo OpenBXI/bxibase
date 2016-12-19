@@ -11,10 +11,9 @@ from __future__ import print_function
 @namespace bxi.base.log.file_handler bxilog file handler
 
 """
-
+import os
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
-import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 
 import bxi.base.log.filter as bxilogfilter
@@ -40,6 +39,16 @@ COLORS = {'none': __BXIBASE_CAPI__.BXILOG_COLORS_NONE,
           }
 
 
+"""
+Default logger name width
+"""
+DEFAULT_LOGGERNAME_WIDTH = 12
+
+"""
+The environment variable used to specify the logger name width to use on display
+"""
+LOGGERNAME_WIDTH_ENV_VAR = 'BXILOG_CONSOLE_HANDLER_LOGGERNAME_WIDTH'
+
 def add_handler(configobj, section_name, c_config):
     """
     Add a console handler configured from the given section in configobj to the c_config
@@ -52,6 +61,9 @@ def add_handler(configobj, section_name, c_config):
     section = configobj[section_name]
     filters_str = section['filters']
     stderr_level = bxilog.get_level_from_str(section.get('stderr_level', 'WARNING'))
+    loggername_width = int(section.get('loggername_width',
+                                       os.environ.get(LOGGERNAME_WIDTH_ENV_VAR,
+                                                      DEFAULT_LOGGERNAME_WIDTH)))
     colors = COLORS[section.get('colors', '216_dark')]
 
     filters = bxilogfilter.parse_filters(filters_str)
@@ -59,4 +71,5 @@ def add_handler(configobj, section_name, c_config):
                                                __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
                                                filters,
                                                __FFI__.cast('int', stderr_level),
+                                               __FFI__.cast('int', loggername_width),
                                                colors)

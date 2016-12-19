@@ -28,9 +28,9 @@
 // *********************************************************************************
 // ********************************** Defines **************************************
 // *********************************************************************************
-#define PROGNAME "bxilog_monitor"
+#define PROGNAME "bxilog-monitor"
 
-SET_LOGGER(MAIN_LOGGER, "bxilog_monitor");
+SET_LOGGER(MAIN_LOGGER, "bxilog-monitor");
 
 #define OPT_LOGFILE_KEY 10            // The key should not be a printable character
 #define OPT_BIND_KEY 11               // The key should not be a printable character

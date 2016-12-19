@@ -201,6 +201,7 @@ _INITIALIZED = False
 # Set by set_config()
 _CONFIG = None
 _INIT_CALLER = None
+_PROGNAME = None
 
 DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
                                       'setsighandler': True,
@@ -237,7 +238,7 @@ def get_level_from_str(level_str):
     return level_p[0]
 
 
-def set_config(configobj):
+def set_config(configobj, progname=None):
     """
     Set the whole bxilog module from the given configobj
     """
@@ -259,6 +260,8 @@ def set_config(configobj):
 
     global _CONFIG
     _CONFIG = configobj
+    global _PROGNAME
+    _PROGNAME = progname 
 
 
 def get_config():
@@ -303,9 +306,13 @@ def multiprocessing_target(func):
     """
     def wrapped(*args, **kwargs):
         try:
+            cleanup()
             func(*args, **kwargs)
         except Exception as e:
-            exception('Uncaught Exception: %s', e.__class__.__name__)
+            if not _INITIALIZED or not __BXIBASE_CAPI__.bxilog_is_ready():
+                raise e
+            else:
+                exception('Uncaught Exception: %s', e.__class__.__name__)
         finally:
             cleanup()
     return wrapped
@@ -320,21 +327,29 @@ def _init():
     global _INITIALIZED
     global _CONFIG
     global _INIT_CALLER
+    global _PROGNAME
 
     if _CONFIG is None:
         _CONFIG = DEFAULT_CONFIG
 
+    if _PROGNAME is None:
+        _PROGNAME = os.path.basename(sys.argv[0])
+
     from . import config as bxilogconfig
     from . import filter as bxilogfilter
 
-    c_config = __BXIBASE_CAPI__.bxilog_config_new(sys.argv[0])
+    c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME)
 
-    try:
-        handlers = _CONFIG['handlers']
-        for section in handlers:
+    handlers = _CONFIG['handlers']
+    for section in handlers:
+        try:
             bxilogconfig.add_handler(_CONFIG, section, c_config)
-    except KeyError as ke:
-        raise bxierr.BXIError("Bad bxilog configuration: %s, can't find %s" % (_CONFIG, ke))
+        except KeyError as ke:
+            raise bxierr.BXIError("Bad bxilog configuration in handler '%s' of %s,"
+                                  " can't find %s" % (section, _CONFIG, ke))
+        except Exception as e:
+            raise bxierr.BXIError("Bad bxilog configuration in handler "
+                                  "'%s' of %s." % (section, _CONFIG), cause=e)
 
     err_p = __BXIBASE_CAPI__.bxilog_init(c_config)
     bxierr.BXICError.raise_if_ko(err_p)
@@ -425,6 +440,7 @@ def get_all_loggers_iter():
     """
     loggers = __FFI__.new("bxilog_logger_p **")
     nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
+    loggers_array = __FFI__.gc(loggers[0], __BXIBASE_CAPI__.free)
     from . import logger as bxilogger
     for i in xrange(nb):
         yield bxilogger.BXILogger(loggers[0][i])
@@ -437,8 +453,15 @@ def get_default_logger():
     @return
     """
     global _DEFAULT_LOGGER
+    global _PROGNAME
+
+    if _PROGNAME is None:
+        default = os.path.basename(sys.argv[0])
+    else:
+        default = _PROGNAME
+
     if _DEFAULT_LOGGER is None:
-        _DEFAULT_LOGGER = getLogger(os.path.basename(sys.argv[0]))
+        _DEFAULT_LOGGER = getLogger(default)
     return _DEFAULT_LOGGER
 
 
@@ -688,7 +711,7 @@ def basicConfig(**kwargs):
         import bxi.base.log.file_handler as bxilog_filehandler
         section['module'] = bxilog_filehandler.__name__
         section['filters'] = ':%s' % kwargs.get('level', OUTPUT)
-        section['file'] = kwargs['filename']
+        section['path'] = kwargs['filename']
         mode = kwargs.get('filemode', 'a')
         section['append'] = mode == 'a'
         config['filehandler'] = section
@@ -795,13 +818,22 @@ class TestCase(unittest.TestCase):
 
     Files are overwritten by default.
     """
-    BXILOG_FILENAME = os.path.join(tempfile.gettempdir(),
-                                   "%s.bxilog" % os.path.basename(sys.argv[0]))
+    # Do not initialize here as it can lead to exception such as:
+    # IOError: [Errno 2] No usable temporary directory found 
+    #                                      in ['/tmp', '/var/tmp', '/usr/tmp', '/root']
+    # This look strange when the end-user is just importing the bxi.base.log module
+    # and when there is no free storage space. 
+    # Therefore, the initialization is done only in the setUpClass().
+    BXILOG_FILENAME = None 
 
     FILEMODE = 'w'
 
     @classmethod
     def setUpClass(cls):
+        if TestCase.BXILOG_FILENAME is None:
+            name = "%s.bxilog" % os.path.basename(sys.argv[0])
+            TestCase.BXILOG_FILENAME = os.path.join(tempfile.gettempdir(), name)
+
         basicConfig(filename=cls.BXILOG_FILENAME,
                     level=LOWEST,
                     filemode=TestCase.FILEMODE)

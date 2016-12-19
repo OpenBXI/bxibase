@@ -47,10 +47,10 @@ def add_handler(configobj, section_name, c_config):
     section = configobj[section_name]
     filters_str = section['filters']
     # Use absolute path to prevent fork() problem with chdir().
-    filename = section['file']
+    filename = section['path']
     if filename not in [STDOUT, STDERR]:
         filename = os.path.abspath(filename)
-    section['file'] = filename
+    section['path'] = filename
     append = section.as_bool('append')
 
     if filters_str == FILTERS_AUTO:
@@ -76,11 +76,10 @@ def add_handler(configobj, section_name, c_config):
         filters_str = configobj[section]['filters']
         console_filters = bxilogfilter.parse_filters(filters_str)
         file_filters = bxilogfilter.new_detailed_filters(console_filters)
-        #__BXIBASE_CAPI__.bxilog_filters_free(console_filters);
+        __BXIBASE_CAPI__.bxilog_filters_free(console_filters)
     else:
         file_filters = bxilogfilter.parse_filters(filters_str)
 
-    progname = __FFI__.new('char[]', sys.argv[0])
     filename = __FFI__.new('char[]', filename)
     open_flags = __FFI__.cast('int',
                               os.O_CREAT |
@@ -88,7 +87,7 @@ def add_handler(configobj, section_name, c_config):
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
                                                file_filters,
-                                               progname,
+                                               c_config.progname,
                                                filename,
                                                open_flags)
 #    __BXIBASE_CAPI__.bxilog_filters_free(file_filters);
