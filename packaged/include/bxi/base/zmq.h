@@ -35,9 +35,9 @@
 // ********************************** Defines **************************************
 // *********************************************************************************
 
-#define BXIZMQ_RETRIES_MAX_ERR      1
-#define BXIZMQ_FSM_ERR              2
-#define BXIZMQ_MISSING_FRAME_ERR    3
+#define BXIZMQ_RETRIES_MAX_ERR      202372135              // Leet code: Z.QRETRIES
+#define BXIZMQ_FSM_ERR              205322                 // Leet code: Z.Q.S.ERR
+#define BXIZMQ_MISSING_FRAME_ERR    2015516                // Leet code: Z.Q.ISSI.G
 
 
 /**

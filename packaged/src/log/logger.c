@@ -54,7 +54,7 @@
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
-#define RETRIES_MAX 3u
+#define RETRIES_MAX 2u // We try once asynchronously, then back up to synchronous
 
 #define RETRY_DELAY 500000l
 
@@ -305,11 +305,16 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
                                RETRIES_MAX, RETRY_DELAY);
 
         // Zero-copy version (if record has been mallocated).
-//        err = bxizmq_data_snd_zc(record, data_len,
+//        err2 = bxizmq_data_snd_zc(record, data_len,
 //                                 log_channel, ZMQ_DONTWAIT,
 //                                 RETRIES_MAX, RETRY_DELAY,
 //                                 bxizmq_data_free, NULL);
-        BXIERR_CHAIN(err, err2);
+
+        if (err2->code == BXIZMQ_RETRIES_MAX_ERR) {
+            bxierr_destroy(&err2);
+        } else {
+            BXIERR_CHAIN(err, err2);
+        }
     }
     BXIFREE(record);
     return err;
