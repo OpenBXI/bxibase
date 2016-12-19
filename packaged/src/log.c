@@ -85,7 +85,7 @@ static bxierr_p _start_handler_thread(bxilog_handler_p handler,
 static bxierr_p _sync_handler();
 static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
 static void _setprocname();
-//static bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout);
+static bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -478,7 +478,9 @@ bxierr_p bxilog__stop_handlers(void) {
         BXIERR_CHAIN(err, err2);
 
         char * msg = NULL;
-
+        // FIXME: this _zmq_str_rcv_timeout() looks strange to me??
+        // We might be able to replace it by a normal call to the bxizmq library.
+        // For the moment, it seems to work though
         while (ret != ESRCH && msg == NULL) {
             bxierr_destroy(&err2);
             ret = pthread_kill(handler_thread, 0);
@@ -733,24 +735,24 @@ void _setprocname(char * name) {
 #endif
 }
 
-//bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {
-//    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
-//    zmq_pollitem_t poll_set[] = {{ zocket, 0, ZMQ_POLLIN, 0 },};
-//    int rc = zmq_poll(poll_set, 1, timeout);
-//    if (-1 == rc) {
-//        err2 = bxierr_errno("Calling zmq_poll() failed");
-//        BXIERR_CHAIN(err, err2);
-//        return err;
-//    }
-//
-//    if (0 == (poll_set[0].revents & ZMQ_POLLIN)) {
-//        err2 = bxierr_gen("Calling zmq_poll() timeout %ld", timeout);
-//        BXIERR_CHAIN(err, err2);
-//        return err;
-//    }
-//
-//    err2 = bxizmq_str_rcv(zocket, 0, false, reply);
-//    BXIERR_CHAIN(err, err2);
-//
-//    return err;
-//}
+bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {
+    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
+    zmq_pollitem_t poll_set[] = {{ zocket, 0, ZMQ_POLLIN, 0 },};
+    int rc = zmq_poll(poll_set, 1, timeout);
+    if (-1 == rc) {
+        err2 = bxierr_errno("Calling zmq_poll() failed");
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    if (0 == (poll_set[0].revents & ZMQ_POLLIN)) {
+        err2 = bxierr_gen("Calling zmq_poll() timeout %ld", timeout);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
+    err2 = bxizmq_str_rcv(zocket, 0, false, reply);
+    BXIERR_CHAIN(err, err2);
+
+    return err;
+}

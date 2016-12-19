@@ -422,6 +422,12 @@ def _configure_log(parser):
                         default=posless.SUPPRESS,
                         help=_('Show detailed logging options and exit'))
 
+    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
+    group1 = _add_common(dummy)
+    group = _add_common(parser)
+    
+    known_args = dummy.parse_known_args()[0]
+
     baseconf = {'handlers': ['console', 'file'],
                 'setsighandler': True,
                 'console': {'module': bxilog_consolehandler.__name__,
