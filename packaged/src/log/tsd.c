@@ -109,7 +109,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         err2 = bxizmq_zocket_setopt(tsd->data_channel,
                                     ZMQ_SNDHWM,
                                     &BXILOG__GLOBALS->config->data_hwm,
-                                    sizeof(int));
+                                    sizeof(BXILOG__GLOBALS->config->data_hwm));
         BXIERR_CHAIN(err, err2);
 
         url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url,
@@ -124,7 +124,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         err2 = bxizmq_zocket_setopt(tsd->ctrl_channel,
                                     ZMQ_SNDHWM,
                                     &BXILOG__GLOBALS->config->ctrl_hwm,
-                                    sizeof(int));
+                                    sizeof(BXILOG__GLOBALS->config->ctrl_hwm));
         BXIERR_CHAIN(err, err2);
 
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
