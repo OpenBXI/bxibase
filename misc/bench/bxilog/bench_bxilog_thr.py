@@ -25,7 +25,7 @@ AGAIN = True
 
 def logging_thread():
     while AGAIN:
-        bxilog.debug("Logging something...");
+        bxilog.output("Logging something...");
 
 if __name__ == "__main__":
 

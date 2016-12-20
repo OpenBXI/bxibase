@@ -117,6 +117,7 @@
 /tests/Makefile.in
 /tests/*.bxilog
 
+**/*.o
 **/*.pyc
 **/*.pyo
 **/.ipynb_checkpoints/*

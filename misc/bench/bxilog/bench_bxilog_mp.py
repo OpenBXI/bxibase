@@ -30,7 +30,9 @@ N = None
 MIN = None
 MAX = None
 
+@bxilog.multiprocessing_target
 def logging_thread(id):
+    bxilog.basicConfig(filename=FILENAME.value)
 
     n = 0
     total = 0
@@ -38,7 +40,7 @@ def logging_thread(id):
     max_ = 0.0
     while AGAIN.value:
         start = time.clock()
-        bxilog.debug("Logging something...");
+        bxilog.output("Logging something...");
         duration = time.clock() - start
         n += 1
         total += duration

@@ -31,6 +31,7 @@ if __name__ == "__main__":
         print("Usage: %s threads_nb timeout" % sys.argv[0])
         exit(1)
 
+
     filename = "/tmp/%s.log" % sys.argv[0]
     logging.basicConfig(level=logging.DEBUG,
                         filename=filename)

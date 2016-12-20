@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <libgen.h>
 
 #include <bxi/base/err.h>
 #include <bxi/base/log/level.h>
@@ -34,15 +35,11 @@
 #include <bxi/base/time.h>
 #include <bxi/base/log/file_handler.h>
 
-static volatile bool AGAIN = true;
-SET_LOGGER(logger, "bench");
+#include "common.h"
 
-struct stats_s {
-    double min_duration;
-    double max_duration;
-    double total_duration;
-    size_t n;
-};
+static volatile bool AGAIN = true;
+
+SET_LOGGER(logger, "bench");
 
 static inline void benched_log(bxilog_level_e level, char * str, struct stats_s *  stats) {
 
@@ -109,6 +106,12 @@ int main(int argc, char * argv[]) {
     char * fullprogname = strdup(argv[0]);
     char * progname = basename(fullprogname);
     char * filename = bxistr_new("/tmp/%s%s", progname, ".log");
+
+    if( access(filename, F_OK) != -1) {
+        unlink(filename);
+    }
+
+    
     bxilog_config_p config = bxilog_config_new(progname);
     bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
                               BXILOG_FILTERS_ALL_ALL,
@@ -146,59 +149,10 @@ int main(int argc, char * argv[]) {
         bxierr_destroy(&bxierr);
     }
 
-    struct stats_s global_stats = {.min_duration = DBL_MAX,
-                                   .max_duration = DBL_MIN,
-                                   .total_duration = 0,
-                                   .n = 0,
-    };
-    bxitime_duration(CLOCK_MONOTONIC, start, &global_stats.total_duration);
-    for (size_t i = 0; i < n; i++) {
-        global_stats.min_duration = (statss[i]->min_duration < global_stats.min_duration) ?
-                                        statss[i]->min_duration :
-                                        global_stats.min_duration;
 
-        global_stats.max_duration = (statss[i]->max_duration > global_stats.max_duration) ?
-                                                statss[i]->max_duration :
-                                                global_stats.max_duration;
-        global_stats.n += statss[i]->n;
-        BXIFREE(statss[i]);
-    }
+    display_stats(start, statss, n, filename);
 
 
-    char * min_str = bxitime_duration_str(global_stats.min_duration);
-    char * max_str = bxitime_duration_str(global_stats.max_duration);
-    char * avg_str = bxitime_duration_str(global_stats.total_duration / global_stats.n);
-    char * total_str = bxitime_duration_str(global_stats.total_duration);
-
-    struct stat sb;
-    errno = 0;
-    int rc = stat(filename, &sb);
-    size_t size;
-    if (-1 == rc) {
-        bxierr_p err = bxierr_errno("Calling stat(%s) failed", filename);
-        bxierr_report(&err, STDERR_FILENO);
-        size = 0;
-    } else {
-        size = sb.st_size;
-    }
-
-    printf("Total Time: %zu logs in %s - %g logs/s, min=%s/log, max=%s/log, average=%s/log\n",
-           global_stats.n, total_str, global_stats.n / global_stats.total_duration,
-           min_str, max_str, avg_str);
-    printf("Total Size: %zu bytes in (overall) %s: %.1f MB/s\n",
-           size, total_str, size/global_stats.total_duration/1024/1024);
-
-    fprintf(stderr, "%zu\t%lf\t%.9lf\t%.9lf\t%.9zu\n",
-           global_stats.n,
-           global_stats.total_duration,
-           global_stats.min_duration,
-           global_stats.max_duration,
-           size);
-
-    BXIFREE(min_str);
-    BXIFREE(max_str);
-    BXIFREE(avg_str);
-    BXIFREE(total_str);
     BXIFREE(fullprogname);
     BXIFREE(filename);
 }
