@@ -37,8 +37,8 @@
 
 # /misc/bench/bxilog/
 /misc/bench/bxilog/cachegrind.out.*
-/misc/bench/bxilog/bxilog_bench
-/misc/bench/bxilog/zlog_bench
+/misc/bench/bxilog/bench-c_bxilog
+/misc/bench/bxilog/bench-c_zlog
 /misc/bench/bxilog/callgrind.out.*
 
 # /misc/bench/number_of_digits/
