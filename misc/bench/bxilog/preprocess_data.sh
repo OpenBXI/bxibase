@@ -9,18 +9,16 @@ dir=$1
 
 max_threads=1
 for i in $dir/*.bench;do 
-	echo "Preprocessing $i"
-        label=$(basename $i|sed 's/_*\.*bench_*//g')
-	cat $i| while read line ;do
-		threads=$(echo $line|cut -d ' ' -f 2)
-		if ((threads > max_threads));then 
-			max_threads=$threads
-		fi
-		duration=$(echo $line|cut -d ' ' -f 3)
-		logs=$(echo $line|cut -d ' ' -f 4)
-	        throughput=$(echo "scale=2;$logs/$duration/1000"|bc)
-		echo $throughput >> $label-${threads}_t.val
-	done;
+    echo "Preprocessing $i"
+    label=$(basename $i|sed 's/_*\.*bench-*//g')
+    cat $i| while read line ;do
+        threads=$(echo $line|cut -d ' ' -f 2)
+        if ((threads > max_threads));then 
+            max_threads=$threads
+        fi
+        duration=$(echo $line|cut -d ' ' -f 3)
+        logs=$(echo $line|cut -d ' ' -f 4)
+        throughput=$(echo "scale=2;$logs/$duration/1000"|bc)
+        echo $throughput >> $label-${threads}_t.val
+    done;
 done;
-
-echo "Use gnuplot -p gnuplot.cmd to visualize the result"
