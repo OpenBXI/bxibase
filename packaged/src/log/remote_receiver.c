@@ -381,7 +381,7 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
 
     bool loop = true;
 
-    while(loop) {
+    while (loop) {
         errno = 0;
         int rc =  zmq_poll(poller, 2, BXILOG_RECEIVER_POLLING_TIMEOUT);
 
