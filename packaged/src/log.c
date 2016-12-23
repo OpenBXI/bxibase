@@ -396,7 +396,6 @@ bxierr_p bxilog__start_handlers(void) {
             bxierr_list_append(errlist, ierr);
             continue;
         }
-        BXILOG__GLOBALS->config->handlers_params[i]->zmq_context = BXILOG__GLOBALS->zmq_ctx;
         bxierr_p ierr = BXIERR_OK, ierr2;
 
         ierr2 = _start_handler_thread(handler,

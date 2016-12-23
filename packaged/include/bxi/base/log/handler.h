@@ -112,8 +112,6 @@ typedef enum {
  * Log handler parameter.
  */
 typedef struct {
-    void * zmq_context;                 //!< the ZMQ context to use, if NULL,
-                                        //!< a new one will be created
     int data_hwm;                       //!< ZMQ High Water Mark for the data socket
     int ctrl_hwm;                       //!< ZMQ High Water Mark for the control socket
     size_t ierr_max;                    //!< Maximal number of internal errors before
