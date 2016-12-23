@@ -118,7 +118,6 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
                                bxilog_handler_param_p param) {
     bxiassert(NULL != param);
 
-    param->mask_signals = true;
     param->zmq_context = NULL;
     param->data_hwm = 1000;
     param->ctrl_hwm = 1000;
@@ -175,11 +174,9 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
-    if (param->mask_signals) {
-        ierr = _mask_signals(handler);
-        eerr2 = _process_ierr(handler, param, ierr);
-        BXIERR_CHAIN(eerr, eerr2);
-    }
+    ierr = _mask_signals(handler);
+    eerr2 = _process_ierr(handler, param, ierr);
+    BXIERR_CHAIN(eerr, eerr2);
 
     ierr = _send_ready_status(handler, param, &data, eerr);
     eerr2 = _process_ierr(handler, param, ierr);

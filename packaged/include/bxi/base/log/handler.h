@@ -112,7 +112,6 @@ typedef enum {
  * Log handler parameter.
  */
 typedef struct {
-    bool mask_signals;                  //!< if true, signals must be masked
     void * zmq_context;                 //!< the ZMQ context to use, if NULL,
                                         //!< a new one will be created
     int data_hwm;                       //!< ZMQ High Water Mark for the data socket
