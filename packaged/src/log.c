@@ -348,23 +348,21 @@ void bxilog__wipeout() {
 
 
 bxierr_p bxilog__init_globals() {
-
     BXILOG__GLOBALS->pid = getpid();
     pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->config->handlers_nb * sizeof(*threads));
     BXILOG__GLOBALS->handlers_threads = threads;
     BXILOG__GLOBALS->internal_handlers_nb = 0;
 
     bxiassert(NULL == BXILOG__GLOBALS->zmq_ctx);
-    errno = 0;
 
-    void * ctx = zmq_ctx_new();
-    if (NULL == ctx) {
+    void * ctx = NULL;
+    bxierr_p err = bxizmq_context_new(&ctx);
+    if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = ILLEGAL;
-        return bxierr_errno("Can't create a zmq context");
+        return err;
     }
     errno = 0;
     int rc;
-
     // Since we normally use inproc://, there is no need for ZMQ_IO_THREADS
     rc = zmq_ctx_set(ctx, ZMQ_IO_THREADS, 0);
     if (0 != rc) {
@@ -590,20 +588,11 @@ bxierr_p _reset_globals() {
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
     if (NULL != BXILOG__GLOBALS->zmq_ctx) {
-        int rc = zmq_ctx_destroy(BXILOG__GLOBALS->zmq_ctx);
-        if (-1 == rc) {
-            while (-1 == rc && EINTR == errno) {
-                rc = zmq_ctx_destroy(BXILOG__GLOBALS->zmq_ctx);
-            }
-            if (-1 == rc) {
-                err2 = bxierr_errno("Can't destroy context (rc=%d)", rc);
-                BXIERR_CHAIN(err, err2);
-            }
-        }
+        err2 = bxizmq_context_destroy(&BXILOG__GLOBALS->zmq_ctx);
+        BXIERR_CHAIN(err, err2);
     }
-    BXILOG__GLOBALS->zmq_ctx = NULL;
-    pthread_key_delete(BXILOG__GLOBALS->tsd_key);
-    // Nothing to do on pthread_key_delete() see man page
+    int rc = pthread_key_delete(BXILOG__GLOBALS->tsd_key);
+    UNUSED(rc); // Nothing to do on pthread_key_delete() see man page
     BXILOG__GLOBALS->tsd_key_once = PTHREAD_ONCE_INIT;
     BXIFREE(BXILOG__GLOBALS->handlers_threads);
     BXILOG__GLOBALS->internal_handlers_nb = 0;
