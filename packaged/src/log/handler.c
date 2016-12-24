@@ -242,17 +242,23 @@ bxierr_p _bind_ctrl_zocket(bxilog_handler_p handler,
     bxierr_p err = BXIERR_OK, err2;
 
     int affected_port;
-    err2 = bxizmq_zocket_create_binded(BXILOG__GLOBALS->zmq_ctx,
-                                       ZMQ_REP,
-                                       param->ctrl_url,
-                                       &affected_port,
-                                       &data->ctrl_zocket);
+
+    bxiassert(NULL == data->ctrl_zocket);
+
+    err2 = bxizmq_zocket_create(BXILOG__GLOBALS->zmq_ctx,
+                                ZMQ_REP,
+                                &data->ctrl_zocket);
     BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(data->ctrl_zocket,
                                 ZMQ_RCVHWM,
                                 &param->ctrl_hwm,
                                 sizeof(param->ctrl_hwm));
+    BXIERR_CHAIN(err, err2);
+
+    err2 = bxizmq_zocket_bind(data->ctrl_zocket,
+                              param->ctrl_url,
+                              &affected_port);
     BXIERR_CHAIN(err, err2);
 
     return err;
