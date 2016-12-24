@@ -128,9 +128,6 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
     // SET TO 0 AT ZMQ_CTX CREATION (in core.c).
     param->ctrl_url = bxistr_new("inproc://%s/%p.ctrl", handler->name, param);
     param->data_url = bxistr_new("inproc://%s/%p.data", handler->name, param);
-
-//    param->ctrl_url = bxistr_new("ipc:///tmp/%s.ctrl", handler->name);
-//    param->data_url = bxistr_new("ipc:///tmp/%s.data", handler->name);
 }
 
 void bxilog_handler_clean_param(bxilog_handler_param_p param) {
@@ -348,8 +345,16 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     bxierr_p err = BXIERR_OK, err2;
 
-    zmq_pollitem_t items[] = { { data->ctrl_zocket, 0, ZMQ_POLLIN, 0 },
-                               { data->data_zocket, 0, ZMQ_POLLIN, 0 } };
+    int items_nb = 2 + param->private_items_nb;
+    zmq_pollitem_t items[items_nb];
+    items[0].socket = data->ctrl_zocket;
+    items[0].events = ZMQ_POLLIN;
+    items[1].socket = data->data_zocket;
+    items[1].events = ZMQ_POLLIN;
+    for (int i = 0; i < param->private_items_nb; i++) {
+        memcpy(items + 2 + i, param->private_items + i, sizeof(items[2+i]));
+    }
+
 
     long actual_timeout = param->flush_freq_ms;
     struct timespec last_flush_time;
@@ -358,7 +363,7 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     while (true) {
         errno = 0;
-        int rc = zmq_poll(items, 2, actual_timeout);
+        int rc = zmq_poll(items, items_nb, actual_timeout);
 
         if (-1 == rc) {
             if (EINTR == errno) continue; // One interruption happened
@@ -432,6 +437,26 @@ bxierr_p _loop(bxilog_handler_p handler,
 
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) goto QUIT;
+        }
+        for (int i = 0; i < param->private_items_nb; i++) {
+            if (items[2+i].revents & ZMQ_POLLIN) {
+                if (NULL != param->cbs[i][0]) {
+                    err2 = param->cbs[i][0](param);
+                    if (bxierr_isko(err)) goto QUIT;
+                }
+            }
+            if (items[2+i].revents & ZMQ_POLLOUT) {
+                if (NULL != param->cbs[i][1]) {
+                    err2 = param->cbs[i][1](param);
+                    if (bxierr_isko(err)) goto QUIT;
+                }
+            }
+            if (items[2+i].revents & ZMQ_POLLERR) {
+                if (NULL != param->cbs[i][2]) {
+                    err2 = param->cbs[i][2](param);
+                    if (bxierr_isko(err)) goto QUIT;
+                }
+            }
         }
     }
 QUIT:

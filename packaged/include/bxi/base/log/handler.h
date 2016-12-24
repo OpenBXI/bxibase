@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#include <zmq.h>
 #endif
 
 
@@ -108,6 +109,11 @@ typedef enum {
     BXI_LOG_HANDLER_READY=1,
     BXI_LOG_HANDLER_ERROR=2,
 } bxilog_handler_state_e;
+
+#ifndef BXICFFI
+typedef bxierr_p (*bxilog_handler_private_cbs)(bxilog_handler_param_p);
+#endif
+
 /**
  * Log handler parameter.
  */
@@ -122,6 +128,19 @@ typedef struct {
     bxilog_filters_p filters;           //!< The filters
     size_t rank;                        //!< identifier of the handler
     bxilog_handler_state_e status;      //!< handler status
+    int private_items_nb;               //!< Number of private items
+#ifndef BXICFFI
+    zmq_pollitem_t * private_items;     //!< Private items (zmq/standard sockets or
+                                        //!< file descriptors) used by the handler
+                                        //!< zmq_poll()
+    bxilog_handler_private_cbs *cbs[3]; //!< Callback to use for each private item in
+                                        //!< case of ZMQ_POLLIN, ZMQ_POLLOUT and
+                                        //!< ZMQ_POLLERR
+#else
+    void * private_items;               //!< Fake for CFFI
+    void ** cbs;                        //!< Fake for CFFI
+#endif
+
 } bxilog_handler_param_s;
 
 /**
