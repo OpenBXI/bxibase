@@ -122,10 +122,6 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
 
     // Use the param pointer to guarantee a unique URL name for different instances of
     // the same handler
-
-    // WARNING: IF YOU CHANGE FOR ipc:// or tcp://
-    // ENSURE THE ZMQ_IO_THREADS IS NO MORE
-    // SET TO 0 AT ZMQ_CTX CREATION (in core.c).
     param->ctrl_url = bxistr_new("inproc://%s/%p.ctrl", handler->name, param);
     param->data_url = bxistr_new("inproc://%s/%p.data", handler->name, param);
 }
