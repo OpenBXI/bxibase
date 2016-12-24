@@ -140,41 +140,6 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
                        type);
         BXIERR_CHAIN(err, err2);
     }
-//
-//    int linger = 500;
-//    errno = 0;
-//    int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
-//    if (0 != rc) {
-//        err2 = _zmqerr(errno,
-//                       "Can't set option ZMQ_LINGER=%d "
-//                       "on zmq socket: %s", linger);
-//        BXIERR_CHAIN(err, err2);
-//        err2 = bxizmq_zocket_destroy(zocket);
-//        BXIERR_CHAIN(err, err2);
-//        return err;
-//    }
-//
-//    int _hwm = 0 ;
-//    errno = 0;
-//    rc = zmq_setsockopt(zocket, ZMQ_RCVHWM, &_hwm, sizeof(_hwm));
-//    if (0 != rc) {
-//        err2 = _zmqerr(errno, "Can't set option ZMQ_RCVHWM=%d on zmq socket", _hwm);
-//        BXIERR_CHAIN(err, err2);
-//        err2 = bxizmq_zocket_destroy(zocket);
-//        BXIERR_CHAIN(err, err2);
-//        return err;
-//    }
-//
-//    _hwm = 0;
-//    errno = 0;
-//    rc = zmq_setsockopt(zocket, ZMQ_SNDHWM, &_hwm, sizeof(_hwm));
-//    if (0 != rc) {
-//        err2 = _zmqerr(errno, "Can't set option ZMQ_SNDHWM=%d on zmq socket", _hwm);
-//        BXIERR_CHAIN(err, err2);
-//        err2 = bxizmq_zocket_destroy(zocket);
-//        BXIERR_CHAIN(err, err2);
-//        return err;
-//    }
     *result = zocket;
     return err;
 
@@ -202,6 +167,7 @@ bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     }
     return err;
 }
+
 bxierr_p bxizmq_zocket_bind(void * const zocket,
                             const char * const url,
                             int  * affected_port) {
