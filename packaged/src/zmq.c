@@ -103,16 +103,19 @@ bxierr_p bxizmq_context_new(void ** ctx) {
 bxierr_p bxizmq_context_destroy(void ** ctx) {
     int rc;
 
-    if(NULL != *ctx) {
+    if (NULL != *ctx) {
         errno = 0;
         rc = zmq_ctx_shutdown(*ctx);
         if (-1 == rc) {
             return bxierr_errno("Unable to shutdown ZMQ context");
         }
         errno = 0;
-        rc = zmq_ctx_term(*ctx);
+        do {
+            rc = zmq_ctx_term(*ctx);
+        } while (-1 == rc && EINTR == errno);
+
         if (-1 == rc) {
-           return bxierr_errno("Unable to terminate ZMQ context");
+            return bxierr_errno("Unable to terminate ZMQ context");
         }
     }
 
