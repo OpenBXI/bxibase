@@ -347,13 +347,13 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     bxierr_p err = BXIERR_OK, err2;
 
-    int items_nb = 2 + param->private_items_nb;
+    size_t items_nb = 2 + param->private_items_nb;
     zmq_pollitem_t items[items_nb];
     items[0].socket = data->ctrl_zocket;
     items[0].events = ZMQ_POLLIN;
     items[1].socket = data->data_zocket;
     items[1].events = ZMQ_POLLIN;
-    for (int i = 0; i < param->private_items_nb; i++) {
+    for (size_t i = 0; i < param->private_items_nb; i++) {
         memcpy(items + 2 + i, param->private_items + i, sizeof(items[2+i]));
     }
 
@@ -365,7 +365,7 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     while (true) {
         errno = 0;
-        int rc = zmq_poll(items, items_nb, actual_timeout);
+        int rc = zmq_poll(items, (int) items_nb, actual_timeout);
 
         if (-1 == rc) {
             if (EINTR == errno) continue; // One interruption happened
@@ -440,22 +440,10 @@ bxierr_p _loop(bxilog_handler_p handler,
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) goto QUIT;
         }
-        for (int i = 0; i < param->private_items_nb; i++) {
-            if (items[2+i].revents & ZMQ_POLLIN) {
-                if (NULL != param->cbs[i][0]) {
-                    err2 = param->cbs[i][0](param);
-                    if (bxierr_isko(err)) goto QUIT;
-                }
-            }
-            if (items[2+i].revents & ZMQ_POLLOUT) {
-                if (NULL != param->cbs[i][1]) {
-                    err2 = param->cbs[i][1](param);
-                    if (bxierr_isko(err)) goto QUIT;
-                }
-            }
-            if (items[2+i].revents & ZMQ_POLLERR) {
-                if (NULL != param->cbs[i][2]) {
-                    err2 = param->cbs[i][2](param);
+        for (size_t i = 0; i < param->private_items_nb; i++) {
+            if (0 != items[2+i].revents) {
+                if (NULL != param->cbs[i]) {
+                    err2 = param->cbs[i](param, items[2+i].revents);
                     if (bxierr_isko(err)) goto QUIT;
                 }
             }
