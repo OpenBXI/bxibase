@@ -1,8 +1,8 @@
 /* -*- coding: utf-8 -*-
  ###############################################################################
  # Author: Sébastien Miquée <sebastien.miquee@atos.net>
- # Created on: 2016/07/27
- # Contributors:
+ # Created on: 2016-07-27
+ # Contributors: Pierre Vignéras <pierre.vigneras@atos.net>
  ###############################################################################
  # Copyright (C) 2016  Bull S. A. S.  -  All rights reserved
  # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
@@ -21,6 +21,7 @@
 #include "bxi/base/time.h"
 
 #include "bxi/base/log.h"
+#include "log_impl.h"
 
 #include "bxi/base/log/remote_handler.h"
 
@@ -72,6 +73,8 @@ static bxierr_p _process_exit(bxilog_remote_handler_param_p data);
 static bxierr_p _process_cfg(bxilog_remote_handler_param_p data);
 static bxierr_p _param_destroy(bxilog_remote_handler_param_p *data_p);
 static bxierr_p _process_ctrl_msg(bxilog_remote_handler_param_p data, int revent);
+static bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data,
+                                     zmq_msg_t id_frame);
 static bxierr_p _sync_pub(bxilog_remote_handler_param_p data);
 
 //*********************************************************************************
@@ -125,7 +128,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
 
     char * url = va_arg(ap, char *);
     bool bind_flag = va_arg(ap, int); // YES, THIS IS *REQUIRED* IN C99,
-                                     // bool will be promoted to int
+                                      // bool will be promoted to int
     size_t sub_nb = va_arg(ap, size_t);
     va_end(ap);
 
@@ -182,15 +185,19 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
     } else {
         // Creating and connecting the ZMQ control socket
         err2 = bxizmq_zocket_create_connected(data->ctx,
-                                              ZMQ_DEALER,
+                                              ZMQ_ROUTER,
                                               data->url,
                                               &data->ctrl_zock);
+        BXIERR_CHAIN(err, err2);
+
+        char * pub_url = NULL;
+        err2 = bxizmq_generate_new_url_from(data->url, &pub_url);
         BXIERR_CHAIN(err, err2);
 
         // Creating and connecting the ZMQ data socket
         err2 = bxizmq_zocket_create_connected(data->ctx,
                                               ZMQ_PUB,
-                                              data->url,
+                                              pub_url,
                                               &data->data_zock);
         BXIERR_CHAIN(err, err2);
 
@@ -313,15 +320,154 @@ bxierr_p _param_destroy(bxilog_remote_handler_param_p * data_p) {
 bxierr_p _process_ctrl_msg(bxilog_remote_handler_param_p data, int revent) {
     bxiassert(NULL != data);
 
-    fprintf(stderr, "CALLING _PROCESS CTRL MSG: %d\n", revent);
+    bxierr_p err = BXIERR_OK, err2;
 
-    return BXIERR_OK;
+    if (revent & ZMQ_POLLIN) {
+        zmq_msg_t id_frame;
+        err2 = bxizmq_msg_init(&id_frame);
+        BXIERR_CHAIN(err, err2);
+        err2 = bxizmq_msg_rcv(data->ctrl_zock, &id_frame, ZMQ_DONTWAIT);
+        BXIERR_CHAIN(err, err2);
+
+        char * msg = NULL;
+        err2 = bxizmq_str_rcv(data->ctrl_zock, 0, true, &msg);
+        BXIERR_CHAIN(err, err2);
+
+        if (0 == strncmp(BXILOG_REMOTE_HANDLER_CFG_CMD, msg,
+                         ARRAYLEN(BXILOG_REMOTE_HANDLER_CFG_CMD))) {
+
+            err2 = _process_get_cfg_msg(data, id_frame);
+            BXIERR_CHAIN(err, err2);
+
+        }
+    }
+
+    return err;
+}
+
+bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_frame) {
+    bxiassert(NULL != data);
+
+    bxierr_p err = BXIERR_OK, err2;
+
+    err2 = bxizmq_msg_snd(&id_frame, data->ctrl_zock, ZMQ_SNDMORE, 0, 0);
+    BXIERR_CHAIN(err, err2);
+
+    bxilog_logger_p * loggers = NULL;
+    size_t loggers_nb = bxilog_registry_getall(&loggers);
+
+    // We will create the JSON string. It is made of several parts:
+    // '{'
+    // 'global': ...
+    // 'handler-0': ...
+    // ...
+    // 'handler-N': ...
+    // 'logger-0': ...
+    // 'logger-N: ...
+    // '}'
+    char * global_str = bxistr_new("{"
+            "\"url\": \"%s\", "
+            "\"pid\": %d, "
+            "\"progname\": \"%s\", "
+            "\"state\": %d, "
+            "\"handlers_nb\": %zu, "
+            "\"loggers_nb\": %zu, "
+            "\"ctrl_hwm\": %d, "
+            "\"data_hwm\": %d, "
+            "\"buf_size\": %zu"
+            "}",
+            data->url,
+            BXILOG__GLOBALS->pid,
+            BXILOG__GLOBALS->config->progname,
+            BXILOG__GLOBALS->state,
+            BXILOG__GLOBALS->internal_handlers_nb,
+            loggers_nb,
+            BXILOG__GLOBALS->config->ctrl_hwm,
+            BXILOG__GLOBALS->config->data_hwm,
+            BXILOG__GLOBALS->config->tsd_log_buf_size);
+
+    char * handlers_str_parts[BXILOG__GLOBALS->internal_handlers_nb];
+    size_t handlers_str_parts_len[BXILOG__GLOBALS->internal_handlers_nb];
+    for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
+        bxilog_handler_param_p param = BXILOG__GLOBALS->config->handlers_params[i];
+        handlers_str_parts[i] = bxistr_new("{"
+                            "\"name\": \"%s\", "
+                            "\"status\": %d, "
+                            "\"flush_freq_ms\": %lu, "
+                            "\"ierr_max\": %zu, "
+                            "\"ctrl_hwm\": %d, "
+                            "\"data_hwm\": %d"
+                            "}",
+                            BXILOG__GLOBALS->config->handlers[i]->name,
+                            param->status,
+                            param->flush_freq_ms,
+                            param->ierr_max,
+                            param->ctrl_hwm,
+                            param->data_hwm);
+        handlers_str_parts_len[i] = strlen(handlers_str_parts[i]);
+    }
+    char * handlers_str = NULL;
+    bxistr_join(", ", strlen(", "),
+                handlers_str_parts, handlers_str_parts_len,
+                BXILOG__GLOBALS->internal_handlers_nb,
+                &handlers_str);
+
+    char * loggers_str_parts[loggers_nb];
+    size_t loggers_str_parts_len[loggers_nb];
+    for (size_t i = 0; i < loggers_nb; i++) {
+        loggers_str_parts[i] = bxistr_new("{"
+                                "\"name\": \"%s\", "
+                                "\"allocated\": %s, "
+                                "\"level\": %d"
+                                "}",
+                                loggers[i]->name,
+                                loggers[i]->allocated ? "true" : "false",
+                                loggers[i]->level);
+        loggers_str_parts_len[i] = strlen(loggers_str_parts[i]);
+    }
+
+    char * loggers_str = NULL;
+    bxistr_join(", ", strlen(", "),
+                loggers_str_parts, loggers_str_parts_len,
+                loggers_nb,
+                &loggers_str);
+
+    // Now we join all parts together
+    char * json_str = bxistr_new("{"
+            "\"global\": %s, "
+            "\"handlers\": [%s], "
+            "\"loggers\": [%s] "
+            "}",
+            global_str,
+            handlers_str,
+            loggers_str);
+
+//    fprintf(stderr, "Sending: %s", json_str);
+    err2 = bxizmq_str_snd(json_str, data->ctrl_zock, 0, 0, 0);
+    BXIERR_CHAIN(err, err2);
+
+    BXIFREE(global_str);
+    BXIFREE(handlers_str);
+    for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
+        BXIFREE(handlers_str_parts[i]);
+    }
+
+    BXIFREE(loggers_str);
+    for (size_t i = 0; i < loggers_nb; i++) {
+        BXIFREE(loggers_str_parts[i]);
+    }
+    BXIFREE(json_str);
+
+    BXIFREE(loggers);
+
+    return err;
+
 }
 
 bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 = bxizmq_sync_pub(data->data_zock,
+    err2 = bxizmq_sync_pub(data->ctx,
                            data->data_zock,
                            data->url,
                            data->sub_nb,

@@ -60,10 +60,10 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param);
 
 
 /**
- * The Asynchrounous Remote Receiver function.
+ * The asynchronous Remote Receiver function.
  *
  * This function starts a background thread to handle the remote bxilogs. A
- * blocking version is also availalbe as `bxilog_remote_recv`.
+ * blocking version is also available as `bxilog_remote_recv`.
  *
  * @param[in] param the bxilog_remote_recv_s parameters
  * @param[out] urls the list of urls the SUB socket has been binded to if any
@@ -74,7 +74,7 @@ bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param, char ***urls
 
 
 /**
- * Stop the Asynchrounous Remote Receiver function.
+ * Stop the asynchronous Remote Receiver function.
  *
  * This function aims at stopping the background thread handling the remote
  * bxilogs. If no background thread has been started it returns a BXIERROR.

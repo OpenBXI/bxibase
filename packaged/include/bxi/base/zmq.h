@@ -114,6 +114,7 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
  * @param zocket the socket to cleanup
  * @return BXIERR_OK on success, any other on failure.
  */
+//TODO: call it free() since it does not nullify the given pointer
 bxierr_p bxizmq_zocket_destroy(void * const zocket);
 
 /**
@@ -283,7 +284,7 @@ bxierr_p bxizmq_msg_rcv(void * zocket, zmq_msg_t * zmsg, int flags);
  *         among others
  */
 bxierr_p bxizmq_msg_rcv_async(void *zocket, zmq_msg_t *msg,
-                           size_t retries_max, long delay_ns);
+                              size_t retries_max, long delay_ns);
 
 
 /**

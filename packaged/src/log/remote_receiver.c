@@ -2,7 +2,7 @@
  ###############################################################################
  # Author: Sébastien Miquée <sebastien.miquee@atos.net>
  # Created on: 2016-08-08
- # Contributors:
+ # Contributors: Pierre Vignéras <pierre.vigneras@atos.net>
  ###############################################################################
  # Copyright (C) 2016  Bull S. A. S.  -  All rights reserved
  # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
@@ -499,7 +499,7 @@ bxierr_p _recv_log_record(void * zock, bxilog_record_p * record_p, size_t * reco
 
     if (size != expected_len) {
         return bxierr_simple(_BAD_RECORD_ERR,
-                             "Wrong bxi log record: expected size=%zu, received size=%zu",
+                             "Wrong bxilog record: expected size=%zu, received size=%zu",
                              expected_len, size);
     }
     FINE(_REMOTE_LOGGER, "Record received, size: %zu", size);
