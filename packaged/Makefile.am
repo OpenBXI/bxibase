@@ -9,6 +9,7 @@ lib_libbxibase_la_SOURCES=\
 		  src/zmq.c\
 		  src/log.c\
 		  src/log/logger.c\
+		  src/log/level.c\
 		  src/log/filter.c\
 		  src/log/assert.c\
 		  src/log/config.c\
