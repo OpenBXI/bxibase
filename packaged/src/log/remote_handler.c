@@ -390,8 +390,24 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
     size_t handlers_str_parts_len[BXILOG__GLOBALS->internal_handlers_nb];
     for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
         bxilog_handler_param_p param = BXILOG__GLOBALS->config->handlers_params[i];
+        bxilog_filters_p filters = param->filters;
+        char * filters_str_parts[filters->nb];
+        size_t filters_str_parts_len[filters->nb];
+
+        for (size_t f = 0; f < filters->nb; f++) {
+            bxilog_filter_p filter = filters->list[f];
+            filters_str_parts[f] = bxistr_new("%s:%u", filter->prefix, filter->level);
+            filters_str_parts_len[f] = strlen(filters_str_parts[f]);
+        }
+        char * filters_str = NULL;
+        bxistr_join(", ", strlen(", "),
+                    filters_str_parts, filters_str_parts_len,
+                    filters->nb,
+                    &filters_str);
+
         handlers_str_parts[i] = bxistr_new("{"
                             "\"name\": \"%s\", "
+                            "\"filters\": \"%s\", "
                             "\"status\": %d, "
                             "\"flush_freq_ms\": %lu, "
                             "\"ierr_max\": %zu, "
@@ -399,12 +415,18 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
                             "\"data_hwm\": %d"
                             "}",
                             BXILOG__GLOBALS->config->handlers[i]->name,
+                            filters_str,
                             param->status,
                             param->flush_freq_ms,
                             param->ierr_max,
                             param->ctrl_hwm,
                             param->data_hwm);
         handlers_str_parts_len[i] = strlen(handlers_str_parts[i]);
+
+        for (size_t f = 0; f < filters->nb; f++) {
+            BXIFREE(filters_str_parts[f]);
+        }
+        BXIFREE(filters_str);
     }
     char * handlers_str = NULL;
     bxistr_join(", ", strlen(", "),
