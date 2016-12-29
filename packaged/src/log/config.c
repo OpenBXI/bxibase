@@ -23,7 +23,7 @@
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/syslog_handler.h"
-#include <bxi/base/log/netsnmp_handler.h>
+#include "bxi/base/log/netsnmp_handler.h"
 #include "bxi/base/log/config.h"
 
 #include "config_impl.h"
@@ -49,22 +49,6 @@
 
 // The internal logger
 SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.cfg");
-
-
-static char * _LOG_LEVEL_NAMES[] = { "off",
-                                     "panic",
-                                     "alert",
-                                     "critical",
-                                     "error",
-                                     "warning",
-                                     "notice",
-                                     "output",
-                                     "info",
-                                     "debug",
-                                     "fine",
-                                     "trace",
-                                     "lowest"
-};
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -197,72 +181,6 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
-    if (0 == strcasecmp("off", level_str)) {
-        *level = BXILOG_OFF;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("panic", level_str)
-            || 0 == strcasecmp("emergency", level_str)) {
-        *level = BXILOG_PANIC;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("alert", level_str)) {
-        *level = BXILOG_ALERT;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("critical", level_str)
-            || 0 == strcasecmp("crit", level_str)) {
-        *level = BXILOG_CRIT;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("error", level_str)
-            || 0 == strcasecmp("err", level_str)) {
-        *level = BXILOG_ERR;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("warning", level_str)
-            || 0 == strcasecmp("warn", level_str)) {
-        *level = BXILOG_WARN;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("notice", level_str)) {
-        *level = BXILOG_NOTICE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("output", level_str)
-            || 0 == strcasecmp("out", level_str)) {
-        *level = BXILOG_OUTPUT;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("info", level_str)) {
-        *level = BXILOG_INFO;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("debug", level_str)) {
-        *level = BXILOG_DEBUG;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("fine", level_str)) {
-        *level = BXILOG_FINE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("trace", level_str)) {
-        *level = BXILOG_TRACE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("lowest", level_str) || 0 == strcasecmp("all", level_str)) {
-        *level = BXILOG_LOWEST;
-        return BXIERR_OK;
-    }
-    *level = BXILOG_LOWEST;
-    return bxierr_gen("Bad log level name: %s", level_str);
-}
-
-size_t bxilog_get_all_level_names(char *** names) {
-    *names = _LOG_LEVEL_NAMES;
-    return ARRAYLEN(_LOG_LEVEL_NAMES);
-}
 
 
 //*********************************************************************************
