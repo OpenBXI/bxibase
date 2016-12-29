@@ -17,6 +17,7 @@ import bxi.base.log as bxilog
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
 
+
 def _connect(args):
     ctx = zmq.Context.instance()
     monitoring = dict()
@@ -28,6 +29,7 @@ def _connect(args):
             zock.connect(url)
         monitoring[url] = (zock, None)
     return monitoring
+
 
 def _get_config(monitoring):
     bxilog.info("Getting configuration of %s", monitoring.keys())
@@ -53,11 +55,15 @@ def _get_config(monitoring):
             bxilog.output("Logger '%s': %s",
                           str(name),
                           ", ".join("%s: %s" % (str(k), str(v)) for k,v in logger.items()))
+
+
 def _set_config(monitoring):
     pass
 
+
 def _get_loggers(monitoring):
     pass
+
 
 def _monitor(monitoring):
     bxilog.info("Monitoring configuration %s", monitoring.keys())
