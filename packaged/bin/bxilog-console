@@ -30,47 +30,63 @@ def _connect(args):
         monitoring[url] = (zock, None)
     return monitoring
 
-
-def _get_config(monitoring):
+def _get_raw_config(monitoring):
     bxilog.info("Getting configuration of %s", monitoring.keys())
     
+    result = dict()
     for url in monitoring:
         ctrl_zock = monitoring[url][0]
         ctrl_zock.send_string('get-config')
         data = ctrl_zock.recv_json()
+        result[url] = data
+
+    return result
+
+def _get_config(monitoring):
+    result = _get_raw_config(monitoring)
+    for url in result:
+        data = result[url]
         global_ = data['global']
-        handlers = data['handlers']
-        loggers = data['loggers']
-        bxilog.output("Global: %s",
+        bxilog.output("%s: %s",
+                      url,
                       ", ".join("%s: %s" % (str(k), str(v)) for k,v in global_.items()))
-        for handler in sorted(handlers, key=lambda x: x['name']):
-            name = handler['name']
-            del handler['name']
-            bxilog.output("Handler '%s': %s",
-                          str(name),
-                          ", ".join("%s: %s" % (str(k), str(v)) for k,v in handler.items()))
-        for logger in sorted(loggers, key=lambda x: x['name']):
-            name = logger['name']
-            del logger['name']
-            bxilog.output("Logger '%s': %s",
-                          str(name),
-                          ", ".join("%s: %s" % (str(k), str(v)) for k,v in logger.items()))
 
 
 def _set_config(monitoring):
     pass
 
+def _get_handlers(monitoring):
+    result = _get_raw_config(monitoring)
+    for url in result:
+        data = result[url]
+        handlers = data['handlers']
+        for handler in sorted(handlers, key=lambda x: x['name']):
+            name = handler['name']
+            del handler['name']
+            bxilog.output("%s/handler-name='%s': %s",
+                          str(url),
+                          str(name),
+                          ", ".join("%s: %s" % (str(k), str(v)) for k,v in handler.items()))
 
 def _get_loggers(monitoring):
-    pass
-
+    result = _get_raw_config(monitoring)
+    for url in result:
+        data = result[url]
+        loggers = data['loggers']
+    for logger in sorted(loggers, key=lambda x: x['name']):
+            name = logger['name']
+            del logger['name']
+            bxilog.output("%s/logger-name='%s': %s",
+                          str(url),
+                          str(name),
+                          ", ".join("%s: %s" % (str(k), str(v)) for k,v in logger.items()))
 
 def _monitor(monitoring):
     bxilog.info("Monitoring configuration %s", monitoring.keys())
     pass
 
 _ACTIONS={'get-config': _get_config,
-          'set-config': _set_config,
+          'get-handlers': _get_handlers,
           'get-loggers': _get_loggers,
           'monitor': _monitor,
           }
