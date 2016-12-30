@@ -12,10 +12,21 @@
 """
 
 import os,sys
+import weakref
 import zmq
+
+
+import bxi.ffi as bxiffi
+import bxi.base as bxibase
+import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
+
+
+# Find the C library
+__FFI__ = bxiffi.get_ffi()
+__BXIBASE_CAPI__ = bxibase.get_capi()
 
 
 def _connect(args):
@@ -30,6 +41,7 @@ def _connect(args):
         monitoring[url] = (zock, None)
     return monitoring
 
+
 def _get_raw_config(monitoring):
     bxilog.info("Getting configuration of %s", monitoring.keys())
     
@@ -42,7 +54,8 @@ def _get_raw_config(monitoring):
 
     return result
 
-def _get_config(monitoring):
+
+def _get_config(monitoring, args):
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
@@ -52,10 +65,11 @@ def _get_config(monitoring):
                       ", ".join("%s: %s" % (str(k), str(v)) for k,v in global_.items()))
 
 
-def _set_config(monitoring):
+def _set_config(monitoring, args):
     pass
 
-def _get_handlers(monitoring):
+
+def _get_handlers(monitoring, args):
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
@@ -68,7 +82,8 @@ def _get_handlers(monitoring):
                           str(name),
                           ", ".join("%s: %s" % (str(k), str(v)) for k,v in handler.items()))
 
-def _get_loggers(monitoring):
+
+def _get_loggers(monitoring, args):
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
@@ -81,15 +96,36 @@ def _get_loggers(monitoring):
                           str(name),
                           ", ".join("%s: %s" % (str(k), str(v)) for k,v in logger.items()))
 
-def _monitor(monitoring):
+
+def _monitor(monitoring, args):
     bxilog.info("Monitoring configuration %s", monitoring.keys())
-    pass
+    result = _get_raw_config(monitoring)
+    param = __FFI__.new('bxilog_remote_recv_s *')
+    param.nb_urls = len(result)
+    # WARNING: use local variables in order to prevent the GC from 
+    # freeing allocated space before the C function has been called!
+    # This is quite tricky! If you modify this piece of code
+    # better be sure on what you are doing!
+    
+    tmpref = []
+    for ctrl_url in result:
+        data = result[ctrl_url]
+        tmpref.append(__FFI__.new('char[]', str(data['global']['pub_url'])))
+    c_urls = __FFI__.new('char *[]', tmpref)
+    param.urls = c_urls
+    param.bind = args.bind;
+    param.sync_nb = 0;
+    err = __BXIBASE_CAPI__.bxilog_remote_recv(param)
+    bxierr.BXICError.raise_if_ko(err)
+    
+
 
 _ACTIONS={'get-config': _get_config,
           'get-handlers': _get_handlers,
           'get-loggers': _get_loggers,
           'monitor': _monitor,
           }
+
 
 if __name__ == '__main__':
 
@@ -111,6 +147,6 @@ if __name__ == '__main__':
     
     monitoring = _connect(args)
     
-    _ACTIONS[args.action](monitoring)
+    _ACTIONS[args.action](monitoring, args)
     
     

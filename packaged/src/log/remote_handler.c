@@ -45,7 +45,8 @@ typedef struct bxilog_remote_handler_param_s_f {
     bool synced;
     size_t sub_nb;
     double timeout_s;
-    char * url;
+    char * ctrl_url;
+    char * pub_url;
     void * ctx;
     void * ctrl_zock;
     void * data_zock;
@@ -126,7 +127,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
 
     bxiassert(BXILOG_REMOTE_HANDLER == self);
 
-    char * url = va_arg(ap, char *);
+    char * ctrl_url = va_arg(ap, char *);
     bool bind_flag = va_arg(ap, int); // YES, THIS IS *REQUIRED* IN C99,
                                       // bool will be promoted to int
     size_t sub_nb = va_arg(ap, size_t);
@@ -135,7 +136,8 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxilog_remote_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
-    result->url = strdup(url);
+    result->ctrl_url = strdup(ctrl_url);
+    result->pub_url = NULL;
     result->bind = bind_flag;
     result->sub_nb = sub_nb;
     result->timeout_s = 1;
@@ -165,13 +167,13 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
         // Creating and binding the ZMQ control socket
         err2 = bxizmq_zocket_create_binded(data->ctx,
                                            ZMQ_ROUTER,
-                                           data->url,
+                                           data->ctrl_url,
                                            &port,
                                            &data->ctrl_zock);
         BXIERR_CHAIN(err, err2);
 
         char * pub_url = NULL;
-        err2 = bxizmq_generate_new_url_from(data->url, &pub_url);
+        err2 = bxizmq_generate_new_url_from(data->ctrl_url, &pub_url);
         BXIERR_CHAIN(err, err2);
 
         // Creating and binding the ZMQ data socket
@@ -182,22 +184,24 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
                                            &data->data_zock);
         BXIERR_CHAIN(err, err2);
 
+        data->pub_url = bxizmq_create_url_from(pub_url, port);
+        BXIFREE(pub_url);
+
     } else {
         // Creating and connecting the ZMQ control socket
         err2 = bxizmq_zocket_create_connected(data->ctx,
                                               ZMQ_ROUTER,
-                                              data->url,
+                                              data->ctrl_url,
                                               &data->ctrl_zock);
         BXIERR_CHAIN(err, err2);
 
-        char * pub_url = NULL;
-        err2 = bxizmq_generate_new_url_from(data->url, &pub_url);
+        err2 = bxizmq_generate_new_url_from(data->ctrl_url, &data->pub_url);
         BXIERR_CHAIN(err, err2);
 
         // Creating and connecting the ZMQ data socket
         err2 = bxizmq_zocket_create_connected(data->ctx,
                                               ZMQ_PUB,
-                                              pub_url,
+                                              data->pub_url,
                                               &data->data_zock);
         BXIERR_CHAIN(err, err2);
 
@@ -217,6 +221,8 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
 
 bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
+
+    BXIFREE(data->pub_url);
 
     if (NULL != data->ctrl_zock) {
         err2 = bxizmq_zocket_destroy(data->ctrl_zock);
@@ -310,7 +316,7 @@ bxierr_p _param_destroy(bxilog_remote_handler_param_p * data_p) {
     bxilog_remote_handler_param_p data = *data_p;
     bxilog_handler_clean_param(&data->generic);
 
-    BXIFREE(data->url);
+    BXIFREE(data->ctrl_url);
 
     bximem_destroy((char**) data_p);
 
@@ -366,7 +372,8 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
     // 'logger-N: ...
     // '}'
     char * global_str = bxistr_new("{"
-            "\"url\": \"%s\", "
+            "\"ctrl_url\": \"%s\", "
+            "\"pub_url\": \"%s\", "
             "\"pid\": %d, "
             "\"progname\": \"%s\", "
             "\"state\": %d, "
@@ -376,7 +383,8 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
             "\"data_hwm\": %d, "
             "\"buf_size\": %zu"
             "}",
-            data->url,
+            data->ctrl_url,
+            data->pub_url,
             BXILOG__GLOBALS->pid,
             BXILOG__GLOBALS->config->progname,
             BXILOG__GLOBALS->state,
@@ -491,7 +499,7 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
 
     err2 = bxizmq_sync_pub(data->ctx,
                            data->data_zock,
-                           data->url,
+                           data->ctrl_url,
                            data->sub_nb,
                            data->timeout_s);
     BXIERR_CHAIN(err, err2);
