@@ -63,7 +63,7 @@ static char * _LOG_LEVEL_NAMES[] = { "off",
 //*********************************************************************************
 
 
-bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
+bxierr_p bxilog_level_from_str(char * level_str, bxilog_level_e *level) {
     if (0 == strcasecmp("off", level_str)) {
         *level = BXILOG_OFF;
         return BXIERR_OK;
@@ -125,7 +125,7 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
     return bxierr_gen("Bad log level name: %s", level_str);
 }
 
-size_t bxilog_get_all_level_names(char *** names) {
+size_t bxilog_level_names(char *** names) {
     *names = _LOG_LEVEL_NAMES;
     return ARRAYLEN(_LOG_LEVEL_NAMES);
 }

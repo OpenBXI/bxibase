@@ -302,7 +302,7 @@ bxierr_p bxilog_flush(void) {
 void bxilog_display_loggers(int fd) {
     char ** level_names;
     ssize_t rc;
-    size_t n = bxilog_get_all_level_names(&level_names);
+    size_t n = bxilog_level_names(&level_names);
     char * TMP = "Log level names:\n";
     rc = write(fd, TMP, strlen(TMP));
     bxiassert(-1 != rc);

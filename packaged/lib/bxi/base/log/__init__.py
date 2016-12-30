@@ -232,7 +232,7 @@ def get_level_from_str(level_str):
     Return the ::bxilog_level_e related to the given string.
     """
     level_p = __FFI__.new('bxilog_level_e[1]')
-    err = __BXIBASE_CAPI__.bxilog_get_level_from_str(level_str, level_p)
+    err = __BXIBASE_CAPI__.bxilog_level_from_str(level_str, level_p)
 
     bxierr.BXICError.raise_if_ko(err)
     return level_p[0]
@@ -420,14 +420,14 @@ def flush():
     bxierr.BXICError.raise_if_ko(err_p)
 
 
-def get_all_level_names_iter():
+def get_level_names_iter():
     """
     Return an iterator over all level names.
 
     @return
     """
     names = __FFI__.new("char ***")
-    nb = __BXIBASE_CAPI__.bxilog_get_all_level_names(names)
+    nb = __BXIBASE_CAPI__.bxilog_level_names(names)
     for i in xrange(nb):
         yield __FFI__.string(names[0][i])
 

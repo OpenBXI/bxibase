@@ -166,7 +166,7 @@ bxierr_p bxilog_filters_parse(char * str, bxilog_filters_p * result) {
             goto QUIT;
         }
         if (endptr == level_str) {
-            err2 = bxilog_get_level_from_str(level_str, &level);
+            err2 = bxilog_level_from_str(level_str, &level);
             BXIERR_CHAIN(err, err2);
             if (bxierr_isko(err)) {
                 goto QUIT;

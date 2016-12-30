@@ -51,7 +51,7 @@ extern char * FULLFILENAME;
 
 size_t produce_simple_logs(bxilog_logger_p logger) {
     char ** level2str;
-    bxilog_get_all_level_names(&level2str);
+    bxilog_level_names(&level2str);
 
     size_t logged_msg_nb = 0;
 

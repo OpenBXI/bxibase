@@ -117,14 +117,14 @@ class BXILogTest(unittest.TestCase):
         """
         Test bxilog_level parsing function"
         """
-        level_names = list(bxilog.get_all_level_names_iter())
+        level_names = list(bxilog.get_level_names_iter())
         for i in xrange(len(level_names)):
             level = bxilog.get_level_from_str(level_names[i])
             self.assertEquals(i, level)
 
     def test_default_logger(self):
         """Test default logging functions"""
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.get_level_names_iter():
             self._check_log_produced(FILENAME,
                                      getattr(bxilog, level), "Some stuff with noarg")
             self._check_log_produced(FILENAME,
@@ -170,15 +170,15 @@ class BXILogTest(unittest.TestCase):
                                      getattr(logger, level), "Some stuff with no args but special characters: %d %f %s")
 
         logger1 = bxilog.getLogger("foo")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.get_level_names_iter():
             _produce_logs(logger1, level)
 
         logger2 = bxilog.getLogger("bar")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.get_level_names_iter():
             _produce_logs(logger2, level)
 
         logger3 = bxilog.getLogger("foo.bar")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.get_level_names_iter():
             _produce_logs(logger3, level)
 
         self._check_log_produced(FILENAME,
