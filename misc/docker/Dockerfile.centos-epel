@@ -1,11 +1,12 @@
 FROM centos:7
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
-ENV http_proxy http://w3p2.atos-infogerance.fr:8080
-ENV https_proxy http://w3p2.atos-infogerance.fr:8080
-ENV ftp_proxy http://w3p2.atos-infogerance.fr:8080
-ENV ftps_proxy http://w3p2.atos-infogerance.fr:8080
 
-RUN rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-8.noarch.rpm && yum -y update && yum -y clean all
+ENV http_proxy ${HTTP_PROXY}
+ENV https_proxy ${HTTPS_PROXY}
+ENV ftp_proxy ${FTP_PROXY}
+ENV no_proxy ${NO_PROXY}
+
+RUN rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-8.noarch.rpm && yum -y update --disableplugin=fastestmirror
 
 CMD ["/bin/bash"]
 
