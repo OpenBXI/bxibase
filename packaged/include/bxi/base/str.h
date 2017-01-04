@@ -17,6 +17,8 @@
 #ifndef BXICFFI
 #include <stdlib.h>
 #include <stdarg.h>
+#include <signal.h>
+#include <sys/signalfd.h>
 #endif
 
 
@@ -109,6 +111,22 @@ char * bxistr_new(const char * fmt, ...)
  * @return
  */
 size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
+
+/**
+ * Return a string representation of the given signal number using the
+ * given siginfo or sfdinfo (only one must be NULL).
+ *
+ * Note: the returned string will have to be released using FREE().
+ *
+ * @param[in] siginfo the signal information
+ * @param[in] sfdinfo the signal information
+ *
+ * @return a string representation of the given signal number
+ *
+ */
+char * bxistr_from_signal(const siginfo_t * siginfo,
+                          const struct signalfd_siginfo * sfdinfo);
+
 #endif
 
 /**
@@ -303,7 +321,6 @@ bxierr_p bxistr_hex2bytes(char * s, size_t len, uint8_t ** pbuf);
  * @see bxistr_hex2bytes()
  */
 bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps);
-
 
 /**
  * @example bxistr-examples.c
