@@ -340,7 +340,11 @@ def _init():
 
     c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME)
 
-    handlers = _CONFIG['handlers']
+    if isinstance(_CONFIG['handlers'], basestring):
+        handlers = [_CONFIG['handlers']]
+    else:
+        handlers = _CONFIG['handlers']
+
     for section in handlers:
         try:
             bxilogconfig.add_handler(_CONFIG, section, c_config)

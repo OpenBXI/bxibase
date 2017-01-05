@@ -150,7 +150,12 @@ def find_logconfigs(module_name, config):
     result = []
     if 'handlers' not in config:
         return result
-    handlers = config['handlers']
+
+    if isinstance(config['handlers'], basestring):
+        handlers = [config['handlers']]
+    else:
+        handlers = config['handlers']
+
     for handler in handlers:
         section = config[handler]
         if 'module' not in section:
