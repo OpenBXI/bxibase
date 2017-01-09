@@ -160,22 +160,26 @@ rm -f $RPM_BUILD_ROOT/%{target_lib_dir}/lib*.la
 %post
 
 %post doc
-rm -f %{target_doc_dir}/last
-ln -s $( \
-        ls %{target_doc_dir} | \
-            grep '^[0-9]\+[0-9.]*[0-9]\+$' | \
-            sort | tail -n1 \
-    ) %{target_doc_dir}/last
+rm -f %{target_doc_dir}/last \
+ls | grep '^[0-9]\+[0-9.]*[0-9]\+$' \
+&& ln -s $( \
+    ls %{target_doc_dir} | \
+        grep '^[0-9]\+[0-9.]*[0-9]\+$' | \
+        sort | tail -n1 \
+) %{target_doc_dir}/last \
+|| true
 
 %postun
 
 %postun doc
-rm -f %{target_doc_dir}/last
-ln -s $( \
-        ls %{target_doc_dir} | \
-            grep '^[0-9]\+[0-9.]*[0-9]\+$' | \
-            sort | tail -n1 \
-    ) %{target_doc_dir}/last
+rm -f %{target_doc_dir}/last \
+ls | grep '^[0-9]\+[0-9.]*[0-9]\+$' \
+&& ln -s $( \
+    ls %{target_doc_dir} | \
+        grep '^[0-9]\+[0-9.]*[0-9]\+$' | \
+        sort | tail -n1 \
+) %{target_doc_dir}/last \
+|| true
 
 %preun
 
