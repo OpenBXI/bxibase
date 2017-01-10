@@ -40,8 +40,10 @@ Prefix: /usr
 %define target_python_lib_dir %{python2_sitearch}
 %define target_man_dir %{_mandir}
 %define target_doc_dir /usr/share/doc/%{name}
-%define src_tagfiles_prefix %{?tagfiles_prefix}%{?!tagfiles_prefix:/usr/share/doc}
-%define src_tagfiles_suffix %{?tagfiles_suffix}%{?!tagfiles_suffix:%{version}/doxygen.tag}
+# @TODO : Support cases where BXI_BUILD_{SUB,}DIR variables are not defined
+#         Attempt to get tagfiles from installed doc packages
+%define src_tagfiles_prefix %{?tagfiles_prefix}%{?!tagfiles_prefix:%{bxi_build_dir}}
+%define src_tagfiles_suffix %{?tagfiles_suffix}%{?!tagfiles_suffix:%{bxi_build_subdir}/packaged/doc/doxygen.tag}
 %define target_htmldirs_prefix ../
 %define target_htmldirs_suffix /last/
 
