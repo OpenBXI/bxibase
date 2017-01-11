@@ -162,7 +162,7 @@ rm -f $RPM_BUILD_ROOT/%{target_lib_dir}/lib*.la
 %post
 
 %post doc
-rm -f %{target_doc_dir}/last \
+rm -f %{target_doc_dir}/last
 ls %{target_doc_dir} \
 | grep -q '^[0-9]\+[0-9.]*[0-9]\+$' \
 && ln -s $( \
@@ -175,7 +175,7 @@ ls %{target_doc_dir} \
 %postun
 
 %postun doc
-rm -f %{target_doc_dir}/last \
+rm -f %{target_doc_dir}/last
 ls %{target_doc_dir} \
 | grep -q '^[0-9]\+[0-9.]*[0-9]\+$' \
 && ln -s $( \
