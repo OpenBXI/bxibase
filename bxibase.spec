@@ -44,7 +44,7 @@ Prefix: /usr
 #         Attempt to get tagfiles from installed doc packages
 %define src_tagfiles_prefix %{?tagfiles_prefix}%{?!tagfiles_prefix:%{bxi_build_dir}}
 %define src_tagfiles_suffix %{?tagfiles_suffix}%{?!tagfiles_suffix:%{bxi_build_subdir}/packaged/doc/doxygen.tag}
-%define target_htmldirs_prefix ../
+%define target_htmldirs_prefix ../../
 %define target_htmldirs_suffix /last/
 
 # TODO: Give your summary
