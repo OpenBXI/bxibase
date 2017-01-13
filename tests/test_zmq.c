@@ -184,7 +184,6 @@ static void * pub_thread(void * data) {
     err = bxizmq_str_snd("NO MORE MESSAGE", zocket, 0, 0, 0);
     BXIABORT_IFKO(LOGGER, err);
 
-
     TRACE(LOGGER, "Creating quit sub socket");
     void * quit_zocket;
     err = bxizmq_zocket_create(ctx, ZMQ_SUB, &quit_zocket);
@@ -373,7 +372,10 @@ void test_1pub_1sub_sync() {
     while (true) {
         DEBUG(LOGGER, "Waiting for a sub quit");
 
-        if (sub_param->terminated) break;
+        if (sub_param->terminated) {
+            pthread_join(sub, NULL);
+            break;
+        }
 
         FINE(LOGGER, "sub has not terminated yet, looping again.");
     }
@@ -389,6 +391,14 @@ void test_1pub_1sub_sync() {
     BXIFREE(sub_param);
     BXIFREE(pub_param->urls);
     BXIFREE(pub_param);
+
+    BXIFREE(sub_url);
+    unlink(sub_tmp_file);
+    BXIFREE(sub_tmp_file);
+
+    BXIFREE(quit_url);
+    unlink(quit_tmp_file);
+    BXIFREE(quit_tmp_file);
 }
 
 void test_2pub_1sub_sync() {
@@ -489,109 +499,154 @@ void test_2pub_1sub_sync() {
     BXIFREE(pubs_param[0].urls);
     BXIFREE(pubs_param[1].urls);
     BXIFREE(pubs_param);
+
+    BXIFREE(sub_url);
+    unlink(sub_tmp_file);
+    BXIFREE(sub_tmp_file);
+
+    BXIFREE(quit_url);
+    unlink(quit_tmp_file);
+    BXIFREE(quit_tmp_file);
 }
 
-//void test_2pub_2sub_sync() {
-//    char * sub_url = "tcp://127.0.0.1:*";
-//    thread_param_s * subs_param = bximem_calloc(2 * sizeof(*subs_param));
-//
-//    subs_param[0].msg_nb = 0;
-//    subs_param[0].urls_nb = 1;
-//    subs_param[0].urls = bximem_calloc(subs_param[0].urls_nb * sizeof(*subs_param[0].urls));
-//    subs_param[0].urls[0] = sub_url;
-//    subs_param[0].bind = true;
-//    subs_param[0].sync_nb = 2;
-//    subs_param[0].quit = false;
-//
-//    subs_param[1].msg_nb = 0;
-//    subs_param[1].urls_nb = 1;
-//    subs_param[1].urls = bximem_calloc(subs_param[1].urls_nb * sizeof(*subs_param[1].urls));
-//    subs_param[1].urls[0] = sub_url;
-//    subs_param[1].bind = true;
-//    subs_param[1].sync_nb = 1;
-//    subs_param[1].quit = false;
-//
-//
-//    // The urls will be changed while binding
-//    char * old_urls[] = {subs_param[0].urls[0], subs_param[1].urls[0]};
-//
-//    pthread_t subs[2];
-//    int rc = pthread_create(&subs[0], NULL, sub_thread, &subs_param[0]);
-//    bxiassert(0 == rc);
-//
-//    rc = pthread_create(&subs[1], NULL, sub_thread, &subs_param[1]);
-//    bxiassert(0 == rc);
-//
-//    while (old_urls[0] == subs_param[0].urls[0] || old_urls[1] == subs_param[1].urls[0]) {
-//        ; // Just wait
-//    }
-//
-//    thread_param_s * pubs_param = bximem_calloc(2 * sizeof(*pubs_param));
-//    pubs_param[0].msg_nb = 7;
-//    pubs_param[0].urls_nb = 1;
-//    pubs_param[0].urls = bximem_calloc(pubs_param[0].urls_nb * sizeof(*pubs_param[0].urls));
-//    pubs_param[0].urls[0] = subs_param[0].urls[0];
-//    pubs_param[0].bind = false;
-//    pubs_param[0].sync_nb = 1;
-//    pubs_param[0].quit = false;
-//
-//    pubs_param[1].msg_nb = 5;
-//    pubs_param[1].urls_nb = 2;
-//    pubs_param[1].urls = bximem_calloc(pubs_param[1].urls_nb * sizeof(*pubs_param[1].urls));
-//    pubs_param[1].urls[0] = subs_param[0].urls[0];
-//    pubs_param[1].urls[1] = subs_param[1].urls[0];
-//    pubs_param[1].bind = false;
-//    pubs_param[1].sync_nb = 2;
-//    pubs_param[1].quit = false;
-//
-//    pthread_t pub[2];
-//    rc = pthread_create(&pub[0], NULL, pub_thread, &pubs_param[0]);
-//    bxiassert(0 == rc);
-//
-//    rc = pthread_create(&pub[1], NULL, pub_thread, &pubs_param[1]);
-//    bxiassert(0 == rc);
-//
-//
-//    pthread_join(subs[0], NULL);
-//    bxiassert(0 == rc);
-//
-//    pthread_join(subs[1], NULL);
-//    bxiassert(0 == rc);
-//
-//    pubs_param[0].quit = true;
-//    pubs_param[1].quit = true;
-//
-//    rc = pthread_join(pub[0], NULL);
-//    bxiassert(0 == rc);
-//    rc = pthread_join(pub[1], NULL);
-//    bxiassert(0 == rc);
-//
-//    size_t total = pubs_param[0].msg_nb + pubs_param[1].msg_nb;
-//
-//    OUT(TEST_LOGGER,
-//        "pubs[0]=%zu, pubs[1]=%zu, total=%zu, subs[0]=%zu, subs[1]=%zu",
-//        pubs_param[0].msg_nb, pubs_param[1].msg_nb, total,
-//        subs_param[0].msg_nb, subs_param[1].msg_nb);
-//
-//    CU_ASSERT_EQUAL(total, subs_param[0].msg_nb);
-//    CU_ASSERT_EQUAL(pubs_param[1].msg_nb, subs_param[1].msg_nb);
-//
-//    for (size_t i = 0; i < subs_param[0].urls_nb; i++) {
-//        BXIFREE(subs_param[0].urls);
-//    }
-//    for (size_t i = 0; i < subs_param[1].urls_nb; i++) {
-//        BXIFREE(subs_param[1].urls);
-//    }
-//
-//    for (size_t i = 0; i < pubs_param[0].urls_nb; i++) {
-//        BXIFREE(pubs_param[0].urls);
-//    }
-//    for (size_t i = 0; i < pubs_param[1].urls_nb; i++) {
-//        BXIFREE(pubs_param[1].urls);
-//    }
-//    BXIFREE(subs_param);
-//    BXIFREE(pubs_param);
-//}
+void test_2pub_2sub_sync() {
+    char * sub_tmp_file1 = _get_tmp_filename(__FUNCTION__);
+    char * sub_url1 = bxistr_new("ipc://%s", sub_tmp_file1);
+
+    char * sub_tmp_file2 = _get_tmp_filename(__FUNCTION__);
+    char * sub_url2 = bxistr_new("ipc://%s", sub_tmp_file2);
+
+    char * quit_tmp_file = _get_tmp_filename(__FUNCTION__);
+    char * quit_url = bxistr_new("ipc://%s", quit_tmp_file);
+
+    thread_param_s * subs_param = bximem_calloc(2 * sizeof(*subs_param));
+
+    subs_param[0].msg_nb = 0;
+    subs_param[0].urls_nb = 1;
+    subs_param[0].urls = bximem_calloc(subs_param[0].urls_nb * sizeof(*subs_param[0].urls));
+    subs_param[0].urls[0] = sub_url1;
+    subs_param[0].bind = true;
+    subs_param[0].sync_nb = 2;
+    subs_param[0].quit_url = quit_url;
+
+    subs_param[1].msg_nb = 0;
+    subs_param[1].urls_nb = 1;
+    subs_param[1].urls = bximem_calloc(subs_param[1].urls_nb * sizeof(*subs_param[1].urls));
+    subs_param[1].urls[0] = sub_url2;
+    subs_param[1].bind = true;
+    subs_param[1].sync_nb = 1;
+    subs_param[1].quit_url = quit_url;
+
+    OUT(LOGGER, "Starting 2 subs");
+    pthread_t subs[2];
+    int rc = pthread_create(&subs[0], NULL, sub_thread, &subs_param[0]);
+    bxiassert(0 == rc);
+
+    rc = pthread_create(&subs[1], NULL, sub_thread, &subs_param[1]);
+    bxiassert(0 == rc);
+
+    thread_param_s * pubs_param = bximem_calloc(2 * sizeof(*pubs_param));
+    pubs_param[0].msg_nb = 7;
+    pubs_param[0].urls_nb = 1;
+    pubs_param[0].urls = bximem_calloc(pubs_param[0].urls_nb * sizeof(*pubs_param[0].urls));
+    pubs_param[0].urls[0] = subs_param[0].urls[0];
+    pubs_param[0].bind = false;
+    pubs_param[0].sync_nb = 1;
+    pubs_param[0].quit_url = quit_url;
+
+    pubs_param[1].msg_nb = 5;
+    pubs_param[1].urls_nb = 2;
+    pubs_param[1].urls = bximem_calloc(pubs_param[1].urls_nb * sizeof(*pubs_param[1].urls));
+    pubs_param[1].urls[0] = subs_param[0].urls[0];
+    pubs_param[1].urls[1] = subs_param[1].urls[0];
+    pubs_param[1].bind = false;
+    pubs_param[1].sync_nb = 2;
+    pubs_param[1].quit_url = quit_url;
+
+    OUT(LOGGER, "Starting 2 pubs");
+    pthread_t pub[2];
+    rc = pthread_create(&pub[0], NULL, pub_thread, &pubs_param[0]);
+    bxiassert(0 == rc);
+
+    rc = pthread_create(&pub[1], NULL, pub_thread, &pubs_param[1]);
+    bxiassert(0 == rc);
+
+    TRACE(LOGGER, "Creating a zmq context");
+    void * ctx;
+    bxierr_p err = bxizmq_context_new(&ctx);
+    BXIABORT_IFKO(LOGGER, err);
+
+    TRACE(LOGGER, "Creating and binding the quit zocket to %s", quit_url);
+    void * quit_zock = NULL;
+    err = bxizmq_zocket_create_binded(ctx, ZMQ_PUB, quit_url, NULL, &quit_zock);
+    BXIABORT_IFKO(LOGGER, err);
+
+    while (true) {
+        DEBUG(LOGGER, "Requesting pub quit");
+        err = bxizmq_str_snd("PUB MUST QUIT", quit_zock, 0, 0, 0);
+        BXIABORT_IFKO(LOGGER, err);
+
+        if (pubs_param[0].terminated && pubs_param[1].terminated) break;
+
+        FINE(LOGGER, "Some pub have not terminated yet, looping again");
+        err = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e7);
+        BXIABORT_IFKO(LOGGER, err);
+    }
+
+    TRACE(LOGGER, "Destroying quit zocket");
+    err = bxizmq_zocket_destroy(quit_zock);
+    BXIABORT_IFKO(LOGGER, err);
+
+    TRACE(LOGGER, "Destroying zmq context");
+    err = bxizmq_context_destroy(&ctx);
+    BXIABORT_IFKO(LOGGER, err);
+
+    while (true) {
+        DEBUG(LOGGER, "Waiting for a sub quit");
+
+        if (subs_param[0].terminated && subs_param[1].terminated) break;
+
+        FINE(LOGGER, "sub has not terminated yet, looping again.");
+    }
+
+    size_t total = pubs_param[0].msg_nb + pubs_param[1].msg_nb;
+
+    OUT(LOGGER,
+        "pubs[0]=%zu, pubs[1]=%zu, total=%zu, subs[0]=%zu, subs[1]=%zu",
+        pubs_param[0].msg_nb, pubs_param[1].msg_nb, total,
+        subs_param[0].msg_nb, subs_param[1].msg_nb);
+
+    CU_ASSERT_EQUAL(total, subs_param[0].msg_nb);
+    CU_ASSERT_EQUAL(pubs_param[1].msg_nb, subs_param[1].msg_nb);
+
+    for (size_t i = 0; i < subs_param[0].urls_nb; i++) {
+        BXIFREE(subs_param[0].urls);
+    }
+    for (size_t i = 0; i < subs_param[1].urls_nb; i++) {
+        BXIFREE(subs_param[1].urls);
+    }
+
+    for (size_t i = 0; i < pubs_param[0].urls_nb; i++) {
+        BXIFREE(pubs_param[0].urls);
+    }
+    for (size_t i = 0; i < pubs_param[1].urls_nb; i++) {
+        BXIFREE(pubs_param[1].urls);
+    }
+    BXIFREE(subs_param);
+    BXIFREE(pubs_param);
+
+    BXIFREE(sub_url1);
+    unlink(sub_tmp_file1);
+    BXIFREE(sub_tmp_file1);
+
+    BXIFREE(sub_url2);
+    unlink(sub_tmp_file2);
+    BXIFREE(sub_tmp_file2);
+
+    BXIFREE(quit_url);
+    unlink(quit_tmp_file);
+    BXIFREE(quit_tmp_file);
+}
 
 
 void test_1pub_1sub_sync_fork() {
