@@ -21,8 +21,15 @@ import bxi.base.err as bxierr
 __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
+
 def sync_pub(pub_zocket, sync_zocket, sync_url, timeout=1.0):
     """
+    Wrapper on the c synchronization function for PUB/SUB socket
+    @param[in] pub_zocket to be synchronized
+    @param[in] sync_zocket REP/REQ socket for communicating with the client
+    @param[in] sync_url on which the sync_socket is binded
+    @param[in] timeout for the synchronization
+    @return
     """
     cpub_zocket = __FFI__.cast("void *", pub_zocket.underlying)
     csync_zocket = __FFI__.cast("void *", sync_zocket.underlying)
@@ -36,6 +43,11 @@ def sync_pub(pub_zocket, sync_zocket, sync_url, timeout=1.0):
 
 def sync_sub(ctx, sub_zocket, timeout=1.0):
     """
+    Wrapper on the c synchronization function for PUB/SUB socket
+    @param[in] ctx the zmq context used for the creation of the SUB socket
+    @param[in] sub_zocket the SUB socket to be synchronized
+    @param[in] timeout for the synchronization
+    @return
     """
     cctx = __FFI__.cast("void *", ctx.underlying)
     csub_zocket = __FFI__.cast("void *", sub_zocket.underlying)
