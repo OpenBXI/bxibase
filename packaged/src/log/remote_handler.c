@@ -223,6 +223,8 @@ bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
     BXIFREE(data->pub_url);
+    BXIFREE(data->generic.private_items);
+    BXIFREE(data->generic.cbs);
 
     if (NULL != data->ctrl_zock) {
         err2 = bxizmq_zocket_destroy(data->ctrl_zock);

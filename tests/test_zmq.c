@@ -141,80 +141,80 @@ static void * pub_thread(void * data) {
     OUT(LOGGER, "Starting a publisher");
     thread_param_p param = (thread_param_p) data;
 
-    OUT(LOGGER, "Creating publisher zmq context");
+    TRACE(LOGGER, "Creating publisher zmq context");
     void * ctx = NULL;
     bxierr_p err = bxizmq_context_new(&ctx);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Creating publisher zmq PUB socket");
+    TRACE(LOGGER, "Creating publisher zmq PUB socket");
     void * zocket;
     err = bxizmq_zocket_create(ctx, ZMQ_PUB, &zocket);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     for (size_t i = 0; i < param->urls_nb; i++) {
         if (param->bind) {
             int tcp_port = 0;
             err = bxizmq_zocket_bind(zocket, param->urls[i], &tcp_port);
             char * new_url = bxizmq_create_url_from(param->urls[i], tcp_port);
-            OUT(LOGGER, "Binded to %s", new_url);
+            DEBUG(LOGGER, "Binded to %s", new_url);
             param->urls[i] = new_url;
         } else {
             err = bxizmq_zocket_connect(zocket, param->urls[i]);
-            OUT(LOGGER, "Connected to %s", param->urls[i]);
+            DEBUG(LOGGER, "Connected to %s", param->urls[i]);
         }
     }
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Synchronizing with %zu subscribers", param->sync_nb);
     err = bxizmq_sync_pub(ctx, zocket, "tcp://127.0.0.1:*", param->sync_nb, 60);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Sending %zu messages", param->msg_nb);
     for (size_t i = 0; i < param->msg_nb; i++) {
         char * str = bxistr_new("Message %zu", i);
         err = bxizmq_str_snd(str, zocket, 0, 0, 0);
-        BXIASSERT(LOGGER, bxierr_isok(err));
+        BXIABORT_IFKO(LOGGER, err);
         BXIFREE(str);
     }
 
     OUT(LOGGER, "Sending final message");
     err = bxizmq_str_snd("NO MORE MESSAGE", zocket, 0, 0, 0);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
 
-    OUT(LOGGER, "Creating quit sub socket");
+    TRACE(LOGGER, "Creating quit sub socket");
     void * quit_zocket;
     err = bxizmq_zocket_create(ctx, ZMQ_SUB, &quit_zocket);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Subscribing to everything");
+    TRACE(LOGGER, "Subscribing to everything");
     err = bxizmq_zocket_setopt(quit_zocket, ZMQ_SUBSCRIBE, "", 0);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Connecting to %s", param->quit_url);
+    TRACE(LOGGER, "Connecting to %s", param->quit_url);
     err = bxizmq_zocket_connect(quit_zocket, param->quit_url);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     char * quit_str = NULL;
     err = bxizmq_str_rcv(quit_zocket, 0, 0, &quit_str);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Received: %s", quit_str);
+    DEBUG(LOGGER, "Received: %s", quit_str);
 
     BXIASSERT(LOGGER, 0 == strncmp("PUB MUST QUIT", quit_str, strlen("PUB MUST QUIT")));
     BXIFREE(quit_str);
 
-    OUT(LOGGER, "Destroying quit zocket");
+    TRACE(LOGGER, "Destroying quit zocket");
     err = bxizmq_zocket_destroy(quit_zocket);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Destroying pub zocket");
+    TRACE(LOGGER, "Destroying pub zocket");
     err = bxizmq_zocket_destroy(zocket);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Destroying context");
+    TRACE(LOGGER, "Destroying context");
     err = bxizmq_context_destroy(&ctx);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     if (param->bind) {
         for (size_t i = 0; i < param->urls_nb; i++) {
@@ -230,43 +230,43 @@ static void * sub_thread(void * data) {
     thread_param_p param = (thread_param_p) data;
 
     BXIASSERT(LOGGER, 0 == param->msg_nb);
-    OUT(LOGGER, "Creating context");
+    TRACE(LOGGER, "Creating context");
     void * ctx = NULL;
     bxierr_p err = bxizmq_context_new(&ctx);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Creating sub zocket");
+    TRACE(LOGGER, "Creating sub zocket");
     void * zocket;
     err = bxizmq_zocket_create(ctx, ZMQ_SUB, &zocket);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Subscribing to all");
+    TRACE(LOGGER, "Subscribing to all");
     err = bxizmq_zocket_setopt(zocket, ZMQ_SUBSCRIBE, "", 0);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     for (size_t i = 0; i < param->urls_nb; i++) {
         if (param->bind) {
             int port;
             err = bxizmq_zocket_bind(zocket, param->urls[i], &port);
             param->urls[i] = bxizmq_create_url_from(param->urls[i], port);
-            OUT(LOGGER, "Binded to %s", param->urls[i]);
+            DEBUG(LOGGER, "Binded to %s", param->urls[i]);
         } else {
             err = bxizmq_zocket_connect(zocket, param->urls[i]);
-            OUT(LOGGER, "Connected to %s", param->urls[i]);
+            DEBUG(LOGGER, "Connected to %s", param->urls[i]);
         }
     }
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Synchronizing with %zu publishers", param->sync_nb);
     err = bxizmq_sync_sub(ctx, zocket, param->sync_nb, 60);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Getting messages from %zu publishers", param->sync_nb);
     size_t remaining = param->sync_nb;
     while(0 < remaining) {
         char * str;
         err = bxizmq_str_rcv(zocket, 0, false, &str);
-        BXIASSERT(LOGGER, bxierr_isok(err));
+        BXIABORT_IFKO(LOGGER, err);
 
         if (0 == strcmp("NO MORE MESSAGE", str)) {
             OUT(LOGGER, "Sync done. Remaining: %zu", remaining);
@@ -280,11 +280,11 @@ static void * sub_thread(void * data) {
         "Sync fully completed. Number of received messages: %zu. Destroying zocket",
         param->msg_nb);
     err = bxizmq_zocket_destroy(zocket);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Destroying context.");
+    TRACE(LOGGER, "Destroying context.");
     err = bxizmq_context_destroy(&ctx);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     if (param->bind) {
         for (size_t i = 0; i < param->urls_nb; i++) {
@@ -595,22 +595,22 @@ void test_1pub_1sub_sync_fork() {
         }
     }
     // We are in the parent
-    OUT(LOGGER, "Creating a zmq context");
+    TRACE(LOGGER, "Creating a zmq context");
     void * ctx;
     bxierr_p err = bxizmq_context_new(&ctx);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
-    OUT(LOGGER, "Creating and binding the quit zocket to %s", quit_url);
+    TRACE(LOGGER, "Creating and binding the quit zocket to %s", quit_url);
     void * quit_zock = NULL;
     err = bxizmq_zocket_create_binded(ctx, ZMQ_PUB, quit_url, NULL, &quit_zock);
-    BXIASSERT(LOGGER, bxierr_isok(err));
+    BXIABORT_IFKO(LOGGER, err);
 
     int wstatus;
     int rc;
     while (true) {
         DEBUG(LOGGER, "Requesting a pub quit");
         err = bxizmq_str_snd("PUB MUST QUIT", quit_zock, 0, 0, 0);
-        BXIASSERT(LOGGER, bxierr_isok(err));
+        BXIABORT_IFKO(LOGGER, err);
 
         rc = waitpid(pub, &wstatus, WNOHANG);
         if (-1 == rc) bxierr_abort_ifko(bxierr_errno("Calling waitpid() failed"));
@@ -618,13 +618,22 @@ void test_1pub_1sub_sync_fork() {
         if (pub == rc) {
             break;
         }
-        DEBUG(LOGGER, "waitpid() returned %d. Looping again.", rc);
+        FINE(LOGGER, "waitpid() returned %d. Looping again.", rc);
         err = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e6);
-        BXIASSERT(LOGGER, bxierr_isok(err));
+        BXIABORT_IFKO(LOGGER, err);
     }
 
-    OUT(LOGGER, "Raw exit code of publisher: %d", wstatus);
+    DEBUG(LOGGER, "Raw exit code of publisher: %d", wstatus);
     BXIASSERT(LOGGER, WIFEXITED(wstatus));
+
+    TRACE(LOGGER, "Destroying quit zocket");
+    err = bxizmq_zocket_destroy(quit_zock);
+    BXIABORT_IFKO(LOGGER, err);
+
+    TRACE(LOGGER, "Destroying zmq context");
+    err = bxizmq_context_destroy(&ctx);
+    BXIABORT_IFKO(LOGGER, err);
+
 
     while (true) {
         DEBUG(LOGGER, "Waiting for a sub quit");
@@ -634,10 +643,10 @@ void test_1pub_1sub_sync_fork() {
         if (sub == rc) {
             break;
         }
-        DEBUG(LOGGER, "waitpid() returned %d. Looping again.", rc);
+        FINE(LOGGER, "waitpid() returned %d. Looping again.", rc);
     }
 
-    OUT(LOGGER, "Raw exit code of subscriber: %d", wstatus);
+    DEBUG(LOGGER, "Raw exit code of subscriber: %d", wstatus);
     BXIASSERT(LOGGER, WIFEXITED(wstatus));
 
     int msg_nb = WEXITSTATUS(wstatus);
@@ -651,4 +660,12 @@ void test_1pub_1sub_sync_fork() {
     BXIFREE(sub_param);
     BXIFREE(pub_param->urls);
     BXIFREE(pub_param);
+
+    BXIFREE(sub_url);
+    unlink(sub_tmp_file);
+    BXIFREE(sub_tmp_file);
+
+    BXIFREE(quit_url);
+    unlink(quit_tmp_file);
+    BXIFREE(quit_tmp_file);
 }
