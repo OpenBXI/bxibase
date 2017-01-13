@@ -133,6 +133,7 @@ typedef struct {
     char * quit_url;
     size_t urls_nb;
     char ** urls;
+    bool terminated;
 } thread_param_s;
 
 typedef thread_param_s * thread_param_p;
@@ -140,6 +141,8 @@ typedef thread_param_s * thread_param_p;
 static void * pub_thread(void * data) {
     OUT(LOGGER, "Starting a publisher");
     thread_param_p param = (thread_param_p) data;
+
+    param->terminated = false;
 
     TRACE(LOGGER, "Creating publisher zmq context");
     void * ctx = NULL;
@@ -221,6 +224,9 @@ static void * pub_thread(void * data) {
             BXIFREE(param->urls[i]);
         }
     }
+
+    param->terminated = true;
+
     return NULL;
 }
 
@@ -228,6 +234,8 @@ static void * sub_thread(void * data) {
     OUT(LOGGER, "Starting a subscriber");
 
     thread_param_p param = (thread_param_p) data;
+
+    param->terminated = false;
 
     BXIASSERT(LOGGER, 0 == param->msg_nb);
     TRACE(LOGGER, "Creating context");
@@ -292,62 +300,96 @@ static void * sub_thread(void * data) {
         }
     }
 
+    param->terminated = true;
+
     return NULL;
 }
 
-//void test_1pub_1sub_sync() {
-//    char * sub_url = "tcp://127.0.0.1:*";
-//    thread_param_p sub_param = bximem_calloc(sizeof(*sub_param));
-//    sub_param->msg_nb = 0;
-//    sub_param->urls_nb = 1;
-//    sub_param->urls = bximem_calloc(sub_param->urls_nb*sizeof(*sub_param->urls));
-//    sub_param->urls[0] = sub_url;
-//    sub_param->bind = true;
-//    sub_param->sync_nb = 1;
-//    sub_param->quit = false;
-//
-//    // The urls will be changed while binding
-//    char * old_url = sub_param->urls[0];
-//
-//    pthread_t sub;
-//    int rc = pthread_create(&sub, NULL, sub_thread, sub_param);
-//    bxiassert(0 == rc);
-//
-//    while (old_url == sub_param->urls[0]) {
-//        ; // Just wait
-//    }
-//
-//
-//    thread_param_p pub_param = bximem_calloc(sizeof(*pub_param));
-//    pub_param->msg_nb = 13;
-//    pub_param->urls_nb = 1;
-//    pub_param->urls = bximem_calloc(pub_param->urls_nb*sizeof(*pub_param->urls));
-//    pub_param->urls[0] = sub_param->urls[0];
-//    pub_param->bind = false;
-//    pub_param->sync_nb = 1;
-//    pub_param->quit = false;
-//
-//    pthread_t pub;
-//    rc = pthread_create(&pub, NULL, pub_thread, pub_param);
-//    bxiassert(0 == rc);
-//
-//    pthread_join(sub, NULL);
-//    bxiassert(0 == rc);
-//
-//    pub_param->quit = true;
-//    rc = pthread_join(pub, NULL);
-//    bxiassert(0 == rc);
-//
-//    OUT(TEST_LOGGER,
-//        "Nb published: %zu, Nb received: %zu",
-//        pub_param->msg_nb, sub_param->msg_nb);
-//    CU_ASSERT_EQUAL(pub_param->msg_nb, sub_param->msg_nb);
-//
-//    BXIFREE(sub_param->urls);
-//    BXIFREE(sub_param);
-//    BXIFREE(pub_param->urls);
-//    BXIFREE(pub_param);
-//}
+void test_1pub_1sub_sync() {
+    char * sub_tmp_file = _get_tmp_filename(__FUNCTION__);
+    char * sub_url = bxistr_new("ipc://%s", sub_tmp_file);
+
+    char * quit_tmp_file = _get_tmp_filename(__FUNCTION__);
+    char * quit_url = bxistr_new("ipc://%s", quit_tmp_file);
+
+    thread_param_p sub_param = bximem_calloc(sizeof(*sub_param));
+    sub_param->msg_nb = 0;
+    sub_param->urls_nb = 1;
+    sub_param->urls = bximem_calloc(sub_param->urls_nb*sizeof(*sub_param->urls));
+    sub_param->urls[0] = sub_url;
+    sub_param->bind = true;
+    sub_param->sync_nb = 1;
+    sub_param->quit_url = quit_url;
+
+    OUT(LOGGER, "Launching a sub");
+    pthread_t sub;
+    int rc = pthread_create(&sub, NULL, sub_thread, sub_param);
+    BXIASSERT(LOGGER, 0 == rc);
+
+    thread_param_p pub_param = bximem_calloc(sizeof(*pub_param));
+    pub_param->msg_nb = 13;
+    pub_param->urls_nb = 1;
+    pub_param->urls = bximem_calloc(pub_param->urls_nb*sizeof(*pub_param->urls));
+    pub_param->urls[0] = sub_param->urls[0];
+    pub_param->bind = false;
+    pub_param->sync_nb = 1;
+    pub_param->quit_url = quit_url;
+
+    OUT(LOGGER, "Launching a pub");
+    pthread_t pub;
+    rc = pthread_create(&pub, NULL, pub_thread, pub_param);
+    BXIASSERT(LOGGER, 0 == rc);
+
+    TRACE(LOGGER, "Creating a zmq context");
+    void * ctx;
+    bxierr_p err = bxizmq_context_new(&ctx);
+    BXIABORT_IFKO(LOGGER, err);
+
+    TRACE(LOGGER, "Creating and binding the quit zocket to %s", quit_url);
+    void * quit_zock = NULL;
+    err = bxizmq_zocket_create_binded(ctx, ZMQ_PUB, quit_url, NULL, &quit_zock);
+    BXIABORT_IFKO(LOGGER, err);
+
+    while (true) {
+        DEBUG(LOGGER, "Requesting a pub quit");
+        err = bxizmq_str_snd("PUB MUST QUIT", quit_zock, 0, 0, 0);
+        BXIABORT_IFKO(LOGGER, err);
+
+        if (pub_param->terminated) break;
+
+        FINE(LOGGER, "pub has not terminated yet, looping again");
+        err = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e7);
+        BXIABORT_IFKO(LOGGER, err);
+    }
+
+    TRACE(LOGGER, "Destroying quit zocket");
+    err = bxizmq_zocket_destroy(quit_zock);
+    BXIABORT_IFKO(LOGGER, err);
+
+    TRACE(LOGGER, "Destroying zmq context");
+    err = bxizmq_context_destroy(&ctx);
+    BXIABORT_IFKO(LOGGER, err);
+
+    while (true) {
+        DEBUG(LOGGER, "Waiting for a sub quit");
+
+        if (sub_param->terminated) break;
+
+        FINE(LOGGER, "sub has not terminated yet, looping again.");
+    }
+
+    size_t msg_nb = sub_param->msg_nb;
+
+    OUT(LOGGER,
+        "Nb published: %zu, Nb received: %zu",
+        pub_param->msg_nb, msg_nb);
+    CU_ASSERT_EQUAL(pub_param->msg_nb, msg_nb);
+
+    BXIFREE(sub_param->urls);
+    BXIFREE(sub_param);
+    BXIFREE(pub_param->urls);
+    BXIFREE(pub_param);
+}
 
 //void test_2pub_1sub_sync() {
 //    char * sub_url = "tcp://127.0.0.1:*";
@@ -594,6 +636,7 @@ void test_1pub_1sub_sync_fork() {
             exit((int) pub_param->msg_nb);
         }
     }
+
     // We are in the parent
     TRACE(LOGGER, "Creating a zmq context");
     void * ctx;
@@ -619,7 +662,7 @@ void test_1pub_1sub_sync_fork() {
             break;
         }
         FINE(LOGGER, "waitpid() returned %d. Looping again.", rc);
-        err = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e6);
+        err = bxitime_sleep(CLOCK_MONOTONIC, 0, 5e7);
         BXIABORT_IFKO(LOGGER, err);
     }
 
