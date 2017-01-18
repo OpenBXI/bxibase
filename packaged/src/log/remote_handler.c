@@ -499,7 +499,7 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
 bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 = bxizmq_sync_pub(data->ctx,
+    err2 = bxizmq_sync_pub_many(data->ctx,
                            data->data_zock,
                            data->ctrl_url,
                            data->sub_nb,

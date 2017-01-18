@@ -495,29 +495,36 @@ bxierr_p bxizmq_str_rcv(void * zocket, int flags, bool check_more, char ** resul
 void bxizmq_data_free(void * data, void * hint);
 #endif
 
-
 /**
- * Synchronize a publish zmq socket
- * with a subscribe socket using a rep socket.
- * This avoid losing messages at the beginning.
+ * Synchronize a PUB zocket with a SUB zocket using a sync REP zocket.
  *
- * @param pub_zocket to be synchronized
- * @param sync_zocket rep socket use to communicate with the subscribing process
- * @param sync_url used to bind the socket
+ * This guarantees no message published is lost by the SUB zocket after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47)
+ *
+ * @param pub_zocket the PUB zocket to be synchronized
+ * @param sync_zocket REP zocket use to communicate with the SUB zocket
+ * @param sync_url used to bind the PUB zocket
  * @param sync_url_len length of the url
- * @param timeout in seconds before abording
+ * @param timeout in seconds before aborting
  *
- * @return BXIERR_OK if the synchronization is done.
+ * @return BXIERR_OK if the synchronization completes successfully.
  */
-bxierr_p bxizmq_sync_pub(void * zmq_ctx,
-                         void * pub_zocket,
-                         const char * url,
-                         size_t sub_nb,
-                         const double timeout);
+bxierr_p bxizmq_sync_pub(void * pub_zocket,
+                         void * sync_zocket,
+                         char * const sync_url,
+                         const size_t sync_url_len,
+                         const double timeout_s);
 
 
 /**
- * Synchronize the subscribe socket.
+ * Synchronize a SUB zocket.
+ *
+ * This guarantees no message published is lost by the SUB zocket after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47).
  *
  * @param zmq_ctx required for socket creation
  * @param sub_zocket to be synchronized
@@ -526,6 +533,32 @@ bxierr_p bxizmq_sync_pub(void * zmq_ctx,
  * @return BXIERR_OK if the synchronization is done.
  */
 bxierr_p bxizmq_sync_sub(void * zmq_ctx,
+                         void * sub_zocket,
+                         const double timeout_s);
+
+/**
+ * Synchronize a PUB zocket with many SUB zockets.
+ *
+ * This guarantees no message published is lost by SUB zockets after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47)
+ */
+bxierr_p bxizmq_sync_pub_many(void * zmq_ctx,
+                              void * pub_zocket,
+                              const char * url,
+                              size_t sub_nb,
+                              const double timeout);
+
+/**
+ * Synchronize a SUB zocket with many PUB zockets.
+ *
+ * This guarantees no message published is lost by SUB zocket after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47)
+ */
+bxierr_p bxizmq_sync_sub_many(void * zmq_ctx,
                          void * sub_zocket,
                          size_t pub_nb,
                          const double timeout);

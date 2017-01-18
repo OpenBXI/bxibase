@@ -603,7 +603,7 @@ void _sync_sub(bxilog_remote_recv_p param, void *context, void *sub_socket) {
     TRACE(_REMOTE_LOGGER,
           "PUB/SUB Synchronization with %zu publishers", param->sync_nb);
     // TODO: provide the timeout as a parameter
-    bxierr_p tmp = bxizmq_sync_sub(context, sub_socket, param->sync_nb, 1);
+    bxierr_p tmp = bxizmq_sync_sub_many(context, sub_socket, param->sync_nb, 1);
     if (bxierr_isko(tmp)){
         BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_NOTICE,
                       tmp,

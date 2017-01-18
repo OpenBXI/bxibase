@@ -169,7 +169,7 @@ static void * pub_thread(void * data) {
     BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Synchronizing with %zu subscribers", param->sync_nb);
-    err = bxizmq_sync_pub(ctx, zocket, "tcp://127.0.0.1:*", param->sync_nb, 60);
+    err = bxizmq_sync_pub_many(ctx, zocket, "tcp://127.0.0.1:*", param->sync_nb, 60);
     BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Sending %zu messages", param->msg_nb);
@@ -265,7 +265,7 @@ static void * sub_thread(void * data) {
     BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Synchronizing with %zu publishers", param->sync_nb);
-    err = bxizmq_sync_sub(ctx, zocket, param->sync_nb, 60);
+    err = bxizmq_sync_sub_many(ctx, zocket, param->sync_nb, 60);
     BXIABORT_IFKO(LOGGER, err);
 
     OUT(LOGGER, "Getting messages from %zu publishers", param->sync_nb);
