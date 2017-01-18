@@ -5,7 +5,6 @@
 
 #ifndef BXICFFI
 #include <signal.h>
-#include <sys/signalfd.h>
 #endif
 
 
@@ -77,20 +76,6 @@ bxierr_p bxilog_install_sighandler(void);
  */
 bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n);
 
-/**
- * Return a string representation of the given signal number using the
- * given siginfo or sfdinfo (only one must be NULL).
- *
- * Note: the returned string will have to be released using FREE().
- *
- * @param[in] siginfo the signal information
- * @param[in] sfdinfo the signal information
- *
- * @return a string representation of the given signal number
- *
- */
-char * bxilog_signal_str(const siginfo_t * siginfo,
-                         const struct signalfd_siginfo * sfdinfo);
 #endif
 
 

@@ -150,7 +150,16 @@ class BXILogger(object):
             clazz = ei[0]
             value = ei[1]
             if isinstance(value, bxierr.BXICError):
-                __BXIBASE_CAPI__.bxierr_report_add_from(value.bxierr_pp[0], report_c)
+                # Ensure that even when the add_to_report function is NULL, 
+                # we can still create the report in one way or another
+                if value.bxierr_pp[0].add_to_report != __FFI__.NULL:
+                    value.bxierr_pp[0].add_to_report(value.bxierr_pp[0],
+                                                     report_c,
+                                                     64)
+                else:
+                    __BXIBASE_CAPI__.bxierr_report_add_from_limit(value.bxierr_pp[0],
+                                                                  report_c,
+                                                                  64)
                 break
 
             if isinstance(value, bxierr.BXIError):

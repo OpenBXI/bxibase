@@ -277,8 +277,8 @@ char * bxierr_str_limit(bxierr_p self, size_t depth) {
     bxiassert(NULL != self);
 
     bxierr_report_p report = bxierr_report_new();
-    // Ensure that even when the str function is NULL, we can still create the message
-    // in one way or another
+    // Ensure that even when the add_to_report function is NULL,
+    // we can still create the report in one way or another
     if (NULL != self->add_to_report) {
         self->add_to_report(self, report, depth);
     } else {
@@ -533,11 +533,11 @@ bool bxierr_set_add(bxierr_set_p set, bxierr_p * err) {
         // Add one to prevent product with zero!
         size_t new_len = (set->distinct_err.errors_size + 1) * 2;
         set->seen_nb = bximem_realloc(set->seen_nb,
-                                      old_len * sizeof(*set->seen_nb),
+                                      old_len*sizeof(*set->seen_nb),
                                       new_len*sizeof(*set->seen_nb));
     }
 
-    bxiassert(NULL == slot);
+//    bxiassert(NULL == slot);
     bxierr_list_append(&set->distinct_err, *err);
     set->seen_nb[i]++;
 

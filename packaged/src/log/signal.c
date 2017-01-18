@@ -125,44 +125,6 @@ bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n) {
     return err;
 }
 
-char * bxilog_signal_str(const siginfo_t * siginfo,
-                         const struct signalfd_siginfo * sfdinfo) {
-
-    bxiassert(siginfo != NULL || sfdinfo != NULL);
-
-    int signum = (NULL == siginfo) ? (int)sfdinfo->ssi_signo: siginfo->si_signo;
-    char * sigstr = strsignal(signum);
-    bxiassert(NULL != sigstr);
-    int code = (NULL == siginfo) ? (int) sfdinfo->ssi_code: siginfo->si_code;
-    pid_t pid = (NULL == siginfo) ? (pid_t) sfdinfo->ssi_pid : siginfo->si_pid;
-    uid_t uid = (NULL == siginfo) ? (uid_t) sfdinfo->ssi_uid : siginfo->si_uid;
-
-    switch(signum) {
-    case SIGTERM:
-    case SIGINT:
-        if (SI_USER == code) {
-            return bxistr_new("Signal=%d ('%s'), Sender PID:UID='%d:%u'",
-                              signum, sigstr, pid, uid);
-        }
-        if (SI_KERNEL == code) {
-            return bxistr_new("Signal=%d ('%s'), Sender=KERNEL",
-                                        signum, sigstr);
-        }
-        return bxistr_new("Signal=%d ('%s'), Sender=Unknown",
-                                    signum, sigstr);
-    case SIGABRT:
-    case SIGILL:
-    case SIGFPE:
-    case SIGSEGV:
-    case SIGBUS:
-        return bxistr_new("Signal=%d ('%s'), Signal Code=%d (man 2 sigaction)",
-                          signum, sigstr, code);
-    default:
-        return bxistr_new("Signal=%d ('%s'), This should not happen!",
-                          signum, sigstr);
-    }
-}
-
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
@@ -171,7 +133,7 @@ char * bxilog_signal_str(const siginfo_t * siginfo,
 // Handler of Signals (such as SIGSEGV, ...)
 void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     (void) (dummy); // Unused, prevent warning == error at compilation time
-    char * sigstr = bxilog_signal_str(siginfo, NULL);
+    char * sigstr = bxistr_from_signal(siginfo, NULL);
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
 
