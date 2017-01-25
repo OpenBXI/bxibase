@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=C0103
 """
 @file bxilog-producer
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -11,7 +12,7 @@
 
 """
 
-import os,sys
+
 import bxi.base.log as logging
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
@@ -21,11 +22,10 @@ import warnings
 
 levels = xrange(logging.OFF, logging.LOWEST + 1)
 kinds = ['singleline', 'singleline', 'singleline', 'singleline',
-         'singleline','singleline', 'singleline','singleline',
-         'multiline', 'multiline', 'multiline','multiline',
-         'warning','warning','warning',
-         'exception', 'exception',
-         ]
+         'singleline', 'singleline', 'singleline', 'singleline',
+         'multiline', 'multiline', 'multiline', 'multiline',
+         'warning', 'warning', 'warning',
+         'exception', 'exception']
 loggers = ['', 'org', 'com', 'edu',
            'org.linux', 'org.wiki', 'org.other', 'com.acme', 'com.stuff', 'edu.it',
            'org.linux.www', 'org.linux.nfs', 'org.wiki.www', 'org.wiki.ldap',
@@ -46,7 +46,7 @@ if __name__ == '__main__':
                         " Default: %(default)s")
 
     args = parser.parse_args()
-    level_names = list(logging.get_all_level_names_iter());
+    level_names = list(logging.get_level_names_iter())
 
     start = time.time()
     while True:
@@ -60,7 +60,7 @@ if __name__ == '__main__':
         if kind is 'singleline':
             logger.log(level, "A logging message at level %s", level_names[level])
         elif kind is 'multiline':
-            logger.log(level, 
+            logger.log(level,
                        "A multiline logging message at level %s;\n"
                        "this is the second line;\n"
                        "and this is the third",
@@ -70,6 +70,7 @@ if __name__ == '__main__':
         elif kind is 'exception':
             try:
                 raise Exception("This is a dummy exception")
-            except Exception:
-                logger.exception("Just checking bxilog, everything is normal, don't worry")
+            except Exception:                               # pylint: disable=W0703
+                logger.exception("Just checking bxilog, everything is normal, "
+                                 "don't worry")
         time.sleep(args.max_delay_s)
