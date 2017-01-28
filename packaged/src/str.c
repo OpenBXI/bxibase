@@ -380,6 +380,45 @@ bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps) {
 }
 
 
+char * bxistr_from_signal(const siginfo_t * siginfo,
+                         const struct signalfd_siginfo * sfdinfo) {
+
+    bxiassert(siginfo != NULL || sfdinfo != NULL);
+
+    int signum = (NULL == siginfo) ? (int)sfdinfo->ssi_signo: siginfo->si_signo;
+    char * sigstr = strsignal(signum);
+    bxiassert(NULL != sigstr);
+    int code = (NULL == siginfo) ? (int) sfdinfo->ssi_code: siginfo->si_code;
+    pid_t pid = (NULL == siginfo) ? (pid_t) sfdinfo->ssi_pid : siginfo->si_pid;
+    uid_t uid = (NULL == siginfo) ? (uid_t) sfdinfo->ssi_uid : siginfo->si_uid;
+
+    switch(signum) {
+    case SIGTERM:
+    case SIGINT:
+        if (SI_USER == code) {
+            return bxistr_new("Signal=%d ('%s'), Sender PID:UID='%d:%u'",
+                              signum, sigstr, pid, uid);
+        }
+        if (SI_KERNEL == code) {
+            return bxistr_new("Signal=%d ('%s'), Sender=KERNEL",
+                                        signum, sigstr);
+        }
+        return bxistr_new("Signal=%d ('%s'), Sender=Unknown",
+                                    signum, sigstr);
+    case SIGABRT:
+    case SIGILL:
+    case SIGFPE:
+    case SIGSEGV:
+    case SIGBUS:
+        return bxistr_new("Signal=%d ('%s'), Signal Code=%d (man 2 sigaction)",
+                          signum, sigstr, code);
+    default:
+        return bxistr_new("Signal=%d ('%s'), This should not happen!",
+                          signum, sigstr);
+    }
+}
+
+
 // *********************************************************************************
 // ********************************** Static Functions  ****************************
 // *********************************************************************************

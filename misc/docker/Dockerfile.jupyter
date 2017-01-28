@@ -1,0 +1,16 @@
+FROM local/centos-epel:latest
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+RUN yum -y install gcc python34-devel zeromq-devel wget
+RUN wget --directory-prefix=/tmp/ https://bootstrap.pypa.io/get-pip.py && python3.4 /tmp/get-pip.py
+RUN pip3 install jupyter
+
+EXPOSE 80
+
+RUN echo $'#!/bin/bash\n\
+/usr/bin/jupyter notebook --ip='*' --port=80 --notebook-dir=/srv/ --no-browser'\
+>> /root/jupyter-wrapper.sh && chmod +x /root/jupyter-wrapper.sh
+
+RUN cat /root/jupyter-wrapper.sh
+
+CMD /root/jupyter-wrapper.sh

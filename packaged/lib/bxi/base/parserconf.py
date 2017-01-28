@@ -150,7 +150,12 @@ def find_logconfigs(module_name, config):
     result = []
     if 'handlers' not in config:
         return result
-    handlers = config['handlers']
+
+    if isinstance(config['handlers'], basestring):
+        handlers = [config['handlers']]
+    else:
+        handlers = config['handlers']
+
     for handler in handlers:
         section = config[handler]
         if 'module' not in section:
@@ -181,8 +186,8 @@ def _get_config_from_file(filename):
         new_conf = ConfigObj()
         for include_filename in includes:
             if not os.path.isabs(include_filename):
-                dir = os.path.dirname(filename)
-                include_filename = os.path.join(dir, include_filename)
+                dir_ = os.path.dirname(filename)
+                include_filename = os.path.join(dir_, include_filename)
             included = _get_config_from_file(include_filename)
             new_conf.merge(included)
 
@@ -291,7 +296,7 @@ def _add_config(parser,
 
 def _configure_log(parser):
     def _add_common(target_parser):
-        # Warning: do not introduce --log-STUFF unless STUFF is actually the name 
+        # Warning: do not introduce --log-STUFF unless STUFF is actually the name
         # of a bxilog handler.
         group = target_parser.add_argument_group('BXI Log options')
         group.add_argument("--loglevels",
@@ -320,7 +325,7 @@ def _configure_log(parser):
 
     def _add_others(target_parser, args, group, config):
         sections = find_logconfigs(bxilog_consolehandler.__name__, config)
-        if len(sections) > 1: 
+        if len(sections) > 1:
             target_parser.error("Multiple instances of module %s is "
                                 "currently unsupported. Configuration: %s " %
                                 (bxilog_consolehandler.__name__, config))
@@ -339,7 +344,7 @@ def _configure_log(parser):
                                metavar='log-%s-filters' % console_handler,
                                envvar='BXILOG_%s_FILTERS' % console_handler.upper(),
                                default=default,
-                               help="Define the logging filters for the %s handler " % 
+                               help="Define the logging filters for the %s handler " %
                                     console_handler +
                                     "Value: '%(default)s'. "
                                     "Logging filters are defined by the following format: "
@@ -356,9 +361,9 @@ def _configure_log(parser):
                                envvar='BXILOG_%s_COLORS' % console_handler.upper(),
                                default=default,
                                choices=bxilog_consolehandler.COLORS.keys(),
-                               help="Define the logging colors for the %s handler " % 
+                               help="Define the logging colors for the %s handler " %
                                     console_handler +
-                                    "Value: '%(default)s'. " + 
+                                    "Value: '%(default)s'. " +
                                     "choices=%s. " % bxilog_consolehandler.COLORS.keys())
 
         sections = find_logconfigs(bxilog_filehandler.__name__, config)
@@ -384,7 +389,7 @@ def _configure_log(parser):
                                help="Define the logging filters for the "
                                     "%s handler " % section +
                                     "of the default logging configuration. " +
-                                    auto_help_msg + 
+                                    auto_help_msg +
                                     "The format is the one defined by "
                                     "console_filters option. "
                                     "Value: '%(default)s'. ")
@@ -397,7 +402,7 @@ def _configure_log(parser):
                                envvar='BXILOGPATH',
                                mustbeprinted=False,
                                default=default,
-                               help="Define the destination file for the %s handler " % 
+                               help="Define the destination file for the %s handler " %
                                     section + "Value: %(default)s")
 
     def _override_logconfig(config, known_args):
@@ -407,7 +412,7 @@ def _configure_log(parser):
                 handler_name = option[len('log_'):option.index(key) - 1]
                 assert handler_name in config
                 # replace in config
-#                 print("Overriding: %s -> %s[%s]=%s" % 
+#                 print("Overriding: %s -> %s[%s]=%s" %
 #                       (option, handler_name, key, args[option]))
                 config[handler_name][key] = args[option]
 
@@ -439,7 +444,7 @@ def _configure_log(parser):
                          'filters': 'auto',
                           'path': os.path.join(tempfile.gettempdir(),
                                                '%(prog)s') + '.bxilog',
-                         'append': True, 
+                         'append': True,
                          }
                 }
 
@@ -550,7 +555,7 @@ def getdefaultvalue(parser, Sections, value, LOGGER, default=None, config=None):
                               default, value, Sections, level=logging.DEBUG)
 #         else:
 #             print("No configuration provided."
-#                   " Using %s as default for value %s from section %s" % 
+#                   " Using %s as default for value %s from section %s" %
 #                   (default, value, Sections))
         return default
 

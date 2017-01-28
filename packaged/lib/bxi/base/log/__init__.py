@@ -50,7 +50,7 @@ logging.output("This is a log")   # This actually initialize the logging system
                                   # from another module of course).
 
 # This will raise a BXILogConfigError
-logging.set_config(filename='/tmp/foo.bxilog') # Configure the logging system so all 
+logging.set_config(filename='/tmp/foo.bxilog') # Configure the logging system so all
                                                # logs go to file '/tmp/foo.bxilog'
 ~~~~~~~~
 
@@ -76,7 +76,7 @@ Configuration
 
 This module does not provide a hierarchy of loggers as per the Python logging API.
 Each logger holds its own logging level and this has no relationship with any other
-loggers. Therefore, setting the level of a given logger does not affect any other 
+loggers. Therefore, setting the level of a given logger does not affect any other
 loggers.
 
 However, the filtering in the logging system is based on prefix matching.
@@ -94,17 +94,17 @@ for details on those levels.
 Uncaught Exception
 -------------------
 
-Uncaught exception are automatically reported by the logging system 
+Uncaught exception are automatically reported by the logging system
 using bxi.base.log::exception
 
-**Note however that there is an issue with the Python multiprocessing module and 
+**Note however that there is an issue with the Python multiprocessing module and
 a simple workaround. See bxi.base.log::multiprocessing_target for details.**
 
 
 Python Warning Systems
 -----------------------
 
-The Python warning systems can be captured by the  bxi logging system, 
+The Python warning systems can be captured by the  bxi logging system,
 see bxi.base.log::captureWarnings for details.
 
 Automatic cleanup and flush
@@ -113,7 +113,7 @@ Automatic cleanup and flush
 The BXI logging library must be cleaned up before exit to prevent messages lost.
 This is automatically done in Python.
 
-**Note however that there is an issue with the Python multiprocessing module and 
+**Note however that there is an issue with the Python multiprocessing module and
 a simple workaround: See bxi.base.log::multiprocessing_target for details.**
 
 """
@@ -210,7 +210,7 @@ DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
                                                   'filters': ':output',
                                                   'stderr_level': 'WARNING',
                                                   'colors': '216_dark',
-                                                  }
+                                                 }
                                       })
 
 # The default logger.
@@ -261,7 +261,7 @@ def set_config(configobj, progname=None):
     global _CONFIG
     _CONFIG = configobj
     global _PROGNAME
-    _PROGNAME = progname 
+    _PROGNAME = progname
 
 
 def get_config():
@@ -302,7 +302,7 @@ def multiprocessing_target(func):
     - uncaught exception are correctly reported by bxilog
     - the bxi logging library is cleaned up on exit
 
-### @snippet bxilog_multiprocessing.py BXI Log and Python multiprocessing module
+### @snippet bxilog-multiprocessing.py BXI Log and Python multiprocessing module
     """
     def wrapped(*args, **kwargs):
         try:
@@ -340,7 +340,11 @@ def _init():
 
     c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME)
 
-    handlers = _CONFIG['handlers']
+    if isinstance(_CONFIG['handlers'], basestring):
+        handlers = [_CONFIG['handlers']]
+    else:
+        handlers = _CONFIG['handlers']
+
     for section in handlers:
         try:
             bxilogconfig.add_handler(_CONFIG, section, c_config)
@@ -444,7 +448,7 @@ def get_all_loggers_iter():
     loggers_array = __FFI__.gc(loggers[0], __BXIBASE_CAPI__.free)
     from . import logger as bxilogger
     for i in xrange(nb):
-        yield bxilogger.BXILogger(loggers[0][i])
+        yield bxilogger.BXILogger(loggers_array[i])
 
 
 def get_default_logger():
@@ -672,9 +676,9 @@ def report_bxierr(bxierr, msg="", *args, **kwargs):
     @param[in] msg the message to display along with the error report
     @param[in] args message arguments if any
     @param[in] kwargs message arguments if any
- 
+
     @return
- 
+
     @see get_default_logger
     """
     get_default_logger().report_bxierr(bxierr, msg=msg, *args, **kwargs)
@@ -691,9 +695,9 @@ def basicConfig(**kwargs):
     Convenient function for backward compatibility with python logging module.
 
     Parameter kwargs can contain following parameters:
-        - `'filename'`: Specifies that a File Handler be created, using the specified 
+        - `'filename'`: Specifies that a File Handler be created, using the specified
                         filename, rather than a Console Handler.
-        - `'filemode'`: Specifies the mode to open the file, if filename is specified 
+        - `'filemode'`: Specifies the mode to open the file, if filename is specified
             (if filemode is unspecified, it defaults to ‘a’).
         - `'level'`: set the root logger level to the specified level
 
@@ -813,19 +817,19 @@ class TestCase(unittest.TestCase):
     """
     Base class for unit testing with the logging system.
 
-    This class defines the filename where logs are produced according 
+    This class defines the filename where logs are produced according
     to the basename of the unit program launched and the directory returned
     by tempfile.gettempdir().
 
     Files are overwritten by default.
     """
     # Do not initialize here as it can lead to exception such as:
-    # IOError: [Errno 2] No usable temporary directory found 
+    # IOError: [Errno 2] No usable temporary directory found
     #                                      in ['/tmp', '/var/tmp', '/usr/tmp', '/root']
     # This look strange when the end-user is just importing the bxi.base.log module
-    # and when there is no free storage space. 
+    # and when there is no free storage space.
     # Therefore, the initialization is done only in the setUpClass().
-    BXILOG_FILENAME = None 
+    BXILOG_FILENAME = None
 
     FILEMODE = 'w'
 
@@ -845,7 +849,6 @@ class TestCase(unittest.TestCase):
 
 
 ##
-# @example bxilog_multiprocessing.py
+# @example bxilog-multiprocessing.py
 # Using bxilog with the Python multiprocessing module
 #
-

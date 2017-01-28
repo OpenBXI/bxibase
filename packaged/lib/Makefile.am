@@ -20,6 +20,7 @@ nobase_python_PYTHON=\
 		  bxi/ffi.py \
 		  bxi/base/sign.py \
 		  bxi/base/err.py \
+		  bxi/base/zmq.py \
 		  bxi/base/posless.py\
 		  bxi/base/parserconf.py\
 		  bxi/base/summary.py\

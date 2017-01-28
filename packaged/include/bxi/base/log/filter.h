@@ -111,7 +111,7 @@ bxilog_filters_p  bxilog_filters_new();
 /**
  * Free a set of filters. Use bxilog_filters_destroy() instead.
  *
- * @param[inout] filters_p a pointer on filters
+ * @param[inout] filters a pointer on filters
  */
 void bxilog_filters_free(bxilog_filters_p filters);
 
