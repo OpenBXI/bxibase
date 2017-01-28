@@ -1,0 +1,4 @@
+FROM local/centos-jupyter-c:latest
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+RUN yum -y install bxibase
