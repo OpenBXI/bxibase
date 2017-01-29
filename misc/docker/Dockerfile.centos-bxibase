@@ -1,4 +1,17 @@
 FROM local/centos-jupyter-c:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-RUN yum -y install bxibase
+ADD RPMS /rpms
+
+RUN     echo $'[local] \n\
+name=Local \n\
+baseurl=file:///rpms/x86_64 \n\
+enabled=1 \n\
+gpgcheck=0 \n\
+protect=1 \n'\
+> /etc/yum.repos.d/local.repo
+
+
+RUN yum -y install bxibase bxibase-devel bxibase-doc bxibase-tools bxibase-tests
+
+RUN sed -i "s/'-std=c11'/'-std=c11', '-lbxibase'/g" /usr/lib/python3.4/site-packages/jupyter_c_kernel/kernel.py

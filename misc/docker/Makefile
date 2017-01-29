@@ -1,23 +1,25 @@
 all: bxibase-docker
 
 bxibase-docker: bxibase
+	echo "Building bxibase-docker"
 	docker rm -f bxibase || /bin/true
-	docker run  --name bxibase --publish 8080:80 --detach --volume ${PWD}/../articles:/srv local/bxibase
+	docker run  --name bxibase --publish 8080:80 --detach --volume ${PWD}/../articles:/srv local/centos-bxibase
 
 bxibase: jupyter-c
-	echo "Building jupyter-c"
-	docker build --tag local/bxibase \
+	echo "Building bxibase"
+	cp Dockerfile.centos-bxibase /tmp/rpms
+	docker build --tag local/centos-bxibase \
 		     --rm=true \
-		     --file Dockerfile.centos-bxibase \
+		     --file /tmp/rpms/Dockerfile.centos-bxibase \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
 		     --build-arg HTTPS_PROXY=${https_proxy}\
 		     --build-arg FTP_PROXY=${ftp_proxy}\
 		     --build-arg NO_PROXY=${no_proxy}\
-		     ${PWD} 
+		     /tmp/rpms
 
 jupyter-c: jupyter
-	echo "Building jupyter"
-	docker build --tag local/jupyter-c \
+	echo "Building jupyter-c"
+	docker build --tag local/centos-jupyter-c \
 		     --rm=true \
 		     --file Dockerfile.centos-jupyter-c \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
@@ -26,9 +28,9 @@ jupyter-c: jupyter
 		     --build-arg NO_PROXY=${no_proxy}\
 		     ${PWD}
 
-jupyter: centos-pdp
-	echo "Building centos-pdp"
-	docker build --tag local/jupyter \
+jupyter: centos-epel
+	echo "Building jupyter"
+	docker build --tag local/centos-jupyter \
 		     --rm=true \
 		     --file Dockerfile.centos-jupyter \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
@@ -39,9 +41,9 @@ jupyter: centos-pdp
 
 centos-pdp: centos-epel
 	echo "Building centos-pdp"
-	docker build --tag local/pdp \
+	docker build --tag local/centos-pdp \
 		     --rm=true \
-		     --file Dockerfile.centos-epel \
+		     --file Dockerfile.centos-pdp \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
 		     --build-arg HTTPS_PROXY=${https_proxy}\
 		     --build-arg FTP_PROXY=${ftp_proxy}\

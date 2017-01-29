@@ -8,7 +8,7 @@ RUN pip3 install jupyter
 EXPOSE 80
 
 RUN echo $'#!/bin/bash\n\
-/usr/bin/jupyter notebook --ip='*' --port=80 --notebook-dir=/srv/ --no-browser'\
+/usr/bin/jupyter notebook --ip='*' --port=80 --NotebookApp.token=''  --notebook-dir=/srv/ --no-browser'\
 >> /root/jupyter-wrapper.sh && chmod +x /root/jupyter-wrapper.sh
 
 RUN cat /root/jupyter-wrapper.sh
