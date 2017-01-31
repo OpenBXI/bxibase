@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+@authors Pierre Vignéras <pierre.vigneras@bull.net>
+"""
+
+import sys
+import re
+
+#prog = re.compile("Zocket\s0x(.*)\saction")
+prog = re.compile("Zocket\s(0x[0-9a-f]+)\s(\S+).*")
+
+zockets = dict()
+for line in sys.stdin.readlines():
+    result = prog.search(line) 
+    if result:
+#         print(line)
+        addr, action = result.group(1,2)
+        n = zockets.get(addr, 0)
+        if action == "created":
+            n += 1
+        if action == "destroyed":
+            n -= 1
+        zockets[addr] = n
+
+for addr in zockets:
+    if zockets[addr] > 0:
+        print(addr + ': ' + str(zockets[addr]))
