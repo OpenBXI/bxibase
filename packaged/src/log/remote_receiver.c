@@ -174,7 +174,7 @@ bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param, char *** url
         }
     }
 
-    err2 = bxizmq_zocket_destroy(poller->socket);
+    err2 = bxizmq_zocket_destroy(&poller->socket);
     BXIERR_CHAIN(err, err2);
 
     return err;
@@ -235,7 +235,7 @@ bxierr_p bxilog_remote_recv_async_stop(void) {
 
     BXIFREE(msg);
 
-    err2 = bxizmq_zocket_destroy(poller->socket);
+    err2 = bxizmq_zocket_destroy(&poller->socket);
     BXIERR_CHAIN(err, err2);
 
     return err;
@@ -271,10 +271,10 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
     DEBUG(_REMOTE_LOGGER, "Leaving");
     TRACE(_REMOTE_LOGGER, "Closing the sockets");
 
-    err2 = bxizmq_zocket_destroy(poller[0].socket);
+    err2 = bxizmq_zocket_destroy(&poller[0].socket);
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxizmq_zocket_destroy(poller[1].socket);
+    err2 = bxizmq_zocket_destroy(&poller[1].socket);
     BXIERR_CHAIN(err, err2);
 
     TRACE(_REMOTE_LOGGER, "Closing the context");
@@ -309,10 +309,10 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
         err2 = bxizmq_str_snd(BXILOG_RECEIVER_SYNC_NOK, poller[1].socket, 0, 2, 500);
         BXIERR_CHAIN(err, err2);
 
-        err2 = bxizmq_zocket_destroy(poller[1].socket);
+        err2 = bxizmq_zocket_destroy(&poller[1].socket);
         BXIERR_CHAIN(err, err2);
 
-        err2 = bxizmq_zocket_destroy(poller[0].socket);
+        err2 = bxizmq_zocket_destroy(&poller[0].socket);
         BXIERR_CHAIN(err, err2);
 
         TRACE(_REMOTE_LOGGER, "Closing the context");
@@ -355,10 +355,10 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
     DEBUG(_REMOTE_LOGGER, "Leaving");
     TRACE(_REMOTE_LOGGER, "Closing the sockets");
 
-    err2 = bxizmq_zocket_destroy(poller[0].socket);
+    err2 = bxizmq_zocket_destroy(&poller[0].socket);
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxizmq_zocket_destroy(poller[1].socket);
+    err2 = bxizmq_zocket_destroy(&poller[1].socket);
     BXIERR_CHAIN(err, err2);
 
     TRACE(_REMOTE_LOGGER, "Closing the context");

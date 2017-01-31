@@ -493,7 +493,7 @@ bxierr_p bxilog__stop_handlers(void) {
             }
         }
         
-        err2 = bxizmq_zocket_destroy(zocket);
+        err2 = bxizmq_zocket_destroy(&zocket);
         BXIERR_CHAIN(err, err2);
 
         if (ESRCH == ret && msg == NULL) continue;

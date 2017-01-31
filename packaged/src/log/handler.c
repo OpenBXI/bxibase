@@ -462,10 +462,10 @@ bxierr_p _cleanup(bxilog_handler_p handler,
 
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 =  bxizmq_zocket_destroy(data->data_zocket);
+    err2 =  bxizmq_zocket_destroy(&data->data_zocket);
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxizmq_zocket_destroy(data->ctrl_zocket);
+    err2 = bxizmq_zocket_destroy(&data->ctrl_zocket);
     BXIERR_CHAIN(err, err2);
 
     return err;

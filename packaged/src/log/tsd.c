@@ -57,9 +57,9 @@ void bxilog__tsd_free(void * const data) {
 
     if (NULL != tsd->data_channel) {
         bxierr_p err = BXIERR_OK, err2;
-        err2 = bxizmq_zocket_destroy(tsd->data_channel);
+        err2 = bxizmq_zocket_destroy(&tsd->data_channel);
         BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_destroy(tsd->ctrl_channel);
+        err2 = bxizmq_zocket_destroy(&tsd->ctrl_channel);
         BXIERR_CHAIN(err, err2);
         if (bxierr_isko(err)) bxierr_report(&err, STDERR_FILENO);
     }

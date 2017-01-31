@@ -227,17 +227,13 @@ bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
     BXIFREE(data->generic.cbs);
 
     if (NULL != data->ctrl_zock) {
-        err2 = bxizmq_zocket_destroy(data->ctrl_zock);
+        err2 = bxizmq_zocket_destroy(&data->ctrl_zock);
         BXIERR_CHAIN(err, err2);
-
-        data->ctrl_zock = NULL;
     }
 
     if (NULL != data->data_zock) {
-        err2 = bxizmq_zocket_destroy(data->data_zock);
+        err2 = bxizmq_zocket_destroy(&data->data_zock);
         BXIERR_CHAIN(err, err2);
-
-        data->data_zock = NULL;
     }
 
     err2 = bxizmq_context_destroy(&data->ctx);

@@ -109,13 +109,13 @@ bxierr_p bxizmq_context_destroy(void ** ctx);
 bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
 
 /**
- * Cleanup the given zeromq socket, releasing all underlying resources.
+ * Cleanup the given zeromq socket, releasing all underlying resources and nullifying
+ * the given pointer.
  *
- * @param zocket the socket to cleanup
+ * @param zocket the pointer on the socket to cleanup.
  * @return BXIERR_OK on success, any other on failure.
  */
-//TODO: call it free() since it does not nullify the given pointer
-bxierr_p bxizmq_zocket_destroy(void * const zocket);
+bxierr_p bxizmq_zocket_destroy(void ** const zocket_p);
 
 /**
  * Bind the socket to the given url and set the specified option on it. If the
@@ -148,6 +148,20 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
 bxierr_p bxizmq_zocket_connect(void * zocket,
                                const char * const url);
 
+/**
+ * Get the specified option on the zmq socket
+ *
+ * @param self socket from which the option should be get
+ * @param option_name the name of the option
+ * @param option_value the value of the option
+ * @param option_len the length of the option value
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_getopt(void * socket,
+                              int option_name,
+                              void * option_value,
+                              size_t * option_len);
 
 /**
  * Set the specified option on the zmq socket

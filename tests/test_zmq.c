@@ -207,11 +207,11 @@ static void * pub_thread(void * data) {
     BXIFREE(quit_str);
 
     TRACE(LOGGER, "Destroying quit zocket");
-    err = bxizmq_zocket_destroy(quit_zocket);
+    err = bxizmq_zocket_destroy(&quit_zocket);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying pub zocket");
-    err = bxizmq_zocket_destroy(zocket);
+    err = bxizmq_zocket_destroy(&zocket);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying context");
@@ -286,7 +286,7 @@ static void * sub_thread(void * data) {
     OUT(LOGGER,
         "Sync fully completed. Number of received messages: %zu. Destroying zocket",
         param->msg_nb);
-    err = bxizmq_zocket_destroy(zocket);
+    err = bxizmq_zocket_destroy(&zocket);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying context.");
@@ -362,7 +362,7 @@ void test_1pub_1sub_sync() {
     }
 
     TRACE(LOGGER, "Destroying quit zocket");
-    err = bxizmq_zocket_destroy(quit_zock);
+    err = bxizmq_zocket_destroy(&quit_zock);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying zmq context");
@@ -472,7 +472,7 @@ void test_2pub_1sub_sync() {
     }
 
     TRACE(LOGGER, "Destroying quit zocket");
-    err = bxizmq_zocket_destroy(quit_zock);
+    err = bxizmq_zocket_destroy(&quit_zock);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying zmq context");
@@ -594,7 +594,7 @@ void test_2pub_2sub_sync() {
     }
 
     TRACE(LOGGER, "Destroying quit zocket");
-    err = bxizmq_zocket_destroy(quit_zock);
+    err = bxizmq_zocket_destroy(&quit_zock);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying zmq context");
@@ -751,7 +751,7 @@ void test_1pub_1sub_sync_fork() {
     BXIASSERT(LOGGER, WIFEXITED(wstatus));
 
     TRACE(LOGGER, "Destroying quit zocket");
-    err = bxizmq_zocket_destroy(quit_zock);
+    err = bxizmq_zocket_destroy(&quit_zock);
     BXIABORT_IFKO(LOGGER, err);
 
     TRACE(LOGGER, "Destroying zmq context");
@@ -778,7 +778,7 @@ void test_1pub_1sub_sync_fork() {
     OUT(LOGGER,
         "Nb published: %zu, Nb received: %d",
         pub_param->msg_nb, msg_nb);
-    CU_ASSERT_EQUAL(pub_param->msg_nb, msg_nb);
+    CU_ASSERT_EQUAL(pub_param->msg_nb, (size_t) msg_nb);
 
     BXIFREE(sub_param->urls);
     BXIFREE(sub_param);

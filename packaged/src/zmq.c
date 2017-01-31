@@ -142,15 +142,21 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
                        "Can't create a zmq socket of type %d",
                        type);
         BXIERR_CHAIN(err, err2);
+    } else {
+        DBG("Zocket %p created\n", zocket);
     }
     *result = zocket;
     return err;
 
 }
 
-bxierr_p bxizmq_zocket_destroy(void * const zocket) {
+bxierr_p bxizmq_zocket_destroy(void ** const zocket_p) {
+    bxiassert(NULL != zocket_p);
+
+    void * zocket = *zocket_p;
 
     if (NULL == zocket) return BXIERR_OK;
+
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
     int linger = DEFAULT_CLOSING_LINGER;
@@ -168,7 +174,10 @@ bxierr_p bxizmq_zocket_destroy(void * const zocket) {
     if (rc != 0) {
         err2 = _zmqerr(errno, "Can't close socket");
         BXIERR_CHAIN(err, err2);
+    } else {
+        DBG("Zocket %p destroyed\n", zocket);
     }
+    *zocket_p = NULL;
 
     return err;
 }
@@ -191,8 +200,6 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
 
         //Try by translating hostname into IP
         if (0 != strncmp(translate_url, TCP_PROTO, ARRAYLEN(TCP_PROTO) - 1)) {
-            err2 = bxizmq_zocket_destroy(zocket);
-            BXIERR_CHAIN(err, err2);
             return err;
         }
 
@@ -201,9 +208,7 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
         err2 = bxizmq_split_url(url, elements);
         BXIERR_CHAIN(err, err2);
 
-        if (bxierr_isko(err2)) {
-            err2 = bxizmq_zocket_destroy(zocket);
-            BXIERR_CHAIN(err, err2);
+        if (bxierr_isko(err)) {
             return err;
         }
 
@@ -221,9 +226,7 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
             BXIERR_CHAIN(err, err2);
         }
 
-        if (bxierr_isko(err2)) {
-            err2 = bxizmq_zocket_destroy(zocket);
-            BXIERR_CHAIN(err, err2);
+        if (bxierr_isko(err)) {
             return err;
         }
 
@@ -256,12 +259,6 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
         }
     }
 
-    if (bxierr_isko(err)) {
-        err2 = bxizmq_zocket_destroy(zocket);
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
-
     char endpoint[512];
     endpoint[0] = '\0';
 
@@ -292,8 +289,6 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
         errno = 0;
         port = strtoul(ptr+1, &endptr, 10);
         if (ERANGE == errno) {
-            err2 = bxizmq_zocket_destroy(zocket);
-            BXIERR_CHAIN(err, err2);
             err2 = bxierr_errno("Unable to parse integer in: '%s'", ptr+1);
             BXIERR_CHAIN(err, err2);
             return err;
@@ -303,13 +298,17 @@ bxierr_p bxizmq_zocket_bind(void * const zocket,
     if (0 != port) {
         *affected_port = (int) port;
     }
+
+    if (bxierr_isok(err)) {
+        DBG("Zocket %p binded to %s\n", zocket, translate_url);
+    }
     //if (NULL != affected_port)  *affected_port = rc;
     return err;
 }
 
 bxierr_p bxizmq_zocket_connect(void * zocket,
                                const char * const url) {
-    bxiassert(NULL != url);
+    bxiassert(NULL != zocket);
     bxiassert(NULL != url);
     bxierr_p err = BXIERR_OK, err2;
 
@@ -338,12 +337,10 @@ bxierr_p bxizmq_zocket_connect(void * zocket,
         sleep *= 2;
         tries++;
     }
-    if (bxierr_isko(err)) {
-        err2 = bxizmq_zocket_destroy(zocket);
-        BXIERR_CHAIN(err, err2);
-        return err;
-    }
 
+    if (bxierr_isok(err)) {
+        DBG("Zocket %p connected to %s\n", zocket, url);
+    }
     return err;
 }
 
@@ -361,14 +358,31 @@ bxierr_p bxizmq_zocket_setopt(void * socket,
     if (rc != 0) {
         err2 = _zmqerr(errno, "Can't set option %d on zmq socket", option_name);
         BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_destroy(socket);
-        BXIERR_CHAIN(err, err2);
         return err;
     }
 #ifdef __DBG__
-    if (option_name == ZMQ_SUBSCRIBE) DBG("subscribing: '%s'\n", (char*) option_value);
-    if (option_name == ZMQ_UNSUBSCRIBE) DBG("unsubscribing: '%s'\n", (char*) option_value);
+    if (ZMQ_SUBSCRIBE == option_name) DBG("subscribing: '%s'\n", (char*) option_value);
+    if (ZMQ_UNSUBSCRIBE == option_name) DBG("unsubscribing: '%s'\n", (char*) option_value);
 #endif
+    return err;
+}
+
+bxierr_p bxizmq_zocket_getopt(void * socket,
+                              const int option_name,
+                              void * const option_value,
+                              size_t * const option_len) {
+    bxiassert(NULL != socket);
+    bxiassert(NULL != option_value);
+
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+    const int rc = zmq_getsockopt(socket, option_name, option_value, option_len);
+    if (rc != 0) {
+        err2 = _zmqerr(errno, "Can't get option %d on zmq socket", option_name);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
     return err;
 }
 
@@ -890,7 +904,7 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
         BXIERR_CHAIN(err, err2);
     }
 
-    err2 = bxizmq_zocket_destroy(sync_zocket);
+    err2 = bxizmq_zocket_destroy(&sync_zocket);
     BXIERR_CHAIN(err, err2);
 
     return err;
@@ -1006,7 +1020,7 @@ bxierr_p bxizmq_sync_pub_many(void * const zmq_ctx,
     if (NULL != sync_zocket) {
         // Don't care here
         DBG("PUB[%s]: destroying socket %p\n", url, sync_zocket);
-        bxierr_p tmp = bxizmq_zocket_destroy(sync_zocket);
+        bxierr_p tmp = bxizmq_zocket_destroy(&sync_zocket);
         bxierr_report(&tmp, STDERR_FILENO);
     }
 
@@ -1125,7 +1139,7 @@ bxierr_p bxizmq_sync_sub_many(void * const zmq_ctx,
         }
     }
 
-    bxierr_p tmp = bxizmq_zocket_destroy(sync_zocket);
+    bxierr_p tmp = bxizmq_zocket_destroy(&sync_zocket);
     // We don't care here!
     bxierr_report(&tmp, STDERR_FILENO);
     // Destroy the binary tree
