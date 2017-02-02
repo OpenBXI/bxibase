@@ -112,7 +112,7 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
  * Cleanup the given zeromq socket, releasing all underlying resources and nullifying
  * the given pointer.
  *
- * @param zocket the pointer on the socket to cleanup.
+ * @param[inout] zocket_p the pointer on the socket to cleanup.
  * @return BXIERR_OK on success, any other on failure.
  */
 bxierr_p bxizmq_zocket_destroy(void ** const zocket_p);
@@ -161,7 +161,7 @@ bxierr_p bxizmq_disconnect(void * zocket, const char * url);
 /**
  * Get the specified option on the zmq socket
  *
- * @param self socket from which the option should be get
+ * @param socket socket from which the option should be get
  * @param option_name the name of the option
  * @param option_value the value of the option
  * @param option_len the length of the option value
@@ -531,7 +531,7 @@ void bxizmq_data_free(void * data, void * hint);
  * @param sync_zocket REP zocket use to communicate with the SUB zocket
  * @param sync_url used to bind the PUB zocket
  * @param sync_url_len length of the url
- * @param timeout in seconds before aborting
+ * @param timeout_s in seconds before aborting
  *
  * @return BXIERR_OK if the synchronization completes successfully.
  */
@@ -552,7 +552,7 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
  *
  * @param zmq_ctx required for socket creation
  * @param sub_zocket to be synchronized
- * @param timeout in seconds before abording.
+ * @param timeout_s in seconds before aborting.
  *
  * @return BXIERR_OK if the synchronization is done.
  */
@@ -567,12 +567,20 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
  * successful synchronization (classical problem of PUB/SUB zeromq
  * synchronization, refer to the zeromq guide for details:
  * http://zguide.zeromq.org/page:all#toc47)
+ *
+ * @param[inout] zmq_ctx the zeromq context to use for internal zocket creation
+ * @param[inout] pub_zocket the zocket to synchronize, it must be a PUB
+ * @param[in] url the url used for publication
+ * @param[in] sub_nb the number of subscribers to wait for
+ * @param[in] timeout_s the maximal number of seconds to wait for subscribers
+ *
+ * @return BXIERR_OK on success, anything else on error.
  */
 bxierr_p bxizmq_sync_pub_many(void * zmq_ctx,
                               void * pub_zocket,
                               const char * url,
                               size_t sub_nb,
-                              const double timeout);
+                              const double timeout_s);
 
 /**
  * Synchronize a SUB zocket with many PUB zockets.
@@ -581,11 +589,18 @@ bxierr_p bxizmq_sync_pub_many(void * zmq_ctx,
  * successful synchronization (classical problem of PUB/SUB zeromq
  * synchronization, refer to the zeromq guide for details:
  * http://zguide.zeromq.org/page:all#toc47)
+ *
+ * @param[inout] zmq_ctx the zeromq context to use for internal zocket creation
+ * @param[inout] sub_zocket the zocket to synchronize
+ * @param[in] pub_nb the number of publishers to wait for
+ * @param[in] timeout_s the maximal number of seconds to wait for publishers
+ *
+ * @return BXIERR_OK on success, anything else on error.
  */
 bxierr_p bxizmq_sync_sub_many(void * zmq_ctx,
                          void * sub_zocket,
                          size_t pub_nb,
-                         const double timeout);
+                         const double timeout_s);
 
 /**
  * Generate a fresh new zeromq URL from the given one.
