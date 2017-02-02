@@ -247,7 +247,7 @@
 #define bxierr_from_list(code, errlist, ...)            \
     bxierr_new(code, errlist,                           \
                (void (*) (void*)) bxierr_list_free,     \
-               bxierr_list_add_to_report,\
+               bxierr_list_add_to_report,               \
                NULL, __VA_ARGS__)
 
 /**
@@ -350,7 +350,7 @@ typedef struct bxierr_s * bxierr_p;
  * Note: bxierr can be chained
  */
 struct bxierr_s {
-    int  code;                              //!< the error code
+    int    code;                            //!< the error code
     char * backtrace;                       //!< the backtrace
     size_t backtrace_len;                   //!< the backtrace string length (including
                                             //!< the NULL terminating byte)
