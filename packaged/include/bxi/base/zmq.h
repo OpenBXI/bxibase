@@ -149,6 +149,16 @@ bxierr_p bxizmq_zocket_connect(void * zocket,
                                const char * const url);
 
 /**
+ * Disconnect a zocket from an url.
+ *
+ * @param[inout] zocket the socket to disconnect
+ * @param[in] url the url to disconnect from
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_disconnect(void * zocket, const char * url);
+
+/**
  * Get the specified option on the zmq socket
  *
  * @param self socket from which the option should be get

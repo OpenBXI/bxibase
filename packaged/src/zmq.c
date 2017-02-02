@@ -344,6 +344,16 @@ bxierr_p bxizmq_zocket_connect(void * zocket,
     return err;
 }
 
+bxierr_p bxizmq_disconnect(void * zocket, const char * url) {
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+    int rc = zmq_disconnect(zocket, url);
+    if (0 != rc) {
+        err2 = _zmqerr(errno, "Calling disconnect on zocket %s failed", url);
+        BXIERR_CHAIN(err, err2);
+    }
+    return err;
+}
 
 bxierr_p bxizmq_zocket_setopt(void * socket,
                               const int option_name,
