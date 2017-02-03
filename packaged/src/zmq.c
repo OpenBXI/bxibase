@@ -32,7 +32,6 @@
 // ********************************** Defines **************************************
 // *********************************************************************************
 
-#define DEFAULT_CLOSING_LINGER 1000u
 #define MAX_CONNECTION_TIMEOUT 1.0     // seconds
 #define INPROC_PROTO "inproc"
 #define TCP_PROTO "tcp"
@@ -145,6 +144,16 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
     } else {
         DBG("Zocket %p created\n", zocket);
     }
+
+    // Yes, make all zeromq socket have a non-infinite linger period.
+    int linger = BXIZMQ_DEFAULT_LINGER;
+    int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
+    if (rc != 0) {
+        err2 = _zmqerr(errno, "Can't set linger for socket %p", zocket);
+        BXIERR_CHAIN(err, err2);
+    }
+
+
     *result = zocket;
     return err;
 
@@ -159,14 +168,7 @@ bxierr_p bxizmq_zocket_destroy(void ** const zocket_p) {
 
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
-    int linger = DEFAULT_CLOSING_LINGER;
-    int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
-    if (rc != 0) {
-        err2 = _zmqerr(errno, "Can't set linger for socket cleanup");
-        BXIERR_CHAIN(err, err2);
-    }
-
-    errno = 0;
+    int rc;
     do {
         rc = zmq_close(zocket);
     } while (rc == -1 && errno == EINTR);
@@ -347,11 +349,13 @@ bxierr_p bxizmq_zocket_connect(void * zocket,
 bxierr_p bxizmq_disconnect(void * zocket, const char * url) {
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
+
     int rc = zmq_disconnect(zocket, url);
     if (0 != rc) {
         err2 = _zmqerr(errno, "Calling disconnect on zocket %s failed", url);
         BXIERR_CHAIN(err, err2);
     }
+
     return err;
 }
 

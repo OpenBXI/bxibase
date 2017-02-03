@@ -62,7 +62,10 @@
 #define BXIZMQ_PUBSUB_SYNC_LAST     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: last"
 #define BXIZMQ_PUBSUB_SYNC_GO       BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: go!"
 
-
+/**
+ * Default zeromq linger period used at zocket creation time
+ */
+#define BXIZMQ_DEFAULT_LINGER 1000u
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************
@@ -100,11 +103,16 @@ bxierr_p bxizmq_context_destroy(void ** ctx);
 /**
  * Create a zeromq socket.
  *
+ * @note: the created zocket have a default linger period set
+ * to BXIZMQ_DEFAULT_LINGER.
+ *
  * @param ctx the zeromq context
  * @param type the zeromq socket type (ZMQ_REQ, ZMQ_REP, ZMQ_PUB, ...)
  * @param zocket a pointer on the result
  *
  * @return BXIERR_OK on success, any other on failure.
+ *
+ * @see BXIZMQ_DEFAULT_LINGER
  */
 bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
 
