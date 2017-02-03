@@ -1,10 +1,10 @@
 FROM centos:7
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-#ENV http_proxy ${HTTP_PROXY}
-#ENV https_proxy ${HTTPS_PROXY}
-#ENV ftp_proxy ${FTP_PROXY}
-#ENV no_proxy ${NO_PROXY}
+ENV http_proxy ${HTTP_PROXY}
+ENV https_proxy ${HTTPS_PROXY}
+ENV ftp_proxy ${FTP_PROXY}
+ENV no_proxy ${NO_PROXY}
 
 RUN sed -i 's/enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf
 
