@@ -1,0 +1,4 @@
+FROM local/centos-jupyter-c:latest
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+RUN sudo -E sed -i "s/'-std=c11'/'-std=c11', '-lbxibase'/g" /usr/lib/python3.4/site-packages/jupyter_c_kernel/kernel.py

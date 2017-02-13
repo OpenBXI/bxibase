@@ -1,61 +1,32 @@
-all: bxibase-docker
+all: bxibase
 
-bxibase-docker: bxibase
-	echo "Building bxibase-docker"
-	docker rm -f bxibase || /bin/true
-	docker run  --name bxibase --publish 8080:80 --detach --volume ${PWD}/../articles:/srv local/centos-bxibase
+MKRPMS_DIR = /mnt/mkrpms
+TARGET_DOCKER_DIR = /tmp/bxibase.docker
 
-bxibase: jupyter-c
-	echo "Building bxibase"
-	cp Dockerfile.centos-bxibase /tmp/rpms
+bxibase: bxibase.deps
+	echo "Building bxibase rpm"
+	${PWD}/../shared/docker/pdp/mkrpms local/centos-bxibase.deps bxibase
+	echo "Copying bxibase rpm"
+	mkdir -p ${TARGET_DOCKER_DIR}/RPMS/x86_64
+	cp Dockerfile.centos-bxibase ${TARGET_DOCKER_DIR}
+	cp -a ${MKRPMS_DIR}/RPMS/x86_64/bxibase* ${TARGET_DOCKER_DIR}/RPMS/x86_64/
+	echo "Creating the YUM repo"
+	createrepo ${TARGET_DOCKER_DIR}/RPMS
+	echo "Creating the bxibase docker"
 	docker build --tag local/centos-bxibase \
 		     --rm=true \
-		     --file /tmp/rpms/Dockerfile.centos-bxibase \
+		     --file ${TARGET_DOCKER_DIR}/Dockerfile.centos-bxibase \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
 		     --build-arg HTTPS_PROXY=${https_proxy}\
 		     --build-arg FTP_PROXY=${ftp_proxy}\
 		     --build-arg NO_PROXY=${no_proxy}\
-		     /tmp/rpms
+		     ${TARGET_DOCKER_DIR}
 
-jupyter-c: jupyter
-	echo "Building jupyter-c"
-	docker build --tag local/centos-jupyter-c \
+bxibase.deps: 
+	echo "Building docker deps for bxibase"
+	docker build --tag local/centos-bxibase.deps \
 		     --rm=true \
-		     --file Dockerfile.centos-jupyter-c \
-		     --build-arg HTTP_PROXY=$(http_proxy)\
-		     --build-arg HTTPS_PROXY=${https_proxy}\
-		     --build-arg FTP_PROXY=${ftp_proxy}\
-		     --build-arg NO_PROXY=${no_proxy}\
-		     ${PWD}
-
-jupyter: centos-epel
-	echo "Building jupyter"
-	docker build --tag local/centos-jupyter \
-		     --rm=true \
-		     --file Dockerfile.centos-jupyter \
-		     --build-arg HTTP_PROXY=$(http_proxy)\
-		     --build-arg HTTPS_PROXY=${https_proxy}\
-		     --build-arg FTP_PROXY=${ftp_proxy}\
-		     --build-arg NO_PROXY=${no_proxy}\
-		    ${PWD}
-
-centos-pdp: centos-epel
-	echo "Building centos-pdp"
-	docker build --tag local/centos-pdp \
-		     --rm=true \
-		     --file Dockerfile.centos-pdp \
-		     --build-arg HTTP_PROXY=$(http_proxy)\
-		     --build-arg HTTPS_PROXY=${https_proxy}\
-		     --build-arg FTP_PROXY=${ftp_proxy}\
-		     --build-arg NO_PROXY=${no_proxy}\
-		     ${PWD}
-
-
-centos-epel:
-	echo "Building centos-epel"
-	docker build --tag local/centos-epel \
-		     --rm=true \
-		     --file Dockerfile.centos-epel \
+		     --file Dockerfile.centos-bxibase.deps \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
 		     --build-arg HTTPS_PROXY=${https_proxy}\
 		     --build-arg FTP_PROXY=${ftp_proxy}\

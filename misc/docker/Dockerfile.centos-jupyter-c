@@ -1,6 +1,0 @@
-FROM local/centos-jupyter:latest
-MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
-
-RUN yum -y install git
-RUN wget -O - https://raw.githubusercontent.com/brendan-rius/jupyter-c-kernel/master/install.sh | sh  
-

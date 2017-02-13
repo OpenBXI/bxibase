@@ -1,0 +1,16 @@
+FROM local/centos-bxibase:latest
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+RUN sudo -E yum --assumeyes install gcc python34-devel zeromq-devel wget
+RUN wget --directory-prefix=/tmp/ https://bootstrap.pypa.io/get-pip.py && sudo -E python3.4 /tmp/get-pip.py
+RUN sudo -E pip3 install jupyter
+
+EXPOSE 80
+
+RUN echo $'#!/bin/bash\n\
+/usr/bin/jupyter notebook --ip='*' --port=8080 --NotebookApp.token=''  --notebook-dir=/srv/ --no-browser'\
+>> /home/fantom/jupyter-wrapper.sh && chmod +x /home/fantom/jupyter-wrapper.sh
+
+RUN cat /home/fantom/jupyter-wrapper.sh
+
+CMD /home/fantom/jupyter-wrapper.sh

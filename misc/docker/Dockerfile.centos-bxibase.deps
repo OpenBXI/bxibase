@@ -1,0 +1,5 @@
+FROM local/centos-backtrace
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+RUN sudo -E yum --assumeyes install \
+    net-snmp 
