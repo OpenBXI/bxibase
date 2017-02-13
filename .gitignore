@@ -40,6 +40,8 @@
 /misc/bench/bxilog/bench-c_bxilog
 /misc/bench/bxilog/bench-c_zlog
 /misc/bench/bxilog/callgrind.out.*
+/misc/bench/bxilog/bench-c_bxilog
+/misc/bench/bxilog/bench-c_zlog
 
 # /misc/bench/number_of_digits/
 /misc/bench/number_of_digits/bench
@@ -121,3 +123,5 @@
 **/*.pyc
 **/*.pyo
 **/.ipynb_checkpoints/*
+**/*.o
+**/*~
