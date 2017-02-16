@@ -1,21 +1,10 @@
-all: jupyter-c
+all: centos-bxibase-jupyter
 
-jupyter-c: jupyter
-	echo "Building jupyter-c"
-	docker build --tag local/centos-jupyter-c \
+centos-bxibase-jupyter: 
+	echo "Building centos-bxibase-jupyter"
+	docker build --tag local/centos-bxibase-jupyter \
 		     --rm=true \
-		     --file Dockerfile.centos-jupyter-c \
-		     --build-arg HTTP_PROXY=$(http_proxy)\
-		     --build-arg HTTPS_PROXY=${https_proxy}\
-		     --build-arg FTP_PROXY=${ftp_proxy}\
-		     --build-arg NO_PROXY=${no_proxy}\
-		     ${PWD}
-
-jupyter: 
-	echo "Building jupyter"
-	docker build --tag local/centos-jupyter \
-		     --rm=true \
-		     --file Dockerfile.centos-jupyter \
+		     --file Dockerfile.centos-bxibase-jupyter \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
 		     --build-arg HTTPS_PROXY=${https_proxy}\
 		     --build-arg FTP_PROXY=${ftp_proxy}\
