@@ -192,6 +192,11 @@ LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 # does understand it
 ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
+__names__ = __FFI__.new("char ***")
+__nb__ = __BXIBASE_CAPI__.bxilog_get_all_level_names(__names__)
+# The list of level names as a tuple
+LEVEL_NAMES = tuple(__FFI__.string(__names__[0][i]) for i in xrange(__nb__))
+
 LIB_PREFIX = __FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX)
 
 
@@ -423,18 +428,6 @@ def flush():
     """
     err_p = __BXIBASE_CAPI__.bxilog_flush()
     bxierr.BXICError.raise_if_ko(err_p)
-
-
-def get_all_level_names_iter():
-    """
-    Return an iterator over all level names.
-
-    @return
-    """
-    names = __FFI__.new("char ***")
-    nb = __BXIBASE_CAPI__.bxilog_get_all_level_names(names)
-    for i in xrange(nb):
-        yield __FFI__.string(names[0][i])
 
 
 def get_all_loggers_iter():

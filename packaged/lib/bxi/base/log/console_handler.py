@@ -69,7 +69,7 @@ def add_handler(configobj, section_name, c_config):
     filters = bxilogfilter.parse_filters(filters_str)
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_CONSOLE_HANDLER,
-                                               filters,
+                                               filters._cstruct,
                                                __FFI__.cast('int', stderr_level),
                                                __FFI__.cast('int', loggername_width),
                                                colors)

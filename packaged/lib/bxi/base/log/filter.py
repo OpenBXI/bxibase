@@ -11,15 +11,54 @@ from __future__ import print_function
 @namespace bxi.base.log.filters bxilog filtering utilities
 
 """
+import collections
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 
+
 # Find the C library
 __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
+
+
+class Filter(bxibase.Wrapper):
+    """
+    Wraps the ::bxilog_filter_p object
+    """
+    def __init__(self, filter_p):
+        super(Filter, self).__init__(filter_p)
+
+    def __str__(self):
+        return self.prefix + ':' + bxilog.LEVEL_NAMES[self.level]
+
+
+class Filters(bxibase.SequenceSliceImplMixin,
+              collections.Sequence,
+              collections.Iterable):
+    """
+    Wraps the ::bxilog_filters_p object
+    """
+    def __init__(self, filters_p):
+        super(Filters, self).__init__()
+        self._cstruct = filters_p
+        self._wrapped = [None] * self._cstruct.nb
+
+    def __len__(self):
+        return self._cstruct.nb
+
+    def __wrap__(self, index):
+        return Filter(self._cstruct.list[index])
+
+    def __raw_getitem__(self, index):
+        if self._cstruct == __FFI__.NULL or self._cstruct[index] == __FFI__.NULL:
+            return None
+        if self._wrapped[index] is None:
+            self._wrapped[index] = self.__wrap__(index)
+
+        return self._wrapped[index]
 
 
 def parse_filters(filter_str):
@@ -27,15 +66,15 @@ def parse_filters(filter_str):
     Parse the given string and return the corresponding set of filters as
     a bxilog_filter_p
 
-    @param[in] filters_str a string representing filters as 
+    @param[in] filters_str a string representing filters as
                            defined in ::bxilog_filters_parse()
 
-    @return a ::bxilog_filter_p object
+    @return an instance of the Filters class
     """
     filters_p = __FFI__.new('bxilog_filters_p[1]')
     err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
     bxierr.BXICError.raise_if_ko(err)
-    return filters_p[0]
+    return Filters(filters_p[0])
 
 
 def new_detailed_filters(filters, delta=2, min_level=bxilog.ERROR):
@@ -44,13 +83,12 @@ def new_detailed_filters(filters, delta=2, min_level=bxilog.ERROR):
     """
     result_p = __FFI__.new('bxilog_filters_p[1]')
     result_p[0] = __BXIBASE_CAPI__.bxilog_filters_new()
-    for i in xrange(filters.nb):
-        new_level = min(filters.list[i].level + delta, bxilog.LOWEST)
-        # At least error messages
+    for filter_ in filters:
+        new_level = min(filter_.level + delta, bxilog.LOWEST)
+        # At least min_level messages
         new_level = max(new_level, min_level)
-        __BXIBASE_CAPI__.bxilog_filters_add(result_p, filters.list[i].prefix,
-                                            new_level)
-    return result_p[0]
+        __BXIBASE_CAPI__.bxilog_filters_add(result_p, filter_.prefix, new_level)
+    return Filters(result_p[0])
 
 
 def merge_filters(filters_set):
@@ -59,11 +97,9 @@ def merge_filters(filters_set):
     """
     prefixes = dict()
     for filters in filters_set:
-        if isinstance(filters, str):
-            filters
-        for i in xrange(filters.nb):
-            prefix = __FFI__.string(filters.list[i].prefix)
-            level = filters.list[i].level
+        for filter_ in filters:
+            prefix = filter_.prefix
+            level = filter_.level
             if prefix in prefixes:
                 prefixes[prefix] = max(level, prefixes[prefix])
             else:
@@ -74,4 +110,4 @@ def merge_filters(filters_set):
     for prefix in sorted(prefixes):
         __BXIBASE_CAPI__.bxilog_filters_add(result_p, prefix, prefixes[prefix])
 
-    return result_p[0]
+    return Filters(result_p[0])

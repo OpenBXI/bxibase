@@ -118,14 +118,41 @@ class BXILogTest(unittest.TestCase):
         """
         Test bxilog_level parsing function"
         """
-        level_names = list(bxilog.get_all_level_names_iter())
-        for i in xrange(len(level_names)):
-            level = bxilog.get_level_from_str(level_names[i])
+        for i in xrange(len(bxilog.LEVEL_NAMES)):
+            level = bxilog.get_level_from_str(bxilog.LEVEL_NAMES[i])
             self.assertEquals(i, level)
+            
+    def test_filtering(self):
+        # Warning: lexical order is important for the test
+        filters = bxilog.filter.parse_filters(':out,~a.bar:debug,~a.foo:info')
+        self.assertIsNotNone(filters)
+        self.assertEqual(filters[0].prefix, '')
+        self.assertEqual(filters[0].level, bxilog.OUTPUT)
+        self.assertEqual(filters[1].prefix, '~a.bar')
+        self.assertEqual(filters[1].level, bxilog.DEBUG)
+        self.assertEqual(filters[2].prefix, '~a.foo')
+        self.assertEqual(filters[2].level, bxilog.INFO)
+        delta = 2
+        detailed_filters = bxilog.filter.new_detailed_filters(filters, delta, bxilog.OUTPUT)
+        self.assertEqual(detailed_filters[0].prefix, '')
+        self.assertEqual(detailed_filters[0].level, bxilog.OUTPUT + delta)
+        self.assertEqual(detailed_filters[1].prefix, '~a.bar')
+        self.assertEqual(detailed_filters[1].level, bxilog.DEBUG + delta)
+        self.assertEqual(detailed_filters[2].prefix, '~a.foo')
+        self.assertEqual(detailed_filters[2].level, bxilog.INFO + delta)
+        other_filters = bxilog.filter.parse_filters(':fine,~a.bar:panic,~a.foo:lowest')
+        merged_filters = bxilog.filter.merge_filters((filters, detailed_filters, other_filters))
+        self.assertEqual(merged_filters[0].prefix, '')
+        self.assertEqual(merged_filters[0].level, bxilog.FINE)
+        self.assertEqual(merged_filters[1].prefix, '~a.bar')
+        self.assertEqual(merged_filters[1].level, bxilog.DEBUG + delta)
+        self.assertEqual(merged_filters[2].prefix, '~a.foo')
+        self.assertEqual(merged_filters[2].level, bxilog.LOWEST)
+
 
     def test_default_logger(self):
         """Test default logging functions"""
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             self._check_log_produced(FILENAME,
                                      getattr(bxilog, level), "Some stuff with noarg")
             self._check_log_produced(FILENAME,
@@ -171,15 +198,15 @@ class BXILogTest(unittest.TestCase):
                                      getattr(logger, level), "Some stuff with no args but special characters: %d %f %s")
 
         logger1 = bxilog.getLogger("foo")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             _produce_logs(logger1, level)
 
         logger2 = bxilog.getLogger("bar")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             _produce_logs(logger2, level)
 
         logger3 = bxilog.getLogger("foo.bar")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             _produce_logs(logger3, level)
 
         self._check_log_produced(FILENAME,
