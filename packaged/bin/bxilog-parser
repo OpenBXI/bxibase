@@ -58,7 +58,7 @@ LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
 #I|20160208T104136.033206346|31029.31164=46848:dvDaemon|divio_agent.c:437@lltc_receive|bxivirt.divio.agent|link on port 7 is now up
 LOGLINE_RE = re.compile(r'^(?P<level>\w+)\|'
                         '(?P<timestamp>\d+T\d+.\d+)\|'
-                        '(?P<pkrid>\d+.\d+=\d+):(?P<process>.+)\|'
+                        '(?P<pkrid>\d+.\d+=\d+):(?P<process>.*)\|'
                         '(?P<source>.+:\d+@.*)\|'
                         '(?P<logger>.*)\|'
                         '(?P<logmsg>.*)$')
