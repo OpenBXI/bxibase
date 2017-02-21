@@ -729,13 +729,14 @@ void _setprocname(char * name) {
     errno = 0;
     const char * progname = NULL;
     bxistr_rsub(name, strlen(name), '/', &progname);
-    if (NULL != progname && strlen(progname) > 0) {
-        int rc = prctl(15 /* PR_SET_NAME */, progname, 0, 0, 0);
-        if (0 != rc) {
-            bxierr_p err = bxierr_errno("Setting process name to '%s' with "
-                                        "prctl() failed", name);
-            bxierr_report(&err, STDERR_FILENO);
-        }
+    if (NULL == progname || strlen(progname) == 0) {
+        return;
+    }
+    int rc = prctl(15 /* PR_SET_NAME */, progname, 0, 0, 0);
+    if (0 != rc) {
+        bxierr_p err = bxierr_errno("Setting process name to '%s' with "
+                "prctl() failed", name);
+        bxierr_report(&err, STDERR_FILENO);
     }
 #endif
 }
