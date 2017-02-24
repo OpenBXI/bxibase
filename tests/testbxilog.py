@@ -473,29 +473,6 @@ class BXILogTest(unittest.TestCase):
 
     def test_bxierr_list(self):
         pass
-    
-    def test_bxierr_set(self):
-        bxierr_set = bxibase.__CAPI__.bxierr_set_new()
-        for i in range(10):
-            rc = random.randrange(0, 5)
-            err_p = __FFI__.new('bxierr_p *')
-            err_p[0] = bxibase.__CAPI__.bxierr_new(rc,
-                                                   __FFI__.NULL,
-                                                   __FFI__.NULL,
-                                                   __FFI__.NULL,
-                                                   __FFI__.NULL,
-                                                    "A random error: rc=%d",
-                                                    __FFI__.cast('int', rc))
-            bxibase.__CAPI__.bxierr_set_add(bxierr_set, err_p);
-        
-        err = bxibase.__CAPI__.bxierr_new(10, 
-                                          bxierr_set,
-                                          __FFI__.cast('void (*)(void*)',
-                                                       bxibase.__CAPI__.bxierr_set_free),
-                                          bxibase.__CAPI__.bxierr_list_add_to_report,
-                                          __FFI__.NULL,
-                                          "An error from an errset")
-        self.assertTrue(bxierr.BXICError.is_ko(err))
 
     def test_sighandler(self):
         """Unit test for mantis#19501"""
