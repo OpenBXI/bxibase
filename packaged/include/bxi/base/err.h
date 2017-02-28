@@ -146,7 +146,7 @@
  *
  * Note: the value is ERROR in leet speak ;-)
  */
-#define BXIERR_GENERIC_CODE 32203
+#define BXIERR_GENERIC_CODE 32202
 
 /**
  * Define the bxierr_p code for failed assertion
