@@ -161,6 +161,12 @@ bxierr_p bxilog_init(bxilog_config_p config) {
         goto UNLOCK;
     }
 
+    err = bxilog__config_loggers();
+    if (bxierr_isko(err)) {
+        BXILOG__GLOBALS->state = BROKEN;
+        goto UNLOCK;
+    }
+
     // Install the fork handler once only
     rc = pthread_once(&ATFORK_ONCE, bxilog__fork_install_handlers);
     if (0 != rc) {
@@ -454,6 +460,7 @@ bxierr_p bxilog__finalize(void) {
 
     return err;
 }
+
 
 bxierr_p bxilog__stop_handlers(void) {
     // TODO: hack around zeromq issue

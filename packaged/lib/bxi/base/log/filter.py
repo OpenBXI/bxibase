@@ -46,6 +46,9 @@ class Filters(bxibase.SequenceSliceImplMixin,
         self._cstruct = filters_p
         self._wrapped = [None] * self._cstruct.nb
 
+    def __str__(self):
+        return ",".join(str(f) for f in self)
+
     def __len__(self):
         return self._cstruct.nb
 

@@ -311,18 +311,26 @@ class BXILogTest(unittest.TestCase):
 
         orig_size = os.stat(FILENAME).st_size if os.path.exists(FILENAME) else 0
 
-        conf = {'handlers': ['out'],
+        conf = {'handlers': ['out', 'null'],
                 'setsighandler': True,
                 'out':{'module': 'bxi.base.log.file_handler',
                        'filters': ':output,foo:debug,foo.bar:trace',
                        'path': FILENAME,
-                       'append': True}
+                       'append': True},
+                'null': {'module': 'bxi.base.log.null_handler',
+                         'filters': ':off,foo:fine,foo.bar:debug',
+                         },
                 }
         bxilog.set_config(configobj.ConfigObj(conf))
+        # It is required to initialize the library for the configuration to be used
+        bxilog.init()
 
         foo = bxilog.getLogger('foo')
+        self.assertEqual(foo.level, bxilog.FINE)
         bar = bxilog.getLogger('foo.bar')
+        self.assertEqual(bar.level, bxilog.TRACE)
         any = bxilog.getLogger('bebopalula')
+        self.assertEqual(any.level, bxilog.OUTPUT)
 
         any.info('This message must not appear in file %s', FILENAME)
         bxilog.flush()
@@ -470,9 +478,6 @@ class BXILogTest(unittest.TestCase):
             raise te
         except TestException:
             bxilog.exception('Mix of C and Python exceptions, good!')
-
-    def test_bxierr_list(self):
-        pass
 
     def test_sighandler(self):
         """Unit test for mantis#19501"""

@@ -190,11 +190,30 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
     bximem_destroy((char**) config_p);
     if (errlist->errors_nb > 0) {
         return bxierr_from_list(BXIERR_GROUP_CODE, errlist,
-                                 "Errors encountered while destroying logging parameters");
+                                "Errors encountered while destroying logging parameters");
     } else {
         bxierr_list_destroy(&errlist);
     }
     return BXIERR_OK;
+}
+
+bxierr_p bxilog__config_loggers() {
+    bxierr_p err = BXIERR_OK, err2;
+
+    size_t filters_nb = BXILOG__GLOBALS->config->handlers_nb;
+    bxilog_filters_p filters_a[filters_nb];
+    for (size_t i = 0; i < filters_nb; i++) {
+        filters_a[i] = BXILOG__GLOBALS->config->handlers_params[i]->filters;
+    }
+    bxilog_filters_p merged_filters = NULL;
+    err2 = bxilog_filters_merge(filters_a, filters_nb, &merged_filters);
+    BXIERR_CHAIN(err, err2);
+
+    err2 = bxilog_registry_set_filters(&merged_filters);
+    BXIERR_CHAIN(err, err2);
+
+    bxilog_filters_destroy(&merged_filters);
+    return err;
 }
 
 bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {

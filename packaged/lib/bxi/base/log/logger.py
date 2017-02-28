@@ -116,7 +116,7 @@ class BXILogger(object):
         @exception BXICError if an error occurred at the underlying C layer
         """
         if not bxilog._INITIALIZED:
-            bxilog._init()
+            bxilog.init()
         if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
             msg_str = msg % args if len(args) > 0 else str(msg)
             fullfilename, lineno, funcname = _FindCaller()
@@ -142,7 +142,7 @@ class BXILogger(object):
 
     def _report(self, ei, level, msg, *args, **kwargs):
         if not bxilog._INITIALIZED:
-            bxilog._init()
+            bxilog.init()
 
         report_c = __BXIBASE_CAPI__.bxierr_report_new()
 

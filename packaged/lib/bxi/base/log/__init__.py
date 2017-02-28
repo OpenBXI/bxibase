@@ -245,7 +245,9 @@ def get_level_from_str(level_str):
 
 def set_config(configobj, progname=None):
     """
-    Set the whole bxilog module from the given configobj
+    Set the configuration of the bxilog module from the given configobj.
+
+    @note the configuration is actually used only after the first call to init()
     """
     global _INITIALIZED
     if _INITIALIZED:
@@ -260,7 +262,7 @@ def set_config(configobj, progname=None):
                                        "bxilog library (Note: you might need a reconfiguration)."
                                        "\nFor your convenience, "
                                        "the following stacktrace might help finding out where "
-                                       "the first _init() call  was made:\n %s" % _INIT_CALLER,
+                                       "the first init() call  was made:\n %s" % _INIT_CALLER,
                                        configobj)
 
     global _CONFIG
@@ -272,6 +274,8 @@ def set_config(configobj, progname=None):
 def get_config():
     """
     Return the current bxilog configuration.
+
+    @note the current configuration is actually used only afte init() has been called.
     """
     global _CONFIG
     return _CONFIG
@@ -323,9 +327,12 @@ def multiprocessing_target(func):
     return wrapped
 
 
-def _init():
+def init():
     """
-    Initialize the underlying C library
+    Initialize the underlying C library with the configuration set with set_config().
+
+    @note This function is automatically called by the library on the first call to
+    Logger.log().
 
     @return
     """
@@ -390,6 +397,9 @@ def get_logger(name):
 
     @return the BXILogger instance with the given name
     """
+    # Yes we fetch from Python all loggers.
+    # This is also done in C below. The reason is to prevent
+    # instantiating twice a Python wrapper: singleton implementation!
     for logger in get_all_loggers_iter():
         if __FFI__.string(logger.clogger.name) == name:
             return logger

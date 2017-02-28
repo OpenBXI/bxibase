@@ -10,6 +10,7 @@
 #include "bxi/base/mem.h"
 #include "bxi/base/err.h"
 
+#include "bxi/base/log/level.h"
 
 /**
  * @brief BXI Logging Filters.
@@ -63,6 +64,7 @@ typedef bxilog_filters_s * bxilog_filters_p;
 struct bxilog_filter_s {
     const char * prefix;             //!< logger name prefix
     bxilog_level_e level;            //!< the level to set each matching logger to
+    void * reserved;
 };
 
 /**
@@ -122,7 +124,14 @@ void bxilog_filters_free(bxilog_filters_p filters);
  */
 void bxilog_filters_destroy(bxilog_filters_p * filters_p);
 
-
+/**
+ * Duplicate the given set of filters.
+ *
+ * @param[in] filters a set of filters
+ * @return a mallocated set of filters that contains a copy of all elements
+ *         found in filters.
+ */
+bxilog_filters_p bxilog_filters_dup(bxilog_filters_p filters);
 /**
  * Add a new filter to the given set of filters.
  *
@@ -157,4 +166,15 @@ void bxilog_filters_add(bxilog_filters_p * filters,
  */
 bxierr_p bxilog_filters_parse(char * format, bxilog_filters_p * result);
 
+/**
+ * Merge the given array of filters into one.
+ *
+ * @param[in] filters_array an array of filters
+ * @param[in] n the length of array
+ * @param[out] result the result
+ *
+ * @return BXIERR_OK on success, anything else on error.
+ */
+bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
+                              bxilog_filters_p * result);
 #endif /* BXILOG_H_ */

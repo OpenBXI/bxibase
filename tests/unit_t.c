@@ -75,7 +75,8 @@ void test_logger_fork(void);
 void test_logger_signal(void);
 void test_single_logger_instance(void);
 void test_registry(void);
-void test_filter_parser(void);
+void test_filters_parser(void);
+void test_filters_merge(void);
 void test_logger_threads(void);
 void test_handlers(void);
 void test_very_long_log(void);
@@ -262,7 +263,8 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test strange log", test_strange_log))
         || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
-        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filters_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter merger", test_filters_merge))
         || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
         || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
