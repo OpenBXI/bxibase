@@ -171,10 +171,8 @@ bxierr_p bxilog_filters_parse(char * format, bxilog_filters_p * result);
  *
  * @param[in] filters_array an array of filters
  * @param[in] n the length of array
- * @param[out] result the result
  *
- * @return BXIERR_OK on success, anything else on error.
+ * @return the merged filters
  */
-bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
-                              bxilog_filters_p * result);
+bxilog_filters_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n);
 #endif /* BXILOG_H_ */

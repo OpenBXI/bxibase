@@ -611,9 +611,8 @@ void test_filters_merge() {
     err = bxilog_filters_parse(filters2_format, &filters2);
     CU_ASSERT_TRUE(bxierr_isok(err));
 
-    bxilog_filters_p merged_filters = NULL;
     bxilog_filters_p array[2] = {filters1, filters2};
-    err = bxilog_filters_merge(array, 2, &merged_filters);
+    bxilog_filters_p merged_filters = bxilog_filters_merge(array, 2);
     CU_ASSERT_TRUE(bxierr_isok(err));
     CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
     CU_ASSERT_EQUAL(merged_filters->nb, 4);

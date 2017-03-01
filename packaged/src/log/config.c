@@ -205,9 +205,7 @@ bxierr_p bxilog__config_loggers() {
     for (size_t i = 0; i < filters_nb; i++) {
         filters_a[i] = BXILOG__GLOBALS->config->handlers_params[i]->filters;
     }
-    bxilog_filters_p merged_filters = NULL;
-    err2 = bxilog_filters_merge(filters_a, filters_nb, &merged_filters);
-    BXIERR_CHAIN(err, err2);
+    bxilog_filters_p merged_filters = bxilog_filters_merge(filters_a, filters_nb);
 
     err2 = bxilog_registry_set_filters(&merged_filters);
     BXIERR_CHAIN(err, err2);

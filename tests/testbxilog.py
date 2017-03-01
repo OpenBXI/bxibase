@@ -121,7 +121,7 @@ class BXILogTest(unittest.TestCase):
         for i in xrange(len(bxilog.LEVEL_NAMES)):
             level = bxilog.get_level_from_str(bxilog.LEVEL_NAMES[i])
             self.assertEquals(i, level)
-            
+
     def test_filtering(self):
         # Warning: lexical order is important for the test
         filters = bxilog.filter.parse_filters(':out,~a.bar:debug,~a.foo:info')
@@ -148,7 +148,6 @@ class BXILogTest(unittest.TestCase):
         self.assertEqual(merged_filters[1].level, bxilog.DEBUG + delta)
         self.assertEqual(merged_filters[2].prefix, '~a.foo')
         self.assertEqual(merged_filters[2].level, bxilog.LOWEST)
-
 
     def test_default_logger(self):
         """Test default logging functions"""

@@ -213,10 +213,8 @@ QUIT:
     return err;
 }
 
-bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
-                              bxilog_filters_p * result) {
+bxilog_filters_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n) {
     bxiassert(NULL != filters_array || 0 == n);
-    bxiassert(NULL != result);
 
     // We first copy all filters into a new array. Two reasons:
     // 1. some filters might have been statically allocated and are therefore not
@@ -230,7 +228,7 @@ bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
         copied[i] = bxilog_filters_dup(filters);
     }
 
-    *result = bxilog_filters_new();
+    bxilog_filters_p result = bxilog_filters_new();
     // tsearch root node
     void * root = NULL;
 
@@ -244,7 +242,7 @@ bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
             bxiassert(NULL != val);
             bxilog_filter_p found = *(bxilog_filter_p *) val;
             found->level = found->level > filter->level ? found->level : filter->level;
-            found->reserved = result;
+            found->reserved = &result;
         }
     }
 
@@ -265,7 +263,7 @@ bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
     }
     BXIFREE(copied);
 
-    return BXIERR_OK;
+    return result;
 }
 
 //*********************************************************************************

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 """
 @file filters.py bxilog filtering utilities
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -11,6 +10,7 @@ from __future__ import print_function
 @namespace bxi.base.log.filters bxilog filtering utilities
 
 """
+from __future__ import print_function
 import collections
 
 import bxi.ffi as bxiffi
@@ -98,19 +98,8 @@ def merge_filters(filters_set):
     """
     Merge the given set of filters.
     """
-    prefixes = dict()
-    for filters in filters_set:
-        for filter_ in filters:
-            prefix = filter_.prefix
-            level = filter_.level
-            if prefix in prefixes:
-                prefixes[prefix] = max(level, prefixes[prefix])
-            else:
-                prefixes[prefix] = level
-
-    result_p = __FFI__.new('bxilog_filters_p[1]')
-    result_p[0] = __BXIBASE_CAPI__.bxilog_filters_new()
-    for prefix in sorted(prefixes):
-        __BXIBASE_CAPI__.bxilog_filters_add(result_p, prefix, prefixes[prefix])
-
-    return Filters(result_p[0])
+    c_filters_set = __FFI__.new('bxilog_filters_p[%d]' % len(filters_set))
+    for i in xrange(len(filters_set)):
+        c_filters_set[i] = filters_set[i]._cstruct  # pylint: disable=protected-access
+    c_result = __BXIBASE_CAPI__.bxilog_filters_merge(c_filters_set, len(filters_set))
+    return Filters(c_result)
