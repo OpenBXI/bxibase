@@ -38,7 +38,6 @@
 static int _filter_compar(const void * filter1, const void* filter2);
 static void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth);
 
-
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -252,10 +251,19 @@ bxierr_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n,
     // Sort all filters and populate the result
     twalk(root, _merge_filter_visitor);
 
+#ifdef _GNU_SOURCE
+    tdestroy(root, NULL);
+#else
+    while (NULL != root) {
+        bxilog_filter_p filter = *(bxilog_filter_p *) root;
+        tdelete(filter, &root, _filter_compar);
+    }
+#endif
 
     for (size_t i = 0; i < n; i++) {
         bxilog_filters_destroy(&copied[i]);
     }
+    BXIFREE(copied);
 
     return BXIERR_OK;
 }
@@ -291,3 +299,4 @@ void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth
             break;
     }
 }
+
