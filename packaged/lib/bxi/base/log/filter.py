@@ -100,6 +100,6 @@ def merge_filters(filters_set):
     """
     c_filters_set = __FFI__.new('bxilog_filters_p[%d]' % len(filters_set))
     for i in xrange(len(filters_set)):
-        c_filters_set[i] = filters_set[i]._cstruct  # pylint: disable=protected-access
+        c_filters_set[i] = filters_set[i]._cstruct  # pylint: disable=locally-disabled, protected-access
     c_result = __BXIBASE_CAPI__.bxilog_filters_merge(c_filters_set, len(filters_set))
     return Filters(c_result)
