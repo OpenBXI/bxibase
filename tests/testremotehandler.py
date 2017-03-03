@@ -94,11 +94,11 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         self.assertEquals(rc, logs_nb)
         # Wait a bit for the logs to be processed
         time.sleep(1)
+        remote_receiver.stop_receiving()
         bxilog.flush()
         with open(child) as file_:
             lines = file_.readlines()
         self.assertEquals(len(lines), logs_nb)
-        remote_receiver.stop_receiving()
         ctx.destroy()
 
     def test_remote_logging_connect(self):
