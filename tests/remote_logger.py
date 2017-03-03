@@ -25,12 +25,14 @@ FILENAME = "%s.bxilog" % SHORTNAME
 
 _LOGGER = bxilog.get_logger(BASENAME)
 
+
 def _do_log(rnge):
     nb = 0
     for i in rnge:
         bxilog.out("Message #%d sent from the child", i)
         nb += 1
     return nb
+
 
 def main(file_out, url, bind, sync_nb, logs_nb):
     config = {'handlers': ['file', 'remote'],
@@ -48,7 +50,12 @@ def main(file_out, url, bind, sync_nb, logs_nb):
               }
     bxilog.set_config(config)
     nb = 0
-    nb = _do_log(xrange(logs_nb))
+    n = logs_nb / 2
+    nb += _do_log(xrange(n))
+    bxilog.cleanup()
+    bxilog.set_config(config)
+    nb += _do_log(xrange(logs_nb - n))
+
     return nb
 
 ###############################################################################

@@ -72,7 +72,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         ctrl_zock = ctx.socket(zmq.DEALER)
         ctrl_url = 'ipc://%s/remote_handler-ctrl.zock' % tmpdir
         ctrl_zock.bind(ctrl_url)
-        logs_nb = 5
+        logs_nb = 25
         full_cmd_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                      LOGGER_CMD)
         logger_output_file = os.path.join(tmpdir,

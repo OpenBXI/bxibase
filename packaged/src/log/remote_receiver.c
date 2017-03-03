@@ -426,7 +426,11 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
 
                 err2 = _process_new_state(poller[0].socket);
                 BXIERR_CHAIN(err, err2);
-                continue;
+                if (bxierr_isko(err)) {
+                    BXILOG_REPORT(_REMOTE_LOGGER, BXILOG_ERROR, err,
+                                  "Error while receiving other end state, cleaning up");
+                    break;
+                }
             }
             if (0 == strncmp(BXILOG_REMOTE_HANDLER_LOG_HEADER,
                              header,
@@ -619,8 +623,7 @@ bxierr_p _process_new_state(void * zock) {
 
     if (0 == strncmp(state, BXILOG_REMOTE_HANDLER_STATE_EXITING,
                      ARRAYLEN(BXILOG_REMOTE_HANDLER_STATE_EXITING) - 1)) {
-        PANIC(_REMOTE_LOGGER, "DOING SOMETHING HERE");
-        return err;
+        return bxierr_gen("Other end is exiting, cleaning up");
     }
     return bxierr_gen("Unknown state: %s. Continuing anyway (best effort).", state);
 }

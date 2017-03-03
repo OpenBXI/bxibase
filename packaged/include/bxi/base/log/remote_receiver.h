@@ -27,7 +27,7 @@
 //*********************************************************************************
 
 /**
- * BXILog remote reciver paramters
+ * BXILog remote receiver parameters
  */
 typedef struct bxilog_remote_recv_s {
     int nb_urls;           //!< Number of urls to connect to
