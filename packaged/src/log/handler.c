@@ -25,7 +25,8 @@
 #include "bxi/base/time.h"
 #include "bxi/base/zmq.h"
 
-#include "bxi/base/log.h"
+#include "bxi/base/log/handler.h"
+#include "bxi/base/log/filter.h"
 
 #include "handler_impl.h"
 #include "log_impl.h"

@@ -242,6 +242,7 @@ struct bxilog_handler_s_f {
      * @param[in] param the log handler parameter as returned by param_new()
      */
     bxierr_p (*process_cfg)(bxilog_handler_param_p param);
+
     /**
      * @param[in] param the log handler parameter as returned by param_new()
      */

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=locally-disabled, invalid-name
 """
 @file bxilog-console
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -11,17 +12,15 @@
 
 """
 
-import os,sys
-import weakref
 import zmq
 
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
-import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
+import bxi.base.log.remote_receiver as remote_receiver
 
 
 # Find the C library
@@ -30,6 +29,13 @@ __BXIBASE_CAPI__ = bxibase.get_capi()
 
 
 def _connect(args):
+    """
+    Connect to the ctrl socket according to args
+
+    @param[in] args the arguments of the command line
+
+    @return a "monitoring" dictionnary mapping url to zocket
+    """
     ctx = zmq.Context.instance()
     monitoring = dict()
     for url in args.bxilog_remote_handler_url:
@@ -43,8 +49,15 @@ def _connect(args):
 
 
 def _get_raw_config(monitoring):
+    """
+    Fetch the configuration from the given monitoring
+
+    @param[in] monitoring the monitoring object returned by _connect().
+
+    @return a dictionnary mapping url to raw json configuration data
+    """
     bxilog.info("Getting configuration of %s", monitoring.keys())
-    
+
     result = dict()
     for url in monitoring:
         ctrl_zock = monitoring[url][0]
@@ -56,13 +69,20 @@ def _get_raw_config(monitoring):
 
 
 def _get_config(monitoring, args):
+    """
+    Output the configuration from the given monitoring
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+
+    """
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
         global_ = data['global']
         bxilog.output("%s: %s",
                       url,
-                      ", ".join("%s: %s" % (str(k), str(v)) for k,v in global_.items()))
+                      ", ".join("%s: %s" % (str(k), str(v)) for k, v in global_.items()))
 
 
 def _set_config(monitoring, args):
@@ -70,6 +90,12 @@ def _set_config(monitoring, args):
 
 
 def _get_handlers(monitoring, args):
+    """
+    Output the set of logging handlers from the given monitoring
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+    """
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
@@ -80,51 +106,53 @@ def _get_handlers(monitoring, args):
             bxilog.output("%s/handler-name='%s': %s",
                           str(url),
                           str(name),
-                          ", ".join("%s: %s" % (str(k), str(v)) for k,v in handler.items()))
+                          ", ".join("%s: %s" % (str(k), str(v))
+                                    for k, v in handler.items()))
 
 
 def _get_loggers(monitoring, args):
+    """
+    Output the set of loggers from the given monitoring
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+    """
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
         loggers = data['loggers']
     for logger in sorted(loggers, key=lambda x: x['name']):
-            name = logger['name']
-            del logger['name']
-            bxilog.output("%s/logger-name='%s': %s",
-                          str(url),
-                          str(name),
-                          ", ".join("%s: %s" % (str(k), str(v)) for k,v in logger.items()))
+        name = logger['name']
+        del logger['name']
+        bxilog.output("%s/logger-name='%s': %s",
+                      str(url),
+                      str(name),
+                      ", ".join("%s: %s" % (str(k), str(v)) for k, v in logger.items()))
 
 
 def _monitor(monitoring, args):
+    """
+    Monitor the logs from the given monitoring
+
+    @note this function never returns
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+    """
+
     bxilog.info("Monitoring configuration %s", monitoring.keys())
     result = _get_raw_config(monitoring)
-    param = __FFI__.new('bxilog_remote_recv_s *')
-    param.nb_urls = len(result)
-    # WARNING: use local variables in order to prevent the GC from 
-    # freeing allocated space before the C function has been called!
-    # This is quite tricky! If you modify this piece of code
-    # better be sure on what you are doing!
-    
-    tmpref = []
+    urls = []
     for ctrl_url in result:
         data = result[ctrl_url]
-        tmpref.append(__FFI__.new('char[]', str(data['global']['pub_url'])))
-    c_urls = __FFI__.new('char *[]', tmpref)
-    param.urls = c_urls
-    param.bind = args.bind;
-    param.sync_nb = 0;
-    err = __BXIBASE_CAPI__.bxilog_remote_recv(param)
-    bxierr.BXICError.raise_if_ko(err)
-    
+        urls.append(str(data['global']['pub_url']))
+    remote_receiver.receive_bxilogs(urls, args.bind, sync_nb=0)
 
-
-_ACTIONS={'get-config': _get_config,
-          'get-handlers': _get_handlers,
-          'get-loggers': _get_loggers,
-          'monitor': _monitor,
-          }
+_ACTIONS = {'get-config': _get_config,
+            'get-handlers': _get_handlers,
+            'get-loggers': _get_loggers,
+            'monitor': _monitor,
+           }
 
 
 if __name__ == '__main__':
@@ -137,16 +165,14 @@ if __name__ == '__main__':
                         default='monitor')
     parser.add_argument("bxilog_remote_handler_url", type=str, nargs='+',
                         help="The remote handler url to monitor.")
-    
-    parser.add_argument("--bind", action='store_true', 
-                       help='Bind to the url instead of connect')
-    
+
+    parser.add_argument("--bind", action='store_true',
+                        help='Bind to the url instead of connect')
+
     bxiparserconf.addargs(parser, domain_name='log')
 
-    args = parser.parse_args()
-    
-    monitoring = _connect(args)
-    
-    _ACTIONS[args.action](monitoring, args)
-    
-    
+    args_ = parser.parse_args()
+
+    monitoring_ = _connect(args_)
+
+    _ACTIONS[args_.action](monitoring_, args_)

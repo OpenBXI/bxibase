@@ -23,7 +23,10 @@
 //********************************  Defines  **************************************
 //*********************************************************************************
 
-#define BXILOG_REMOTE_HANDLER_HEADER "bxilogrh/"
+#define BXILOG_REMOTE_HANDLER_LOG_HEADER "log/"
+#define BXILOG_REMOTE_HANDLER_STATE_HEADER ".state/"
+
+#define BXILOG_REMOTE_HANDLER_STATE_EXITING "exiting"
 
 #define BXILOG_REMOTE_HANDLER_CFG_CMD "get-config"
 

@@ -24,6 +24,12 @@
 
 #include "bxi/base/err.h"
 
+#ifdef __DBG__
+#define DBG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
+
 
 /**
  * @file    zmq.h
