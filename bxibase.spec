@@ -6,7 +6,7 @@
 #TODO: define your package name
 %define name bxibase
 
-%define version 6.0.0
+%define version 6.1.0
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
