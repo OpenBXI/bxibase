@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-@file filters.py bxilog filtering utilities
+@file filter.py bxilog filtering utilities
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
 @copyright 2013  Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
