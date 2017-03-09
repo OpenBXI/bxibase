@@ -1149,9 +1149,16 @@ bxierr_p bxizmq_sync_sub_many(void * const zmq_ctx,
     bxierr_p tmp = bxizmq_zocket_destroy(&sync_zocket);
     // We don't care here!
     bxierr_report(&tmp, STDERR_FILENO);
+
     // Destroy the binary tree
-    // TODO: tdestroy(already_pinged_root, free);
-    // Use twalk() instead since tdestroy() does not exist without GNU
+#ifdef _GNU_SOURCE
+    tdestroy(already_pinged_root, NULL);
+#else
+    while (NULL != already_pinged_root) {
+        char * header = *(char **) already_pinged_root;
+        tdelete(header, &already_pinged_root, (__compar_fn_t) strcmp);
+    }
+#endif
 
     // Unsubscribe from SYNC messages
     err2 = bxizmq_zocket_setopt(sub_zocket, ZMQ_UNSUBSCRIBE,
