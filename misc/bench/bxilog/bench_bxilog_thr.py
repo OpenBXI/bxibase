@@ -34,7 +34,7 @@ if __name__ == "__main__":
         exit(1)
 
     filename = "/tmp/%s.log" % sys.argv[0]
-    bxilog.basicConfig(filename=filename)
+    bxilog.basicConfig(filename=filename, append=True, level=bxilog.DEBUG)
     #print("Output file is %s" % filename)
 
     threads_nb = int(sys.argv[1])
