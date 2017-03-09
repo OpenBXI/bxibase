@@ -85,7 +85,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         bxilog.out("Starting logs reception thread on %s", data_url)
         binded_urls = remote_receiver.start_receiving([data_url],
                                                       sync_nb=1,
-                                                       ctrl_zock=ctrl_zock)
+                                                      ctrl_zock=ctrl_zock)
         self.assertEquals(1, len(binded_urls))
         bxilog.out("Waiting for the child termination")
         popen.wait()
