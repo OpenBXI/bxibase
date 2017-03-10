@@ -20,9 +20,8 @@
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
 #include "bxi/base/log.h"
-#include "bxi/base/log/remote_receiver.h"
-
 #include <argp.h>
+#include <bxi/base/log/remote_receiver.h>
 
 
 // *********************************************************************************
@@ -41,7 +40,7 @@ SET_LOGGER(MAIN_LOGGER, "bxilog-monitor");
 
 /* Used by main to communicate with parse_opt. */
 struct arguments_s {
-    int nb_urls; // How many urls to connect/bind to
+    size_t urls_nb; // How many urls to connect/bind to
     const char ** urls; // The urls
     char *logfilters;
     char *logfile;
@@ -91,7 +90,7 @@ int main(int argc, char **argv) {
     /* Default values. */
     arguments.logfilters = ":output";
     arguments.logfile = NULL;
-    arguments.nb_urls = 0;
+    arguments.urls_nb = 0;
     arguments.bind = false;
     arguments.urls = bximem_calloc(sizeof(*arguments.urls) * (size_t)argc);
 
@@ -111,13 +110,12 @@ int main(int argc, char **argv) {
     bxierr_abort_ifko(err);
     DEBUG(MAIN_LOGGER, "fullprogname: %s", fullprogname);
 
-    bxilog_remote_recv_p param = bximem_calloc(sizeof(*param));
-    param->nb_urls = arguments.nb_urls;
-    param->urls = arguments.urls;
-    param->bind = arguments.bind;
-    param->sync_nb = 0;
+    bxilog_remote_receiver_p recv = bxilog_remote_receiver_new(arguments.urls,
+                                                       arguments.urls_nb,
+                                                       0,
+                                                       arguments.bind);
 
-    err = bxilog_remote_recv(param);
+    err = bxilog_remote_receiver_start(recv);
 
     /*
     // *** In the following using the asynchronous function
@@ -139,7 +137,9 @@ int main(int argc, char **argv) {
     BXIFREE(fullprogname);
 
     BXIFREE(arguments.urls);
-    BXIFREE(param);
+
+    bxilog_remote_receiver_destroy(&recv);
+    BXIFREE(recv);
 
     bxilog_finalize(true);
 
@@ -171,11 +171,11 @@ error_t _parse_opt(int key, char *arg, struct argp_state * const state) {
             argp_state_help(state, stdout, ARGP_HELP_USAGE | ARGP_HELP_LONG | ARGP_HELP_EXIT_OK);
             return ARGP_HELP_EXIT_ERR;
         case ARGP_KEY_ARG:
-            arguments->urls[arguments->nb_urls] = arg;
-            arguments->nb_urls += 1;
+            arguments->urls[arguments->urls_nb] = arg;
+            arguments->urls_nb += 1;
             break;
         case ARGP_KEY_END:
-            if (0 == arguments->nb_urls) {
+            if (0 == arguments->urls_nb) {
                 /* Bad number of arguments. */
                 argp_state_help(state, stdout, ARGP_HELP_USAGE | ARGP_HELP_LONG | ARGP_HELP_EXIT_ERR);
                 return ARGP_HELP_EXIT_ERR;

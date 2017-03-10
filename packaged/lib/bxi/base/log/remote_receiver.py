@@ -20,60 +20,46 @@ __FFI__ = bxiffi.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
 
-def start_receiving(urls, sync_nb, ctrl_zock=None):
-    """
-    Start receiving bxilogs from the given set of urls.
+class RemoteReceiver(object):
 
-    if ctrl_zock is not None, the underlying SUB socket will bind to the given URLs
-    instead of connecting. The given ctrl_zock will be used
-    to send back to the other side the actual URL the SUB socket has been binded to.
+    def __init__(self, urls, sync_nb, bind):
+        """
+        Create a new instance connected or binded to given urls.
 
-    @note this function immediately returns. Use stop_receiving() to
-          stop the underlying thread.
+        if bind is True, the underlying SUB socket will bind to the given URLs
+        instead of connecting.
 
-    @param[in] urls the urls to bind/connect to
-    @param[in] sync_nb the number of synchronization to perform
-    @param[in] ctrl_zock bind instead of connect if not None
+        @param[in] urls the urls to bind/connect to
+        @param[in] sync_nb the number of synchronization to perform
+        @param[in] bind if true, bind instead of connecting
 
-    @return the urls on which the SUB socket has been binded to
+        """
+        tmpref = []
+        for url in urls:
+            tmpref.append(__FFI__.new('char[]', str(url)))
+        c_urls = __FFI__.new('char *[]', tmpref)
+        self.urls = urls
+        self.c_receiver = __BXIBASE_CAPI__.bxilog_remote_receiver_new(c_urls, len(urls),
+                                                                      sync_nb,
+                                                                      bind)
 
-    @see stop_receiving()
-    """
-    param = __FFI__.new('bxilog_remote_recv_s *')
-    param.nb_urls = len(urls)
-    # WARNING: use local variables in order to prevent the GC from
-    # freeing allocated space before the C function has been called!
-    # This is quite tricky! If you modify this piece of code
-    # better be sure on what you are doing!
+    def start(self):
+        """
+        Start receiving bxilogs.
 
-    tmpref = []
-    for url in urls:
-        tmpref.append(__FFI__.new('char[]', str(url)))
-    c_urls = __FFI__.new('char *[]', tmpref)
-    param.urls = c_urls
-    param.bind = ctrl_zock is not None
-    param.sync_nb = sync_nb
-    urls_a = __FFI__.new('char *[1]')
-    urls_p = __FFI__.new('char **[1]')
-    urls_p[0] = urls_a
-    err = __BXIBASE_CAPI__.bxilog_remote_recv_async_start(param, urls_p)
-    bxierr.BXICError.raise_if_ko(err)
-    result = []
-    for i in xrange(len(urls)):
-        result.append(__FFI__.string(urls_a[i]))
-    # TODO: change this design! The ctrl zocket and the sub zocket are not in the same
-    # thread! This has some strange consequences.
-    # When binding on SUB, the other end, expect the URL to be sent on the CTRL socket.
-    if ctrl_zock is not None:
-        ctrl_zock.send_multipart(result)
-    return result
+        @note this function immediately returns. Use stop() to
+              stop the underlying thread.
 
+        @see stop_receiving()
+        """
+        err = __BXIBASE_CAPI__.bxilog_remote_receiver_start(self.c_receiver)
+        bxierr.BXICError.raise_if_ko(err)
 
-def stop_receiving():
-    """
-    Stop receiving bxilogs.
+    def stop(self):
+        """
+        Stop receiving bxilogs.
 
-    @see start_receiving()
-    """
-    err = __BXIBASE_CAPI__.bxilog_remote_recv_async_stop()
-    bxierr.BXICError.raise_if_ko(err)
+        @see start_receiving()
+        """
+        err = __BXIBASE_CAPI__.bxilog_remote_receiver_stop(self.c_receiver)
+        bxierr.BXICError.raise_if_ko(err)

@@ -67,26 +67,22 @@ class BXIRemoteLoggerTest(unittest.TestCase):
                         }
         bxilog.set_config(configobj.ConfigObj(parent_config))
         print("Logging output: all=%s, child=%s" % (all, child))
-        bxilog.out("Creating the ctrl zocket")
-        ctx = zmq.Context.instance()
-        ctrl_zock = ctx.socket(zmq.DEALER)
-        ctrl_url = 'ipc://%s/remote_handler-ctrl.zock' % tmpdir
-        ctrl_zock.bind(ctrl_url)
+#         url = 'ipc://%s/remote_handler-cfg.zock' % tmpdir
+        url = 'tcp://127.0.0.1:5648'
         logs_nb = 25
         full_cmd_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                      LOGGER_CMD)
         logger_output_file = os.path.join(tmpdir,
                                           os.path.splitext(LOGGER_CMD)[0] + '.bxilog')
 
-        args = [full_cmd_path, logger_output_file, ctrl_url, 'False', '1', str(logs_nb)]
+        args = [full_cmd_path, logger_output_file, url, 'False', '1', str(logs_nb)]
         bxilog.out("Executing '%s': it must produce %d logs", ' '.join(args), logs_nb)
         popen = subprocess.Popen(args)
-        data_url = 'ipc://%s/remote_handler-data.zock' % tmpdir
-        bxilog.out("Starting logs reception thread on %s", data_url)
-        binded_urls = remote_receiver.start_receiving([data_url],
-                                                      sync_nb=1,
-                                                      ctrl_zock=ctrl_zock)
-        self.assertEquals(1, len(binded_urls))
+        bxilog.out("Starting logs reception thread on %s", url)
+        receiver = remote_receiver.RemoteReceiver([url],
+                                                  sync_nb=1,
+                                                  bind=True)
+        receiver.start()
         bxilog.out("Waiting for the child termination")
         popen.wait()
         rc = popen.returncode
@@ -94,12 +90,13 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         self.assertEquals(rc, logs_nb)
         # Wait a bit for the logs to be processed
         time.sleep(1)
-        remote_receiver.stop_receiving()
+        bxilog.out("Stopping the receiver")
+        receiver.stop()
+        bxilog.out("Flushing bxilog")
         bxilog.flush()
         with open(child) as file_:
             lines = file_.readlines()
         self.assertEquals(len(lines), logs_nb)
-        ctx.destroy()
 
     def test_remote_logging_connect(self):
         pass

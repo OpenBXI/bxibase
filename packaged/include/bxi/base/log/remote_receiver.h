@@ -1,17 +1,18 @@
 /**
  * @file    remote_receiver.h
  * @authors Sébastien Miquée <sebastien.miquee@atos.net>
+ * @authors Pierre Vignéras <pierre.vigneras@atos.net>
  * @copyright 2016  Bull S.A.S.  -  All rights reserved.\n
  *         This is not Free or Open Source software.\n
  *         Please contact Bull SAS for details about its license.\n
  *         Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
  * @brief  The Monitor Logging Handler
  *
- * The remote receiverver receives logs through a or more ZMQ sockets.
+ * The remote receiver receives logs through a or more ZMQ sockets.
  */
 
 
-#ifndef BXILOG_REMOTE_RECEIVER_H_
+#ifndef BXILOG_REMOTE_RECV_H_
 #define BXILOG_REMOTE_RECEIVER_H_
 
 #include "bxi/base/err.h"
@@ -26,17 +27,8 @@
 //*********************************  Types  ***************************************
 //*********************************************************************************
 
-/**
- * BXILog remote receiver parameters
- */
-typedef struct bxilog_remote_recv_s {
-    int nb_urls;           //!< Number of urls to connect to
-    bool bind;             //!< If true, bind instead of connect
-    const char ** urls;    //!< The urls
-    size_t sync_nb;        //!< How many PUB/SUB synchronization to do before starting
-} bxilog_remote_recv_s;
 
-typedef bxilog_remote_recv_s * bxilog_remote_recv_p;
+typedef struct bxilog_remote_receiver_s * bxilog_remote_receiver_p;
 
 
 //*********************************************************************************
@@ -47,16 +39,11 @@ typedef bxilog_remote_recv_s * bxilog_remote_recv_p;
 //********************************  Interfaces  ***********************************
 //*********************************************************************************
 
-/**
- * The Remote Receiver function.
- *
- * Note that this function is blocking. A version starting a background thread
- * is also available as `bxilog_remote_recv_async`.
- *
- * @param[in] param the bxilog_remote_recv_s parameters
- * @return BXIERR_OK on success, anything else on error.
- */
-bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param);
+bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t urls_nb,
+                                                    size_t sync_nb, bool bind);
+
+
+void bxilog_remote_receiver_destroy(bxilog_remote_receiver_p *self_p);
 
 
 /**
@@ -66,11 +53,10 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param);
  * blocking version is also available as `bxilog_remote_recv`.
  *
  * @param[in] param the bxilog_remote_recv_s parameters
- * @param[out] urls the list of urls the SUB socket has been binded to if any
  *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param, char ***urls);
+bxierr_p bxilog_remote_receiver_start(bxilog_remote_receiver_p self);
 
 
 /**
@@ -81,7 +67,7 @@ bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param, char ***urls
  *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_recv_async_stop(void);
+bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self);
 
 
 #endif

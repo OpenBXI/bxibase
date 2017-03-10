@@ -45,9 +45,11 @@ typedef struct bxilog_remote_handler_param_s_f {
     bool synced;
     size_t sub_nb;
     double timeout_s;
+    char * cfg_url;   // Only when bind is false
     char * ctrl_url;
     char * pub_url;
     void * ctx;
+    void * cfg_zock;  // Only when bind is false
     void * ctrl_zock;
     void * data_zock;
 
@@ -127,7 +129,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
 
     bxiassert(BXILOG_REMOTE_HANDLER == self);
 
-    char * ctrl_url = va_arg(ap, char *);
+    char * url = va_arg(ap, char *);
     bool bind_flag = va_arg(ap, int); // YES, THIS IS *REQUIRED* IN C99,
                                       // bool will be promoted to int
     size_t sub_nb = va_arg(ap, size_t);
@@ -136,7 +138,13 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     bxilog_remote_handler_param_p result = bximem_calloc(sizeof(*result));
     bxilog_handler_init_param(self, filters, &result->generic);
 
-    result->ctrl_url = strdup(ctrl_url);
+    if (bind_flag) {
+        result->cfg_url = NULL;
+        result->ctrl_url = strdup(url);
+    } else {
+        result->cfg_url = strdup(url);
+        result->ctrl_url = NULL;
+    }
     result->pub_url = NULL;
     result->bind = bind_flag;
     result->sub_nb = sub_nb;
@@ -193,40 +201,65 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
         DBG("Data zocket binded to %s\n", data->pub_url);
 
     } else {
-        DBG("Connecting control zocket to %s\n", data->ctrl_url);
-        // Creating and connecting the ZMQ control socket
+        DBG("Connecting config zocket to %s\n", data->cfg_url);
+        // Creating and connecting the ZMQ config socket
         err2 = bxizmq_zocket_create_connected(data->ctx,
-                                              ZMQ_ROUTER,
-                                              data->ctrl_url,
-                                              &data->ctrl_zock);
+                                              ZMQ_DEALER,
+                                              data->cfg_url,
+                                              &data->cfg_zock);
         BXIERR_CHAIN(err, err2);
-        DBG("Receiving data zocket url\n");
+        if (bxierr_isko(err)) return err;
 
-        zmq_msg_t id_frame;
-        err2 = bxizmq_msg_init(&id_frame);
-        BXIERR_CHAIN(err, err2);
-
-        err2 = bxizmq_msg_rcv(data->ctrl_zock, &id_frame, 0);
+        err2 = bxizmq_zocket_create(data->ctx, ZMQ_ROUTER, &data->ctrl_zock);
         BXIERR_CHAIN(err, err2);
 
+        err2 = bxizmq_zocket_create(data->ctx, ZMQ_PUB, &data->data_zock);
+        BXIERR_CHAIN(err, err2);
+
+        DBG("Requesting urls on %s\n", data->cfg_url);
+        err2 = bxizmq_str_snd(BXILOG_REMOTE_HANDLER_URLS, data->cfg_zock, 0, false, 0);
+        BXIERR_CHAIN(err, err2);
+        if (bxierr_isko(err)) return err;
+
+        size_t urls_nb;
+        size_t * urls_nb_p = &urls_nb;
+        err2 = bxizmq_data_rcv((void**)&urls_nb_p, sizeof(*urls_nb_p), data->cfg_zock, 0, false, NULL);
+        BXIERR_CHAIN(err, err2);
+
+        bxiassert(1 == urls_nb);
+
+        for (size_t i = 0; i < urls_nb; i++) {
+            char * url = NULL;
+            err2 = bxizmq_str_rcv(data->cfg_zock, 0, true, &url);
+            BXIERR_CHAIN(err, err2);
+            DBG("Received control zocket url: '%s'\n", url);
+            if (NULL == url) return err;
+            data->ctrl_url = url;
+            DBG("Connecting control zocket to %s\n", data->ctrl_url);
+            err2 = bxizmq_zocket_connect(data->ctrl_zock, data->ctrl_url);
+            BXIERR_CHAIN(err, err2);
+        }
+        for (size_t i = 0; i < urls_nb - 1; i++) {
+            char * url = NULL;
+            err2 = bxizmq_str_rcv(data->cfg_zock, 0, true, &url);
+            BXIERR_CHAIN(err, err2);
+            DBG("Received data zocket url: '%s'\n", url);
+            if (NULL == url) return err;
+            data->pub_url = url;
+            DBG("Connecting data zocket to %s\n", data->pub_url);
+            err2 = bxizmq_zocket_connect(data->data_zock, data->pub_url);
+            BXIERR_CHAIN(err, err2);
+        }
+        // Last frame:
         char * url = NULL;
-        err2 = bxizmq_str_rcv(data->ctrl_zock, 0, true, &url);
+        err2 = bxizmq_str_rcv(data->cfg_zock, 0, true, &url);
         BXIERR_CHAIN(err, err2);
-
-         DBG("Data zocket url is %s\n", url);
-
+        DBG("Received data zocket url: '%s'\n", url);
         if (NULL == url) return err;
-
         data->pub_url = url;
-
         DBG("Connecting data zocket to %s\n", data->pub_url);
-        // Creating and connecting the ZMQ data socket
-        err2 = bxizmq_zocket_create_connected(data->ctx,
-                                              ZMQ_PUB,
-                                              data->pub_url,
-                                              &data->data_zock);
+        err2 = bxizmq_zocket_connect(data->data_zock, data->pub_url);
         BXIERR_CHAIN(err, err2);
-
     }
     data->synced = false;
     data->generic.private_items_nb = 1;
@@ -244,17 +277,15 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
 bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 = bxizmq_str_snd(BXILOG_REMOTE_HANDLER_STATE_HEADER, data->data_zock,
-                          ZMQ_SNDMORE, 0, 0);
-    BXIERR_CHAIN(err, err2);
-
-    err2 = bxizmq_str_snd(BXILOG_REMOTE_HANDLER_STATE_EXITING, data->data_zock,
-                          0, 0, 0);
-    BXIERR_CHAIN(err, err2);
-
     BXIFREE(data->pub_url);
     BXIFREE(data->generic.private_items);
     BXIFREE(data->generic.cbs);
+
+
+    if (NULL != data->cfg_zock) {
+        err2 = bxizmq_zocket_destroy(&data->cfg_zock);
+        BXIERR_CHAIN(err, err2);
+    }
 
     if (NULL != data->ctrl_zock) {
         err2 = bxizmq_zocket_destroy(&data->ctrl_zock);
@@ -304,12 +335,10 @@ bxierr_p _process_log(bxilog_record_p record,
             data->synced = true;
         }
 
-        char * header = bxistr_new("%s%s",
-                                   BXILOG_REMOTE_HANDLER_LOG_HEADER,
-                                   _LOG_LEVEL_HEADER[record->level]);
+        const char * header =  _LOG_LEVEL_HEADER[record->level];
 
         err2 = bxizmq_str_snd_zc(header, data->data_zock, ZMQ_SNDMORE,
-                                 0, 0, true);
+                                 0, 0, false);
         BXIERR_CHAIN(err, err2);
 
         size_t record_len = sizeof(*record) +\
@@ -367,8 +396,14 @@ bxierr_p _process_ctrl_msg(bxilog_remote_handler_param_p data, int revent) {
         err2 = bxizmq_str_rcv(data->ctrl_zock, 0, true, &msg);
         BXIERR_CHAIN(err, err2);
 
+        if (0 == strncmp(BXILOG_REMOTE_HANDLER_URLS, msg,
+                                 ARRAYLEN(BXILOG_REMOTE_HANDLER_URLS) - 1)) {
+                    err2 = bxizmq_str_snd_zc(data->pub_url, data->ctrl_zock, 0, 0, 0, false);
+                    BXIERR_CHAIN(err, err2);
+        }
+
         if (0 == strncmp(BXILOG_REMOTE_HANDLER_CFG_CMD, msg,
-                         ARRAYLEN(BXILOG_REMOTE_HANDLER_CFG_CMD))) {
+                         ARRAYLEN(BXILOG_REMOTE_HANDLER_CFG_CMD) - 1)) {
 
             err2 = _process_get_cfg_msg(data, id_frame);
             BXIERR_CHAIN(err, err2);
