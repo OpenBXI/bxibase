@@ -3,6 +3,7 @@ encoding//misc/bench/bxilog/bench-py_bxilog_mp=utf-8
 encoding//misc/bench/bxilog/bench-py_bxilog_thr=utf-8
 encoding//misc/bench/bxilog/bench-py_logging_mp=utf-8
 encoding//misc/bench/bxilog/bench-py_logging_thr=utf-8
+encoding//misc/bench/bxilog/bench_clmtrace_mp.py=utf-8
 encoding//misc/issues/init_in_filename/logging_init.py=utf-8
 encoding//misc/util/zmq_dbg=utf-8
 encoding//packaged/bin/bxilog-console=utf-8
