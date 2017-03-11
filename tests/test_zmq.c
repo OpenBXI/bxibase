@@ -373,7 +373,6 @@ void test_1pub_1sub_sync() {
         DEBUG(LOGGER, "Waiting for a sub quit");
 
         if (sub_param->terminated) {
-            pthread_join(sub, NULL);
             break;
         }
 
@@ -386,6 +385,12 @@ void test_1pub_1sub_sync() {
         "Nb published: %zu, Nb received: %zu",
         pub_param->msg_nb, msg_nb);
     CU_ASSERT_EQUAL(pub_param->msg_nb, msg_nb);
+
+    pthread_t threads[] = {sub, pub};
+    for (size_t i = 0; i < 2; i++) {
+        int rc = pthread_join(threads[i], NULL);
+        BXIASSERT(LOGGER, 0 == rc);
+    }
 
     BXIFREE(sub_param->urls);
     BXIFREE(sub_param);
@@ -494,6 +499,12 @@ void test_2pub_1sub_sync() {
 
     CU_ASSERT_EQUAL(total, sub_param->msg_nb);
 
+    pthread_t threads[]= {sub, pub[0], pub[1] };
+    for (size_t i = 0; i < 3; i++) {
+        rc = pthread_join(threads[i], NULL);
+        BXIASSERT(LOGGER, 0 == rc);
+    }
+
     BXIFREE(sub_param->urls);
     BXIFREE(sub_param);
     BXIFREE(pubs_param[0].urls);
@@ -564,11 +575,11 @@ void test_2pub_2sub_sync() {
     pubs_param[1].quit_url = quit_url;
 
     OUT(LOGGER, "Starting 2 pubs");
-    pthread_t pub[2];
-    rc = pthread_create(&pub[0], NULL, pub_thread, &pubs_param[0]);
+    pthread_t pubs[2];
+    rc = pthread_create(&pubs[0], NULL, pub_thread, &pubs_param[0]);
     bxiassert(0 == rc);
 
-    rc = pthread_create(&pub[1], NULL, pub_thread, &pubs_param[1]);
+    rc = pthread_create(&pubs[1], NULL, pub_thread, &pubs_param[1]);
     bxiassert(0 == rc);
 
     TRACE(LOGGER, "Creating a zmq context");
@@ -618,6 +629,12 @@ void test_2pub_2sub_sync() {
 
     CU_ASSERT_EQUAL(total, subs_param[0].msg_nb);
     CU_ASSERT_EQUAL(pubs_param[1].msg_nb, subs_param[1].msg_nb);
+
+    pthread_t threads[] = {subs[0], subs[1], pubs[0], pubs[1]};
+    for (size_t i = 0; i < 4; i++) {
+        int rc = pthread_join(threads[i], NULL);
+        BXIASSERT(LOGGER, 0 == rc);
+    }
 
     for (size_t i = 0; i < subs_param[0].urls_nb; i++) {
         BXIFREE(subs_param[0].urls);

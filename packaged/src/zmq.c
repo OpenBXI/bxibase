@@ -1106,11 +1106,14 @@ bxierr_p bxizmq_sync_sub_many(void * const zmq_ctx,
                 err2 = _process_sub_ping_msg(sub_zocket, sync_zocket,
                                              header, &already_pinged_root);
                 BXIERR_CHAIN(err, err2);
+                // Do not free header here, it is inserted in the binary tree already_pinged_root
+                // BXIFREE(header);
             } else if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_LAST, header,
                              ARRAYLEN(BXIZMQ_PUBSUB_SYNC_LAST) - 1)) {
                 // We received a 'last' message
                 err2 = _process_sub_last_msg(sync_zocket, &missing_last_msg_nb, pub_nb);
                 BXIERR_CHAIN(err, err2);
+                BXIFREE(header);
             } else {
                 err2 = bxierr_simple(BXIZMQ_PROTOCOL_ERR,
                                      "Wrong pub/sub sync header message received: '%s'",
@@ -1157,6 +1160,7 @@ bxierr_p bxizmq_sync_sub_many(void * const zmq_ctx,
     while (NULL != already_pinged_root) {
         char * header = *(char **) already_pinged_root;
         tdelete(header, &already_pinged_root, (__compar_fn_t) strcmp);
+        BXIFREE(header);
     }
 #endif
 
