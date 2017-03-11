@@ -8,7 +8,8 @@
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
-"""Unit tests of BXI Log Python library.
+"""
+Benchmark of BXI Log Python library.
 """
 
 from __future__ import print_function
@@ -31,10 +32,12 @@ N = None
 MIN = None
 MAX = None
 
+LOGGER = bxilog.get_default_logger()
+
 def benched_log(level, msg, stats):
     start = time.clock()
     
-    bxilog.log(level, msg)
+    LOGGER.log(level, msg)
 
     duration = time.clock() - start
     
@@ -116,6 +119,7 @@ handlers = file,
     max_ = max(MAX)
     for i in xrange(threads_nb):
         n += N[i]
+        
         
     sb = os.stat(FILENAME.value)
     size = sb.st_size
