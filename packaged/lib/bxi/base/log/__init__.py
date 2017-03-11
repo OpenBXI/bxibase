@@ -652,6 +652,21 @@ def lowest(msg, *args, **kwargs):
     get_default_logger().lowest(msg, *args, **kwargs)
 
 
+def  log(level, msg, *args, **kwargs):
+    """
+    Log the given message at the given level using the default logger.
+
+    @param[in] level the level at which the given message should be logged
+    @param[in] msg the message to log
+    @param[in] args an array of parameters for string substitution in msg
+    @param[in] kwargs a dict of named parameters for string substitution in msg
+    @return
+
+    @see get_default_logger
+    """
+    get_default_logger().log(level, msg, *args, **kwargs)
+
+
 def exception(msg="", *args, **kwargs):
     """
     Log the current exception.
