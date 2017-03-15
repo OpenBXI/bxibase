@@ -13,7 +13,7 @@
 """
 
 import zmq
-
+import time
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
@@ -145,8 +145,11 @@ def _monitor(monitoring, args):
     urls = []
     for ctrl_url in result:
         data = result[ctrl_url]
-        urls.append(str(data['global']['pub_url']))
-    remote_receiver.receive_bxilogs(urls, args.bind, sync_nb=0)
+        urls.append(str(data['global']['ctrl_url']))
+    receiver = remote_receiver.RemoteReceiver(urls, sync_nb=0, bind=args.bind)
+    receiver.start()
+    # Do something better here! Instead of sleeping
+    time.sleep(2 ** 32)
 
 _ACTIONS = {'get-config': _get_config,
             'get-handlers': _get_handlers,

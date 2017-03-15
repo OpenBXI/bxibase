@@ -61,16 +61,8 @@ AM_LDFLAGS=\
 
 dist_bin_SCRIPTS=\
 				 bin/bxilog-producer\
-				 bin/bxilog-parser
-
-bin_PROGRAMS=\
-			bin/bxilog-monitor
-
-bin_bxilog_monitor_SOURCES=\
-			src/bxilog-monitor.c
-
-bin_bxilog_monitor_LDADD=\
-			lib/libbxibase.la
+				 bin/bxilog-parser\
+				 bin/bxilog-console
 
 
 SUBDIRS=include lib doc
