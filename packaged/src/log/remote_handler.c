@@ -104,19 +104,19 @@ static const bxilog_handler_s BXILOG_REMOTE_HANDLER_S = {
 const bxilog_handler_p BXILOG_REMOTE_HANDLER = (bxilog_handler_p) &BXILOG_REMOTE_HANDLER_S;
 
 static const char * const _LOG_LEVEL_HEADER[] = {
-        "",                             // BXILOG_OFF
-        "LTFDIONWECAP",                 // BXILOG_PANIC
-        "LTFDIONWECA",                  // BXILOG_ALERT
-        "LTFDIONWEC",                   // BXILOG_CRITICAL
-        "LTFDIONWE",                    // BXILOG_ERROR
-        "LTFDIONW",                     // BXILOG_WARNING
-        "LTFDION",                      // BXILOG_NOTICE
-        "LTFDIO",                       // BXILOG_OUTPUT
-        "LTFDI",                        // BXILOG_INFO,
-        "LTFD",                         // BXILOG_DEBUG,
-        "LTF",                          // BXILOG_FINE,
-        "LT",                           // BXILOG_TRACE,
-        "L",                            // BXILOG_LOWEST
+        BXILOG_RECORD_HEADER,                             // BXILOG_OFF
+        BXILOG_RECORD_HEADER "LTFDIONWECAP",              // BXILOG_PANIC
+        BXILOG_RECORD_HEADER "LTFDIONWECA",               // BXILOG_ALERT
+        BXILOG_RECORD_HEADER "LTFDIONWEC",                // BXILOG_CRITICAL
+        BXILOG_RECORD_HEADER "LTFDIONWE",                 // BXILOG_ERROR
+        BXILOG_RECORD_HEADER "LTFDIONW",                  // BXILOG_WARNING
+        BXILOG_RECORD_HEADER "LTFDION",                   // BXILOG_NOTICE
+        BXILOG_RECORD_HEADER "LTFDIO",                    // BXILOG_OUTPUT
+        BXILOG_RECORD_HEADER "LTFDI",                     // BXILOG_INFO,
+        BXILOG_RECORD_HEADER "LTFD",                      // BXILOG_DEBUG,
+        BXILOG_RECORD_HEADER "LTF",                       // BXILOG_FINE,
+        BXILOG_RECORD_HEADER "LT",                        // BXILOG_TRACE,
+        BXILOG_RECORD_HEADER "L",                         // BXILOG_LOWEST
 };
 
 //*********************************************************************************

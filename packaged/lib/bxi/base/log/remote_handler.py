@@ -43,34 +43,3 @@ def add_handler(configobj, section_name, c_config):
                                                url,
                                                bind,
                                                sub_nb)
-
-
-def remote_recv_async_start(urls, sync_nb=0, bind=False):
-    param_p = __FFI__.new('bxilog_remote_recv_s[1]')
-
-    param_p[0].nb_urls = len(urls)
-    curls = __FFI__.new('char*[%s]' % len(urls))
-
-    param_p[0].urls = curls
-    param_p[0].bind = bind
-    param_p[0].sync_nb = sync_nb
-
-    gc_keeper_urls = list() # Required to prevent GC
-    for i in xrange(len(urls)):
-        url = __FFI__.new('char[]', urls[i])
-        gc_keeper_urls.append(url)
-        param_p[0].urls[i] = url
-
-    binded_curls = __FFI__.new('char*[%s]' % len(urls))
-    binded_curls_p = __FFI__.new('char**[1]')
-    binded_curls_p[0] = binded_curls
-    __BXIBASE_CAPI__.bxilog_remote_recv_async_start(param_p, binded_curls_p)
-    result = []
-
-    for i in xrange(len(urls)):
-        result.append(__FFI__.string(binded_curls[i])) # TODO: how to gc the C memory?
-    return result
-
-
-def remote_recv_async_stop():
-    __BXIBASE_CAPI__.bxilog_remote_recv_async_stop()

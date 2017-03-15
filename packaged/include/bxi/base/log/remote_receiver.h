@@ -52,7 +52,10 @@ void bxilog_remote_receiver_destroy(bxilog_remote_receiver_p *self_p);
  * This function starts a background thread to handle the remote bxilogs. A
  * blocking version is also available as `bxilog_remote_recv`.
  *
- * @param[in] param the bxilog_remote_recv_s parameters
+ * @param[in] self the bxilog_remote_recv_s parameters
+ * @param[out] binded_cfg_urls a pointer to store the urls that the internal thread
+ *             has binded to if not NULL and if bind was true when calling
+ *             bxilog_remote_receiver_new()
  *
  * @return BXIERR_OK on success, anything else on error.
  */
@@ -68,6 +71,17 @@ bxierr_p bxilog_remote_receiver_start(bxilog_remote_receiver_p self);
  * @return BXIERR_OK on success, anything else on error.
  */
 bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self);
+
+
+/**
+ * Return the urls that the internal thread has binded to or NULL if not applicable.
+ *
+ * @param[in] self the receiver
+ * @param[out] result a pointer on the result
+ * @return the number of urls that the internal thread has binded to or 0 if
+ *         not applicable
+ */
+size_t bxilog_get_binded_urls(bxilog_remote_receiver_p self, const char*** result);
 
 
 #endif

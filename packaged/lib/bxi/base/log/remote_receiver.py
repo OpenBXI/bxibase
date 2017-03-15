@@ -63,3 +63,15 @@ class RemoteReceiver(object):
         """
         err = __BXIBASE_CAPI__.bxilog_remote_receiver_stop(self.c_receiver)
         bxierr.BXICError.raise_if_ko(err)
+
+    def get_binded_urls(self):
+        """
+        Return the urls the internal thread has binded to or None if not applicable
+
+        @return the urls the internal thread has binded to or None if not applicable
+        """
+        urls_c = __FFI__.new("char**[1]")
+        nb = __BXIBASE_CAPI__.bxilog_get_binded_urls(self.c_receiver, urls_c)
+        if nb == 0:
+            return None
+        return [__FFI__.string(urls_c[0][i]) for i in xrange(nb)]

@@ -273,6 +273,13 @@ bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self) {
     return err;
 }
 
+size_t bxilog_get_binded_urls(bxilog_remote_receiver_p self, const char*** result) {
+    BXIASSERT(LOGGER, NULL != self);
+
+    *result = self->cfg_urls;
+    return self->bind ? self->urls_nb : 0;
+}
+
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
@@ -401,8 +408,19 @@ bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
             char * header;
             err2 = bxizmq_str_rcv(poller[2].socket, 0, false, &header);
             BXIERR_CHAIN(err, err2);
-            BXIFREE(header);
 
+            if (0 != strncmp(BXILOG_RECORD_HEADER,
+                             header, ARRAYLEN(BXILOG_RECORD_HEADER)-1)) {
+                bxierr_p tmp_err = bxierr_simple(_BAD_HEADER_ERR,
+                                                 "Wrong bxilog header: expected "
+                                                 BXILOG_RECORD_HEADER
+                                                 "*, received: %s",
+                                                 header);
+                BXILOG_REPORT(LOGGER, BXILOG_WARNING, tmp_err,
+                              "Error detected but continuing anyway (best-effort).");
+                continue;
+            }
+            BXIFREE(header);
             err2 = _process_new_log(poller[2].socket, tsd);
             BXIERR_CHAIN(err, err2);
         }
