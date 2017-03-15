@@ -194,7 +194,7 @@ bxierr_p bxilog_remote_receiver_start(bxilog_remote_receiver_p self) {
     if (rc <= 0) {
         LOWEST(LOGGER, "No answer received from receiver thread");
         return bxierr_simple(BXIZMQ_TIMEOUT_ERR,
-                             "Unable to synchronized with "
+                             "Unable to synchronize with "
                              "the bxilog receiver thread");
     }
     if (-1 == rc) {
@@ -574,7 +574,7 @@ bxierr_p _connect_zocket(bxilog_remote_receiver_p self) {
         } else {
             self->ctrl_urls[i] = strdup(self->urls[i]);
             TRACE(LOGGER, "Connecting control zocket to url: '%s'", self->ctrl_urls[i]);
-            err2 = bxizmq_zocket_connect(self->data_zock, self->ctrl_urls[i]);
+            err2 = bxizmq_zocket_connect(self->ctrl_zock, self->ctrl_urls[i]);
             BXIERR_CHAIN(err, err2);
 
             FINE(LOGGER,
@@ -591,7 +591,7 @@ bxierr_p _connect_zocket(bxilog_remote_receiver_p self) {
             }
             TRACE(LOGGER, "Waiting for URL reception from '%s", self->ctrl_urls[i]);
             char * url = NULL;
-            err2 = bxizmq_str_rcv(self->ctrl_zock, 0, 0, &url);
+            err2 = bxizmq_str_rcv(self->ctrl_zock, 0, false, &url);
             BXIERR_CHAIN(err, err2);
 
             TRACE(LOGGER, "Connecting data zocket to url: '%s'", url);

@@ -397,18 +397,23 @@ bxierr_p _process_ctrl_msg(bxilog_remote_handler_param_p data, int revent) {
         BXIERR_CHAIN(err, err2);
 
         if (0 == strncmp(BXILOG_REMOTE_HANDLER_URLS, msg,
-                                 ARRAYLEN(BXILOG_REMOTE_HANDLER_URLS) - 1)) {
-                    err2 = bxizmq_str_snd_zc(data->pub_url, data->ctrl_zock, 0, 0, 0, false);
-                    BXIERR_CHAIN(err, err2);
-        }
+                         ARRAYLEN(BXILOG_REMOTE_HANDLER_URLS) - 1)) {
+            DBG("URLs requested\n");
+            err2 = bxizmq_msg_snd(&id_frame, data->ctrl_zock, ZMQ_SNDMORE, 0, 0);
+            BXIERR_CHAIN(err, err2);
+            err2 = bxizmq_str_snd_zc(data->pub_url, data->ctrl_zock, 0, 0, 0, false);
+            BXIERR_CHAIN(err, err2);
+        } else if (0 == strncmp(BXILOG_REMOTE_HANDLER_CFG_CMD, msg,
+                                ARRAYLEN(BXILOG_REMOTE_HANDLER_CFG_CMD) - 1)) {
 
-        if (0 == strncmp(BXILOG_REMOTE_HANDLER_CFG_CMD, msg,
-                         ARRAYLEN(BXILOG_REMOTE_HANDLER_CFG_CMD) - 1)) {
-
+            DBG("Configuration requested\n");
             err2 = _process_get_cfg_msg(data, id_frame);
             BXIERR_CHAIN(err, err2);
 
+        } else {
+            DBG("Bad control message received: %s\n", msg);
         }
+
     }
 
     return err;
