@@ -716,7 +716,7 @@ bxierr_p bxizmq_str_rcv(void * const zocket, const int flags, const bool check_m
     // This function cannot use the bximisc_rcv_msg() since the amount of data sent
     // for a string is strlen(): the last '\0' is not sent therefore!
     // When we receive such a message the expected size should therefore be the
-    // strlen(), but the allocated memory should strlen() + 1!!
+    // strlen(), but the allocated memory should be strlen() + 1!!
     bxierr_p current = BXIERR_OK, new;
     if (check_more) {
         bool more = false;
