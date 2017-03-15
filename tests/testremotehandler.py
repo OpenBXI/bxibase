@@ -67,8 +67,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
                         }
         bxilog.set_config(configobj.ConfigObj(parent_config))
         print("Logging output: all=%s, child=%s" % (all, child))
-#         url = 'ipc://%s/remote_handler-cfg.zock' % tmpdir
-        url = 'tcp://127.0.0.1:5648'
+        url = 'ipc://%s/rh -cfg.zock' % tmpdir
         logs_nb = 25
         full_cmd_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                      LOGGER_CMD)
