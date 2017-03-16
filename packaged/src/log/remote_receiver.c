@@ -25,7 +25,7 @@
 #include "log_impl.h"
 
 
-SET_LOGGER(LOGGER, "bxilog.remote");
+SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.remote");
 
 
 //*********************************************************************************
@@ -481,7 +481,7 @@ bxierr_p _recv_log_record(void * zock, bxilog_record_p * record_p, size_t * reco
                              "Wrong bxilog record: expected size=%zu, received size=%zu",
                              expected_len, size);
     }
-    FINE(LOGGER, "Record received, size: %zu", size);
+    LOWEST(LOGGER, "Record received, size: %zu", size);
 
     if (bxierr_isok(err)) {
         *record_p = record;
@@ -495,9 +495,9 @@ bxierr_p _dispatch_log_record(tsd_p tsd, bxilog_record_p record, size_t data_len
 
     bxierr_p err = BXIERR_OK, err2;
 
-    DEBUG(LOGGER,
-          "Dispatching the log to all %zu handlers",
-          BXILOG__GLOBALS->internal_handlers_nb);
+    LOWEST(LOGGER,
+           "Dispatching the log to all %zu handlers",
+           BXILOG__GLOBALS->internal_handlers_nb);
 
     for (size_t i = 0; i< BXILOG__GLOBALS->internal_handlers_nb; i++) {
       // Send the frame
