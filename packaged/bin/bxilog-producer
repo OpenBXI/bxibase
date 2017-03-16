@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     parser = posless.ArgumentParser(description='BXI Log Producer',
                                     formatter_class=bxiparserconf.FilteredHelpFormatter)
-    bxiparserconf.addargs(parser, domain_name='log')
+    bxiparserconf.addargs(parser, domain_name='bxilog')
     parser.add_argument("--time", type=float, default=float('inf'),
                         help="How many time should we produce logs in seconds"
                         " ('inf' means infinity). Default: %(default)s")
