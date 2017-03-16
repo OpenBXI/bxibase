@@ -24,7 +24,7 @@
 #include "log_impl.h"
 
 
-SET_LOGGER(_REMOTE_LOGGER, "bxilog.remote");
+SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.remote");
 
 
 //*********************************************************************************
@@ -103,7 +103,7 @@ bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param) {
 
     poller->events = ZMQ_POLLIN;
 
-    TRACE(_REMOTE_LOGGER, "Creating and connecting the ZMQ socket to url: '%s'",
+    TRACE(LOGGER, "Creating and connecting the ZMQ socket to url: '%s'",
                           BXILOG_REMOTE_RECEIVER_SYNC_URL);
     err2 = bxizmq_zocket_connect(context, ZMQ_PAIR,
                                  BXILOG_REMOTE_RECEIVER_SYNC_URL,
@@ -127,7 +127,7 @@ bxierr_p bxilog_remote_recv_async_start(bxilog_remote_recv_p param) {
     rc =  zmq_poll(poller, 1, BXILOG_RECEIVER_SYNC_TIMEOUT);
 
     if (rc <= 0) {
-        LOWEST(_REMOTE_LOGGER, "No answer received from receiver thread");
+        LOWEST(LOGGER, "No answer received from receiver thread");
         return bxierr_simple(1, "Unable to synchronized with the bxilog receiver thread");
     }
     if (-1 == rc) {
@@ -166,7 +166,7 @@ bxierr_p bxilog_remote_recv_async_stop(void) {
 
     poller->events = ZMQ_POLLIN;
 
-    TRACE(_REMOTE_LOGGER,
+    TRACE(LOGGER,
           "Creating and connecting the ZMQ socket to url: '%s'",
           BXILOG_REMOTE_RECEIVER_SYNC_URL);
 
@@ -187,7 +187,7 @@ bxierr_p bxilog_remote_recv_async_stop(void) {
     rc =  zmq_poll(poller, 1, BXILOG_RECEIVER_SYNC_TIMEOUT * 10);
 
     if (rc <= 0) {
-        LOWEST(_REMOTE_LOGGER, "No answer received from receiver thread");
+        LOWEST(LOGGER, "No answer received from receiver thread");
         return bxierr_simple(1, "Unable to synchronized with the bxilog receiver thread");
     }
     if (-1 == rc) {
@@ -226,12 +226,12 @@ bxierr_p bxilog_remote_recv(bxilog_remote_recv_p param) {
 
     err = _bxilog_remote_recv_loop(poller);
 
-    DEBUG(_REMOTE_LOGGER, "Leaving");
-    TRACE(_REMOTE_LOGGER, "Closing the sockets");
+    DEBUG(LOGGER, "Leaving");
+    TRACE(LOGGER, "Closing the sockets");
     bxizmq_zocket_destroy(poller[0].socket);
     bxizmq_zocket_destroy(poller[1].socket);
 
-    TRACE(_REMOTE_LOGGER, "Closing the context");
+    TRACE(LOGGER, "Closing the context");
     bxizmq_context_destroy(&context);
 
     BXIFREE(poller);
@@ -257,14 +257,14 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
     BXIERR_CHAIN(err, err2);
 
     if (bxierr_isko(err)) {
-        LOWEST(_REMOTE_LOGGER, "Sending synchronization message with error");
+        LOWEST(LOGGER, "Sending synchronization message with error");
         err2 = bxizmq_str_snd(BXILOG_RECEIVER_SYNC_NOK, poller[1].socket, 0, 2, 500);
         BXIERR_CHAIN(err, err2);
 
         err2 = bxizmq_zocket_destroy(poller[1].socket);
         err2 = bxizmq_zocket_destroy(poller[0].socket);
 
-        TRACE(_REMOTE_LOGGER, "Closing the context");
+        TRACE(LOGGER, "Closing the context");
         err2 = bxizmq_context_destroy(&context);
 
         BXIERR_CHAIN(err, err2);
@@ -277,7 +277,7 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
         BXIERR_CHAIN(err, err2);
 
         if (bxierr_isko(err)) {
-            CRITICAL(_REMOTE_LOGGER, "Unable to send synchronization message");
+            CRITICAL(LOGGER, "Unable to send synchronization message");
             BXIERR_CHAIN(err, err2);
             return err;
         }
@@ -285,12 +285,12 @@ bxierr_p _bxilog_remote_recv_async(bxilog_remote_recv_p param) {
 
     err = _bxilog_remote_recv_loop(poller);
 
-    DEBUG(_REMOTE_LOGGER, "Leaving");
-    TRACE(_REMOTE_LOGGER, "Closing the sockets");
+    DEBUG(LOGGER, "Leaving");
+    TRACE(LOGGER, "Closing the sockets");
     bxizmq_zocket_destroy(poller[0].socket);
     bxizmq_zocket_destroy(poller[1].socket);
 
-    TRACE(_REMOTE_LOGGER, "Closing the context");
+    TRACE(LOGGER, "Closing the context");
     bxizmq_context_destroy(&context);
     BXIFREE(poller);
 
@@ -313,11 +313,11 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
     while(loop) {
         bxilog_record_p record_simple = bximem_calloc(sizeof(*record_simple));
 
-        TRACE(_REMOTE_LOGGER, "Waiting for a record");
+        LOWEST(LOGGER, "Waiting for a record");
         rc =  zmq_poll(poller, 2, BXILOG_RECEIVER_POLLING_TIMEOUT);
 
         if (0 == rc) {
-            LOWEST(_REMOTE_LOGGER, "No remote log received");
+            LOWEST(LOGGER, "No remote log received");
             BXIFREE(record_simple);
             continue;
         }
@@ -327,7 +327,7 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
         }
 
         if (poller[1].revents > 0) {
-            TRACE(_REMOTE_LOGGER, "A control message has been received");
+            TRACE(LOGGER, "A control message has been received");
             char * msg;
             errno = 0;
             err2 = bxizmq_str_rcv(poller[1].socket, 0, false, &msg);
@@ -336,10 +336,10 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
 
             if (bxierr_isok(err)) {
               if (0 == strncmp(BXILOG_RECEIVER_EXIT, msg, ARRAYLEN(BXILOG_RECEIVER_EXIT))) {
-                  DEBUG(_REMOTE_LOGGER, "Received message indicating to exit");
+                  DEBUG(LOGGER, "Received message indicating to exit");
                   BXIFREE(msg);
 
-                  DEBUG(_REMOTE_LOGGER, "Sending back the exit confirmation message");
+                  DEBUG(LOGGER, "Sending back the exit confirmation message");
                   err2 = bxizmq_str_snd(BXILOG_RECEIVER_EXITING, poller[1].socket, 0, 2, 500);
                   sleep(1);
                   BXIERR_CHAIN(err, err2);
@@ -348,7 +348,7 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
                   }
                   loop = false;
               } else {
-                  WARNING(_REMOTE_LOGGER, "Received unknown control message: '%s'", msg);
+                  WARNING(LOGGER, "Received unknown control message: '%s'", msg);
                   BXIFREE(msg);
               }
             } else {
@@ -358,9 +358,9 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
 
             err = _receive_record(poller[0].socket, record_simple);
             assert(BXIERR_OK == err);
-            DEBUG(_REMOTE_LOGGER, "Record received");
+            LOWEST(LOGGER, "Record received");
 
-            TRACE(_REMOTE_LOGGER, "Checking for more message");
+            LOWEST(LOGGER, "Checking for more message");
             err = bxizmq_msg_has_more(poller[0].socket, &more);
             assert(BXIERR_OK == err);
             assert(more);
@@ -371,17 +371,17 @@ bxierr_p _bxilog_remote_recv_loop(zmq_pollitem_t * poller) {
 
             size_t data_len = sizeof(*record_simple) + var_len + record_simple->logmsg_len;
 
-            TRACE(_REMOTE_LOGGER, "Reallocate record size to %zu", data_len);
+            LOWEST(LOGGER, "Reallocate record size to %zu", data_len);
             bxilog_record_p record = bximem_realloc(record_simple, sizeof(*record), data_len);
 
-            DEBUG(_REMOTE_LOGGER, "Receiving the data");
+            LOWEST(LOGGER, "Receiving the data");
             err = _receive_data(poller, &record);
             if (bxierr_isko(err)) {
                 BXIFREE(record);
                 return err;
             }
 
-            DEBUG(_REMOTE_LOGGER, "Dispatching the log to all local handlers");
+            LOWEST(LOGGER, "Dispatching the log to all local handlers");
             err = _dispatch_log(tsd, record, data_len);
 
             BXIFREE(record);
@@ -420,7 +420,7 @@ bxierr_p _receive_data(zmq_pollitem_t * poller, bxilog_record_p * rec) {
 
     data = (char*) record + sizeof(*record);
 
-    TRACE(_REMOTE_LOGGER, "Waiting for filename");
+    LOWEST(LOGGER, "Waiting for filename");
     rc =  zmq_poll(poller, 2, BXILOG_RECEIVER_POLLING_TIMEOUT);
 
     if (0 == rc || -1 == rc) {
@@ -433,14 +433,14 @@ bxierr_p _receive_data(zmq_pollitem_t * poller, bxilog_record_p * rec) {
     }
     data += record->filename_len;
 
-    DEBUG(_REMOTE_LOGGER, "Filename received");
+    LOWEST(LOGGER, "Filename received");
 
-    TRACE(_REMOTE_LOGGER, "Checking for more message");
+    LOWEST(LOGGER, "Checking for more message");
     err = bxizmq_msg_has_more(poller[0].socket, &more);
     assert(BXIERR_OK == err);
     assert(more);
 
-    TRACE(_REMOTE_LOGGER, "Waiting for funcname");
+    LOWEST(LOGGER, "Waiting for funcname");
     rc =  zmq_poll(poller, 2, BXILOG_RECEIVER_POLLING_TIMEOUT);
 
     if (0 == rc || -1 == rc) {
@@ -452,14 +452,14 @@ bxierr_p _receive_data(zmq_pollitem_t * poller, bxilog_record_p * rec) {
         return bxierr_errno("Error while receiving funcname value");
     }
     data += record->funcname_len;
-    DEBUG(_REMOTE_LOGGER, "Funcname received");
+    LOWEST(LOGGER, "Funcname received");
 
-    TRACE(_REMOTE_LOGGER, "Checking for more message");
+    LOWEST(LOGGER, "Checking for more message");
     err = bxizmq_msg_has_more(poller[0].socket, &more);
     assert(BXIERR_OK == err);
     assert(more);
 
-    TRACE(_REMOTE_LOGGER, "Waiting for loggername");
+    LOWEST(LOGGER, "Waiting for loggername");
     rc =  zmq_poll(poller, 2, BXILOG_RECEIVER_POLLING_TIMEOUT);
 
     if (0 == rc || -1 == rc) {
@@ -471,14 +471,14 @@ bxierr_p _receive_data(zmq_pollitem_t * poller, bxilog_record_p * rec) {
         return bxierr_errno("Error while receiving loggername value");
     }
     data += record->logname_len;
-    DEBUG(_REMOTE_LOGGER, "Loggername received");
+    LOWEST(LOGGER, "Loggername received");
 
-    TRACE(_REMOTE_LOGGER, "Checking for more message");
+    LOWEST(LOGGER, "Checking for more message");
     err = bxizmq_msg_has_more(poller[0].socket, &more);
     assert(BXIERR_OK == err);
     assert(more);
 
-    TRACE(_REMOTE_LOGGER, "Waiting for logmsg");
+    LOWEST(LOGGER, "Waiting for logmsg");
     rc =  zmq_poll(poller, 2, BXILOG_RECEIVER_POLLING_TIMEOUT);
 
     if (0 == rc || -1 == rc) {
@@ -489,7 +489,7 @@ bxierr_p _receive_data(zmq_pollitem_t * poller, bxilog_record_p * rec) {
     if (-1 == rc) {
         return bxierr_errno("Error while receiving logmsg value");
     }
-    DEBUG(_REMOTE_LOGGER, "Logmsg received");
+    LOWEST(LOGGER, "Logmsg received");
 
     return BXIERR_OK;
 }
@@ -527,7 +527,7 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
     if (NULL == *context) {
         void * ctx = NULL;
 
-        TRACE(_REMOTE_LOGGER, "Creating the ZMQ context");
+        TRACE(LOGGER, "Creating the ZMQ context");
         err2 = bxizmq_context_new(&ctx);
         BXIERR_CHAIN(err, err2);
 
@@ -540,7 +540,7 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
     poller[1].events = ZMQ_POLLIN;
 
     for (int i = 0; i < nb; i++) {
-        TRACE(_REMOTE_LOGGER, "Creating and %s the ZMQ socket to url: '%s'",
+        TRACE(LOGGER, "Creating and %s the ZMQ socket to url: '%s'",
               bind ? "binding" : "connecting", urls[i]);
         if (bind) {
             int port;
@@ -553,13 +553,13 @@ bxierr_p _connect_zocket(zmq_pollitem_t * poller,
     }
 
     if (NULL != poller[0].socket) {
-        TRACE(_REMOTE_LOGGER, "Updating the subcription to everything on the socket");
+        TRACE(LOGGER, "Updating the subcription to everything on the socket");
         char * tree = "";
         err2 = bxizmq_zocket_setopt(poller[0].socket, ZMQ_SUBSCRIBE, tree, strlen(tree));
         BXIERR_CHAIN(err, err2);
     }
 
-    TRACE(_REMOTE_LOGGER,
+    TRACE(LOGGER,
           "Creating and connecting the control ZMQ socket to url: '%s'",
           BXILOG_REMOTE_RECEIVER_SYNC_URL);
 
