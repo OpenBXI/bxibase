@@ -15,6 +15,7 @@
 #include <bxi/base/zmq.h>
 #include <bxi/base/log/remote_handler.h>
 #include <bxi/base/log/remote_receiver.h>
+#include <bxi/base/time.h>
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
@@ -43,7 +44,6 @@ SET_LOGGER(LOGGER, "bxilog.remote");
  * BXILog remote receiver parameters
  */
 struct bxilog_remote_receiver_s {
-    size_t sync_nb;          //!< How many PUB/SUB synchronization to do before starting
     bool bind;               //!< If true, bind instead of connect
     void * zmq_ctx;          //!< The ZMQ context used
     void * bc2it_zock;       //!< Control zocket for Business Code to
@@ -98,7 +98,7 @@ static bxierr_p _process_cfg_request(bxilog_remote_receiver_p self);
 //*********************************************************************************
 
 bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t urls_nb,
-                                                    size_t sync_nb, bool bind) {
+                                                    bool bind) {
 
     if (bind && urls_nb > 1) {
         bxierr_p err = bxierr_gen("Binding on multiple urls is not supported yet!");
@@ -119,7 +119,6 @@ bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t u
     }
     result->ctrl_urls = bximem_calloc(urls_nb * sizeof(*result->data_urls));
     result->data_urls = bximem_calloc(urls_nb * sizeof(*result->data_urls));
-    result->sync_nb = sync_nb;
     result->bind = bind;
 
     return result;
@@ -623,16 +622,20 @@ bxierr_p _connect_zocket(bxilog_remote_receiver_p self) {
 
 
 void _sync_sub(bxilog_remote_receiver_p self) {
-    TRACE(LOGGER,
-          "PUB/SUB Synchronization with %zu publishers", self->sync_nb);
-    // TODO: provide the timeout as a parameter
-    bxierr_p tmp = bxizmq_sync_sub_many(self->zmq_ctx, self->data_zock, self->sync_nb, 1);
+    TRACE(LOGGER, "SUB Synchronization");
+    // TODO: make the timeout configurable
+    double timeout = BXILOG_REMOTE_HANDLER_SYNC_DEFAULT_TIMEOUT;
+    bxierr_p tmp = bxizmq_sync_sub_many(self->zmq_ctx, self->data_zock, 0, timeout);
     if (bxierr_isko(tmp)){
         BXILOG_REPORT(LOGGER, BXILOG_NOTICE,
                       tmp,
-                      "PUB/SUB synchronization failed. First published messages "
+                      "SUB synchronization failed. First published messages "
                       "might have been lost!");
     }
+//    tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 50000000);
+//    BXILOG_REPORT(LOGGER,
+//                  BXILOG_TRACE, tmp,
+//                  "Sleeping after fake SUB synchronization didn't work");
 }
 
 
@@ -669,7 +672,7 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     // configuration zocket
     bxierr_p err = BXIERR_OK, err2;
 
-    DEBUG(LOGGER, "Waiting for config request");
+    DEBUG(LOGGER, "Config request received");
 
     // First frame of ROUTER: id
     zmq_msg_t id;
@@ -687,8 +690,8 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     if (0 != strncmp(msg, BXILOG_REMOTE_HANDLER_URLS,
                      ARRAYLEN(BXILOG_REMOTE_HANDLER_URLS) - 1)) {
         err2 = bxierr_gen("Bad request through config zocket. "
-                "Expected: '%s', received: '%s'",
-                BXILOG_REMOTE_HANDLER_URLS, msg);
+                          "Expected: '%s', received: '%s'",
+                          BXILOG_REMOTE_HANDLER_URLS, msg);
         BXIERR_CHAIN(err, err2);
         return err;
     }

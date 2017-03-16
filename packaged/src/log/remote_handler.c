@@ -43,7 +43,6 @@ typedef struct bxilog_remote_handler_param_s_f {
     bxilog_handler_param_s generic;
     bool bind;
     bool synced;
-    size_t sub_nb;
     double timeout_s;
     char * cfg_url;   // Only when bind is false
     char * ctrl_url;
@@ -132,7 +131,6 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     char * url = va_arg(ap, char *);
     bool bind_flag = va_arg(ap, int); // YES, THIS IS *REQUIRED* IN C99,
                                       // bool will be promoted to int
-    size_t sub_nb = va_arg(ap, size_t);
     va_end(ap);
 
     bxilog_remote_handler_param_p result = bximem_calloc(sizeof(*result));
@@ -147,8 +145,7 @@ bxilog_handler_param_p _param_new(bxilog_handler_p self,
     }
     result->pub_url = NULL;
     result->bind = bind_flag;
-    result->sub_nb = sub_nb;
-    result->timeout_s = 1;
+    result->timeout_s = BXILOG_REMOTE_HANDLER_SYNC_DEFAULT_TIMEOUT;
     result->ctx = NULL;
     result->ctrl_zock = NULL;
     result->data_zock = NULL;
@@ -568,7 +565,7 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
     err2 = bxizmq_sync_pub_many(data->ctx,
                                 data->data_zock,
                                 data->ctrl_url,
-                                data->sub_nb,
+                                0,
                                 data->timeout_s);
     BXIERR_CHAIN(err, err2);
 
@@ -576,9 +573,13 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
         bxierr_p dummy = bxierr_new(1057322, NULL, NULL, NULL,
                                     err,
                                     "Problem with zeromq "
-                                    "PUB/SUB synchronization in %s: "
+                                    "PUB synchronization in %s: "
                                     "messages might be lost", INTERNAL_LOGGER_NAME);
         bxierr_report(&dummy, STDERR_FILENO);
+    } else {
+        // TODO: Hack arount the pub/sub synchro problem for the moment
+//        bxierr_p dummy = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
+//        bxierr_report(&dummy, STDERR_FILENO);
     }
 
     return err;

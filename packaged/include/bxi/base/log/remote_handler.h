@@ -27,7 +27,10 @@
 #define BXILOG_REMOTE_HANDLER_CFG_CMD "get-config"
 
 #define BXILOG_REMOTE_HANDLER_URLS "URLs?"
-
+/**
+ * Timeout in seconds for PUB/SUB synchronization.
+ */
+#define BXILOG_REMOTE_HANDLER_SYNC_DEFAULT_TIMEOUT 1.0
 //*********************************************************************************
 //*********************************  Types  ***************************************
 //*********************************************************************************

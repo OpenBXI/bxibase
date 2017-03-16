@@ -39,10 +39,28 @@ typedef struct bxilog_remote_receiver_s * bxilog_remote_receiver_p;
 //********************************  Interfaces  ***********************************
 //*********************************************************************************
 
+/**
+ * Create a new remote receiver of bxilog
+ *
+ * @param[in] urls a set of urls to bind/connect to
+ * @param[in] urls_nb the number of urls to bind/connect to
+ * @param[in] pub_nb the number of logs publisher to synchronize with
+ * @param[in] bind whether given urls must be binded or connected to
+ *
+ * @return a new receiver instance
+ */
 bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t urls_nb,
-                                                    size_t sync_nb, bool bind);
+                                                    bool bind);
 
 
+/**
+ * Destroy a remote receiver
+ *
+ * @note the given pointer is nullified after this call
+ *
+ * @param[inout] self_p a pointer on the object to destroy
+ *
+ */
 void bxilog_remote_receiver_destroy(bxilog_remote_receiver_p *self_p);
 
 

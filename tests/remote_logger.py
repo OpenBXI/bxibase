@@ -40,7 +40,6 @@ def main(file_out, url, bind, sync_nb, logs_nb):
                          'filters': ':all',
                          'url': url,
                          'bind': bind,
-                         'sub_nb': sync_nb,
                          },
               'file': {'module': 'bxi.base.log.file_handler',
                        'filters': ':all',

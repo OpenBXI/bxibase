@@ -22,7 +22,7 @@ __BXIBASE_CAPI__ = bxibase.get_capi()
 
 class RemoteReceiver(object):
 
-    def __init__(self, urls, sync_nb, bind):
+    def __init__(self, urls, bind):
         """
         Create a new instance connected or binded to given urls.
 
@@ -30,7 +30,7 @@ class RemoteReceiver(object):
         instead of connecting.
 
         @param[in] urls the urls to bind/connect to
-        @param[in] sync_nb the number of synchronization to perform
+        @param[in] pub_nb the number of publishers to synchronize with
         @param[in] bind if true, bind instead of connecting
 
         """
@@ -40,7 +40,6 @@ class RemoteReceiver(object):
         c_urls = __FFI__.new('char *[]', tmpref)
         self.urls = urls
         self.c_receiver = __BXIBASE_CAPI__.bxilog_remote_receiver_new(c_urls, len(urls),
-                                                                      sync_nb,
                                                                       bind)
 
     def start(self):

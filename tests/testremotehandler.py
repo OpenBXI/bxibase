@@ -78,9 +78,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         bxilog.out("Executing '%s': it must produce %d logs", ' '.join(args), logs_nb)
         popen = subprocess.Popen(args)
         bxilog.out("Starting logs reception thread on %s", url)
-        receiver = remote_receiver.RemoteReceiver([url],
-                                                  sync_nb=1,
-                                                  bind=True)
+        receiver = remote_receiver.RemoteReceiver([url], bind=True)
         receiver.start()
         bxilog.out("Waiting for the child termination")
         popen.wait()
