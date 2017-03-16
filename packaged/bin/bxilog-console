@@ -146,7 +146,7 @@ def _monitor(monitoring, args):
     for ctrl_url in result:
         data = result[ctrl_url]
         urls.append(str(data['global']['ctrl_url']))
-    receiver = remote_receiver.RemoteReceiver(urls, sync_nb=0, bind=args.bind)
+    receiver = remote_receiver.RemoteReceiver(urls, bind=args.bind)
     receiver.start()
     # Do something better here! Instead of sleeping
     time.sleep(2 ** 32)
