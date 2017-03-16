@@ -60,6 +60,7 @@ AM_LDFLAGS=\
 
 dist_bin_SCRIPTS=\
 				 bin/bxilog-producer\
+		   		 bin/bxiconfig\
 				 bin/bxilog-parser
 
 bin_PROGRAMS=\
