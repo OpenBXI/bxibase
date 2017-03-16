@@ -38,6 +38,6 @@ def add_handler(configobj, section_name, c_config):
     bind = __FFI__.cast('bool', section.as_bool('bind'))
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,
-                                               filters,
+                                               filters._cstruct,
                                                url,
                                                bind)

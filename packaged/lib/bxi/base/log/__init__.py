@@ -192,6 +192,11 @@ LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 # does understand it
 ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
+__names__ = __FFI__.new("char ***")
+__nb__ = __BXIBASE_CAPI__.bxilog_level_names(__names__)
+# The list of level names as a tuple
+LEVEL_NAMES = tuple(__FFI__.string(__names__[0][i]) for i in xrange(__nb__))
+
 LIB_PREFIX = __FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX)
 
 
@@ -240,7 +245,9 @@ def get_level_from_str(level_str):
 
 def set_config(config, progname=None):
     """
-    Set the whole bxilog module from the given config
+    Set the configuration of the bxilog module from the given configobj.
+
+    @note the configuration is actually used only after the first call to init()
     """
     global _INITIALIZED  # pylint: disable=locally-disabled, global-variable-not-assigned
     if _INITIALIZED:
@@ -266,6 +273,8 @@ the first _init() call  was made: %s""" % _INIT_CALLER, config)
 def get_config():
     """
     Return the current bxilog configuration.
+
+    @note the current configuration is actually used only afte init() has been called.
     """
     global _CONFIG  # pylint: disable=locally-disabled, global-variable-not-assigned
     return _CONFIG
@@ -317,9 +326,12 @@ def multiprocessing_target(func):
     return wrapped
 
 
-def _init():
+def init():
     """
-    Initialize the underlying C library
+    Initialize the underlying C library with the configuration set with set_config().
+
+    @note This function is automatically called by the library on the first call to
+    Logger.log().
 
     @return
     """
@@ -384,6 +396,9 @@ def get_logger(name):
 
     @return the BXILogger instance with the given name
     """
+    # Yes we fetch from Python all loggers.
+    # This is also done in C below. The reason is to prevent
+    # instantiating twice a Python wrapper: singleton implementation!
     for logger in get_all_loggers_iter():
         if __FFI__.string(logger.clogger.name) == name:
             return logger
@@ -421,18 +436,6 @@ def flush():
     """
     err_p = __BXIBASE_CAPI__.bxilog_flush()
     bxierr.BXICError.raise_if_ko(err_p)
-
-
-def get_level_names_iter():
-    """
-    Return an iterator over all level names.
-
-    @return
-    """
-    names = __FFI__.new("char ***")
-    nb = __BXIBASE_CAPI__.bxilog_level_names(names)
-    for i in xrange(nb):
-        yield __FFI__.string(names[0][i])
 
 
 def get_all_loggers_iter():

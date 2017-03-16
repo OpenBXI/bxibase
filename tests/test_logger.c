@@ -558,7 +558,7 @@ void test_registry(void) {
 }
 
 
-void test_filter_parser(void) {
+void test_filters_parser(void) {
     bxilog_registry_reset();
 
     bxilog_config_p config = bxilog_unit_test_config(PROGNAME,
@@ -598,6 +598,45 @@ void test_filter_parser(void) {
     err = bxilog_finalize(true);
     CU_ASSERT_TRUE_FATAL(bxierr_isok(err));
     bxilog_registry_reset();
+}
+
+void test_filters_merge() {
+    char filters1_format[] = ":debug,a:output,a.c:warning";
+    bxilog_filters_p filters1 = NULL;
+    bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    char filters2_format[] = ":fine,a:lowest,a.c:error,a.b:output";
+    bxilog_filters_p filters2 = NULL;
+    err = bxilog_filters_parse(filters2_format, &filters2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filters_p array[2] = {filters1, filters2};
+    bxilog_filters_p merged_filters = bxilog_filters_merge(array, 2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 4);
+
+    // :fine
+    CU_ASSERT_EQUAL(strcmp("", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_FINE, merged_filters->list[0]->level);
+
+    // a:lowest
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_LOWEST, merged_filters->list[1]->level);
+
+    // a.b:output
+    CU_ASSERT_EQUAL(strcmp("a.b", merged_filters->list[2]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_OUTPUT, merged_filters->list[2]->level);
+
+    // a.c: warning
+    CU_ASSERT_EQUAL(strcmp("a.c", merged_filters->list[3]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_WARNING, merged_filters->list[3]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters1);
+    bxilog_filters_destroy(&filters2);
+
 }
 
 void _fork_childs(size_t n) {

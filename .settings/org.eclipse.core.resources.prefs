@@ -32,6 +32,7 @@ encoding//tests/posless_suite.py=utf-8
 encoding//tests/remote_logger.py=utf-8
 encoding//tests/simple_bxilog_user.py=utf-8
 encoding//tests/simple_bxilogger.py=utf-8
+encoding//tests/testbxierr.py=utf-8
 encoding//tests/testbxilog.py=utf-8
 encoding//tests/testparserconf.py=utf-8
 encoding//tests/testremotehandler.py=utf-8

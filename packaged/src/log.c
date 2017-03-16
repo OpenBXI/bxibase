@@ -158,6 +158,12 @@ bxierr_p bxilog_init(bxilog_config_p config) {
         goto UNLOCK;
     }
 
+    err = bxilog__config_loggers();
+    if (bxierr_isko(err)) {
+        BXILOG__GLOBALS->state = BROKEN;
+        goto UNLOCK;
+    }
+
     // Install the fork handler once only
     rc = pthread_once(&ATFORK_ONCE, bxilog__fork_install_handlers);
     if (0 != rc) {
@@ -448,6 +454,7 @@ bxierr_p bxilog__finalize(void) {
     return err;
 }
 
+
 bxierr_p bxilog__stop_handlers(void) {
     // TODO: hack around zeromq issue
     // https://github.com/zeromq/libzmq/issues/1590
@@ -714,10 +721,13 @@ void _setprocname(char * name) {
     errno = 0;
     const char * progname = NULL;
     bxistr_rsub(name, strlen(name), '/', &progname);
+    if (NULL == progname || strlen(progname) == 0) {
+        return;
+    }
     int rc = prctl(15 /* PR_SET_NAME */, progname, 0, 0, 0);
     if (0 != rc) {
         bxierr_p err = bxierr_errno("Setting process name to '%s' with "
-                                    "prctl() failed", name);
+                "prctl() failed", name);
         bxierr_report(&err, STDERR_FILENO);
     }
 #endif

@@ -12,6 +12,7 @@
  */
 
 #include <string.h>
+#include <search.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
@@ -20,6 +21,8 @@
 #include "bxi/base/zmq.h"
 
 #include "bxi/base/log.h"
+#include "bxi/base/log/level.h"
+#include "bxi/base/log/filter.h"
 
 //*********************************************************************************
 //********************************** Defines **************************************
@@ -32,7 +35,8 @@
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-
+static int _filter_compar(const void * filter1, const void* filter2);
+static void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -126,6 +130,17 @@ void bxilog_filters_add(bxilog_filters_p * filters_p,
     }
 }
 
+bxilog_filters_p  bxilog_filters_dup(bxilog_filters_p filters) {
+    bxiassert(NULL != filters);
+    bxilog_filters_p result = bxilog_filters_new();
+    result->allocated = true;
+    for (size_t i = 0; i < filters->nb; i++) {
+        bxilog_filter_p filter = filters->list[i];
+        bxilog_filters_add(&result, (char*) filter->prefix, filter->level);
+    }
+
+    return result;
+}
 
 bxierr_p bxilog_filters_parse(char * str, bxilog_filters_p * result) {
     bxiassert(NULL != str);
@@ -198,8 +213,88 @@ QUIT:
     return err;
 }
 
+bxilog_filters_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n) {
+    bxiassert(NULL != filters_array || 0 == n);
+
+    // We first copy all filters into a new array. Two reasons:
+    // 1. some filters might have been statically allocated and are therefore not
+    //    modifiable
+    // 2. we will destroy a binary tree at the end, and therefore, all filters inserted
+    //    into it.
+    // Therefore, it is better to use our own copy
+    bxilog_filters_p * copied = bximem_calloc(n * sizeof(*copied));
+    for (size_t i = 0; i < n; i++) {
+        bxilog_filters_p filters = filters_array[i];
+        copied[i] = bxilog_filters_dup(filters);
+    }
+
+    bxilog_filters_p result = bxilog_filters_new();
+    // tsearch root node
+    void * root = NULL;
+
+
+    for (size_t i = 0; i < n; i++) {
+        bxilog_filters_p filters = copied[i];
+
+        for (size_t k = 0; k < filters->nb; k++) {
+            bxilog_filter_p filter = filters->list[k];
+            void * val = tsearch(filter, &root, _filter_compar);
+            bxiassert(NULL != val);
+            bxilog_filter_p found = *(bxilog_filter_p *) val;
+            found->level = found->level > filter->level ? found->level : filter->level;
+            found->reserved = &result;
+        }
+    }
+
+    // Sort all filters and populate the result
+    twalk(root, _merge_filter_visitor);
+
+#ifdef _GNU_SOURCE
+    tdestroy(root, NULL);
+#else
+    while (NULL != root) {
+        bxilog_filter_p filter = *(bxilog_filter_p *) root;
+        tdelete(filter, &root, _filter_compar);
+    }
+#endif
+
+    for (size_t i = 0; i < n; i++) {
+        bxilog_filters_destroy(&copied[i]);
+    }
+    BXIFREE(copied);
+
+    return result;
+}
 
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
+int _filter_compar(const void * filter1, const void * filter2) {
+    bxiassert(NULL != filter1);
+    bxiassert(NULL != filter2);
+
+    bxilog_filter_p f1 = (bxilog_filter_p) filter1;
+    bxilog_filter_p f2 = (bxilog_filter_p) filter2;
+
+    return strcmp(f1->prefix, f2->prefix);
+}
+
+void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth) {
+    UNUSED(depth);
+    bxilog_filter_p filter = *(bxilog_filter_p *) nodep;
+    bxilog_filters_p * result = (bxilog_filters_p *) filter->reserved;
+
+    switch (which) {
+        case preorder:
+            break;
+        case postorder:
+            bxilog_filters_add(result, (char*) filter->prefix, filter->level);
+            break;
+        case endorder:
+            break;
+        case leaf:
+            bxilog_filters_add(result, (char*) filter->prefix, filter->level);
+            break;
+    }
+}
 

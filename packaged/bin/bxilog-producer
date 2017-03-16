@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# pylint: disable=C0103
+# pylint: disable=locally-disabled, invalid-name
 """
 @file bxilog-producer
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -11,7 +11,6 @@
 @namespace bxilog-producer Produce various logging message (use for testing bxilog)
 
 """
-
 
 import bxi.base.log as logging
 import bxi.base.posless as posless
@@ -46,7 +45,8 @@ if __name__ == '__main__':
                         " Default: %(default)s")
 
     args = parser.parse_args()
-    level_names = list(logging.get_level_names_iter())
+
+    level_names = logging.LEVEL_NAMES
 
     start = time.time()
     while True:
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         elif kind is 'exception':
             try:
                 raise Exception("This is a dummy exception")
-            except Exception:                               # pylint: disable=W0703
+            except Exception:  # pylint: disable=locally-disabled, broad-except
                 logger.exception("Just checking bxilog, everything is normal, "
                                  "don't worry")
         time.sleep(args.max_delay_s)

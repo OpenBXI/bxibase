@@ -44,7 +44,7 @@ def add_handler(configobj, section_name, c_config):
     option = __FFI__.cast('int', syslog.LOG_PID)
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,
-                                               filters,
+                                               filters._cstruct,
                                                identity,
                                                option,
                                                facility)

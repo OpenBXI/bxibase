@@ -45,7 +45,7 @@
 #include "bxi/base/time.h"
 #include "bxi/base/zmq.h"
 
-#include "bxi/base/log.h"
+#include "bxi/base/log/logger.h"
 
 #include "log_impl.h"
 #include "tsd_impl.h"

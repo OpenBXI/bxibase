@@ -79,7 +79,8 @@ void test_logger_fork(void);
 void test_logger_signal(void);
 void test_single_logger_instance(void);
 void test_registry(void);
-void test_filter_parser(void);
+void test_filters_parser(void);
+void test_filters_merge(void);
 void test_logger_threads(void);
 void test_handlers(void);
 void test_very_long_log(void);
@@ -271,36 +272,34 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    if ((NULL == bxi_cunit_test_only) || (0 == strcmp("LOG", bxi_cunit_test_only))) {
 
-        CU_pSuite bxilog_suite = CU_add_suite("bxilog_suite", NULL, NULL);
-        if (NULL == bxilog_suite) {
-            CU_cleanup_registry();
-            return (CU_get_error());
-        }
-        /* add the tests to the suite */
+    CU_pSuite bxilog_suite = CU_add_suite("bxilog_suite", NULL, NULL);
+    if (NULL == bxilog_suite) {
+      CU_cleanup_registry();
+      return (CU_get_error());
+    }
 
+    /* add the tests to the suite */
+    if (false
+        || (NULL == CU_add_test(bxilog_suite, "test logger init", test_logger_init))
+        || (NULL == CU_add_test(bxilog_suite, "test logger existing file", test_logger_existing_file))
+        || (NULL == CU_add_test(bxilog_suite, "test logger non existing file", test_logger_non_existing_file))
+        || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
+        || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
+        || (NULL == CU_add_test(bxilog_suite, "test very long log", test_very_long_log))
+        || (NULL == CU_add_test(bxilog_suite, "test strange log", test_strange_log))
+        || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
+        || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filters_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter merger", test_filters_merge))
+        || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
+        || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
+        || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
+//        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
 
-        if (false
-                || (NULL == CU_add_test(bxilog_suite, "test logger init", test_logger_init))
-                || (NULL == CU_add_test(bxilog_suite, "test logger existing file", test_logger_existing_file))
-                || (NULL == CU_add_test(bxilog_suite, "test logger non existing file", test_logger_non_existing_file))
-                || (NULL == CU_add_test(bxilog_suite, "test logger non existing dir", test_logger_non_existing_dir))
-                || (NULL == CU_add_test(bxilog_suite, "test logger levels", test_logger_levels))
-                || (NULL == CU_add_test(bxilog_suite, "test strange log", test_strange_log))
-                || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
-                || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
-                || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
-                || (NULL == CU_add_test(bxilog_suite, "test very long log", test_very_long_log))
-                || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
-                || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
-                || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))
-                //        || (NULL == CU_add_test(bxilog_suite, "test logger signal", test_logger_signal))
-
-                || false) {
-            CU_cleanup_registry();
-            return (CU_get_error());
-        }
+        || false) {
+        CU_cleanup_registry();
+        return (CU_get_error());
     }
 
     /* Run all tests using the automated interface */

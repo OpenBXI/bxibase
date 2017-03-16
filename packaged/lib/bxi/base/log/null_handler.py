@@ -39,4 +39,4 @@ def add_handler(configobj, section_name, c_config):
 
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_NULL_HANDLER,
-                                               filters)
+                                               filters._cstruct)
