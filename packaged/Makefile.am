@@ -11,6 +11,7 @@ lib_libbxibase_la_SOURCES=\
 		  src/log/logger.c\
 		  src/log/level.c\
 		  src/log/filter.c\
+		  src/log/config.c\
 		  src/log/assert.c\
 		  src/log/exit.c\
 		  src/log/fork.c\
@@ -61,7 +62,6 @@ AM_LDFLAGS=\
 dist_bin_SCRIPTS=\
 				 bin/bxilog-producer\
 				 bin/bxilog-parser\
-				 bin/bxiconfig\
 				 bin/bxilog-console
 
 
