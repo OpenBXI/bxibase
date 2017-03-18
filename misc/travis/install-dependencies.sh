@@ -13,6 +13,7 @@ wget https://github.com/zeromq/libzmq/releases/download/v4.2.1/zeromq-4.2.1.tar.
     tar xvf 1.2.0-Bull.6.0.tar.gz -C ${TMPDIR} && \
     mkdir -p ${BUILD_DIR} && \
     cd ${BUILD_DIR} && \
+    mkdir -p /tmp/backtrace*/.autotools_cache/m4 && \
     /tmp/backtrace*/bootstrap.sh && \
     /tmp/backtrace*/configure  && \
     make  && \
