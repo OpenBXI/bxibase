@@ -7,7 +7,7 @@ compiler:
 
 before_install:
         - sudo apt-get update -qq
-        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python-cffi libcunit1 libcunit1-dev python-configobj python-coverage
+        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python-cffi libcunit1 libcunit1-dev python-configobj python-coverage valgrind
         - sudo ln -sf /usr/bin/python-coverage /usr/bin/coverage
 
 install:
