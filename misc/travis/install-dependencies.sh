@@ -1,7 +1,6 @@
 #!/bin/bash
 
 TMPDIR=${TMPDIR:-/tmp}
-BUILD_DIR=${TMPDIR}/build
 
 cat /proc/cpuinfo
 
@@ -11,13 +10,9 @@ wget https://github.com/zeromq/libzmq/releases/download/v4.2.1/zeromq-4.2.1.tar.
     ./configure && \
     make && \
     sudo make install && \
-    wget https://github.com/OpenBXI/backtrace/archive/1.2.0-Bull.6.0.tar.gz && \
-    tar xvf 1.2.0-Bull.6.0.tar.gz -C ${TMPDIR} && \
-    mkdir -p ${BUILD_DIR} && \
-    cd ${BUILD_DIR} && \
-    mkdir -p /tmp/backtrace*/.autotools_cache/m4 && \
-    /tmp/backtrace*/bootstrap.sh && \
-    /tmp/backtrace*/configure  && \
+    wget https://github.com/OpenBXI/backtrace/releases/download/1.2.0-Bull.6.0/backtrace-1.2.0.tar.gz && \
+    tar xvf backtrace-1.2.0.tar.gz -C ${TMPDIR} && \
+    /tmp/backtrace-1.2.0/configure  && \
     make  && \
     sudo make install && \
     sudo ldconfig
