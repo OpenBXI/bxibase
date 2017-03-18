@@ -6,7 +6,7 @@ compiler:
 
 before_install:
         - sudo apt-get update -qq
-        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake
+        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake gawk
 
 install:
         - ./misc/travis/install-dependencies.sh     
