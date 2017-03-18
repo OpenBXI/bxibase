@@ -1,0 +1,8 @@
+language: c
+compiler:
+        - clang
+        - gcc
+install:
+        - ./misc/travis/install-dependencies.sh     
+        - ./bootstrap.sh
+
