@@ -8,5 +8,5 @@ mkdir -p ${BUILD_DIR} && \
 cd ${BUILD_DIR} && \
 /tmp/backtrace*/bootstrap.sh && \
 /tmp/backtrace*/configure  && \
-make -j && \
+make  && \
 make install
