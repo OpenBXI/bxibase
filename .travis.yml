@@ -10,11 +10,11 @@ compiler:
 
 before_install:
         - sudo apt-get update -qq
-        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python-pip libcunit1 libcunit1-dev python-configobj python-coverage valgrind
+        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python-pip libcunit1 libcunit1-dev python-coverage valgrind
         - sudo ln -sf /usr/bin/python-coverage /usr/bin/coverage
-        - pip install cffi
 
 install:
-        - ./misc/travis/install-dependencies.sh     
+        - ./misc/travis/install-dependencies.sh
+        - pip install cffi configobj
         - ./bootstrap.sh
 
