@@ -1,4 +1,7 @@
-language: c
+language:
+        - c
+python:
+        - 2.7
 dist: trusty
 sudo: required
 compiler:

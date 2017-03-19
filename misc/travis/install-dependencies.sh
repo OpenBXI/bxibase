@@ -3,6 +3,7 @@
 TMPDIR=${TMPDIR:-/tmp}
 CPUS_NB=$(($(grep -c ^processor /proc/cpuinfo)+1))
 
+python --version
 python -c 'import cffi'
 
 exit 1
