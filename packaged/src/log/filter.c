@@ -35,8 +35,8 @@
 //*********************************************************************************
 //********************************** Static Functions  ****************************
 //*********************************************************************************
-static int _filter_compar(const void * filter1, const void* filter2);
-static void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth);
+//static int _filter_compar(const void * filter1, const void* filter2);
+//static void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -105,7 +105,7 @@ void bxilog_filters_destroy(bxilog_filters_p * filters_p) {
 }
 
 void bxilog_filters_add(bxilog_filters_p * filters_p,
-                        char * prefix, bxilog_level_e level) {
+                        const char * prefix, bxilog_level_e level) {
 
     bxiassert(NULL != filters_p);
     bxiassert(NULL != *filters_p);
@@ -213,88 +213,173 @@ QUIT:
     return err;
 }
 
+void bxilog_filter_add_merge_to(bxilog_filter_p filter1, bxilog_filter_p filter2,
+                                bxilog_filters_p * result) {
+
+    bxiassert(NULL != filter1);
+    bxiassert(NULL != filter2);
+
+    const size_t f1_len = strlen(filter1->prefix);
+    const size_t f2_len = strlen(filter2->prefix);
+
+    bxilog_filter_p shortest, longest;
+    size_t shortest_len;
+
+    // It is preferable to keep the order so we use '<=' instead of '<'
+    if (f1_len <= f2_len) {
+        shortest = filter1;
+        longest = filter2;
+        shortest_len = f1_len;
+    } else {
+        shortest = filter2;
+        longest = filter1;
+        shortest_len = f2_len;
+    }
+
+    const int cmp = strncmp(shortest->prefix, longest->prefix, shortest_len);
+
+    if (cmp == 0) {
+        bxilog_level_e highest_level = (shortest->level > longest->level) ?
+                                                       shortest->level : longest->level;
+        if (f1_len == f2_len) {
+            // Equals prefix: merge result is the one with the highest level
+
+            bxilog_filters_add(result, shortest->prefix, highest_level);
+            return;
+        }
+        // Shortest is a prefix
+        bxilog_filters_add(result, shortest->prefix, highest_level);
+        bxilog_filters_add(result, longest->prefix, highest_level);
+        return;
+    }
+
+    // No prefix found, add both of them with their own level
+     bxilog_filters_add(result, shortest->prefix, shortest->level);
+     bxilog_filters_add(result, longest->prefix, longest->level);
+     return;
+}
+
+
 bxilog_filters_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n) {
     bxiassert(NULL != filters_array || 0 == n);
 
-    // We first copy all filters into a new array. Two reasons:
-    // 1. some filters might have been statically allocated and are therefore not
-    //    modifiable
-    // 2. we will destroy a binary tree at the end, and therefore, all filters inserted
-    //    into it.
-    // Therefore, it is better to use our own copy
-    bxilog_filters_p * copied = bximem_calloc(n * sizeof(*copied));
+    bxilog_filters_p result = bxilog_filters_new();
+
     for (size_t i = 0; i < n; i++) {
         bxilog_filters_p filters = filters_array[i];
-        copied[i] = bxilog_filters_dup(filters);
-    }
-
-    bxilog_filters_p result = bxilog_filters_new();
-    // tsearch root node
-    void * root = NULL;
-
-
-    for (size_t i = 0; i < n; i++) {
-        bxilog_filters_p filters = copied[i];
-
         for (size_t k = 0; k < filters->nb; k++) {
             bxilog_filter_p filter = filters->list[k];
-            void * val = tsearch(filter, &root, _filter_compar);
-            bxiassert(NULL != val);
-            bxilog_filter_p found = *(bxilog_filter_p *) val;
-            found->level = found->level > filter->level ? found->level : filter->level;
-            found->reserved = &result;
+
+            // Then compare with other filters
+            for (size_t j = i + 1; j < n; j++) {
+                bxilog_filters_p other_filters = filters_array[j];
+                for (size_t l = 0; l < other_filters->nb; l++) {
+                    bxilog_filter_p other_filter = other_filters->list[l];
+
+                    bxilog_filter_add_merge_to(filter, other_filter, &result);
+               }
+            }
         }
     }
-
-    // Sort all filters and populate the result
-    twalk(root, _merge_filter_visitor);
-
-#ifdef _GNU_SOURCE
-    tdestroy(root, NULL);
-#else
-    while (NULL != root) {
-        bxilog_filter_p filter = *(bxilog_filter_p *) root;
-        tdelete(filter, &root, _filter_compar);
-    }
-#endif
-
-    for (size_t i = 0; i < n; i++) {
-        bxilog_filters_destroy(&copied[i]);
-    }
-    BXIFREE(copied);
 
     return result;
 }
 
+//bxilog_filters_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n) {
+//    bxiassert(NULL != filters_array || 0 == n);
+//
+//    // We first copy all filters into a new array. Two reasons:
+//    // 1. some filters might have been statically allocated and are therefore not
+//    //    modifiable
+//    // 2. we will destroy a binary tree at the end, and therefore, all filters inserted
+//    //    into it.
+//    // Therefore, it is better to use our own copy
+//    bxilog_filters_p * copied = bximem_calloc(n * sizeof(*copied));
+//    for (size_t i = 0; i < n; i++) {
+//        bxilog_filters_p filters = filters_array[i];
+//        copied[i] = bxilog_filters_dup(filters);
+//    }
+//
+//    bxilog_filters_p result = bxilog_filters_new();
+//    // tsearch root node
+//    void * root = NULL;
+//
+//    for (size_t i = 0; i < n; i++) {
+//        bxilog_filters_p filters = copied[i];
+//
+//        for (size_t k = 0; k < filters->nb; k++) {
+//            bxilog_filter_p filter = filters->list[k];
+//            void * val = tsearch(filter, &root, _filter_compar);
+//            bxiassert(NULL != val);
+//            bxilog_filter_p found = *(bxilog_filter_p *) val;
+//            found->level = found->level > filter->level ? found->level : filter->level;
+//            found->reserved = &result;
+//        }
+//    }
+//
+//    // Sort all filters and populate the result
+//    twalk(root, _merge_filter_visitor);
+//
+//#ifdef _GNU_SOURCE
+//    tdestroy(root, NULL);
+//#else
+//    while (NULL != root) {
+//        bxilog_filter_p filter = *(bxilog_filter_p *) root;
+//        tdelete(filter, &root, _filter_compar);
+//    }
+//#endif
+//
+//    for (size_t i = 0; i < n; i++) {
+//        bxilog_filters_destroy(&copied[i]);
+//    }
+//    BXIFREE(copied);
+//
+//    return result;
+//}
+
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************
-int _filter_compar(const void * filter1, const void * filter2) {
-    bxiassert(NULL != filter1);
-    bxiassert(NULL != filter2);
+//int _filter_compar(const void * filter1, const void * filter2) {
+//    bxiassert(NULL != filter1);
+//    bxiassert(NULL != filter2);
+//
+//    bxilog_filter_p f1 = (bxilog_filter_p) filter1;
+//    bxilog_filter_p f2 = (bxilog_filter_p) filter2;
+//    size_t f1_len = strlen(f1->prefix);
+//    size_t f2_len = strlen(f2->prefix);
+//
+//    size_t shortest = (f1_len < f2_len) ? f1_len : f2_len;
+//    int cmp = strncmp(f1->prefix, f2->prefix, shortest);
+//    int result;
+//    if (cmp == 0) {
+//        result = (int) (f1_len - f2_len);
+//    } else {
+//        result = cmp;
+//    }
+//
+//    printf("pref(%s:%zu, %s:%zu)=%d %zu\n", f1->prefix, f1_len, f2->prefix, f2_len, result, shortest);
+//    return result;
+//}
 
-    bxilog_filter_p f1 = (bxilog_filter_p) filter1;
-    bxilog_filter_p f2 = (bxilog_filter_p) filter2;
-
-    return strcmp(f1->prefix, f2->prefix);
-}
-
-void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth) {
-    UNUSED(depth);
-    bxilog_filter_p filter = *(bxilog_filter_p *) nodep;
-    bxilog_filters_p * result = (bxilog_filters_p *) filter->reserved;
-
-    switch (which) {
-        case preorder:
-            break;
-        case postorder:
-            bxilog_filters_add(result, (char*) filter->prefix, filter->level);
-            break;
-        case endorder:
-            break;
-        case leaf:
-            bxilog_filters_add(result, (char*) filter->prefix, filter->level);
-            break;
-    }
-}
+//void _merge_filter_visitor(const void *nodep, const VISIT which, const int depth) {
+//    UNUSED(depth);
+//    bxilog_filter_p filter = *(bxilog_filter_p *) nodep;
+//    bxilog_filters_p * result = (bxilog_filters_p *) filter->reserved;
+//
+//    switch (which) {
+//        case preorder:
+//            break;
+//        case postorder:
+//            printf("%s\n", filter->prefix);
+//            bxilog_filters_add(result, (char*) filter->prefix, filter->level);
+//            break;
+//        case endorder:
+//            break;
+//        case leaf:
+//            printf("%s\n", filter->prefix);
+//            bxilog_filters_add(result, (char*) filter->prefix, filter->level);
+//            break;
+//    }
+//}
 

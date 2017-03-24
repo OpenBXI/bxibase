@@ -149,6 +149,22 @@ class BXILogTest(unittest.TestCase):
         self.assertEqual(merged_filters[2].prefix, '~a.foo')
         self.assertEqual(merged_filters[2].level, bxilog.LOWEST)
 
+    def test_filtering2(self):
+        """
+        BRIE-727 Logs problems on lltc
+        """
+        # Warning: lexical order is important for the test
+        filters = bxilog.filter.parse_filters(':trace')
+        filters2 = bxilog.filter.parse_filters('~:info,bxilog:output')
+        merged_filters = bxilog.filter.merge_filters((filters, filters2))
+        self.assertEqual(merged_filters[0].prefix, '')
+        self.assertEqual(merged_filters[0].level, bxilog.TRACE)
+        self.assertEqual(merged_filters[1].prefix, 'bxilog')
+        self.assertEqual(merged_filters[1].level, bxilog.TRACE)
+        self.assertEqual(merged_filters[2].prefix, '~')
+        self.assertEqual(merged_filters[2].level, bxilog.TRACE)
+
+
     def test_default_logger(self):
         """Test default logging functions"""
         for level in bxilog.LEVEL_NAMES:

@@ -76,7 +76,14 @@ void test_logger_signal(void);
 void test_single_logger_instance(void);
 void test_registry(void);
 void test_filters_parser(void);
-void test_filters_merge(void);
+void test_filter_merge_same(void);
+void test_filter_merge_distinct(void);
+void test_filter_merge_prefix(void);
+void test_filters_merge_same(void);
+void test_filters_merge_distinct(void);
+void test_filters_merge_simple(void);
+void test_filters_merge_symetric(void);
+void test_filters_merge_complex(void);
 void test_logger_threads(void);
 void test_handlers(void);
 void test_very_long_log(void);
@@ -263,8 +270,15 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test strange log", test_strange_log))
         || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
-        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filters_parser))
-        || (NULL == CU_add_test(bxilog_suite, "test logger filter merger", test_filters_merge))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters parser", test_filters_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter merge same", test_filter_merge_same))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter merge distinct", test_filter_merge_distinct))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filter merge prefix", test_filter_merge_prefix))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters merge same", test_filters_merge_same))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters merge distinct", test_filters_merge_distinct))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters merge simple", test_filters_merge_simple))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters merge symetric", test_filters_merge_symetric))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters merge complex", test_filters_merge_complex))
         || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
         || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))

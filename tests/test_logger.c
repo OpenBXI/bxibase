@@ -600,13 +600,182 @@ void test_filters_parser(void) {
     bxilog_registry_reset();
 }
 
-void test_filters_merge() {
-    char filters1_format[] = ":debug,a:output,a.c:warning";
+void test_filter_merge_same() {
+    char filters_format[] = "a:out,a:error";
+    bxilog_filters_p filters = NULL;
+    bxierr_p err = bxilog_filters_parse(filters_format, &filters);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filter_p filter1 = filters->list[0];
+    bxilog_filter_p filter2 = filters->list[1];
+
+    bxilog_filters_p merged_filters = bxilog_filters_new();
+    bxilog_filter_add_merge_to(filter1, filter2, &merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 1);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_OUTPUT, merged_filters->list[0]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters);
+}
+
+void test_filter_merge_distinct() {
+    char filters_format[] = "a:out,b:error";
+    bxilog_filters_p filters = NULL;
+    bxierr_p err = bxilog_filters_parse(filters_format, &filters);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filter_p filter1 = filters->list[0];
+    bxilog_filter_p filter2 = filters->list[1];
+
+    bxilog_filters_p merged_filters = bxilog_filters_new();
+    bxilog_filter_add_merge_to(filter1, filter2, &merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 2);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_OUTPUT, merged_filters->list[0]->level);
+
+    CU_ASSERT_EQUAL(strcmp("b", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_ERROR, merged_filters->list[1]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters);
+}
+
+void test_filter_merge_prefix() {
+    char filters1_format[] = "a:lowest,x.y:off";
     bxilog_filters_p filters1 = NULL;
     bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
     CU_ASSERT_TRUE(bxierr_isok(err));
 
-    char filters2_format[] = ":fine,a:lowest,a.c:error,a.b:output";
+    char filters2_format[] = "a.b:off,x:lowest";
+    bxilog_filters_p filters2 = NULL;
+    err = bxilog_filters_parse(filters2_format, &filters2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filter_p filter1 = filters1->list[0];
+    bxilog_filter_p filter2 = filters2->list[0];
+
+    bxilog_filters_p merged_filters = bxilog_filters_new();
+    bxilog_filter_add_merge_to(filter1, filter2, &merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 2);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_LOWEST, merged_filters->list[0]->level);
+
+    CU_ASSERT_EQUAL(strcmp("a.b", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_LOWEST, merged_filters->list[1]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+
+    bxilog_filter_p filter3 = filters1->list[1];
+    bxilog_filter_p filter4 = filters2->list[1];
+
+    merged_filters = bxilog_filters_new();
+    bxilog_filter_add_merge_to(filter3, filter4, &merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 2);
+
+    CU_ASSERT_EQUAL(strcmp("x", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_LOWEST, merged_filters->list[0]->level);
+
+    CU_ASSERT_EQUAL(strcmp("x.y", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_LOWEST, merged_filters->list[1]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters1);
+    bxilog_filters_destroy(&filters2);
+
+}
+
+void test_filters_merge_same() {
+    char filters1_format[] = "a:out";
+    bxilog_filters_p filters1 = NULL;
+    bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    char filters2_format[] = "a:error";
+    bxilog_filters_p filters2 = NULL;
+    err = bxilog_filters_parse(filters2_format, &filters2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filters_p array[2] = {filters1, filters2};
+    bxilog_filters_p merged_filters = bxilog_filters_merge(array, 2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 1);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_OUTPUT, merged_filters->list[0]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters1);
+    bxilog_filters_destroy(&filters2);
+}
+
+void test_filters_merge_distinct() {
+    char filters1_format[] = "a:out";
+    bxilog_filters_p filters1 = NULL;
+    bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    char filters2_format[] = "b:error";
+    bxilog_filters_p filters2 = NULL;
+    err = bxilog_filters_parse(filters2_format, &filters2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filters_p array[2] = {filters1, filters2};
+    bxilog_filters_p merged_filters = bxilog_filters_merge(array, 2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 2);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_OUTPUT, merged_filters->list[0]->level);
+
+    CU_ASSERT_EQUAL(strcmp("b", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_ERROR, merged_filters->list[1]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters1);
+    bxilog_filters_destroy(&filters2);
+}
+
+void test_filters_merge_simple() {
+    char filters1_format[] = "a:debug";
+    bxilog_filters_p filters1 = NULL;
+    bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    char filters2_format[] = "a:error,a.b:trace";
+    bxilog_filters_p filters2 = NULL;
+    err = bxilog_filters_parse(filters2_format, &filters2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filters_p array[2] = {filters1, filters2};
+    bxilog_filters_p merged_filters = bxilog_filters_merge(array, 2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 2);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_DEBUG, merged_filters->list[0]->level);
+
+    CU_ASSERT_EQUAL(strcmp("a.b", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[1]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters1);
+    bxilog_filters_destroy(&filters2);
+}
+
+void test_filters_merge_symetric() {
+    char filters1_format[] = "a:trace,a.b:debug,a.c:out,a.d:error";
+    bxilog_filters_p filters1 = NULL;
+    bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    char filters2_format[] = "a:error,a.b:out,a.c:debug,a.d:trace";
     bxilog_filters_p filters2 = NULL;
     err = bxilog_filters_parse(filters2_format, &filters2);
     CU_ASSERT_TRUE(bxierr_isok(err));
@@ -617,27 +786,63 @@ void test_filters_merge() {
     CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
     CU_ASSERT_EQUAL(merged_filters->nb, 4);
 
-    // :fine
-    CU_ASSERT_EQUAL(strcmp("", merged_filters->list[0]->prefix), 0);
-    CU_ASSERT_EQUAL(BXILOG_FINE, merged_filters->list[0]->level);
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[0]->level);
 
-    // a:lowest
-    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[1]->prefix), 0);
-    CU_ASSERT_EQUAL(BXILOG_LOWEST, merged_filters->list[1]->level);
+    CU_ASSERT_EQUAL(strcmp("a.b", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_DEBUG, merged_filters->list[1]->level);
 
-    // a.b:output
-    CU_ASSERT_EQUAL(strcmp("a.b", merged_filters->list[2]->prefix), 0);
-    CU_ASSERT_EQUAL(BXILOG_OUTPUT, merged_filters->list[2]->level);
+    CU_ASSERT_EQUAL(strcmp("a.c", merged_filters->list[2]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_DEBUG, merged_filters->list[2]->level);
 
-    // a.c: warning
-    CU_ASSERT_EQUAL(strcmp("a.c", merged_filters->list[3]->prefix), 0);
-    CU_ASSERT_EQUAL(BXILOG_WARNING, merged_filters->list[3]->level);
+    CU_ASSERT_EQUAL(strcmp("a.d", merged_filters->list[3]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[3]->level);
 
     bxilog_filters_destroy(&merged_filters);
     bxilog_filters_destroy(&filters1);
     bxilog_filters_destroy(&filters2);
-
 }
+
+void test_filters_merge_complex() {
+    char filters1_format[] = ":trace,a.b:debug,a.b.z:fine";
+    bxilog_filters_p filters1 = NULL;
+    bxierr_p err = bxilog_filters_parse(filters1_format, &filters1);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    char filters2_format[] = "~:info,bar:out,a:critical";
+    bxilog_filters_p filters2 = NULL;
+    err = bxilog_filters_parse(filters2_format, &filters2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+
+    bxilog_filters_p array[2] = {filters1, filters2};
+    bxilog_filters_p merged_filters = bxilog_filters_merge(array, 2);
+    CU_ASSERT_TRUE(bxierr_isok(err));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(merged_filters);
+    CU_ASSERT_EQUAL(merged_filters->nb, 6);
+
+    CU_ASSERT_EQUAL(strcmp("", merged_filters->list[0]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[0]->level);
+
+    CU_ASSERT_EQUAL(strcmp("a", merged_filters->list[1]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[1]->level);
+
+    CU_ASSERT_EQUAL(strcmp("a.b", merged_filters->list[2]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_DEBUG, merged_filters->list[2]->level);
+
+    CU_ASSERT_EQUAL(strcmp("a.b.z", merged_filters->list[3]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_FINE, merged_filters->list[3]->level);
+
+    CU_ASSERT_EQUAL(strcmp("bar", merged_filters->list[4]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[4]->level);
+
+    CU_ASSERT_EQUAL(strcmp("~", merged_filters->list[5]->prefix), 0);
+    CU_ASSERT_EQUAL(BXILOG_TRACE, merged_filters->list[5]->level);
+
+    bxilog_filters_destroy(&merged_filters);
+    bxilog_filters_destroy(&filters1);
+    bxilog_filters_destroy(&filters2);
+}
+
 
 void _fork_childs(size_t n) {
     if (n == 0) return;
