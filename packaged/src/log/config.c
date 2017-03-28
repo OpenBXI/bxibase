@@ -213,6 +213,7 @@ bxierr_p bxilog__config_loggers() {
 //                level_names[old_level],
 //                level_names[new_level]);
     }
+    BXIFREE(loggers);
 
     return BXIERR_OK;
 }
