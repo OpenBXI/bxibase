@@ -73,7 +73,8 @@ static char * _LOG_LEVEL_NAMES[] = { "off",
 
 bxilog_config_p bxilog_basic_config(const char * const progname,
                                     const char * const filename,
-                                    int open_flags) {
+                                    const int open_flags,
+                                    const bxilog_filters_p filters) {
 
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
@@ -81,13 +82,13 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
     const int loggername_width = 12; // Default
     bxilog_config_add_handler(config,
                               BXILOG_CONSOLE_HANDLER,
-                              BXILOG_FILTERS_ALL_ALL,
+                              filters,
                               BXILOG_WARNING,
                               loggername_width,
                               BXILOG_COLORS_TC_DARK);
     if (NULL != filename) {
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
-                                  BXILOG_FILTERS_ALL_ALL,
+                                  filters,
                                   basename, filename, open_flags);
     }
     // Bull default to LOG_LOCAL0
@@ -198,20 +199,22 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
 }
 
 bxierr_p bxilog__config_loggers() {
-    bxierr_p err = BXIERR_OK, err2;
-
-    size_t filters_nb = BXILOG__GLOBALS->config->handlers_nb;
-    bxilog_filters_p filters_a[filters_nb];
-    for (size_t i = 0; i < filters_nb; i++) {
-        filters_a[i] = BXILOG__GLOBALS->config->handlers_params[i]->filters;
+    bxilog_logger_p *loggers;
+    static char ** level_names;
+    bxilog_get_all_level_names(&level_names);
+    size_t loggers_nb = bxilog_registry_getall(&loggers);
+    for (size_t i = 0; i < loggers_nb; i++) {
+//        bxilog_level_e old_level = loggers[i]->level;
+        bxilog_logger_reconfigure(loggers[i]);
+//        bxilog_level_e new_level = loggers[i]->level;
+        //TODO: use DBG macro when available
+//        fprintf(stderr, "Configuration of %s: %s -> %s\n",
+//                loggers[i]->name,
+//                level_names[old_level],
+//                level_names[new_level]);
     }
-    bxilog_filters_p merged_filters = bxilog_filters_merge(filters_a, filters_nb);
 
-    err2 = bxilog_registry_set_filters(&merged_filters);
-    BXIERR_CHAIN(err, err2);
-
-    bxilog_filters_destroy(&merged_filters);
-    return err;
+    return BXIERR_OK;
 }
 
 bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {

@@ -101,11 +101,14 @@ int main(int argc, char **argv) {
     char * const fullprogname = strdup(argv[0]);
     BXIASSERT(MAIN_LOGGER, fullprogname != NULL);
     char * const progname = basename(fullprogname);
-    bxierr_p err = bxilog_registry_parse_set_filters(arguments.logfilters);
+    bxilog_filters_p filters;
+    bxierr_p err = bxilog_filters_parse(arguments.logfilters, &filters);
     bxierr_abort_ifko(err);
-    err = bxilog_init(bxilog_basic_config(progname,
-                                          arguments.logfile,
-                                          BXI_APPEND_OPEN_FLAGS));
+    bxilog_config_p config = bxilog_basic_config(progname,
+                                                 arguments.logfile,
+                                                 BXI_APPEND_OPEN_FLAGS,
+                                                 filters);
+    err = bxilog_init(config);
     bxierr_abort_ifko(err);
     err = bxilog_install_sighandler();
     bxierr_abort_ifko(err);
