@@ -295,11 +295,12 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
 
     // We need a mallocated buffer to prevent ZMQ from making its own copy
     // We use malloc() instead of calloc() for performance reason
+    // This has been profiled! There is a significant gain doing this!
+    // If you change this, you must know what you are doing!
     record = malloc(data_len);
     bxiassert(NULL != record);
     // Fill the buffer
     record->level = level;
-
 
     err2 = bxitime_get(CLOCK_REALTIME, &record->detail_time);
     BXIERR_CHAIN(err, err2);
