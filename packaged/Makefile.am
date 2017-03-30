@@ -64,7 +64,6 @@ dist_bin_SCRIPTS=\
 				 bin/bxilog-parser\
 				 bin/bxilog-console
 
-
 SUBDIRS=include lib doc
 
 EXTRA_DIST=\

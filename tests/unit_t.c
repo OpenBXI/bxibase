@@ -80,7 +80,14 @@ void test_logger_signal(void);
 void test_single_logger_instance(void);
 void test_registry(void);
 void test_filters_parser(void);
-void test_filters_merge(void);
+void test_filter_merge_same(void);
+void test_filter_merge_distinct(void);
+void test_filter_merge_prefix(void);
+void test_filters_same(void);
+void test_filters_distinct(void);
+void test_filters_simple(void);
+void test_filters_symetric(void);
+void test_filters_complex(void);
 void test_logger_threads(void);
 void test_handlers(void);
 void test_very_long_log(void);
@@ -210,7 +217,6 @@ int main(int argc, char * argv[]) {
     }
 
     if ((NULL == bxi_cunit_test_only) || (0 == strcmp("ERR", bxi_cunit_test_only))) {
-
         /* add suites to the registry */
         CU_pSuite bxierr_suite = CU_add_suite("bxierr_suite",
                                               init_suite_logger,
@@ -290,8 +296,12 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test strange log", test_strange_log))
         || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
-        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filters_parser))
-        || (NULL == CU_add_test(bxilog_suite, "test logger filter merger", test_filters_merge))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters parser", test_filters_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters same", test_filters_same))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters distinct", test_filters_distinct))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters simple", test_filters_simple))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters symetric", test_filters_symetric))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters complex", test_filters_complex))
         || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
         || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))

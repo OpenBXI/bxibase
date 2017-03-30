@@ -360,7 +360,6 @@ bxierr_p _recv_async(bxilog_remote_receiver_p self) {
     return err;
 }
 
-
 bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
     bxierr_p err = BXIERR_OK, err2;
 
@@ -474,7 +473,6 @@ bxierr_p _recv_log_record(void * zock, bxilog_record_p * record_p, size_t * reco
             record->funcname_len + \
             record->logname_len + \
             record->logmsg_len;
-
 
     if (size != expected_len) {
         return bxierr_simple(_BAD_RECORD_ERR,

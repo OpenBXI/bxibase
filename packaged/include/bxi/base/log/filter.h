@@ -143,7 +143,7 @@ bxilog_filters_p bxilog_filters_dup(bxilog_filters_p filters);
  *
  */
 void bxilog_filters_add(bxilog_filters_p * filters,
-                        char * prefix, bxilog_level_e level);
+                        const char * prefix, bxilog_level_e level);
 
 
 /**
@@ -166,13 +166,4 @@ void bxilog_filters_add(bxilog_filters_p * filters,
  */
 bxierr_p bxilog_filters_parse(char * format, bxilog_filters_p * result);
 
-/**
- * Merge the given array of filters into one.
- *
- * @param[in] filters_array an array of filters
- * @param[in] n the length of array
- *
- * @return the merged filters
- */
-bxilog_filters_p bxilog_filters_merge(bxilog_filters_p * filters_array, size_t n);
 #endif /* BXILOG_H_ */
