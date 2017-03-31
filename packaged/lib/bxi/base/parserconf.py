@@ -350,6 +350,9 @@ def _configure_log(parser):
                                     "Logging filters are defined by the following format: "
                                     "logger_name_prefix:level[,prefix:level]*")
 
+            group.add_argument("--quiet", action='store_true', mustbeprinted=True, 
+								help="Set log console filter to off.")
+
             if 'colors' not in console_section:
                 default = DEFAULT_CONSOLE_COLORS
             else:
@@ -392,7 +395,8 @@ def _configure_log(parser):
                                     auto_help_msg +
                                     "The format is the one defined by "
                                     "console_filters option. "
-                                    "Value: '%(default)s'. ")
+                                    "Value: '%(default)s'. ")      
+            
             if 'path' not in conf:
                 target_parser.error("Bad logging configuration: 'path' is missing "
                                     "in section '%s' of config %s" % (section, config))
@@ -421,6 +425,18 @@ def _configure_log(parser):
             _override_kv(option, 'filters', config, args)
             _override_kv(option, 'colors', config, args)
             _override_kv(option, 'path', config, args)
+
+            # if --quiet option is provided, set output log level for console to off
+            if option is "quiet":		
+	            if args[option] is True:
+	                sections = find_logconfigs(bxilog_consolehandler.__name__, config)
+	                if len(sections) > 1:
+		                target_parser.error("Multiple instances of module %s is "
+		                                    "currently unsupported. Configuration: %s " %
+		                                    (bxilog_consolehandler.__name__, config))
+	                if len(sections) == 1:
+	                    args["log_console_filters"] = ":off"
+	                    _override_kv("log_console_filters", 'filters', config, args)
 
     parser.add_argument('--help-logs',
                         action=_LoggedHelpAction,
@@ -487,9 +503,8 @@ def _configure_log(parser):
 
     known_args = dummy.parse_known_args()[0]
 
-#     print(config)
     _override_logconfig(config, known_args)
-#     print(config)
+
     logging.captureWarnings(True)
     if logging.is_configured():
         logging.info("Reconfiguration of the logging system")
