@@ -419,6 +419,7 @@ def _configure_log(parser):
 #                 print("Overriding: %s -> %s[%s]=%s" %
 #                       (option, handler_name, key, args[option]))
                 config[handler_name][key] = args[option]
+                if option is "quiet": print(handler_name)
 
         args = vars(known_args)
         for option in args:
