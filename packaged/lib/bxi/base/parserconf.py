@@ -421,22 +421,28 @@ def _configure_log(parser):
                 config[handler_name][key] = args[option]
 
         args = vars(known_args)
+        
         for option in args:
             _override_kv(option, 'filters', config, args)
             _override_kv(option, 'colors', config, args)
             _override_kv(option, 'path', config, args)
 
-            # if --quiet option is provided, set output log level for console to off
+            # if --quiet option is provided, set output log level for console handlers
+            # to minimal settings so that nothing is printed on stdout (nothing change
+            # for stderr).
             if option is "quiet":		
 	            if args[option] is True:
 	                sections = find_logconfigs(bxilog_consolehandler.__name__, config)
 	                if len(sections) > 1:
 		                target_parser.error("Multiple instances of module %s is "
 		                                    "currently unsupported. Configuration: %s " %
-		                                    (bxilog_consolehandler.__name__, config))
+    	                                    (bxilog_consolehandler.__name__, config))
 	                if len(sections) == 1:
-	                    args["log_console_filters"] = ":off"
-	                    _override_kv("log_console_filters", 'filters', config, args)
+	                    option = "log_console_filters"
+                        key = 'filters'
+                        handler_name = option[len('log_'):option.index(key) - 1]
+                        args[option] = ":%s" % config[handler_name]["stderr_level"]
+                        _override_kv(option, key, config, args)
 
     parser.add_argument('--help-logs',
                         action=_LoggedHelpAction,
