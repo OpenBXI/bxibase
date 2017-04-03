@@ -24,7 +24,7 @@ def include_for_type(ctype, ffi):
     @return None
     '''
     start = time.time()
-    # pylint: disable=W0603
+    # pylint: disable=I0011,W0603
     global __FFI__
     if __FFI__ is None:
         __FFI__ = ffi
