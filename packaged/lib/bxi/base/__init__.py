@@ -10,23 +10,24 @@
 @namespace bxi.base Python BXI Base module
 
 """
-# Try to find other BXI packages in other folders
-from pkgutil import extend_path
-__path__ = extend_path(__path__, __name__)
-
-from bxi.base.cffi_h import C_DEF
-
-import bxi.ffi as bxiffi
-
 import sys
 import collections  # noqa
 import traceback
 from functools import total_ordering  # noqa
+import bxi.ffi as bxiffi
 
-bxiffi.add_cdef_for_type('bxilog_p', C_DEF)
+# pylint: disable=I0011,C0413,C0411,W0221
+# Try to find other BXI packages in other folders
+from pkgutil import extend_path
+__path__ = extend_path(__path__, __name__)
+
+from bxi.base.cffi_h import ffi
+
+
+bxiffi.include_for_type('bxilog_p', ffi)
 
 __FFI__ = bxiffi.get_ffi()
-__CAPI__ = bxiffi.get_ffi().dlopen('libbxibase.so')
+__CAPI__ = ffi.dlopen('libbxibase.so')
 
 
 def get_capi():
@@ -57,7 +58,6 @@ class SequenceSliceImplMixin(object):
             raise TypeError("Invalid argument type: %s, expecting slice or int" % val)
 
 
-#pylint: disable=R0921
 @total_ordering
 class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
     """
@@ -71,6 +71,11 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
 
     @property
     def buffer(self):
+        """
+        Access to the buffer of data
+
+        @return
+        """
         return self._buf
 
     def __raw_getitem__(self, index):
@@ -183,6 +188,11 @@ class Wrapper(object):
 
 
 def traceback2str(trace):
+    """
+    Transform a backtrace into a string
+    @param[in] trace the backtrace
+    @return a string representing the backtrace
+    """
     try:
         tb = traceback.extract_tb(trace)
         bt = []

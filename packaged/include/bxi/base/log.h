@@ -5,6 +5,10 @@
 
 #ifndef BXICFFI
 #include <stdbool.h>
+#else
+FILE *fmemopen(void *, size_t, const char*);
+int fclose(FILE*);
+void free(void *ptr);
 #endif
 
 

@@ -10,35 +10,32 @@
 
 """
 
-import cffi
-import cffi.api
+import time
 
-__FFI__ = cffi.FFI()
-
-
-# C helper functions
-try:
-    __FFI__.cdef('''FILE *fmemopen(void *, size_t, const char*);
-                 int fclose(FILE*);
-                 void free(void *ptr);
-                 ''')
-except cffi.FFIError:
-    # only once is needed
-    pass
+__FFI__ = None
 
 
-def add_cdef_for_type(ctype, cdef, packed=False):
+def include_for_type(ctype, ffi):
     '''
-    Define the given cdef, only if given ctype isn't defined yet.
+    Include the given ffi, only if given ctype isn't include yet.
 
     Warning: this doesn't work for function ctype !
 
     @return None
     '''
+    start = time.time()
+    # pylint: disable=W0603
+    global __FFI__
+    if __FFI__ is None:
+        __FFI__ = ffi
+
     try:
         __FFI__.getctype(ctype)
-    except cffi.api.CDefError:
-        __FFI__.cdef(cdef, packed)
+    except __FFI__.error:
+        __FFI__.include(ffi)
+
+    print ("##### loading time: %s ###### %s ######"
+           % (str((time.time() - start)), ctype))
 
 
 def get_ffi():

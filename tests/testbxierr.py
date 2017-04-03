@@ -47,10 +47,11 @@ class TestBXIError(unittest.TestCase):
                                                     __FFI__.cast('int', rc))
             bxibase.__CAPI__.bxierr_set_add(bxierr_set, err_p);
         
+        func = __FFI__.cast('void (*)(void*)', bxibase.__CAPI__.bxierr_set_free)
+
         err = bxibase.__CAPI__.bxierr_new(10, 
                                           bxierr_set,
-                                          __FFI__.cast('void (*)(void*)',
-                                                       bxibase.__CAPI__.bxierr_set_free),
+                                          func,
                                           bxibase.__CAPI__.bxierr_list_add_to_report,
                                           __FFI__.NULL,
                                           "An error from an errset")
