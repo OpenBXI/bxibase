@@ -15,12 +15,11 @@
 
 import sys
 
-import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.log.filter as bxilogfilter
 
 # Find the C library
-__FFI__ = bxiffi.get_ffi()
+__FFI__ = bxibase.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
 

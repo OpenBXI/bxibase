@@ -73,7 +73,7 @@ bin_bxilog_monitor_LDADD=\
 			lib/libbxibase.la
 
 
-SUBDIRS=lib . include doc
+SUBDIRS=include . lib doc
 
 EXTRA_DIST=\
 		   src/log/config_impl.h\

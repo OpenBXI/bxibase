@@ -13,14 +13,13 @@
 from __future__ import print_function
 import collections
 
-import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 
 
 # Find the C library
-__FFI__ = bxiffi.get_ffi()
+__FFI__ = bxibase.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
 

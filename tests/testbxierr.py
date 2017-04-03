@@ -17,11 +17,10 @@ import ctypes
 import random
 import unittest
 
-import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
 
-__FFI__ = bxiffi.get_ffi()
+__FFI__ = bxibase.get_ffi()
 
 
 class TestBXIError(unittest.TestCase):

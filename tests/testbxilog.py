@@ -26,7 +26,6 @@ import re
 import configobj
 import random
 
-import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
 import bxi.base.log as bxilog
@@ -35,7 +34,7 @@ import bxi.base.log as bxilog
 BASENAME = os.path.basename(__file__)
 FILENAME = "%s.bxilog" % os.path.splitext(BASENAME)[0]
 
-__FFI__ = bxiffi.get_ffi()
+__FFI__ = bxibase.get_ffi()
 
 __LOOP_AGAIN__ = True
 
@@ -437,7 +436,7 @@ class BXILogTest(unittest.TestCase):
             bxilog.exception('Custom made exception with causes thrown, good!')
 
         try:
-            root = bxibase.__CAPI__.bxierr_new(101, bxiffi.__FFI__.NULL, __FFI__.NULL,
+            root = bxibase.__CAPI__.bxierr_new(101, __FFI__.NULL, __FFI__.NULL,
                                                __FFI__.NULL, __FFI__.NULL,
                                                "The root cause")
             other = bxibase.__CAPI__.bxierr_new(102, __FFI__.NULL, __FFI__.NULL,

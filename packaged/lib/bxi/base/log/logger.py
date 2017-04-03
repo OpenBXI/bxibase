@@ -16,14 +16,13 @@ import sys
 import os
 import traceback
 
-import bxi.ffi as bxiffi
 import bxi.base as bxibase
 import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 from bxi.base.err import BXICError
 
 # Find the C library
-__FFI__ = bxiffi.get_ffi()
+__FFI__ = bxibase.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
 

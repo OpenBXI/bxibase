@@ -14,7 +14,6 @@ import sys
 import collections  # noqa
 import traceback
 from functools import total_ordering  # noqa
-import bxi.ffi as bxiffi
 
 # pylint: disable=I0011,C0413,C0411,W0221
 # Try to find other BXI packages in other folders
@@ -24,10 +23,17 @@ __path__ = extend_path(__path__, __name__)
 from bxi.base.cffi_h import ffi
 
 
-bxiffi.include_for_type('bxilog_p', ffi)
-
-__FFI__ = bxiffi.get_ffi()
+__FFI__ = ffi
 __CAPI__ = ffi.dlopen('libbxibase.so')
+
+
+def get_ffi():
+    """
+    Return the ffi object used by this module to interact with the C backend.
+
+    @return the ffi object used by this module to interact with the C backend.
+    """
+    return __FFI__
 
 
 def get_capi():
