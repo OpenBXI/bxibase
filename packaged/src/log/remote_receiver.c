@@ -407,20 +407,27 @@ bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
             err2 = bxizmq_str_rcv(poller[2].socket, 0, false, &header);
             BXIERR_CHAIN(err, err2);
 
-            if (0 != strncmp(BXILOG_RECORD_HEADER,
-                             header, ARRAYLEN(BXILOG_RECORD_HEADER)-1)) {
-                bxierr_p tmp_err = bxierr_simple(_BAD_HEADER_ERR,
-                                                 "Wrong bxilog header: expected "
-                                                 BXILOG_RECORD_HEADER
-                                                 "*, received: %s",
-                                                 header);
-                BXILOG_REPORT(LOGGER, BXILOG_WARNING, tmp_err,
-                              "Error detected but continuing anyway (best-effort).");
+            if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_HEADER, header,
+                             ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
+                // Synchronization required
+                err2 = bxizmq_sub_sync_manage(self->zmq_ctx, self->data_zock);
+                BXIERR_CHAIN(err, err2);
+                BXIFREE(header);
                 continue;
             }
+            if (0 == strncmp(BXILOG_RECORD_HEADER,
+                             header, ARRAYLEN(BXILOG_RECORD_HEADER)-1)) {
+                err2 = _process_new_log(poller[2].socket, tsd);
+                BXIERR_CHAIN(err, err2);
+                BXIFREE(header);
+                continue;
+            }
+            bxierr_p tmp_err = bxierr_simple(_BAD_HEADER_ERR,
+                                             "Wrong bxilog header: %s",
+                                             header);
+            BXILOG_REPORT(LOGGER, BXILOG_WARNING, tmp_err,
+                          "Error detected but continuing anyway (best-effort).");
             BXIFREE(header);
-            err2 = _process_new_log(poller[2].socket, tsd);
-            BXIERR_CHAIN(err, err2);
         }
     }
     return err;
@@ -623,17 +630,14 @@ void _sync_sub(bxilog_remote_receiver_p self) {
     TRACE(LOGGER, "SUB Synchronization");
     // TODO: make the timeout configurable
     double timeout = BXILOG_REMOTE_HANDLER_SYNC_DEFAULT_TIMEOUT;
-    bxierr_p tmp = bxizmq_sync_sub_many(self->zmq_ctx, self->data_zock, 0, timeout);
+
+    bxierr_p tmp = bxizmq_sync_sub(self->zmq_ctx, self->data_zock, timeout);
     if (bxierr_isko(tmp)){
         BXILOG_REPORT(LOGGER, BXILOG_NOTICE,
                       tmp,
                       "SUB synchronization failed. First published messages "
                       "might have been lost!");
     }
-//    tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 50000000);
-//    BXILOG_REPORT(LOGGER,
-//                  BXILOG_TRACE, tmp,
-//                  "Sleeping after fake SUB synchronization didn't work");
 }
 
 

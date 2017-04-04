@@ -575,6 +575,22 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
                          const double timeout_s);
 
 /**
+ * Deal with a SYNC message received by a SUB socket when the publisher uses
+ * bxizmq_sync_pub().
+ *
+ * @note this function must be called only after a first zeromq frame containing
+ * BXIZMQ_PUBSUB_SYNC_HEADER has been received.
+ *
+ * @param[in] zmq_ctx the zmq context to use for the creation of an internal
+ *                    control zocket
+ * @param[in] sub_zocket the SUB socket to use for receiving next zmq frame
+ *
+ * @return BXIERR_OK if successful, anything else otherwise.
+ */
+bxierr_p bxizmq_sub_sync_manage(void * zmq_ctx,
+                                void * sub_zocket);
+
+/**
  * Synchronize a PUB zocket with many SUB zockets.
  *
  * This guarantees no message published is lost by SUB zockets after a

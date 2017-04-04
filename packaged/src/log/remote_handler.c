@@ -562,11 +562,28 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
 bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 = bxizmq_sync_pub_many(data->ctx,
-                                data->data_zock,
-                                data->ctrl_url,
-                                0,
-                                data->timeout_s);
+    char * url;
+    err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) return err;
+
+    void * sync_zock = NULL;
+    int port;
+    err2 = bxizmq_zocket_create_binded(data->ctx, ZMQ_REP, url, &port, &sync_zock);
+    BXIERR_CHAIN(err, err2);
+    if (bxierr_isko(err)) return err;
+
+    char * actual_url = bxizmq_create_url_from(url, port);
+    DBG("Syncing on '%s' '%s' '%s'\n", data->pub_url, url, actual_url);
+    err2 = bxizmq_sync_pub(data->data_zock,
+                           sync_zock,
+                           actual_url,
+                           strlen(actual_url),
+                           data->timeout_s);
+    BXIERR_CHAIN(err, err2);
+    BXIFREE(url);
+    BXIFREE(actual_url);
+    err2 = bxizmq_zocket_destroy(&sync_zock);
     BXIERR_CHAIN(err, err2);
 
     if (bxierr_isko(err)) {
@@ -576,10 +593,6 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
                                     "PUB synchronization in %s: "
                                     "messages might be lost", INTERNAL_LOGGER_NAME);
         bxierr_report(&dummy, STDERR_FILENO);
-    } else {
-        // TODO: Hack arount the pub/sub synchro problem for the moment
-//        bxierr_p dummy = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
-//        bxierr_report(&dummy, STDERR_FILENO);
     }
 
     return err;
