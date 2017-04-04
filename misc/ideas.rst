@@ -54,6 +54,11 @@ Implementation
   important de telles structures ont été envoyés, on effectue l'appel système
 - console_handler: virer les fputs()/fprintf() et tout appel qui passer par
   stdio.h. C'est coûteux et cela ne garantie pas l'atomicité des sorties.
+- registry.h -> implémentation à base de tableau pas efficace. 
+  Utiliser une structure de données adéquates type table de hash (par exemple 
+  uthash.h mais non disponible dans POSIX) ou hsearch (de search.h dans POSIX mais non 
+  réentrant, hsearch_r est réentrant mais GNU seulement) ou dans un arbre binaire 
+  (tsearch qui est réentrant et POSIX).
 
 
 
