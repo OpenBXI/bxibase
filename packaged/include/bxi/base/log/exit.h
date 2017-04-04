@@ -4,6 +4,7 @@
 #define BXILOG_EXIT_H_
 
 #ifndef BXICFFI
+#include <sysexits.h>
 #endif
 
 

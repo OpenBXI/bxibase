@@ -1,7 +1,7 @@
 $(abs_builddir)/bxi/${MODULE_NAME}/__init__.py: $(abs_builddir)/bxi/__init__.py
 	touch  $@
 
-bxi/${MODULE_NAME}/cffi_h.py:bxi/${MODULE_NAME}/builder.py bxi/${MODULE_NAME}_cffi_def.py \
+bxi/${MODULE_NAME}/cffi_h.py:bxi/${MODULE_NAME}/cffi_builder.py bxi/${MODULE_NAME}_cffi_def.py \
 	$(abs_builddir)/bxi/__init__.py
 	C_INCLUDE_PATH="$(top_srcdir)/packaged/include:$(abs_top_builddir)/packaged/include:\
 	${C_INCLUDE_PATH}" \
@@ -16,6 +16,7 @@ nodist_bxibase_PYTHON=\
 
 bxidir=$(pythondir)/bxi
 nodist_bxi_PYTHON=\
+				  bxi/${MODULE_NAME}_cffi_def.py\
 				  $(srcdir)/bxi/__init__.py
 
 $(abs_top_builddir)/packaged/lib/bxi/${MODULE_NAME}:

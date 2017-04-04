@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <errno.h>
 #endif
 
 #include "bxi/base/mem.h"
