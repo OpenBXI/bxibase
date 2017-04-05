@@ -90,6 +90,7 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
                                         const char * const filename,
                                         int open_flags) {
 
+    bxiassert(NULL != filename);
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
