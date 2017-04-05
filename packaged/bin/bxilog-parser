@@ -185,8 +185,10 @@ def _parse_logline(n, line):
     logger = result.group('logger')
     logmsg = result.group('logmsg')
 
-    _LOGGER_PARSER.trace("%d: level=%s, timestamp=%s, pkrid=%s, process=%s, source=%s logger=%s",
-                  n, level, timestamp, pkrid, process, source, logger)
+    _LOGGER_PARSER.trace("%d: level=%s, timestamp=%s, "
+                         "pkrid=%s, process=%s, source=%s logger=%s",
+                         n, level, timestamp,
+                         pkrid, process, source, logger)
 
     log = parse_backtrace_log(logmsg.rstrip())
 
