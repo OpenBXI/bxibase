@@ -9,11 +9,12 @@ threadsmax=$1
 runs=$2
 duration=$3
 
-BENCH="zlog_bench bxilog_bench $(echo *.py)"
+BENCH=$(find -name 'bench-*' -executable)
 
 for bench in $BENCH;do
 	rm -f /tmp/$bench.bench
 	rm -f /tmp/$bench.time
+	rm -f /tmp/$bench.print
 done
 
 for thread in $(seq 1 $threadsmax);do

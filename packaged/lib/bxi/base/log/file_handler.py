@@ -32,6 +32,8 @@ Specifies that file handler filters must be computed automatically.
 @see ::BXILOG_FILE_HANDLER
 """
 FILTERS_AUTO = 'auto'
+STDOUT = '-'
+STDERR = '+'
 
 
 def add_handler(configobj, section_name, c_config):
@@ -46,7 +48,7 @@ def add_handler(configobj, section_name, c_config):
     filters_str = section['filters']
     # Use absolute path to prevent fork() problem with chdir().
     filename = section['path']
-    if filename not in ['-', '+']:
+    if filename not in [STDOUT, STDERR]:
         filename = os.path.abspath(filename)
     section['path'] = filename
     append = section.as_bool('append')
@@ -74,7 +76,7 @@ def add_handler(configobj, section_name, c_config):
         filters_str = configobj[section]['filters']
         console_filters = bxilogfilter.parse_filters(filters_str)
         file_filters = bxilogfilter.new_detailed_filters(console_filters)
-        __BXIBASE_CAPI__.bxilog_filters_free(console_filters)
+        __BXIBASE_CAPI__.bxilog_filters_free(console_filters._cstruct)
     else:
         file_filters = bxilogfilter.parse_filters(filters_str)
 
@@ -84,7 +86,8 @@ def add_handler(configobj, section_name, c_config):
                               (os.O_APPEND if append else os.O_TRUNC))
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_FILE_HANDLER,
-                                               file_filters,
+                                               file_filters._cstruct,
                                                c_config.progname,
                                                filename,
                                                open_flags)
+#    __BXIBASE_CAPI__.bxilog_filters_free(file_filters);

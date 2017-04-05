@@ -1,41 +1,34 @@
-all: epel pdp jupyter jupyter-c bxibase
+all: bxibase
 
-epel:
-	docker build -t local/centos-epel -f Dockerfile.centos-epel \
-				                                    --build-arg HTTP_PROXY=$(http_proxy)\
-								    --build-arg HTTPS_PROXY=${https_proxy}\
-								    --build-arg FTP_PROXY=${ftp_proxy}\
-								    --build-arg NO_PROXY=${no_proxy}\
-								    .
+MKRPMS_DIR := $(shell cat ~/.config/mkrpms.conf|grep RPMS_DIR|cut -d '=' -f 2)
+TARGET_DOCKER_DIR = /tmp/bxibase.docker
 
-pdp: epel
-	docker build -t local/centos-pdp -f Dockerfile.centos-pdp \
-								    --build-arg HTTP_PROXY=$(http_proxy)\
-								    --build-arg HTTPS_PROXY=${https_proxy}\
-								    --build-arg FTP_PROXY=${ftp_proxy}\
-								    --build-arg NO_PROXY=${no_proxy}\
-								    .
+bxibase: bxibase.deps
+	echo "Building bxibase rpm"
+	${PWD}/../shared/docker/pdp/mkrpms local/centos-bxibase.deps bxibase
+	echo "Copying bxibase rpm"
+	mkdir -p ${TARGET_DOCKER_DIR}/RPMS/x86_64
+	cp Dockerfile.centos-bxibase ${TARGET_DOCKER_DIR}
+	cp -a ${MKRPMS_DIR}/RPMS/x86_64/bxibase* ${TARGET_DOCKER_DIR}/RPMS/x86_64/
+	echo "Creating the YUM repo"
+	createrepo ${TARGET_DOCKER_DIR}/RPMS
+	echo "Creating the bxibase docker"
+	docker build --tag local/centos-bxibase \
+		     --rm=true \
+		     --file ${TARGET_DOCKER_DIR}/Dockerfile.centos-bxibase \
+		     --build-arg HTTP_PROXY=$(http_proxy)\
+		     --build-arg HTTPS_PROXY=${https_proxy}\
+		     --build-arg FTP_PROXY=${ftp_proxy}\
+		     --build-arg NO_PROXY=${no_proxy}\
+		     ${TARGET_DOCKER_DIR}
 
-jupyter: epel
-	docker build -t local/jupyter -f Dockerfile.jupyter \
-								    --build-arg HTTP_PROXY=$(http_proxy)\
-								    --build-arg HTTPS_PROXY=${https_proxy}\
-								    --build-arg FTP_PROXY=${ftp_proxy}\
-								    --build-arg NO_PROXY=${no_proxy}\
-								    .
-
-jupyter-c: jupyter
-	docker build -t local/jupyter-c -f Dockerfile.jupyter-c \
-								    --build-arg HTTP_PROXY=$(http_proxy)\
-								    --build-arg HTTPS_PROXY=${https_proxy}\
-								    --build-arg FTP_PROXY=${ftp_proxy}\
-								    --build-arg NO_PROXY=${no_proxy}\
-								    .
-
-bxibase: 
-	docker build -t local/bxibase -f Dockerfile.bxibase \
-								    --build-arg HTTP_PROXY=$(http_proxy)\
-								    --build-arg HTTPS_PROXY=${https_proxy}\
-								    --build-arg FTP_PROXY=${ftp_proxy}\
-								    --build-arg NO_PROXY=${no_proxy}\
-								    .									
+bxibase.deps: 
+	echo "Building docker deps for bxibase"
+	docker build --tag local/centos-bxibase.deps \
+		     --rm=true \
+		     --file Dockerfile.centos-bxibase.deps \
+		     --build-arg HTTP_PROXY=$(http_proxy)\
+		     --build-arg HTTPS_PROXY=${https_proxy}\
+		     --build-arg FTP_PROXY=${ftp_proxy}\
+		     --build-arg NO_PROXY=${no_proxy}\
+		     ${PWD}

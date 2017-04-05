@@ -61,7 +61,7 @@ if __name__ == "__main__":
     FILENAME.value = "/tmp/%s.log" % sys.argv[0]
 #    print("Output file is %s" % FILENAME.value)
 
-    bxilog.basicConfig(filename=FILENAME.value)
+    bxilog.basicConfig(filename=FILENAME.value, append=True, level=bxilog.DEBUG)
 
     threads_nb = int(sys.argv[1])
     timeout = int(sys.argv[2])

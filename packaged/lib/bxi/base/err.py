@@ -13,7 +13,6 @@ This module exposes all BXI Exception classes.
 
 """
 import sys
-import traceback
 
 import bxi.ffi as bxiffi
 import bxi.base as bxibase
@@ -44,11 +43,11 @@ class BXIError(Exception):
             self.traceback_str = bxibase.traceback2str(tb[2])
 
     def __str__(self):
-        return self.msg + ("" if self.cause is None \
-                              else "\n caused by: " + str(self.cause))
+        return self.msg + ("" if self.cause is None
+                           else "\n caused by: " + str(self.cause))
 
 
-class BXICError(BXIError):
+class BXICError(BXIError, bxibase.Wrapper):
     """
     Wrap a ::bxierr_p into a Python exception
     """
@@ -76,9 +75,9 @@ class BXICError(BXIError):
         lines = []
         for i in xrange(0, c_report.err_nb):
             lines.append(__FFI__.string(c_report.err_msgs[i]))
-        s = "\n".join(lines)
+        result = "\n".join(lines)
         __BXIBASE_CAPI__.bxierr_report_free(c_report)
-        return s
+        return result
 
     @staticmethod
     def chain(cause, err):
@@ -131,6 +130,13 @@ class BXICError(BXIError):
 
     @staticmethod
     def errno2bxierr(msg):
+        """
+        Return the BXICError related to the value of POSIX errno.
+
+        @param[in] msg a string representing the message before the errno related message
+
+        @return the BXICError related to the value of POSIX errno.
+        """
         return __BXIBASE_CAPI__.bxierr_fromidx(__BXIBASE_CAPI__.errno,
                                                __FFI__.NULL, "%s", msg)
 

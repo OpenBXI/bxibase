@@ -8,9 +8,9 @@ fi
 xtics="set xtics ("
 pos=1
 for i in $*;do 
-        label=$(basename $i)
-	xtics="$xtics '$label' $pos,"
-	pos=$(($pos+1))
+    label=$(basename -- $i)
+    xtics="$xtics '$label' $pos,"
+    pos=$(($pos+1))
 done;
 
 xtics=$(echo $xtics|sed 's/,$/)/')

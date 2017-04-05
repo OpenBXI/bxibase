@@ -105,7 +105,8 @@ typedef bxilog_config_s * bxilog_config_p;
  */
 bxilog_config_p bxilog_basic_config(const char *progname,
                                     const char * filename,
-                                    int open_flags);
+                                    int open_flags,
+                                    bxilog_filters_p filters);
 
 /**
  * Create a configuration suitable for unit testing.

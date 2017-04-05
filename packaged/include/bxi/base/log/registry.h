@@ -104,55 +104,5 @@ size_t bxilog_registry_getall(bxilog_logger_p *loggers[]);
  */
 void bxilog_registry_reset();
 
-/**
- * Configure all registered loggers with the given filters.
- *
- * For each registered logger, a check is performed to know if its `bxilog_p.name`
- * matches one of `bxilog_filter_p.prefix`. If this is the case, its level is set
- * to `bxilog_filter_p.level`.
- *
- * @note: the algorithm scan the configuration items in order. Therefore, the usual case
- * is to specify filters from the most generic one to the most specific one.
- * In particular, the first filter can be the empty string "" with the default level,
- * since all registered loggers will match. Then, other filters can be
- * specified with other log levels.
- *
- * @warning: the given filters_p object is nullified after this call. You cannot use
- * it anymore after this call (but you can create another filters object of course).
- *
- * See @link bxilog-cfg.c bxilog-cfg.c for a full running example@endlink
- *
- *
- *
- * @param[inout] filters_p a pointer on filters created by ::bxilog_filters_new() and
- *                       configured with bxilog_filters_add().
- *
- * @return BXIERR_OK on success, anything else on error.
- *
- * @see bxilog_filters_new()
- * @see bxilog_filters_add()
- */
-bxierr_p bxilog_registry_set_filters(bxilog_filters_p * filters_p);
-
-
-/**
- * Configure registered loggers using a string.
- *
- * The string must be in the following format:
- *      lvl_str     <-  [emergency, alert, critical, crit, error, err, warning, warn,
- *                       notice, output, info, debug, fine, trace, lowest]
- *      lvl_num     <-  [0-9]*
- *      lvl         <-  [lvl_num, level_str]
- *      prefix      <-  [A-z]+
- *      format      <-  (lvl:prefix,)*lvl:prefix
- *
- *  Each logger sharing same prefix as the parsed one will be set to the define level.
- *
- * @param[in] format is a string containing the configuration for the loggers.
- *
- * @return BXIERR_OK on success, anything else on error.
- *
- */
-bxierr_p bxilog_registry_parse_set_filters(char * format);
 
 #endif /* BXILOG_H_ */

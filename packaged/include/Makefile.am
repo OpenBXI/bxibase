@@ -33,7 +33,13 @@ nobase_include_HEADERS = \
 						 bxi/base/log/report.h\
 						 bxi/base/log/signal.h\
 						 bxi/base/log/thread.h\
-						 bxi/base/log/registry.h
+						 bxi/base/log/registry.h\
+						 bxi/base/log/file_handler.h\
+			 			 bxi/base/log/null_handler.h\
+			 			 bxi/base/log/syslog_handler.h\
+			 			 bxi/base/log/console_handler.h\
+			 			 bxi/base/log/remote_handler.h\
+			 			 bxi/base/log/remote_receiver.h
 
 if HAVE_PYTHON
 ../lib/bxi/base/cffi_h.py: $(cffi_files)

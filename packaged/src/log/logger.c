@@ -45,7 +45,7 @@
 #include "bxi/base/time.h"
 #include "bxi/base/zmq.h"
 
-#include "bxi/base/log.h"
+#include "bxi/base/log/logger.h"
 
 #include "log_impl.h"
 #include "tsd_impl.h"
@@ -54,7 +54,7 @@
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
-#define RETRIES_MAX 3u
+#define RETRIES_MAX 2u // We try once asynchronously, then back up to synchronous
 
 #define RETRY_DELAY 500000l
 
@@ -99,6 +99,42 @@ void bxilog_logger_set_level(const bxilog_logger_p logger, const bxilog_level_e 
     bxiassert(BXILOG_LOWEST >= level);
     logger->level = level;
 }
+
+void bxilog_logger_reconfigure(const bxilog_logger_p logger) {
+    if (NULL == BXILOG__GLOBALS || NULL == BXILOG__GLOBALS->config) return;
+    bxilog_level_e minimum_level = BXILOG_OFF; // The minimum level required for the current logger
+                                               // across all handlers
+    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+        const bxilog_filters_p filters = BXILOG__GLOBALS->config->handlers_params[i]->filters;
+        size_t best_match_len = 0; // The length of the most precise matching filter
+                                   // inside each handler
+        bxilog_level_e best_match_level = BXILOG_LOWEST; // The best match level inside
+                                                         // each handler
+        // First, look after the most precise filter in the current handler
+        for (size_t f = 0; f < filters->nb; f++) {
+            const bxilog_filter_p filter = filters->list[f];
+            const size_t filter_pre_len = strlen(filter->prefix);
+            if (logger->name_length < filter_pre_len) continue;
+            if (0 != strncmp(filter->prefix, logger->name, filter_pre_len)) continue;
+            // This filter prefix matches the logger name
+            // Let see if it is the maximum match
+            if (best_match_len > filter_pre_len) continue;
+            // We found a new good match, make it the last best known
+            best_match_len = filter_pre_len;
+            best_match_level = filter->level;
+        }
+        // At that stage, we know the most precise filter's level
+        // However, other handlers might have other requirements
+        // If another handler specifies a more detailed level, it must be set in
+        // the logger, otherwise, it won't be seen by expected handlers.
+        // Therefore, the minimum level is the one with the greatest details across
+        // handlers
+        if (best_match_level < minimum_level) continue;
+        minimum_level = best_match_level;
+    }
+    logger->level = minimum_level;
+}
+
 
 // Defined inline in bxilog.h
 extern bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger,
@@ -259,11 +295,12 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
 
     // We need a mallocated buffer to prevent ZMQ from making its own copy
     // We use malloc() instead of calloc() for performance reason
+    // This has been profiled! There is a significant gain doing this!
+    // If you change this, you must know what you are doing!
     record = malloc(data_len);
     bxiassert(NULL != record);
     // Fill the buffer
     record->level = level;
-
 
     err2 = bxitime_get(CLOCK_REALTIME, &record->detail_time);
     BXIERR_CHAIN(err, err2);
@@ -305,11 +342,16 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
                                RETRIES_MAX, RETRY_DELAY);
 
         // Zero-copy version (if record has been mallocated).
-//        err = bxizmq_data_snd_zc(record, data_len,
+//        err2 = bxizmq_data_snd_zc(record, data_len,
 //                                 log_channel, ZMQ_DONTWAIT,
 //                                 RETRIES_MAX, RETRY_DELAY,
 //                                 bxizmq_data_free, NULL);
-        BXIERR_CHAIN(err, err2);
+
+        if (err2->code == BXIZMQ_RETRIES_MAX_ERR) {
+            bxierr_destroy(&err2);
+        } else {
+            BXIERR_CHAIN(err, err2);
+        }
     }
     BXIFREE(record);
     return err;

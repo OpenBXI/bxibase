@@ -24,6 +24,12 @@
 
 #include "bxi/base/err.h"
 
+#ifdef __DBG__
+#define DBG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
+
 
 /**
  * @file    zmq.h
@@ -35,10 +41,10 @@
 // ********************************** Defines **************************************
 // *********************************************************************************
 
-#define BXIZMQ_RETRIES_MAX_ERR 1
-#define BXIZMQ_FSM_ERR 2
-#define BXIZMQ_MISSING_FRAME_ERR 3
-#define BXIZMQ_PUBSUB_SYNC_HEADER ".bxizmq/sync"
+#define BXIZMQ_RETRIES_MAX_ERR      202372135              // Leet code: Z.QRETRIES
+#define BXIZMQ_FSM_ERR              205322                 // Leet code: Z.Q.S.ERR
+#define BXIZMQ_MISSING_FRAME_ERR    2015516                // Leet code: Z.Q.ISSI.G
+#define BXIZMQ_UNEXPECTED_MSG       203893730              // Leet code: Z.Q..EXPE.TED
 
 /**
  * The bxierr code for protocol error
@@ -53,6 +59,20 @@
  */
 #define BXIZMQ_TIMEOUT_ERR 71307
 
+// Protocol
+#define BXIZMQ_PUBSUB_SYNC_HEADER   ".bxizmq/sync/"
+#define BXIZMQ_PUBSUB_SYNC_PING     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: ping"
+#define BXIZMQ_PUBSUB_SYNC_PONG     BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: pong"
+#define BXIZMQ_PUBSUB_SYNC_READY    BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: ready?"
+#define BXIZMQ_PUBSUB_SYNC_ALMOST   BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: almost!"
+#define BXIZMQ_PUBSUB_SYNC_LAST     BXIZMQ_PUBSUB_SYNC_HEADER "pub->sub: last"
+#define BXIZMQ_PUBSUB_SYNC_GO       BXIZMQ_PUBSUB_SYNC_HEADER "sub->pub: go!"
+
+/**
+ * Default zeromq linger period used at zocket creation time
+ */
+#define BXIZMQ_DEFAULT_LINGER 1000u
+//#define BXIZMQ_DEFAULT_LINGER -1
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************
@@ -87,6 +107,30 @@ bxierr_p bxizmq_context_new(void ** ctx);
  */
 bxierr_p bxizmq_context_destroy(void ** ctx);
 
+/**
+ * Create a zeromq socket.
+ *
+ * @note: the created zocket have a default linger period set
+ * to BXIZMQ_DEFAULT_LINGER.
+ *
+ * @param ctx the zeromq context
+ * @param type the zeromq socket type (ZMQ_REQ, ZMQ_REP, ZMQ_PUB, ...)
+ * @param zocket a pointer on the result
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ *
+ * @see BXIZMQ_DEFAULT_LINGER
+ */
+bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
+
+/**
+ * Cleanup the given zeromq socket, releasing all underlying resources and nullifying
+ * the given pointer.
+ *
+ * @param[inout] zocket_p the pointer on the socket to cleanup.
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_destroy(void ** const zocket_p);
 
 /**
  * Bind the socket to the given url and set the specified option on it. If the
@@ -94,18 +138,15 @@ bxierr_p bxizmq_context_destroy(void ** ctx);
  *
  * Any error encountered leads to a NULL pointer for the socket.
  *
- * @param ctx the zeromq context
- * @param type the type of zeromq socket to create
+ * @param zocket the socket to bind
  * @param url the url to bind to
  * @param affected_port is the port selected by zmq for addresses like 'tcp://localhost:!'
- * @param self the socket (NULL on error)
+
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_bind(void * const ctx,
-                            const int type,
+bxierr_p bxizmq_zocket_bind(void * const zocket,
                             const char * const url,
-                            int  * affected_port,
-                            void ** self);
+                            int  * affected_port);
 
 
 /**
@@ -114,18 +155,38 @@ bxierr_p bxizmq_zocket_bind(void * const ctx,
  *
  * Any error encountered leads to a NULL pointer for the socket.
  *
- * @param ctx the zeromq context
- * @param type the type of zeromq socket to create
+ * @param zocket the socket to connect
  * @param url the url to connect to
- * @param self the socket (NULL on error)
  *
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_connect(void * const ctx,
-                               const int type,
-                               const char * const url,
-                               void ** self);
+bxierr_p bxizmq_zocket_connect(void * zocket,
+                               const char * const url);
 
+/**
+ * Disconnect a zocket from an url.
+ *
+ * @param[inout] zocket the socket to disconnect
+ * @param[in] url the url to disconnect from
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_disconnect(void * zocket, const char * url);
+
+/**
+ * Get the specified option on the zmq socket
+ *
+ * @param socket socket from which the option should be get
+ * @param option_name the name of the option
+ * @param option_value the value of the option
+ * @param option_len the length of the option value
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_getopt(void * socket,
+                              int option_name,
+                              void * option_value,
+                              size_t * option_len);
 
 /**
  * Set the specified option on the zmq socket
@@ -143,14 +204,39 @@ bxierr_p bxizmq_zocket_setopt(void * self,
                               const size_t option_len
                              );
 
-
 /**
- * Cleanup the given zeromq socket, releasing all underlying resources.
+ * Short cut for zocket creation and connection to a single url.
  *
- * @param zocket the socket to cleanup
+ * @param ctx a zeromq context
+ * @param type the zeromq socket type to create
+ * @param url the url to connect the socket to
+ * @param zocket the resulting socket (NULL on error)
+ *
  * @return BXIERR_OK on success, any other on failure.
  */
-bxierr_p bxizmq_zocket_destroy(void * const zocket);
+bxierr_p bxizmq_zocket_create_connected(void *const ctx,
+                                        const int type,
+                                        const char *const url,
+                                        void **zocket);
+
+
+/**
+ * Short cut for zocket creation and binding to a single url.
+ *
+ * @param ctx a zeromq context
+ * @param type the zeromq socket type to create
+ * @param url the url to bind the socket to
+ * @param affected_port the port selected by zmq for addresses like 'tcp://localhost:!'
+ * @param zocket the resulting socket (NULL on error)
+ *
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_create_binded(void *const ctx,
+                                     const int type,
+                                     const char *const url,
+                                     int * affected_port,
+                                     void **zocket);
+
 
 
 /**
@@ -237,7 +323,7 @@ bxierr_p bxizmq_msg_rcv(void * zocket, zmq_msg_t * zmsg, int flags);
  *         among others
  */
 bxierr_p bxizmq_msg_rcv_async(void *zocket, zmq_msg_t *msg,
-                           size_t retries_max, long delay_ns);
+                              size_t retries_max, long delay_ns);
 
 
 /**
@@ -278,7 +364,7 @@ bxierr_p bxizmq_msg_has_more(void *zocket, bool* result);
  *
  * @see bxizmq_msg_snd()
  */
-bxierr_p bxizmq_data_snd(void * data, size_t size, void * zocket,
+bxierr_p bxizmq_data_snd(const void * data, size_t size, void * zocket,
                          int flags, size_t retries_max,
                          long delay_ns);
 
@@ -378,7 +464,7 @@ bxierr_p bxizmq_data_rcv(void ** result, size_t expected_size,
  *
  * @see bxizmq_msg_snd()
  */
-bxierr_p bxizmq_str_snd(char * const str, void * zocket, int flags,
+bxierr_p bxizmq_str_snd(const char * const str, void * zocket, int flags,
                         size_t retries_max, long delay_ns);
 
 
@@ -448,39 +534,104 @@ bxierr_p bxizmq_str_rcv(void * zocket, int flags, bool check_more, char ** resul
 void bxizmq_data_free(void * data, void * hint);
 #endif
 
-
 /**
- * Synchronize a publish zmq socket
- * with a subscribe socket using a rep socket.
- * This avoid losing messages at the beginning.
+ * Synchronize a PUB zocket with a SUB zocket using a sync REP zocket.
  *
- * @param pub_zocket to be synchronized
- * @param sync_zocket rep socket use to communicate with the subscribing process
- * @param sync_url used to bind the socket
+ * This guarantees no message published is lost by the SUB zocket after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47)
+ *
+ * @param pub_zocket the PUB zocket to be synchronized
+ * @param sync_zocket REP zocket use to communicate with the SUB zocket
+ * @param sync_url used to bind the PUB zocket
  * @param sync_url_len length of the url
- * @param timeout in seconds before abording
+ * @param timeout_s in seconds before aborting
  *
- * @return BXIERR_OK if the synchronization is done.
+ * @return BXIERR_OK if the synchronization completes successfully.
  */
 bxierr_p bxizmq_sync_pub(void * pub_zocket,
                          void * sync_zocket,
                          char * const sync_url,
                          const size_t sync_url_len,
-                         const double timeout);
+                         const double timeout_s);
 
 
 /**
- * Synchronize the subscribe socket.
+ * Synchronize a SUB zocket.
+ *
+ * This guarantees no message published is lost by the SUB zocket after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47).
  *
  * @param zmq_ctx required for socket creation
  * @param sub_zocket to be synchronized
- * @param timeout in seconds before abording.
+ * @param timeout_s in seconds before aborting.
  *
  * @return BXIERR_OK if the synchronization is done.
  */
 bxierr_p bxizmq_sync_sub(void * zmq_ctx,
                          void * sub_zocket,
-                         const double timeout);
+                         const double timeout_s);
+
+/**
+ * Deal with a SYNC message received by a SUB socket when the publisher uses
+ * bxizmq_sync_pub().
+ *
+ * @note this function must be called only after a first zeromq frame containing
+ * BXIZMQ_PUBSUB_SYNC_HEADER has been received.
+ *
+ * @param[in] zmq_ctx the zmq context to use for the creation of an internal
+ *                    control zocket
+ * @param[in] sub_zocket the SUB socket to use for receiving next zmq frame
+ *
+ * @return BXIERR_OK if successful, anything else otherwise.
+ */
+bxierr_p bxizmq_sub_sync_manage(void * zmq_ctx,
+                                void * sub_zocket);
+
+/**
+ * Synchronize a PUB zocket with many SUB zockets.
+ *
+ * This guarantees no message published is lost by SUB zockets after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47)
+ *
+ * @param[inout] zmq_ctx the zeromq context to use for internal zocket creation
+ * @param[inout] pub_zocket the zocket to synchronize, it must be a PUB
+ * @param[in] url the url used for publication
+ * @param[in] sub_nb the number of subscribers to wait for
+ * @param[in] timeout_s the maximal number of seconds to wait for subscribers
+ *
+ * @return BXIERR_OK on success, anything else on error.
+ */
+bxierr_p bxizmq_sync_pub_many(void * zmq_ctx,
+                              void * pub_zocket,
+                              const char * url,
+                              size_t sub_nb,
+                              const double timeout_s);
+
+/**
+ * Synchronize a SUB zocket with many PUB zockets.
+ *
+ * This guarantees no message published is lost by SUB zocket after a
+ * successful synchronization (classical problem of PUB/SUB zeromq
+ * synchronization, refer to the zeromq guide for details:
+ * http://zguide.zeromq.org/page:all#toc47)
+ *
+ * @param[inout] zmq_ctx the zeromq context to use for internal zocket creation
+ * @param[inout] sub_zocket the zocket to synchronize
+ * @param[in] pub_nb the number of publishers to wait for
+ * @param[in] timeout_s the maximal number of seconds to wait for publishers
+ *
+ * @return BXIERR_OK on success, anything else on error.
+ */
+bxierr_p bxizmq_sync_sub_many(void * zmq_ctx,
+                         void * sub_zocket,
+                         size_t pub_nb,
+                         const double timeout_s);
 
 /**
  * Generate a fresh new zeromq URL from the given one.
@@ -505,4 +656,9 @@ bxierr_p bxizmq_sync_sub(void * zmq_ctx,
  */
 bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result);
 
+char * bxizmq_create_url_from(const char * const url, const int tcp_port);
+
+bxierr_p bxizmq_split_url(const char * const url, char * elements[3]);
+
+bxierr_p bxizmq_err(int errnum, const char * fmt, ...);
 #endif /* BXIZMQ_H_ */

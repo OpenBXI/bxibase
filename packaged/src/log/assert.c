@@ -62,10 +62,21 @@ void bxilog_assert(bxilog_logger_p logger, bool result,
                                   file, line, expr);
         bxilog_exit(EX_SOFTWARE, err, logger, BXILOG_CRITICAL,
                     file, filelen, func, funclen, line);
-        bxierr_destroy(&err);
     }
 }
 
+
+void bxilog_abort_ifko(bxilog_logger_p logger, bxierr_p * err_p,
+                       char * file, size_t filelen,
+                       const char * func, size_t funclen,
+                       int line) {
+
+    if (bxierr_isko(*err_p)) {
+        bxilog_exit(EX_SOFTWARE, *err_p, logger, BXILOG_CRITICAL,
+                    file, filelen, func, funclen, line);
+        bxierr_destroy(err_p);
+    }
+}
 //*********************************************************************************
 //********************************** Static Helpers Implementation ****************
 //*********************************************************************************

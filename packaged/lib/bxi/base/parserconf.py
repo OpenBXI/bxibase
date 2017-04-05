@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-###############################################################################
-# Author: Alain Cady <alain.cady@atos.net>
-# Contributors: Sébastien Miquée <sebastien.miquee@atos.net>
-###############################################################################
-# Copyright (C) 2012 - 2016  Bull S. A. S.  -  All rights reserved
-# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
-# This is not Free or Open Source software.
-# Please contact Bull S. A. S. for details about its license.
-###############################################################################
 
+"""
+@file parserconf.py add basic configuration options to a posless parser
+@authors Jean-Noël Quintin <<jean-noel.quintin@bull.net>>
+@authors Pierre Vignéras <<pierre.vigneras@bull.net>>
+@copyright 2015  Bull S.A.S.  -  All rights reserved.\n
+           This is not Free or Open Source software.\n
+           Please contact Bull SAS for details about its license.\n
+           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+@namespace bxi.base.parserconf add basic configuration options to a posless parser
+"""
+
+
+from __future__ import print_function
 
 from configobj import ConfigObjError
 from configobj import ConfigObj
@@ -54,13 +58,20 @@ _LOGGER = logging.get_logger(logging.LIB_PREFIX + 'bxi.base.parserconf')
 
 
 def get_default_logfile():
+    """
+    Return the default logging file
+
+    @return the default logging file
+    """
     return '%s%s%s.bxilog' % (tempfile.gettempdir(),
                               os.path.sep,
                               os.path.basename(sys.argv[0]))
 
 
 class LogLevelsAction(posless.Action):
-
+    """
+    Action used to display the various log level names
+    """
     def __init__(self,
                  option_strings,
                  dest,
@@ -84,7 +95,7 @@ class LogLevelsAction(posless.Action):
                                               help=help)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        names = list(logging.get_all_level_names_iter())
+        names = list(logging.get_level_names_iter())
         for i in xrange(len(names)):
             print("%s = %s" % (i, names[i]))
         sys.exit(0)
@@ -92,12 +103,20 @@ class LogLevelsAction(posless.Action):
 
 @staticmethod
 def _defaultfiltering(action):
+    """
+    Specifies whether the action must be printed or not during the help display
+
+    @param[in] action the action to display
+    """
     if action.mustbeprinted:
         return True
     return False
 
 
 class FilteredHelpFormatter(posless.HelpFormatter):
+    """
+    Formatter for the help messages with filtering feature
+    """
 
     getfilterfunction = _defaultfiltering
 
@@ -118,7 +137,9 @@ class FilteredHelpFormatter(posless.HelpFormatter):
 
 
 class HelpActionFormatted(posless._HelpAction):
-
+    """
+    Action used to format the help
+    """
     def __call__(self, parser, namespace, values,
                  option_string=None, filter_function=_defaultfiltering):
         parser.formatter_class = FilteredHelpFormatter
@@ -129,12 +150,20 @@ class HelpActionFormatted(posless._HelpAction):
 
 @staticmethod
 def _logfiltering(action):
+    """
+    Specifies that log specific options must be filtered
+
+    @param[in] action the action used for filtering
+    """
     if action.GroupTitle is None or action.GroupTitle == 'BXI Log options':
         return True
     return False
 
 
 class _LoggedHelpAction(HelpActionFormatted):
+    """
+    Action used for filtering logs only options
+    """
     def __call__(self, parser, namespace, values, option_string=None):
         super(_LoggedHelpAction, self).__call__(parser, namespace, values,
                                                 option_string,
@@ -143,10 +172,25 @@ class _LoggedHelpAction(HelpActionFormatted):
 
 @staticmethod
 def _fullfiltering(action):
+    """
+    Specifies that all filtering must be done while displaying the help
+
+    @param[in] action the action used for filtering
+    """
     return True
 
 
 def find_logconfigs(module_name, config):
+    """
+    Return the list of configuration found in config for the bxilog handler with the
+    given module_name
+
+    @param[in] module_name the name of the bxilog handler
+    @param[in] config the configuration
+
+    @return the list of configuration found in config for the bxilog handler with the
+    given module_name
+    """
     result = []
     if 'handlers' not in config:
         return result
@@ -166,6 +210,9 @@ def find_logconfigs(module_name, config):
 
 
 class _FullHelpAction(HelpActionFormatted):
+    """
+    Class to display the full help
+    """
     def __call__(self, parser, namespace, values, option_string=None):
         super(_FullHelpAction, self).__call__(parser, namespace, values,
                                               option_string,
@@ -173,8 +220,15 @@ class _FullHelpAction(HelpActionFormatted):
 
 
 def _get_config_from_file(filename):
-    with open(filename, 'r') as f:
-        config = ConfigObj(f, interpolation=False)
+    """
+    Return the configobj from the given filename
+
+    @param[in] filename the filename to parse
+
+    @return the configobj for the given filename
+    """
+    with open(filename, 'r') as file_:
+        config = ConfigObj(file_, interpolation=False)
 
         if 'include' not in config or config['include'] is None:
             return config
@@ -200,6 +254,15 @@ def _add_config(parser,
                 default_config_filename,
                 domain_name,
                 cmd_config_file_suffix):
+    """
+    Add the configuration options to the given parser
+
+    @param[inout] parser the parser to add options to
+    @param[in] default_config_dirname the default configuration directory
+    @param[in] default_config_filename the default configuration file
+    @param[in] domain_name the configuration domain
+    @param[in] cmd_config_file_suffix the configuration file suffix
+    """
 
     if os.getuid() == 0:
         config_dir_prefix = '/etc/'
@@ -222,6 +285,12 @@ def _add_config(parser,
             cmd_config = os.path.join(full_config_dir, default_config_filename)
 
     def _add_config_dir_arg(target_parser, known_args=None):
+        """
+        Add the config_dir option to the given target_parser
+
+        @param[inout] target_parser the parser to add the option to
+        @param[in] known_args the current set of parsed arguments
+        """
         group = target_parser.add_argument_group('File Based Configuration'
                                                  ' (domain: %s)' % domain_name)
 
@@ -295,7 +364,17 @@ def _add_config(parser,
 
 
 def _configure_log(parser):
+    """
+    Configure the bxilog options for the given parser
+
+    @param[inout] parser the parser to add options to
+    """
     def _add_common(target_parser):
+        """
+        Add common options to the given target_parser
+
+        @param[inout] target_parser the target_parser to add options to
+        """
         # Warning: do not introduce --log-STUFF unless STUFF is actually the name
         # of a bxilog handler.
         group = target_parser.add_argument_group('BXI Log options')
@@ -319,11 +398,19 @@ def _configure_log(parser):
                            metavar='logcfgfile',
                            default=default_logcfgfile,
                            help="Logging configuration file. "
-                           " Use '--output-default-logcfg' to customize one to your "
+                           " Use '--logoutput-default-config' to customize one to your "
                            "own needs. Value: %(default)s.")
         return group
 
     def _add_others(target_parser, args, group, config):
+        """
+        Add remaining options to the given target_parser
+
+        @param[inout] target_parser the target parser to add options to
+        @param[in] args the current set of parsed arguments
+        @param[in] group the group in which the arguments must be set
+        @param[in] config the configuration
+        """
         sections = find_logconfigs(bxilog_consolehandler.__name__, config)
         if len(sections) > 1:
             target_parser.error("Multiple instances of module %s is "
@@ -344,11 +431,11 @@ def _configure_log(parser):
                                metavar='log-%s-filters' % console_handler,
                                envvar='BXILOG_%s_FILTERS' % console_handler.upper(),
                                default=default,
-                               help="Define the logging filters for the %s handler " %
-                                    console_handler +
+                               help="Define the logging filters for the "
+                                    " %s handler " % console_handler + \
                                     "Value: '%(default)s'. "
-                                    "Logging filters are defined by the following format: "
-                                    "logger_name_prefix:level[,prefix:level]*")
+                                    "Logging filters are defined by the following "
+                                    "format: logger_name_prefix:level[,prefix:level]*")
 
             group.add_argument("--quiet", action='store_true', mustbeprinted=True, 
 								help="Set log console filter to off.")
@@ -364,9 +451,9 @@ def _configure_log(parser):
                                envvar='BXILOG_%s_COLORS' % console_handler.upper(),
                                default=default,
                                choices=bxilog_consolehandler.COLORS.keys(),
-                               help="Define the logging colors for the %s handler " %
-                                    console_handler +
-                                    "Value: '%(default)s'. " +
+                               help="Define the logging colors for the %s handler " % \
+                                    console_handler + \
+                                    "Value: '%(default)s'. " + \
                                     "choices=%s. " % bxilog_consolehandler.COLORS.keys())
 
         sections = find_logconfigs(bxilog_filehandler.__name__, config)
@@ -390,9 +477,9 @@ def _configure_log(parser):
                                envvar='BXILOG_%s_FILTERS' % section.upper(),
                                default=default,
                                help="Define the logging filters for the "
-                                    "%s handler " % section +
-                                    "of the default logging configuration. " +
-                                    auto_help_msg +
+                                    "%s handler " % section + \
+                                    "of the default logging configuration. " + \
+                                    auto_help_msg + \
                                     "The format is the one defined by "
                                     "console_filters option. "
                                     "Value: '%(default)s'. ")      
@@ -406,11 +493,37 @@ def _configure_log(parser):
                                envvar='BXILOGPATH',
                                mustbeprinted=False,
                                default=default,
-                               help="Define the destination file for the %s handler " %
+                               help="Define the destination file for the %s handler " % \
                                     section + "Value: %(default)s")
 
+            if 'append' not in conf:
+                default = True
+            else:
+                default = conf['append']
+            group.add_argument("--log-%s-append" % section,
+                               metavar='bool',
+                               mustbeprinted=False,
+                               default=default,
+                               help="When true, append to destination path of handler "
+                                    "%s, instead of owerwriting. " % section + \
+                                    "Value: %(default)s")
+
     def _override_logconfig(config, known_args):
+        """
+        Override the given logging configuration with given known_args
+
+        @param[inout] config the logging configuration
+        @param[in] know_args known arguments
+        """
         def _override_kv(option, key, config, args):
+            """
+            Override the config[key] value by the one given by args[option]
+
+            @param[in] option the option name (long format)
+            @param[in] key the key in the config file for the current handler
+            @param[inout] config the configuration
+            @param[in] known_args the currently known arguments
+            """
             # option has the following format: --log-handler-key=value
             if option.endswith(key):
                 handler_name = option[len('log_'):option.index(key) - 1]
@@ -426,6 +539,7 @@ def _configure_log(parser):
             _override_kv(option, 'filters', config, args)
             _override_kv(option, 'colors', config, args)
             _override_kv(option, 'path', config, args)
+            _override_kv(option, 'append', config, args)
 
             # if --quiet option is provided, set output log level for console handlers
             # to minimal settings so that nothing is printed on stdout (nothing change
@@ -461,19 +575,19 @@ def _configure_log(parser):
                             'filters': ':output',
                             'stderr_level': 'WARNING',
                             'colors': '216_dark',
-                            },
+                           },
                 'file': {'module': bxilog_filehandler.__name__,
                          'filters': 'auto',
-                          'path': os.path.join(tempfile.gettempdir(),
-                                               '%(prog)s') + '.bxilog',
+                         'path': os.path.join(tempfile.gettempdir(),
+                                              '%(prog)s') + '.bxilog',
                          'append': True,
-                         }
-                }
+                        }
+               }
 
     if known_args.output_default_logcfg:
         config = configobj.ConfigObj(infile=baseconf, interpolation=False)
-        for l in config.write():
-            print(l)
+        for line in config.write():
+            print(line)
         sys.exit(0)
 
     if known_args.logcfgfile is None:
@@ -517,9 +631,11 @@ def _configure_log(parser):
         logging.cleanup()
     logging.set_config(config)
     if parser.known_config_file is not None:
-        _LOGGER.info("Configuration based on '%s': %s", parser.known_config_file, parser.config)
+        _LOGGER.info("Configuration based on '%s': %s",
+                     parser.known_config_file, parser.config)
     else:
-        _LOGGER.info("No configuration file found, using default values: %s", parser.config)
+        _LOGGER.info("No configuration file found, using default values: %s",
+                     parser.config)
     _LOGGER.debug(logcfg_msg)
 
 
@@ -529,6 +645,20 @@ def addargs(parser,
             domain_name=None,                                   # /etc/bxi/*domain*.conf
             filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
             setsighandler=True):
+    """
+    Add this parserconf standards arguments to the given parser
+
+    @param[in] parser the parser to add arguments to
+    @param[in] config_dirname the default configuration directory
+    @param[in] config_filename the default configuration file
+    @param[in] domain_name the domain name
+    @param[in] filename_suffix the configuration filename suffix
+    @param[in] setsighandler whether signal handler must be set up or not by the
+                             underlying bxi.base.log library.
+
+    @return
+    """
+
     _add_config(parser, config_dirname, config_filename, domain_name, filename_suffix)
     _configure_log(parser)
 
@@ -537,67 +667,74 @@ def addargs(parser,
                         help=_('Show all options and exit'))
 
 
-def getdefaultvalue(parser, Sections, value, LOGGER, default=None, config=None):
+def getdefaultvalue(parser, sections, value, logger, default=None, config=None):
     """return default value for a given cli parameter.
 
     value is searched for in the "config" configuration file,
     otherwise the parser configuration file,
     otherwise the default argument.
-    The value searched for is identified by the couple (Sections, value)
+    The value searched for is identified by the couple (sections, value)
     @param[in] parser to search conf from (used only if no config provided)
-    @param[in] Sections sections where value is searched
+    @param[in] sections sections where value is searched
     @param[in] value name under which value is stored in config
-    @param[in] LOGGER where messages are logged
+    @param[in] logger where messages are logged
     @param[in] default default value in case search in configs fails
     @param[in] config provided config to search value from.
-
-
     """
-    def _return_dict_value(config, Sections):
+    def _return_dict_value(config, _sections):
+        """
+        Return the dictionnary corresponding to the given _sections
+
+        @param[in] config the configuration
+        @param[in] _sections _sections in the configuration
+        @return the dictionnary corresponding to the given _sections
+        """
         try:
-            if len(Sections) > 1:
-                return _return_dict_value(config.get(Sections[0]), Sections[1:])
+            if len(_sections) > 1:
+                return _return_dict_value(config.get(_sections[0]), _sections[1:])
             else:
-                return config.get(Sections[0])
-        except bxierr.BXIError as e:
-            raise bxierr.BXIError("[%s]%s" % (Sections[0], e.msg))
+                return config.get(_sections[0])
+        except bxierr.BXIError as be:
+            raise bxierr.BXIError("[%s]%s" % (_sections[0], be.msg))
         except:
-            if LOGGER is not None:
-                LOGGER.exception("Initial error:", level=logging.DEBUG)
-            raise bxierr.BXIError("[%s]" % Sections[0])
+            if logger is not None:
+                logger.exception("Initial error:", level=logging.DEBUG)
+            raise bxierr.BXIError("[%s]" % _sections[0])
 
     try:
         if config is None:
             config = parser.config
     except AttributeError:
-        if LOGGER is not None:
-            LOGGER.exception("No configuration provided."
-                              " Using %s as default for value %s from section %s",
-                              default, value, Sections, level=logging.DEBUG)
+        if logger is not None:
+            logger.exception("No configuration provided."
+                             " Using %s as default for value %s from section %s",
+                             default, value, sections, level=logging.DEBUG)
 #         else:
 #             print("No configuration provided."
 #                   " Using %s as default for value %s from section %s" %
-#                   (default, value, Sections))
+#                   (default, value, sections))
         return default
 
     try:
-        dictonary = _return_dict_value(config, Sections)
-    except bxierr.BXIError as e:
-        if LOGGER is not None:
-            LOGGER.debug("Provided configuration (config) doesn't include the (sub)section config%s."
-                          " using %s as default for value %s from (sub)section [%s]", e.msg,
-                          default, value, ']['.join(Sections))
+        dictonary = _return_dict_value(config, sections)
+    except bxierr.BXIError as be:
+        if logger is not None:
+            logger.debug("Provided configuration (config) doesn't include the "
+                         "(sub)section config%s."
+                         " using %s as default for value %s from (sub)section [%s]",
+                         be.msg, default, value, ']['.join(sections))
         return default
 
     try:
-        if LOGGER is not None:
-            LOGGER.debug("Return %s for value %s in section %s",
-                          dictonary[value], value, Sections)
+        if logger is not None:
+            logger.debug("Return %s for value %s in section %s",
+                         dictonary[value], value, sections)
         return dictonary[value]
     except (KeyError, TypeError, AttributeError):
-        if LOGGER is not None:
-            _LOGGER.exception("No value %s in the (sub)sections [%s]."
-                              " using %s as default for value %s from (sub)section [%s]",
-                              value, ']['.join(Sections),
-                              default, value, ']['.join(Sections), level=logging.DEBUG)
+        if logger is not None:
+            logger.exception("No value %s in the (sub)sections [%s]."
+                             " using %s as default for value %s from (sub)section [%s]",
+                             value, ']['.join(sections),
+                             default, value, ']['.join(sections),
+                             level=logging.DEBUG)
         return default

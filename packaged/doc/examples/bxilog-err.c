@@ -56,7 +56,10 @@ int main(int argc, char** argv) {
     if (argc != 1) exit(EX_SOFTWARE);
 
     // Produce logs on stdout, and '/dev/null'
-    bxilog_config_p config = bxilog_basic_config(argv[0], "/dev/null", O_CREAT | O_TRUNC);
+    bxilog_config_p config = bxilog_basic_config(argv[0],
+                                                 "/dev/null",
+                                                 O_CREAT | O_TRUNC,
+                                                 BXILOG_FILTERS_ALL_OUTPUT);
     bxierr_p err = bxilog_init(config);
     // Use BXILOG_REPORT for error reporting, the error is destroyed.
     // If the logging library raises an error,

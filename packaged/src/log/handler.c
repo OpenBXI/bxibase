@@ -25,7 +25,8 @@
 #include "bxi/base/time.h"
 #include "bxi/base/zmq.h"
 
-#include "bxi/base/log.h"
+#include "bxi/base/log/handler.h"
+#include "bxi/base/log/filter.h"
 
 #include "handler_impl.h"
 #include "log_impl.h"
@@ -41,7 +42,6 @@
 //*********************************************************************************
 
 typedef struct {
-    bool zmq_context_created;
     void * ctrl_zocket;
     void * data_zocket;
 
@@ -56,9 +56,6 @@ typedef handler_data_s * handler_data_p;
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxierr_p _mask_signals(bxilog_handler_p);
-static bxierr_p _set_zmq_ctx(bxilog_handler_p,
-                             bxilog_handler_param_p,
-                             handler_data_p);
 static bxierr_p _create_zockets(bxilog_handler_p,
                                 bxilog_handler_param_p,
                                 handler_data_p);
@@ -118,8 +115,6 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
                                bxilog_handler_param_p param) {
     bxiassert(NULL != param);
 
-    param->mask_signals = true;
-    param->zmq_context = NULL;
     param->data_hwm = 1000;
     param->ctrl_hwm = 1000;
     param->flush_freq_ms = 1000;
@@ -128,15 +123,8 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
 
     // Use the param pointer to guarantee a unique URL name for different instances of
     // the same handler
-
-    // WARNING: IF YOU CHANGE FOR ipc:// or tcp://
-    // ENSURE THE ZMQ_IO_THREADS IS NO MORE
-    // SET TO 0 AT ZMQ_CTX CREATION (in core.c).
     param->ctrl_url = bxistr_new("inproc://%s/%p.ctrl", handler->name, param);
     param->data_url = bxistr_new("inproc://%s/%p.data", handler->name, param);
-
-//    param->ctrl_url = bxistr_new("ipc:///tmp/%s.ctrl", handler->name);
-//    param->data_url = bxistr_new("ipc:///tmp/%s.data", handler->name);
 }
 
 void bxilog_handler_clean_param(bxilog_handler_param_p param) {
@@ -167,19 +155,13 @@ bxierr_p bxilog__handler_start(bxilog__handler_thread_bundle_p bundle) {
     BXIERR_CHAIN(eerr, eerr2);
     // Do not quit immediately, we need to send a ready message to BC.
 
-    ierr = _set_zmq_ctx(handler, param, &data);
-    eerr2 = _process_ierr(handler, param, ierr);
-    BXIERR_CHAIN(eerr, eerr2);
-
     ierr = _create_zockets(handler, param, &data);
     eerr2 = _process_ierr(handler, param, ierr);
     BXIERR_CHAIN(eerr, eerr2);
 
-    if (param->mask_signals) {
-        ierr = _mask_signals(handler);
-        eerr2 = _process_ierr(handler, param, ierr);
-        BXIERR_CHAIN(eerr, eerr2);
-    }
+    ierr = _mask_signals(handler);
+    eerr2 = _process_ierr(handler, param, ierr);
+    BXIERR_CHAIN(eerr, eerr2);
 
     ierr = _send_ready_status(handler, param, &data, eerr);
     eerr2 = _process_ierr(handler, param, ierr);
@@ -235,25 +217,6 @@ bxierr_p _mask_signals(bxilog_handler_p handler) {
     return err;
 }
 
-bxierr_p _set_zmq_ctx(bxilog_handler_p handler,
-                      bxilog_handler_param_p param,
-                      handler_data_p data) {
-
-    UNUSED(data);
-    errno = 0;
-
-    if (NULL == param->zmq_context) {
-        void * ctx = zmq_ctx_new();
-        if (NULL == ctx) return bxierr_errno("%s: calling zmq_ctx_new() failed",
-                                             handler->name);
-        param->zmq_context = ctx;
-        data->zmq_context_created = true;
-    } else {
-        data->zmq_context_created = false;
-    }
-    return BXIERR_OK;
-}
-
 bxierr_p _create_zockets(bxilog_handler_p handler,
                          bxilog_handler_param_p param,
                          handler_data_p data) {
@@ -275,22 +238,23 @@ bxierr_p _bind_ctrl_zocket(bxilog_handler_p handler,
     UNUSED(handler);
     bxierr_p err = BXIERR_OK, err2;
 
+    bxiassert(NULL == data->ctrl_zocket);
 
-
-    int affected_port;
-    err2 = bxizmq_zocket_bind(param->zmq_context,
-                              ZMQ_REP,
-                              param->ctrl_url,
-                              &affected_port,
-                              &data->ctrl_zocket);
+    err2 = bxizmq_zocket_create(BXILOG__GLOBALS->zmq_ctx,
+                                ZMQ_REP,
+                                &data->ctrl_zocket);
     BXIERR_CHAIN(err, err2);
-
-//    fprintf(stderr, "Binding %p to %s\n", data->ctrl_zocket, param->ctrl_url);
 
     err2 = bxizmq_zocket_setopt(data->ctrl_zocket,
                                 ZMQ_RCVHWM,
                                 &param->ctrl_hwm,
                                 sizeof(param->ctrl_hwm));
+    BXIERR_CHAIN(err, err2);
+
+    int affected_port;
+    err2 = bxizmq_zocket_bind(data->ctrl_zocket,
+                              param->ctrl_url,
+                              &affected_port);
     BXIERR_CHAIN(err, err2);
 
     return err;
@@ -301,24 +265,25 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
                            handler_data_p data) {
     UNUSED(handler);
     bxierr_p err = BXIERR_OK, err2;
-    int affected_port;
-    err2 = bxizmq_zocket_bind(param->zmq_context,
-                              ZMQ_PULL,
-                              param->data_url,
-                              &affected_port,
-                              &data->data_zocket);
+
+    bxiassert(NULL == data->data_zocket);
+
+    err2 = bxizmq_zocket_create(BXILOG__GLOBALS->zmq_ctx,
+                                ZMQ_PULL,
+                                &data->data_zocket);
     BXIERR_CHAIN(err, err2);
-
-//    fprintf(stderr, "Binding %p to %s\n", data->data_zocket, param->data_url);
-
-    // Subscribe to all
-//    err2 = bxizmq_zocket_setopt(data->data_zocket, ZMQ_SUBSCRIBE, "", 0);
-//    BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(data->data_zocket,
                                 ZMQ_RCVHWM,
                                 &param->data_hwm,
                                 sizeof(param->data_hwm));
+    BXIERR_CHAIN(err, err2);
+
+    int affected_port;
+
+    err2 = bxizmq_zocket_bind(data->data_zocket,
+                              param->data_url,
+                              &affected_port);
     BXIERR_CHAIN(err, err2);
 
     return err;
@@ -383,8 +348,16 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     bxierr_p err = BXIERR_OK, err2;
 
-    zmq_pollitem_t items[] = { { data->ctrl_zocket, 0, ZMQ_POLLIN, 0 },
-                               { data->data_zocket, 0, ZMQ_POLLIN, 0 } };
+    size_t items_nb = 2 + param->private_items_nb;
+    zmq_pollitem_t items[items_nb];
+    items[0].socket = data->ctrl_zocket;
+    items[0].events = ZMQ_POLLIN;
+    items[1].socket = data->data_zocket;
+    items[1].events = ZMQ_POLLIN;
+    for (size_t i = 0; i < param->private_items_nb; i++) {
+        memcpy(items + 2 + i, param->private_items + i, sizeof(items[2+i]));
+    }
+
 
     long actual_timeout = param->flush_freq_ms;
     struct timespec last_flush_time;
@@ -393,7 +366,7 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     while (true) {
         errno = 0;
-        int rc = zmq_poll(items, 2, actual_timeout);
+        int rc = zmq_poll(items, (int) items_nb, actual_timeout);
 
         if (-1 == rc) {
             if (EINTR == errno) continue; // One interruption happened
@@ -468,6 +441,14 @@ bxierr_p _loop(bxilog_handler_p handler,
             err = _process_ierr(handler, param, err);
             if (bxierr_isko(err)) goto QUIT;
         }
+        for (size_t i = 0; i < param->private_items_nb; i++) {
+            if (0 != items[2+i].revents) {
+                if (NULL != param->cbs[i]) {
+                    err2 = param->cbs[i](param, items[2+i].revents);
+                    if (bxierr_isko(err)) goto QUIT;
+                }
+            }
+        }
     }
 QUIT:
 
@@ -478,23 +459,15 @@ bxierr_p _cleanup(bxilog_handler_p handler,
                   bxilog_handler_param_p param,
                   handler_data_p data) {
     UNUSED(handler);
+    UNUSED(param);
 
     bxierr_p err = BXIERR_OK, err2;
 
-    err2 =  bxizmq_zocket_destroy(data->data_zocket);
+    err2 =  bxizmq_zocket_destroy(&data->data_zocket);
     BXIERR_CHAIN(err, err2);
 
-    err2 = bxizmq_zocket_destroy(data->ctrl_zocket);
+    err2 = bxizmq_zocket_destroy(&data->ctrl_zocket);
     BXIERR_CHAIN(err, err2);
-
-    if (data->zmq_context_created) {
-        errno = 0;
-        int rc = zmq_ctx_destroy(&param->zmq_context);
-        if (0 != rc) {
-            err2 = bxierr_errno("Calling zmq_ctx_destroy() failed.");
-            BXIERR_CHAIN(err, err2);
-        }
-    }
 
     return err;
 }

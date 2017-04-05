@@ -10,6 +10,7 @@
 #include "bxi/base/mem.h"
 #include "bxi/base/err.h"
 
+#include "bxi/base/log/level.h"
 
 /**
  * @brief BXI Logging Filters.
@@ -63,6 +64,7 @@ typedef bxilog_filters_s * bxilog_filters_p;
 struct bxilog_filter_s {
     const char * prefix;             //!< logger name prefix
     bxilog_level_e level;            //!< the level to set each matching logger to
+    void * reserved;
 };
 
 /**
@@ -122,7 +124,14 @@ void bxilog_filters_free(bxilog_filters_p filters);
  */
 void bxilog_filters_destroy(bxilog_filters_p * filters_p);
 
-
+/**
+ * Duplicate the given set of filters.
+ *
+ * @param[in] filters a set of filters
+ * @return a mallocated set of filters that contains a copy of all elements
+ *         found in filters.
+ */
+bxilog_filters_p bxilog_filters_dup(bxilog_filters_p filters);
 /**
  * Add a new filter to the given set of filters.
  *
@@ -134,7 +143,7 @@ void bxilog_filters_destroy(bxilog_filters_p * filters_p);
  *
  */
 void bxilog_filters_add(bxilog_filters_p * filters,
-                        char * prefix, bxilog_level_e level);
+                        const char * prefix, bxilog_level_e level);
 
 
 /**

@@ -30,13 +30,19 @@ inst_check_PROGRAMS= \
 					 ../packaged/doc/examples/bxilog-cfg
 
 dist_inst_check_SCRIPTS=\
+						bxilog_suite.py \
+						posless_suite.py\
 						simple_bxilog_user.py \
 						simple_bxilogger.py \
 						testbxilog.py\
+						testremotehandler.py\
+						remote_logger.py\
 						uncaught.py\
-						posless_suite.py\
 						specific_argparse_poslessed.py\
-						specific_posless.py
+						specific_posless.py\
+						testbxierr.py\
+						testparserconf.py\
+						testbxilog.py
 
 unit_t_CFLAGS =\
 			   -I$(top_srcdir)/packaged/include\

@@ -1,5 +1,27 @@
 # posless argparse extention by A. Cady <alain.cady@atos.net>
 # argparse is authored by Steven J. Bethard <steven.bethard@gmail.com>.
+# pylint: disable=I0011
+# pylint: disable=C0111
+# pylint: disable=W0212
+# pylint: disable=W0622
+# pylint: disable=C0103
+# pylint: disable=C0302
+# pylint: disable=E1101
+# pylint: disable=R0201
+# pylint: disable=R0902
+# pylint: disable=R0911
+# pylint: disable=R0912
+# pylint: disable=R0913
+# pylint: disable=R0914
+# pylint: disable=R0915
+# pylint: disable=W0102
+# pylint: disable=W0107
+# pylint: disable=W0141
+# pylint: disable=W0142
+# pylint: disable=W0223
+# pylint: disable=W0231
+# pylint: disable=W0233
+# pylint: disable=W0631
 
 """Command-line parsing library
 
@@ -100,6 +122,9 @@ from gettext import gettext as _
 
 
 def _callable(obj):
+    """
+    call object?
+    """
     return hasattr(obj, '__call__') or hasattr(obj, '__bases__')
 
 
@@ -136,13 +161,22 @@ class _AttributeHolder(object):
         return '%s(%s)' % (type_name, ', '.join(arg_strings))
 
     def _get_kwargs(self):
+        """
+        Return dict of kwargs
+        """
         return sorted(self.__dict__.items())
 
     def _get_args(self):
+        """
+        Return array of args
+        """
         return []
 
 
 def _ensure_value(namespace, name, value):
+    """
+    ensure value before access
+    """
     if getattr(namespace, name, None) is None:
         setattr(namespace, name, value)
     return getattr(namespace, name)
@@ -192,10 +226,16 @@ class HelpFormatter(object):
     # Section and indentation methods
     # ===============================
     def _indent(self):
+        """
+        Increase indent of the ouput
+        """
         self._current_indent += self._indent_increment
         self._level += 1
 
     def _dedent(self):
+        """
+        Decrease indent of the output
+        """
         self._current_indent -= self._indent_increment
         assert self._current_indent >= 0, 'Indent decreased below 0.'
         self._level -= 1
@@ -622,11 +662,11 @@ class HelpFormatter(object):
             strg = self._get_help_string(action) % params
             try:
                 return strg % params
-            except BaseException as e:
+            except BaseException:
                 # print("/!\ In string '%s' for the option '%s' the parameter "
                 #    "can't be replaced: %s" % (self._get_help_string(action), action, e))
                 return strg
-        except BaseException as e:
+        except BaseException:
             # print("/!\ In string '%s' for the option '%s' the parameter "
             #    "can't be replaced: %s" % (self._get_help_string(action), action, e))
             return self._get_help_string(action)
@@ -1567,7 +1607,7 @@ class _ActionsContainer(object):
     def _handle_conflict_error(self, action, conflicting_actions):
         message = _('conflicting option string(s): %s')
         conflict_string = ', '.join([option_string
-                                     for option_string, action
+                                     for option_string, action_
                                      in conflicting_actions])
         raise ArgumentError(action, message % conflict_string)
 
@@ -1857,8 +1897,9 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                         try:
                             set_value = value % defaults_value
                         except BaseException as e:
-                            self.error("/!\  In string '%s' for the option '%s' the parameter "
-                                       "can't be replaced: %s" % (value, attr, e))
+                            self.error("/!\\  In string '%s' for the option '%s'"
+                                       " the parameter can't be replaced: %s"
+                                       % (value, attr, e))
                             pass
                         setattr(namespace, attr, set_value)
             return namespace, args
@@ -2232,8 +2273,8 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
         # if multiple actions match, the option string was ambiguous
         if len(nonoption_tuples) > 1:
-            nonoptions = ', '.join([nonoption_string
-                for action, nonoption_string, explicit_arg in nonoption_tuples])
+            nonoptions = ', '.join([nonoption_str
+                for action_, nonoption_str, explicit_ in nonoption_tuples])
             tup = arg_string, nonoptions
             self.error(_('ambiguous non-option: %s could match %s') % tup)
 
@@ -2315,8 +2356,8 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
         # if multiple actions match, the option string was ambiguous
         if len(option_tuples) > 1:
-            options = ', '.join([option_string
-                for action, option_string, explicit_arg in option_tuples])
+            options = ', '.join([option_str
+                for action_, option_str, explicit_ in option_tuples])
             tup = arg_string, options
             self.error(_('ambiguous option: %s could match %s') % tup)
 

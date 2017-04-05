@@ -47,7 +47,8 @@ int main(int argc, char** argv) {
 
     // Produce logs on stdout/stderr, and also in /tmp/foo.log
     bxilog_config_p config = bxilog_basic_config(argv[0], "/tmp/foo.log",
-                                                 BXI_TRUNC_OPEN_FLAGS);
+                                                 BXI_TRUNC_OPEN_FLAGS,
+                                                 BXILOG_FILTERS_ALL_ALL);
     bxierr_p err = bxilog_init(config);
     // Use BXILOG_REPORT for error reporting, the error is destroyed.
     // If the logging library raises an error,
@@ -58,7 +59,7 @@ int main(int argc, char** argv) {
 
     // Fetching log level names
     size_t n = 0;
-    n = bxilog_get_all_level_names(&LEVEL_NAMES);
+    n = bxilog_level_names(&LEVEL_NAMES);
     // Use BXIASSERT() instead of assert(), this guarantee all logs
     // are flushed before exiting.
     BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);
@@ -74,7 +75,9 @@ int main(int argc, char** argv) {
     log_stuff(LOGGER_AB);
     log_stuff(LOGGER_AC);
 
-    bxilog_registry_parse_set_filters(":lowest,a:output,a.b:warning");
+    // Logger's level is determined according to all handlers filters.
+    // TODO: illustrate how to change the configuration at runtime
+//    bxilog_config_parse_set_filters(":lowest,a:output,a.b:warning");
     OUT(MY_LOGGER, "After configuration:");
     display_loggers(n, loggers);
     log_stuff(LOGGER_A);

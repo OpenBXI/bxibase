@@ -35,5 +35,6 @@
 //*********************************************************************************
 
 bxierr_p bxilog__config_destroy(bxilog_config_p * config_p);
+bxierr_p bxilog__config_loggers();
 
 #endif

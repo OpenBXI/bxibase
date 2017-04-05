@@ -95,11 +95,9 @@ const bxilog_const_s bxilog_const = {
                                      .HB_PREFIX = BXILOG_HB_PREFIX,
 };
 
-
-
 // The internal logger
 SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog");
-
+SET_LOGGER(LOGGER_CONFIG_LOGGERS, BXILOG_LIB_PREFIX "bxilog.config.loggers");
 
 static pthread_mutex_t BXILOG_INITIALIZED_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 
@@ -161,6 +159,12 @@ bxierr_p bxilog_init(bxilog_config_p config) {
         goto UNLOCK;
     }
 
+    err = bxilog__config_loggers();
+    if (bxierr_isko(err)) {
+        BXILOG__GLOBALS->state = BROKEN;
+        goto UNLOCK;
+    }
+
     // Install the fork handler once only
     rc = pthread_once(&ATFORK_ONCE, bxilog__fork_install_handlers);
     if (0 != rc) {
@@ -186,8 +190,7 @@ UNLOCK:
     return err;
 }
 
-bxierr_p bxilog_finalize(bool flush) {
-    UNUSED(flush);
+bxierr_p bxilog_finalize() {
     bxierr_p err = BXIERR_OK;
     int rc = pthread_mutex_lock(&BXILOG_INITIALIZED_MUTEX);
     if (0 != rc) {
@@ -209,8 +212,22 @@ bxierr_p bxilog_finalize(bool flush) {
         goto UNLOCK;
     }
 
-    DEBUG(LOGGER, "Exiting bxilog");
+    char ** level_names;
+    bxilog_level_names(&level_names);
 
+    bxilog_logger_p * loggers = NULL;
+    size_t n = bxilog_registry_getall(&loggers);
+
+    for (size_t i = 0; i < n; i++) {
+        DEBUG(LOGGER_CONFIG_LOGGERS,
+              "Logging level of %s: %s",
+              loggers[i]->name,
+              level_names[loggers[i]->level]);
+    }
+
+    BXIFREE(loggers);
+
+    DEBUG(LOGGER, "Exiting bxilog");
     err = bxilog__finalize();
 
     if (bxierr_isko(err)) {
@@ -306,7 +323,7 @@ bxierr_p bxilog_flush(void) {
 void bxilog_display_loggers(int fd) {
     char ** level_names;
     ssize_t rc;
-    size_t n = bxilog_get_all_level_names(&level_names);
+    size_t n = bxilog_level_names(&level_names);
     char * TMP = "Log level names:\n";
     rc = write(fd, TMP, strlen(TMP));
     bxiassert(-1 != rc);
@@ -352,23 +369,21 @@ void bxilog__wipeout() {
 
 
 bxierr_p bxilog__init_globals() {
-
     BXILOG__GLOBALS->pid = getpid();
     pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->config->handlers_nb * sizeof(*threads));
     BXILOG__GLOBALS->handlers_threads = threads;
     BXILOG__GLOBALS->internal_handlers_nb = 0;
 
     bxiassert(NULL == BXILOG__GLOBALS->zmq_ctx);
-    errno = 0;
 
-    void * ctx = zmq_ctx_new();
-    if (NULL == ctx) {
+    void * ctx = NULL;
+    bxierr_p err = bxizmq_context_new(&ctx);
+    if (bxierr_isko(err)) {
         BXILOG__GLOBALS->state = ILLEGAL;
-        return bxierr_errno("Can't create a zmq context");
+        return err;
     }
     errno = 0;
     int rc;
-
     // Since we normally use inproc://, there is no need for ZMQ_IO_THREADS
     rc = zmq_ctx_set(ctx, ZMQ_IO_THREADS, 0);
     if (0 != rc) {
@@ -400,7 +415,6 @@ bxierr_p bxilog__start_handlers(void) {
             bxierr_list_append(errlist, ierr);
             continue;
         }
-        BXILOG__GLOBALS->config->handlers_params[i]->zmq_context = BXILOG__GLOBALS->zmq_ctx;
         bxierr_p ierr = BXIERR_OK, ierr2;
 
         ierr2 = _start_handler_thread(handler,
@@ -455,6 +469,7 @@ bxierr_p bxilog__finalize(void) {
     return err;
 }
 
+
 bxierr_p bxilog__stop_handlers(void) {
     // TODO: hack around zeromq issue
     // https://github.com/zeromq/libzmq/issues/1590
@@ -471,11 +486,10 @@ bxierr_p bxilog__stop_handlers(void) {
         bxiassert(NULL != url);
 
         void * zocket = NULL;
-
-        err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_REQ,
-                                     url,
-                                     &zocket);
+        err2 = bxizmq_zocket_create_connected(BXILOG__GLOBALS->zmq_ctx,
+                                              ZMQ_REQ,
+                                              url,
+                                              &zocket);
         BXIERR_CHAIN(err, err2);
         bxierr_abort_ifko(err);
 
@@ -483,7 +497,10 @@ bxierr_p bxilog__stop_handlers(void) {
         BXIERR_CHAIN(err, err2);
 
         char * msg = NULL;
-        while(ret != ESRCH && msg == NULL) {
+        // FIXME: this _zmq_str_rcv_timeout() looks strange to me??
+        // We might be able to replace it by a normal call to the bxizmq library.
+        // For the moment, it seems to work though
+        while (ret != ESRCH && msg == NULL) {
             bxierr_destroy(&err2);
             ret = pthread_kill(handler_thread, 0);
             err2 = _zmq_str_rcv_timeout(zocket, &msg, 500);
@@ -497,9 +514,8 @@ bxierr_p bxilog__stop_handlers(void) {
                 break;
             }
         }
-
-
-        err2 = bxizmq_zocket_destroy(zocket);
+        
+        err2 = bxizmq_zocket_destroy(&zocket);
         BXIERR_CHAIN(err, err2);
 
         if (ESRCH == ret && msg == NULL) continue;
@@ -594,20 +610,11 @@ bxierr_p _reset_globals() {
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
     if (NULL != BXILOG__GLOBALS->zmq_ctx) {
-        int rc = zmq_ctx_destroy(BXILOG__GLOBALS->zmq_ctx);
-        if (-1 == rc) {
-            while (-1 == rc && EINTR == errno) {
-                rc = zmq_ctx_destroy(BXILOG__GLOBALS->zmq_ctx);
-            }
-            if (-1 == rc) {
-                err2 = bxierr_errno("Can't destroy context (rc=%d)", rc);
-                BXIERR_CHAIN(err, err2);
-            }
-        }
+        err2 = bxizmq_context_destroy(&BXILOG__GLOBALS->zmq_ctx);
+        BXIERR_CHAIN(err, err2);
     }
-    BXILOG__GLOBALS->zmq_ctx = NULL;
-    pthread_key_delete(BXILOG__GLOBALS->tsd_key);
-    // Nothing to do on pthread_key_delete() see man page
+    int rc = pthread_key_delete(BXILOG__GLOBALS->tsd_key);
+    UNUSED(rc); // Nothing to do on pthread_key_delete() see man page
     BXILOG__GLOBALS->tsd_key_once = PTHREAD_ONCE_INIT;
     BXIFREE(BXILOG__GLOBALS->handlers_threads);
     BXILOG__GLOBALS->internal_handlers_nb = 0;
@@ -729,10 +736,13 @@ void _setprocname(char * name) {
     errno = 0;
     const char * progname = NULL;
     bxistr_rsub(name, strlen(name), '/', &progname);
+    if (NULL == progname || strlen(progname) == 0) {
+        return;
+    }
     int rc = prctl(15 /* PR_SET_NAME */, progname, 0, 0, 0);
     if (0 != rc) {
         bxierr_p err = bxierr_errno("Setting process name to '%s' with "
-                                    "prctl() failed", name);
+                "prctl() failed", name);
         bxierr_report(&err, STDERR_FILENO);
     }
 #endif

@@ -15,14 +15,14 @@ import logging
 import os
 import sys
 import tempfile
-import multiprocessing
+import threading
 import time
 
 
-AGAIN = multiprocessing.Value('b', True, lock=False)
+AGAIN = True
 
 def logging_thread():
-    while AGAIN.value:
+    while AGAIN:
         logging.debug("Logging something...");
 
 if __name__ == "__main__":
@@ -30,6 +30,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: %s threads_nb timeout" % sys.argv[0])
         exit(1)
+
 
     filename = "/tmp/%s.log" % sys.argv[0]
     logging.basicConfig(level=logging.DEBUG,
@@ -41,13 +42,13 @@ if __name__ == "__main__":
 
     threads = []
     for i in xrange(threads_nb):
-        thread = multiprocessing.Process(target=logging_thread)
+        thread = threading.Thread(target=logging_thread)
         thread.start()
         threads.append(thread)
 
     time.sleep(timeout)
 
-    AGAIN.value = False;
+    AGAIN = False;
 
     for i in xrange(threads_nb):
         threads[i].join()

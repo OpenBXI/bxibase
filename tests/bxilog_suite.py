@@ -14,7 +14,8 @@ import unittest
 
 def suite():
     suite = TestLoader().loadTestsFromNames(['testbxilog',
-                                             'testparserconf'])
+                                             'testparserconf',
+                                             'testremotehandler'])
     return suite
 
 

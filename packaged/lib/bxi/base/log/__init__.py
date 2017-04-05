@@ -192,6 +192,11 @@ LOWEST = __BXIBASE_CAPI__.BXILOG_LOWEST
 # does understand it
 ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 
+__names__ = __FFI__.new("char ***")
+__nb__ = __BXIBASE_CAPI__.bxilog_level_names(__names__)
+# The list of level names as a tuple
+LEVEL_NAMES = tuple(__FFI__.string(__names__[0][i]) for i in xrange(__nb__))
+
 LIB_PREFIX = __FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX)
 
 
@@ -211,7 +216,7 @@ DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
                                                   'stderr_level': 'WARNING',
                                                   'colors': '216_dark',
                                                  }
-                                      })
+                                     })
 
 # The default logger.
 _DEFAULT_LOGGER = None
@@ -223,7 +228,7 @@ def is_configured():
 
     @return A boolean indicating the configuration state of the logs
     """
-    global _INITIALIZED
+    global _INITIALIZED  # pylint: disable=locally-disabled, global-variable-not-assigned
     return _INITIALIZED
 
 
@@ -232,55 +237,58 @@ def get_level_from_str(level_str):
     Return the ::bxilog_level_e related to the given string.
     """
     level_p = __FFI__.new('bxilog_level_e[1]')
-    err = __BXIBASE_CAPI__.bxilog_get_level_from_str(level_str, level_p)
+    err = __BXIBASE_CAPI__.bxilog_level_from_str(level_str, level_p)
 
     bxierr.BXICError.raise_if_ko(err)
     return level_p[0]
 
 
-def set_config(configobj, progname=None):
+def set_config(config, progname=None):
     """
-    Set the whole bxilog module from the given configobj
-    """
-    global _INITIALIZED
-    if _INITIALIZED:
-        raise bxierr.BXILogConfigError("The bxilog has already been initialized. "
-                                       "Its configuration cannot be changed."
-                                       "\nAvailable solutions:"
-                                       "\n\t1. Do not perform a log at module level, "
-                                       "and the configuration afterwards;"
-                                       "\n\t2. Do no perform a log unless is_configured()"
-                                       " returns True;"
-                                       "\n\t3. Call cleanup() to reinitialize the whole "
-                                       "bxilog library (Note: you might need a reconfiguration)."
-                                       "\nFor your convenience, "
-                                       "the following stacktrace might help finding out where "
-                                       "the first _init() call  was made:\n %s" % _INIT_CALLER,
-                                       configobj)
+    Set the configuration of the bxilog module from the given configobj.
 
-    global _CONFIG
-    _CONFIG = configobj
-    global _PROGNAME
+    @note the configuration is actually used only after the first call to init()
+    """
+    global _INITIALIZED  # pylint: disable=locally-disabled, global-variable-not-assigned
+    if _INITIALIZED:
+        raise bxierr.BXILogConfigError("""
+The bxilog has already been initialized. Its configuration cannot be changed."
+Available solutions:
+    1. Do not perform a log at module level and the configuration afterwards;
+    2. Do no perform a log unless is_configured() returns True;
+    3. Call cleanup() to reinitialize the whole bxilog library
+       (Note: you might need a reconfiguration).
+
+For your convenience, the following stacktrace might help finding out where
+the first _init() call  was made: %s""" % _INIT_CALLER, config)
+
+    if not isinstance(config, configobj.ConfigObj):
+        config = configobj.ConfigObj(config)
+    global _CONFIG  # pylint: disable=locally-disabled, global-statement
+    _CONFIG = config
+    global _PROGNAME  # pylint: disable=locally-disabled, global-statement
     _PROGNAME = progname
 
 
 def get_config():
     """
     Return the current bxilog configuration.
+
+    @note the current configuration is actually used only afte init() has been called.
     """
-    global _CONFIG
+    global _CONFIG  # pylint: disable=locally-disabled, global-variable-not-assigned
     return _CONFIG
 
 
-def bxilog_excepthook(type_, value, traceback):
+def bxilog_excepthook(type_, value, trce):
     """
     The exception hook called on uncaught exception.
     """
-    global _INITIALIZED
+    global _INITIALIZED  # pylint: disable=locally-disabled, global-variable-not-assigned
     if not _INITIALIZED or not __BXIBASE_CAPI__.bxilog_is_ready():
-        sys.__excepthook__(type_, value, traceback)
+        sys.__excepthook__(type_, value, trce)
     else:
-        get_default_logger()._report((type_, value, traceback),
+        get_default_logger()._report((type_, value, trce),  # pylint: disable=locally-disabled, protected-access
                                      CRITICAL,
                                      'Uncaught Exception - exiting thread')
 
@@ -304,30 +312,33 @@ def multiprocessing_target(func):
 
 ### @snippet bxilog-multiprocessing.py BXI Log and Python multiprocessing module
     """
-    def wrapped(*args, **kwargs):
+    def wrapped(*args, **kwargs):  # pylint: disable=locally-disabled, missing-docstring
         try:
             cleanup()
             func(*args, **kwargs)
-        except Exception as e:
+        except Exception as exc:  # pylint: disable=locally-disabled, broad-except
             if not _INITIALIZED or not __BXIBASE_CAPI__.bxilog_is_ready():
-                raise e
+                raise exc
             else:
-                exception('Uncaught Exception: %s', e.__class__.__name__)
+                exception('Uncaught Exception: %s', exc.__class__.__name__)
         finally:
             cleanup()
     return wrapped
 
 
-def _init():
+def init():
     """
-    Initialize the underlying C library
+    Initialize the underlying C library with the configuration set with set_config().
+
+    @note This function is automatically called by the library on the first call to
+    Logger.log().
 
     @return
     """
-    global _INITIALIZED
-    global _CONFIG
-    global _INIT_CALLER
-    global _PROGNAME
+    global _INITIALIZED  # pylint: disable=locally-disabled, global-statement
+    global _CONFIG  # pylint: disable=locally-disabled, global-statement
+    global _INIT_CALLER  # pylint: disable=locally-disabled, global-statement
+    global _PROGNAME  # pylint: disable=locally-disabled, global-statement
 
     if _CONFIG is None:
         _CONFIG = DEFAULT_CONFIG
@@ -351,9 +362,9 @@ def _init():
         except KeyError as ke:
             raise bxierr.BXIError("Bad bxilog configuration in handler '%s' of %s,"
                                   " can't find %s" % (section, _CONFIG, ke))
-        except Exception as e:
+        except Exception as exc:
             raise bxierr.BXIError("Bad bxilog configuration in handler "
-                                  "'%s' of %s." % (section, _CONFIG), cause=e)
+                                  "'%s' of %s." % (section, _CONFIG), cause=exc)
 
     err_p = __BXIBASE_CAPI__.bxilog_init(c_config)
     bxierr.BXICError.raise_if_ko(err_p)
@@ -371,7 +382,8 @@ def _init():
         err_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
         bxierr.BXICError.raise_if_ko(err_p)
 
-    debug("BXI logging configuration: %s", _CONFIG)
+    get_logger(LIB_PREFIX + 'bxilog.config').debug("BXI logging configuration: %s",
+                                                   _CONFIG)
 
 
 def get_logger(name):
@@ -385,6 +397,9 @@ def get_logger(name):
 
     @return the BXILogger instance with the given name
     """
+    # Yes we fetch from Python all loggers.
+    # This is also done in C below. The reason is to prevent
+    # instantiating twice a Python wrapper: singleton implementation!
     for logger in get_all_loggers_iter():
         if __FFI__.string(logger.clogger.name) == name:
             return logger
@@ -397,18 +412,17 @@ def get_logger(name):
     return bxilogger.BXILogger(logger_p[0])
 
 
-def cleanup(flush=True):
+def cleanup():
     """
     Called at exit time to cleanup the underlying BXI C library.
 
-    @param[in] flush if true, do a flush before releasing all resources.
     @return
     """
-    global _INITIALIZED
-    global _CONFIG
-    global _DEFAULT_LOGGER
+    global _INITIALIZED  # pylint: disable=locally-disabled, global-statement
+    global _CONFIG  # pylint: disable=locally-disabled, global-statement
+    global _DEFAULT_LOGGER  # pylint: disable=locally-disabled, global-statement
     if _INITIALIZED:
-        err_p = __BXIBASE_CAPI__.bxilog_finalize(flush)
+        err_p = __BXIBASE_CAPI__.bxilog_finalize()
         bxierr.BXICError.raise_if_ko(err_p)
     _INITIALIZED = False
     _DEFAULT_LOGGER = None
@@ -423,18 +437,6 @@ def flush():
     """
     err_p = __BXIBASE_CAPI__.bxilog_flush()
     bxierr.BXICError.raise_if_ko(err_p)
-
-
-def get_all_level_names_iter():
-    """
-    Return an iterator over all level names.
-
-    @return
-    """
-    names = __FFI__.new("char ***")
-    nb = __BXIBASE_CAPI__.bxilog_get_all_level_names(names)
-    for i in xrange(nb):
-        yield __FFI__.string(names[0][i])
 
 
 def get_all_loggers_iter():
@@ -457,8 +459,8 @@ def get_default_logger():
 
     @return
     """
-    global _DEFAULT_LOGGER
-    global _PROGNAME
+    global _DEFAULT_LOGGER  # pylint: disable=locally-disabled, global-statement
+    global _PROGNAME  # pylint: disable=locally-disabled, global-variable-not-assigned
 
     if _PROGNAME is None:
         default = os.path.basename(sys.argv[0])
@@ -654,6 +656,21 @@ def lowest(msg, *args, **kwargs):
     get_default_logger().lowest(msg, *args, **kwargs)
 
 
+def  log(level, msg, *args, **kwargs):
+    """
+    Log the given message at the given level using the default logger.
+
+    @param[in] level the level at which the given message should be logged
+    @param[in] msg the message to log
+    @param[in] args an array of parameters for string substitution in msg
+    @param[in] kwargs a dict of named parameters for string substitution in msg
+    @return
+
+    @see get_default_logger
+    """
+    get_default_logger().log(level, msg, *args, **kwargs)
+
+
 def exception(msg="", *args, **kwargs):
     """
     Log the current exception.
@@ -668,11 +685,11 @@ def exception(msg="", *args, **kwargs):
     get_default_logger().exception(msg, *args, **kwargs)
 
 
-def report_bxierr(bxierr, msg="", *args, **kwargs):
+def report_bxierr(err, msg="", *args, **kwargs):
     """
     Report the given bxierr_p.
 
-    @param[in] bxierr the bxierr_p to report
+    @param[in] err the bxierr_p to report
     @param[in] msg the message to display along with the error report
     @param[in] args message arguments if any
     @param[in] kwargs message arguments if any
@@ -681,7 +698,7 @@ def report_bxierr(bxierr, msg="", *args, **kwargs):
 
     @see get_default_logger
     """
-    get_default_logger().report_bxierr(bxierr, msg=msg, *args, **kwargs)
+    get_default_logger().report_bxierr(err, msg=msg, *args, **kwargs)
 
 
 # Provide a compatible API with the standard Python logging module
@@ -690,7 +707,7 @@ shutdown = cleanup
 warn = warning
 
 
-def basicConfig(**kwargs):
+def basicConfig(**kwargs):  # pylint: disable=locally-disabled, invalid-name
     """
     Convenient function for backward compatibility with python logging module.
 
@@ -752,14 +769,14 @@ def _showwarning(message, category, filename, lineno, _file=None, line=None):
         getLogger("py.warnings").warning("%s", warning_msg)
 
 
-def captureWarnings(capture):
+def captureWarnings(capture):  # pylint: disable=locally-disabled, invalid-name
     """
     If capture is False, ensure that warnings are not redirected to bxi logging
     but to their original destinations.
 
     @param[in] capture if true, redirect all warnings to the bxi logging package
     """
-    global _warnings_showwarning
+    global _warnings_showwarning  # pylint: disable=locally-disabled, global-statement
     if capture:
         if _warnings_showwarning is None:
             _warnings_showwarning = warnings.showwarning
@@ -775,25 +792,53 @@ class FileLike(object):
     A file like object that can be used for writing backed by the logging api.
     """
     def __init__(self, logger, level=OUTPUT):
+        """
+        Create a file like object using the given logger.
+
+        @param[in] logger the logger to use
+        @param[in] level the level at which logs must be emmitted
+        """
         self.logger = logger
         self.level = level
         self.buf = None
 
     def close(self):
+        """
+        Close this file like object.
+
+        @note this method actually flushes the logging system using the bxilog.flush().
+
+        @see bxilog.flush()
+        """
         self._newline()
         self.flush()
 
     def _newline(self):
+        """
+        Write a newline through this instance logger.
+        """
         if self.buf is not None:
             self.logger.log(self.level, self.buf)
             self.buf = None
 
     def flush(self):
+        """
+        Flush this file like object.
+
+        @note Actually, this flush the whole logging system using the bxilog.flush().
+
+        @see bxilog.flush()
+        """
         self.logger.flush()
 
-    def write(self, s):
+    def write(self, string):
+        """
+        Write the given string to this instance logger.
+
+        @param[in] string a string
+        """
         if self.buf is None:
-            self.buf = s
+            self.buf = string
         else:
             # Yes, we use '+' instead of StringIO, format or other tuning
             # since:
@@ -803,12 +848,17 @@ class FileLike(object):
             #        2. benchmark shows quite good performance of the '+' operator
             #           nowadays, except with Pypy. See the string_concat.py bench
             #           for details
-            self.buf += s
+            self.buf += string
         if self.buf[-1] == '\n':
             self.buf = self.buf[:-1]
             self._newline()
 
     def writelines(self, sequence):
+        """
+        Write all lines of the given sequence through this instance logger.
+
+        @param[in] sequence an iterator over lines
+        """
         for line in sequence:
             self.write(line)
 

@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+###############################################################################
+# Author: Sébastien Miquée <sebastien.miquee@bull.net>
+###############################################################################
+# Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
+# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+# This is not Free or Open Source software.
+# Please contact Bull S. A. S. for details about its license.
+###############################################################################
+"""
+Benchmark of Logging Python library.
+"""
+
+from __future__ import print_function
+
+import multiprocessing
+import os
+import sys
+import tempfile
+import time
+import logging
+
+AGAIN = multiprocessing.Value('b', True, lock=False)
+
+N = None
+MIN = None
+MAX = None
+
+def benched_log(level, msg, stats):
+    start = time.clock()
+    
+    logging.log(level, msg)
+
+    duration = time.clock() - start
+    
+    stats['min_duration'] = min(stats['min_duration'], duration)
+    stats['max_duration'] = max(stats['max_duration'], duration)
+    stats['total_duration'] += duration
+    stats['n'] += 1
+
+def logging_thread(id):
+    stats = {'n': 0, 'total_duration': 0, 'min_duration': 1.0e20, 'max_duration': 0.0}
+    while AGAIN.value:
+        if stats['n'] == 0:
+            benched_log(logging.DEBUG, "Logging something useless", stats);
+            continue;
+
+        min_str = str(stats['min_duration'])
+        max_str = str(stats['max_duration'])
+        avg_str = str(stats['total_duration'] / stats['n'])
+        msg = "Logging step %s: min=%s, max=%s, average=%s"% (stats['n'],
+                                                              min_str,
+                                                              max_str,
+                                                              avg_str)
+        benched_log(stats['n'] % logging.CRITICAL + 1,
+                    msg,
+                    stats);
+    global TOTAL, N, MIN, MAX
+    N[id] = stats['n']
+    MIN[id] = stats['min_duration']
+    MAX[id] = stats['max_duration']
+    
+if __name__ == "__main__":
+
+    if len(sys.argv) != 3:
+        print("Usage: %s threads_nb timeout" % sys.argv[0])
+        exit(1)
+
+    filename="/tmp/%s.log" % sys.argv[0]
+    logging.basicConfig(filename=filename)
+    threads_nb = int(sys.argv[1])
+    timeout = int(sys.argv[2])
+
+    N = multiprocessing.Array('I', threads_nb, lock=False)
+    MIN = multiprocessing.Array('d', threads_nb, lock=False)
+    MAX = multiprocessing.Array('d', threads_nb, lock=False)
+
+    threads = []
+    start = time.time()
+    for i in xrange(threads_nb):
+        thread = multiprocessing.Process(target=logging_thread, args=(i,))
+        thread.start()
+        threads.append(thread)
+
+    time.sleep(timeout)
+
+    AGAIN.value = False;
+
+    for i in xrange(threads_nb):
+        threads[i].join()
+
+    logging.shutdown()
+
+    total = time.time() - start
+
+    n = 0
+    min_ = min(MIN)
+    max_ = max(MAX)
+    for i in xrange(threads_nb):
+        n += N[i]
+        
+        
+    sb = os.stat(filename)
+    size = sb.st_size
+
+    print("Total Time: %s logs in PT%gS - %g logs/s, min=%gus/log, max=%gus/log, average=%gus/log" %
+          (n, 
+          total, 
+          n / total if total > 0 else 'N/A', 
+          min_ / 1e-6, 
+          max_ / 1e-6, 
+          total / n / 1e-6 if n > 0 else 'N/A'));
+    print("Total Size: %s bytes in (overall) PT%gS: %.1f MB/s" %
+          (size, total, size/total/1024/1024 if total > 0 else 0));
+
+    print("%s\t%s\t%.9f\t%.9f\t%.9d" % (n, total, min_, max_, size), file=sys.stderr);

@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# pylint: disable=locally-disabled, invalid-name
+"""
+@file bxilog-console
+@authors Pierre Vignéras <pierre.vigneras@bull.net>
+@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+           This is not Free or Open Source software.\n
+           Please contact Bull SAS for details about its license.\n
+           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+@namespace bxilog-console Monitoring console of a bxilog process
+
+"""
+
+import zmq
+import time
+
+import bxi.ffi as bxiffi
+import bxi.base as bxibase
+import bxi.base.log as bxilog
+import bxi.base.posless as posless
+import bxi.base.parserconf as bxiparserconf
+import bxi.base.log.remote_receiver as remote_receiver
+
+
+# Find the C library
+__FFI__ = bxiffi.get_ffi()
+__BXIBASE_CAPI__ = bxibase.get_capi()
+
+
+def _connect(args):
+    """
+    Connect to the ctrl socket according to args
+
+    @param[in] args the arguments of the command line
+
+    @return a "monitoring" dictionnary mapping url to zocket
+    """
+    ctx = zmq.Context.instance()
+    monitoring = dict()
+    for url in args.bxilog_remote_handler_url:
+        zock = ctx.socket(zmq.DEALER)
+        if args.bind:
+            zock.bind(url)
+        else:
+            zock.connect(url)
+        monitoring[url] = (zock, None)
+    return monitoring
+
+
+def _get_raw_config(monitoring):
+    """
+    Fetch the configuration from the given monitoring
+
+    @param[in] monitoring the monitoring object returned by _connect().
+
+    @return a dictionnary mapping url to raw json configuration data
+    """
+    bxilog.info("Getting configuration of %s", monitoring.keys())
+
+    result = dict()
+    for url in monitoring:
+        ctrl_zock = monitoring[url][0]
+        ctrl_zock.send_string('get-config')
+        data = ctrl_zock.recv_json()
+        result[url] = data
+
+    return result
+
+
+def _get_config(monitoring, args):
+    """
+    Output the configuration from the given monitoring
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+
+    """
+    result = _get_raw_config(monitoring)
+    for url in result:
+        data = result[url]
+        global_ = data['global']
+        bxilog.output("%s: %s",
+                      url,
+                      ", ".join("%s: %s" % (str(k), str(v)) for k, v in global_.items()))
+
+
+def _set_config(monitoring, args):
+    pass
+
+
+def _get_handlers(monitoring, args):
+    """
+    Output the set of logging handlers from the given monitoring
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+    """
+    result = _get_raw_config(monitoring)
+    for url in result:
+        data = result[url]
+        handlers = data['handlers']
+        for handler in sorted(handlers, key=lambda x: x['name']):
+            name = handler['name']
+            del handler['name']
+            bxilog.output("%s/handler-name='%s': %s",
+                          str(url),
+                          str(name),
+                          ", ".join("%s: %s" % (str(k), str(v))
+                                    for k, v in handler.items()))
+
+
+def _get_loggers(monitoring, args):
+    """
+    Output the set of loggers from the given monitoring
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+    """
+    result = _get_raw_config(monitoring)
+    for url in result:
+        data = result[url]
+        loggers = data['loggers']
+    for logger in sorted(loggers, key=lambda x: x['name']):
+        name = logger['name']
+        del logger['name']
+        bxilog.output("%s/logger-name='%s': %s",
+                      str(url),
+                      str(name),
+                      ", ".join("%s: %s" % (str(k), str(v)) for k, v in logger.items()))
+
+
+def _monitor(monitoring, args):
+    """
+    Monitor the logs from the given monitoring
+
+    @note this function never returns
+
+    @param[in] monitoring the object returned by _connect()
+    @param[in] args arguments from the command line parser
+    """
+
+    bxilog.info("Monitoring configuration %s", monitoring.keys())
+    result = _get_raw_config(monitoring)
+    urls = []
+    for ctrl_url in result:
+        data = result[ctrl_url]
+        urls.append(str(data['global']['ctrl_url']))
+    receiver = remote_receiver.RemoteReceiver(urls, bind=args.bind)
+    receiver.start()
+    # Do something better here! Instead of sleeping
+    time.sleep(2 ** 32)
+
+_ACTIONS = {'get-config': _get_config,
+            'get-handlers': _get_handlers,
+            'get-loggers': _get_loggers,
+            'monitor': _monitor,
+           }
+
+
+if __name__ == '__main__':
+
+    parser = posless.ArgumentParser(description='BXI Log Console',
+                                    formatter_class=bxiparserconf.FilteredHelpFormatter)
+    parser.add_argument("action", nargs='?',
+                        choices=_ACTIONS.keys(),
+                        const='monitor',
+                        default='monitor')
+    parser.add_argument("bxilog_remote_handler_url", type=str, nargs='+',
+                        help="The remote handler url to monitor.")
+
+    parser.add_argument("--bind", action='store_true',
+                        help='Bind to the url instead of connect')
+
+    bxiparserconf.addargs(parser, domain_name='log')
+
+    args_ = parser.parse_args()
+
+    monitoring_ = _connect(args_)
+
+    _ACTIONS[args_.action](monitoring_, args_)

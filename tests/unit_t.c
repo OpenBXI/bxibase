@@ -64,6 +64,10 @@ void test_time(void);
 
 // From test_zmq.c
 void test_bxizmq_generate_url(void);
+void test_1pub_1sub_sync(void);
+void test_2pub_1sub_sync(void);
+void test_2pub_2sub_sync(void);
+void test_1pub_1sub_sync_fork(void);
 
 // From test_logger.c
 void test_logger_init(void);
@@ -75,7 +79,15 @@ void test_logger_fork(void);
 void test_logger_signal(void);
 void test_single_logger_instance(void);
 void test_registry(void);
-void test_filter_parser(void);
+void test_filters_parser(void);
+void test_filter_merge_same(void);
+void test_filter_merge_distinct(void);
+void test_filter_merge_prefix(void);
+void test_filters_same(void);
+void test_filters_distinct(void);
+void test_filters_simple(void);
+void test_filters_symetric(void);
+void test_filters_complex(void);
 void test_logger_threads(void);
 void test_handlers(void);
 void test_very_long_log(void);
@@ -118,8 +130,9 @@ int clean_suite_logger(void) {
 
 /* Test if the test have been run correctly */
 int _handle_rc_code(){
-    if(CU_get_error()!=0){
-        return 99;
+    if(CU_get_error() != 0) {
+        fprintf(stderr, "***** %s\n", CU_get_error_msg());
+        return CU_get_error();
     } else {
         fprintf(stderr, "CU_get_number_of_suites_failed %d, "
                 "CU_get_number_of_tests_failed %d, "
@@ -156,101 +169,122 @@ int main(int argc, char * argv[]) {
     /* initialize the CUnit test registry */
     if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
-
-    /* add suites to the registry */
-    CU_pSuite bximem_suite = CU_add_suite("bximem_suite", NULL, NULL);
-    if (NULL == bximem_suite) {
-        CU_cleanup_registry();
-        return (CU_get_error());
+    char * bxi_cunit_test_only = getenv("BXITEST_ONLY");
+    if ((NULL != bxi_cunit_test_only) && (0 == strlen(bxi_cunit_test_only))) {
+        bxi_cunit_test_only = NULL;
     }
-    /* add the tests to the suite */
-    if (false
-            || (NULL == CU_add_test(bximem_suite, "test free", test_free))
-            || false) {
+
+    if ((NULL == bxi_cunit_test_only) || (0 == strcmp("MEM", bxi_cunit_test_only))) {
+
+        /* add suites to the registry */
+        CU_pSuite bximem_suite = CU_add_suite("bximem_suite", NULL, NULL);
+        if (NULL == bximem_suite) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
+        /* add the tests to the suite */
+        if (false
+                || (NULL == CU_add_test(bximem_suite, "test free", test_free))
+                || false) {
 
             CU_cleanup_registry();
             return (CU_get_error());
         }
-
-    /* add suites to the registry */
-    CU_pSuite bxistr_suite = CU_add_suite("bxistr_suite", NULL, NULL);
-    if (NULL == bxistr_suite) {
-        CU_cleanup_registry();
-        return (CU_get_error());
     }
 
-    /* add the tests to the suite */
-    if (false
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_apply_lines", test_bxistr_apply_lines))
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_prefix_lines", test_bxistr_prefix_lines))
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_join", test_bxistr_join))
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_rfind", test_bxistr_rfind))
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_count", test_bxistr_count))
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_mkshorter", test_bxistr_mkshorter))
-        || (NULL == CU_add_test(bxistr_suite, "test bxistr_hex", test_bxistr_hex))
-        || false) {
-        CU_cleanup_registry();
-        return (CU_get_error());
+    if ((NULL == bxi_cunit_test_only) || (0 == strcmp("STR", bxi_cunit_test_only))) {
+
+        /* add suites to the registry */
+        CU_pSuite bxistr_suite = CU_add_suite("bxistr_suite", NULL, NULL);
+        if (NULL == bxistr_suite) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
+
+        /* add the tests to the suite */
+        if (false
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_apply_lines", test_bxistr_apply_lines))
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_prefix_lines", test_bxistr_prefix_lines))
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_join", test_bxistr_join))
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_rfind", test_bxistr_rfind))
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_count", test_bxistr_count))
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_mkshorter", test_bxistr_mkshorter))
+                || (NULL == CU_add_test(bxistr_suite, "test bxistr_hex", test_bxistr_hex))
+                || false) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
     }
 
+    if ((NULL == bxi_cunit_test_only) || (0 == strcmp("ERR", bxi_cunit_test_only))) {
+        /* add suites to the registry */
+        CU_pSuite bxierr_suite = CU_add_suite("bxierr_suite",
+                                              init_suite_logger,
+                                              clean_suite_logger);
+        if (NULL == bxierr_suite) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
 
-    /* add suites to the registry */
-    CU_pSuite bxierr_suite = CU_add_suite("bxierr_suite",
-                                          init_suite_logger,
-                                          clean_suite_logger);
-    if (NULL == bxierr_suite) {
-        CU_cleanup_registry();
-        return (CU_get_error());
+        /* add the tests to the suite */
+        if (false
+                || (NULL == CU_add_test(bxierr_suite, "test bxierr", test_bxierr))
+                || (NULL == CU_add_test(bxierr_suite,
+                                        "test bxierr_chain", test_bxierr_chain))
+                                        || false) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
+    }
+    if ((NULL == bxi_cunit_test_only) || (0 == strcmp("TIME", bxi_cunit_test_only))) {
+
+        CU_pSuite bxitime_suite = CU_add_suite("bxitime_suite",
+                                               init_suite_logger,
+                                               clean_suite_logger);
+        if (NULL == bxitime_suite) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
+
+        /* add the tests to the suite */
+        if (false
+                || (NULL == CU_add_test(bxitime_suite, "test time", test_time))
+                || false) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
     }
 
-    /* add the tests to the suite */
-    if (false
-        || (NULL == CU_add_test(bxierr_suite, "test bxierr", test_bxierr))
-        || (NULL == CU_add_test(bxierr_suite,
-                                "test bxierr_chain", test_bxierr_chain))
-        || false) {
-        CU_cleanup_registry();
-        return (CU_get_error());
+    if ((NULL == bxi_cunit_test_only) || (0 == strcmp("ZMQ", bxi_cunit_test_only))) {
+
+        CU_pSuite bxizmq_suite = CU_add_suite("bxizmq_suite",
+                                              init_suite_logger,
+                                              clean_suite_logger);
+        if (NULL == bxizmq_suite) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
+
+        /* add the tests to the suite */
+        if (false
+                || (NULL == CU_add_test(bxizmq_suite, "test bxizmq generate url", test_bxizmq_generate_url))
+                || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 1pub/1sub sync", test_1pub_1sub_sync))
+                || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 2pub/1sub sync", test_2pub_1sub_sync))
+                || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 2pub/2sub sync", test_2pub_2sub_sync))
+                || (NULL == CU_add_test(bxizmq_suite, "test bxizmq 1pub/1sub sync fork", test_1pub_1sub_sync_fork))
+                || false) {
+            CU_cleanup_registry();
+            return (CU_get_error());
+        }
     }
 
-
-    CU_pSuite bxitime_suite = CU_add_suite("bxitime_suite",
-                                           init_suite_logger,
-                                           clean_suite_logger);
-    if (NULL == bxitime_suite) {
-        CU_cleanup_registry();
-        return (CU_get_error());
-    }
-
-    /* add the tests to the suite */
-    if (false
-            || (NULL == CU_add_test(bxitime_suite, "test time", test_time))
-            || false) {
-        CU_cleanup_registry();
-        return (CU_get_error());
-    }
-
-    CU_pSuite bxizmq_suite = CU_add_suite("bxizmq_suite",
-                                          init_suite_logger,
-                                          clean_suite_logger);
-    if (NULL == bxizmq_suite) {
-        CU_cleanup_registry();
-        return (CU_get_error());
-    }
-
-    /* add the tests to the suite */
-    if (false
-            || (NULL == CU_add_test(bxizmq_suite, "test bxizmq generate url", test_bxizmq_generate_url))
-            || false) {
-        CU_cleanup_registry();
-        return (CU_get_error());
-    }
 
     CU_pSuite bxilog_suite = CU_add_suite("bxilog_suite", NULL, NULL);
     if (NULL == bxilog_suite) {
-        CU_cleanup_registry();
-        return (CU_get_error());
+      CU_cleanup_registry();
+      return (CU_get_error());
     }
+
     /* add the tests to the suite */
     if (false
         || (NULL == CU_add_test(bxilog_suite, "test logger init", test_logger_init))
@@ -262,7 +296,12 @@ int main(int argc, char * argv[]) {
         || (NULL == CU_add_test(bxilog_suite, "test strange log", test_strange_log))
         || (NULL == CU_add_test(bxilog_suite, "test single logger instance", test_single_logger_instance))
         || (NULL == CU_add_test(bxilog_suite, "test logger registry", test_registry))
-        || (NULL == CU_add_test(bxilog_suite, "test logger filter parser", test_filter_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters parser", test_filters_parser))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters same", test_filters_same))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters distinct", test_filters_distinct))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters simple", test_filters_simple))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters symetric", test_filters_symetric))
+        || (NULL == CU_add_test(bxilog_suite, "test logger filters complex", test_filters_complex))
         || (NULL == CU_add_test(bxilog_suite, "test handlers", test_handlers))
         || (NULL == CU_add_test(bxilog_suite, "test logger threads", test_logger_threads))
         || (NULL == CU_add_test(bxilog_suite, "test logger fork", test_logger_fork))

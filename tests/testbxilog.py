@@ -118,14 +118,14 @@ class BXILogTest(unittest.TestCase):
         """
         Test bxilog_level parsing function"
         """
-        level_names = list(bxilog.get_all_level_names_iter())
-        for i in xrange(len(level_names)):
-            level = bxilog.get_level_from_str(level_names[i])
+        for i in xrange(len(bxilog.LEVEL_NAMES)):
+            level = bxilog.get_level_from_str(bxilog.LEVEL_NAMES[i])
             self.assertEquals(i, level)
+
 
     def test_default_logger(self):
         """Test default logging functions"""
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             self._check_log_produced(FILENAME,
                                      getattr(bxilog, level), "Some stuff with noarg")
             self._check_log_produced(FILENAME,
@@ -171,15 +171,15 @@ class BXILogTest(unittest.TestCase):
                                      getattr(logger, level), "Some stuff with no args but special characters: %d %f %s")
 
         logger1 = bxilog.getLogger("foo")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             _produce_logs(logger1, level)
 
         logger2 = bxilog.getLogger("bar")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             _produce_logs(logger2, level)
 
         logger3 = bxilog.getLogger("foo.bar")
-        for level in bxilog.get_all_level_names_iter():
+        for level in bxilog.LEVEL_NAMES:
             _produce_logs(logger3, level)
 
         self._check_log_produced(FILENAME,
@@ -284,18 +284,26 @@ class BXILogTest(unittest.TestCase):
 
         orig_size = os.stat(FILENAME).st_size if os.path.exists(FILENAME) else 0
 
-        conf = {'handlers': ['out'],
+        conf = {'handlers': ['out', 'null'],
                 'setsighandler': True,
                 'out':{'module': 'bxi.base.log.file_handler',
                        'filters': ':output,foo:debug,foo.bar:trace',
                        'path': FILENAME,
-                       'append': True}
+                       'append': True},
+                'null': {'module': 'bxi.base.log.null_handler',
+                         'filters': ':off,foo:fine,foo.bar:debug',
+                         },
                 }
         bxilog.set_config(configobj.ConfigObj(conf))
+        # It is required to initialize the library for the configuration to be used
+        bxilog.init()
 
         foo = bxilog.getLogger('foo')
+        self.assertEqual(foo.level, bxilog.FINE)
         bar = bxilog.getLogger('foo.bar')
+        self.assertEqual(bar.level, bxilog.TRACE)
         any = bxilog.getLogger('bebopalula')
+        self.assertEqual(any.level, bxilog.OUTPUT)
 
         any.info('This message must not appear in file %s', FILENAME)
         bxilog.flush()
@@ -443,32 +451,6 @@ class BXILogTest(unittest.TestCase):
             raise te
         except TestException:
             bxilog.exception('Mix of C and Python exceptions, good!')
-
-    def test_bxierr_list(self):
-        pass
-    
-    def test_bxierr_set(self):
-        bxierr_set = bxibase.__CAPI__.bxierr_set_new()
-        for i in range(10):
-            rc = random.randrange(0, 5)
-            err_p = __FFI__.new('bxierr_p *')
-            err_p[0] = bxibase.__CAPI__.bxierr_new(rc,
-                                                   __FFI__.NULL,
-                                                   __FFI__.NULL,
-                                                   __FFI__.NULL,
-                                                   __FFI__.NULL,
-                                                    "A random error: rc=%d",
-                                                    __FFI__.cast('int', rc))
-            bxibase.__CAPI__.bxierr_set_add(bxierr_set, err_p);
-        
-        err = bxibase.__CAPI__.bxierr_new(10, 
-                                          bxierr_set,
-                                          __FFI__.cast('void (*)(void*)',
-                                                       bxibase.__CAPI__.bxierr_set_free),
-                                          bxibase.__CAPI__.bxierr_list_add_to_report,
-                                          __FFI__.NULL,
-                                          "An error from an errset")
-        self.assertTrue(bxierr.BXICError.is_ko(err))
 
     def test_sighandler(self):
         """Unit test for mantis#19501"""
