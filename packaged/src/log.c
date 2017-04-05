@@ -218,13 +218,14 @@ bxierr_p bxilog_finalize() {
     bxilog_logger_p * loggers = NULL;
     size_t n = bxilog_registry_getall(&loggers);
 
-
     for (size_t i = 0; i < n; i++) {
         DEBUG(LOGGER_CONFIG_LOGGERS,
               "Logging level of %s: %s",
               loggers[i]->name,
               level_names[loggers[i]->level]);
     }
+
+    BXIFREE(loggers);
 
     DEBUG(LOGGER, "Exiting bxilog");
     err = bxilog__finalize();
