@@ -65,15 +65,16 @@ struct bxilog_remote_receiver_s {
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 //--------------------------------- Generic Helpers --------------------------------
-static bxierr_p _process_ctrl_msg(void * zock);
-static bxierr_p _process_new_log(void *zock, tsd_p tsd);
+static bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd);
+static bxierr_p _process_new_log(bxilog_remote_receiver_p self, tsd_p tsd);
 static bxierr_p _recv_log_record(void * zock, bxilog_record_p * record_p, size_t * record_len);
 static bxierr_p _dispatch_log_record(tsd_p tsd, bxilog_record_p record, size_t data_len);
 static bxierr_p _connect_zocket(bxilog_remote_receiver_p self);
 static bxierr_p _recv_loop(bxilog_remote_receiver_p self);
 static bxierr_p _recv_async(bxilog_remote_receiver_p self);
-static void _sync_sub(bxilog_remote_receiver_p self);
+//static void _sync_sub(bxilog_remote_receiver_p self);
 static bxierr_p _process_cfg_request(bxilog_remote_receiver_p self);
+static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -382,9 +383,9 @@ bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
         if (0 == rc) continue;
         if (-1 == rc) return bxierr_errno("A problem occurs while polling");
 
-        if (poller[0].revents > 0) {
+        if (poller[0].revents & ZMQ_POLLIN) {
             // Control command received from BC
-            bxierr_p tmp = _process_ctrl_msg(poller[0].socket);
+            bxierr_p tmp = _process_ctrl_msg(self, tsd);
             if (bxierr_isko(tmp)) {
                 if (_EXIT_NORMAL_ERR == tmp->code) {
                     bxierr_destroy(&tmp);
@@ -396,53 +397,36 @@ bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
                 break;
             }
         }
-        if (poller[1].revents > 0) {
+        if (poller[1].revents & ZMQ_POLLIN) {
             // Configuration request received from remote side
             _process_cfg_request(self);
         }
 
-        if (poller[2].revents > 0) {
+        if (poller[2].revents & ZMQ_POLLIN) {
             // Log received from remote side
             char * header;
             err2 = bxizmq_str_rcv(poller[2].socket, 0, false, &header);
             BXIERR_CHAIN(err, err2);
 
-            if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_HEADER, header,
-                             ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
-                // Synchronization required
-                err2 = bxizmq_sub_sync_manage(self->zmq_ctx, self->data_zock);
-                BXIERR_CHAIN(err, err2);
-                BXIFREE(header);
-                continue;
-            }
-            if (0 == strncmp(BXILOG_RECORD_HEADER,
-                             header, ARRAYLEN(BXILOG_RECORD_HEADER)-1)) {
-                err2 = _process_new_log(poller[2].socket, tsd);
-                BXIERR_CHAIN(err, err2);
-                BXIFREE(header);
-                continue;
-            }
-            bxierr_p tmp_err = bxierr_simple(_BAD_HEADER_ERR,
-                                             "Wrong bxilog header: %s",
-                                             header);
-            BXILOG_REPORT(LOGGER, BXILOG_WARNING, tmp_err,
-                          "Error detected but continuing anyway (best-effort).");
+            err2 = _process_data_header(self, header, tsd);
+            BXIERR_CHAIN(err, err2);
             BXIFREE(header);
+            if (bxierr_isko(err)) break;
         }
     }
     return err;
 }
 
-bxierr_p _process_ctrl_msg(void * zock) {
+bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
     bxierr_p err = BXIERR_OK, err2;
 
     char * msg;
-    err2 = bxizmq_str_rcv(zock, 0, false, &msg);
+    err2 = bxizmq_str_rcv(self->it2bc_zock, 0, false, &msg);
     BXIERR_CHAIN(err, err2);
 
     FINE(LOGGER, "Processing control message: %s", msg);
 
-    if (bxierr_isko(err)) return bxierr_errno("An error occured while "
+    if (bxierr_isko(err)) return bxierr_errno("An error occurred while "
                                               "receiving control message");
 
     if (0 == strncmp(BXILOG_RECEIVER_EXIT, msg,
@@ -450,17 +434,63 @@ bxierr_p _process_ctrl_msg(void * zock) {
         FINE(LOGGER, "Received message '%s' indicating to exit", msg);
         BXIFREE(msg);
 
+        // Fetch all remaining logs before exiting
+        while (true) {
+            char * header;
+            err2 = bxizmq_str_rcv(self->data_zock, ZMQ_DONTWAIT, false, &header);
+            BXIERR_CHAIN(err, err2);
+
+            // When ZMQ_DONTWAIT, if header == NULL it means we have nothing to receive
+            if (NULL == header) {
+                TRACE(LOGGER, "No remaining stuff to process, ready to exit");
+                break;
+            }
+
+            TRACE(LOGGER, "Header '%s' remains to be processed while exiting", header);
+            err2 = _process_data_header(self, header, tsd);
+            BXIERR_CHAIN(err, err2);
+            BXIFREE(header);
+            if (bxierr_isko(err)) break;
+        }
+
         FINE(LOGGER, "Sending back the exit confirmation message");
-        err2 = bxizmq_str_snd(BXILOG_RECEIVER_EXITING, zock, 0, 2, 500);
+        err2 = bxizmq_str_snd(BXILOG_RECEIVER_EXITING, self->it2bc_zock, 0, 2, 500);
         BXIERR_CHAIN(err, err2);
 
-        return bxierr_simple(_EXIT_NORMAL_ERR, "Normal error significating exit");
+        return bxierr_simple(_EXIT_NORMAL_ERR, "Normal error meaning exit");
     }
 
     BXIFREE(msg);
     return bxierr_gen("Unknown control message received: '%s'", msg);
 }
 
+
+bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd) {
+    BXIASSERT(LOGGER, NULL != self);
+    BXIASSERT(LOGGER, NULL != header);
+
+    if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_HEADER, header,
+                     ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
+        // Synchronization required
+        bxierr_p err = bxizmq_sub_sync_manage(self->zmq_ctx, self->data_zock);
+        BXILOG_REPORT(LOGGER, BXILOG_WARNING, err,
+                      "Problem during SUB synchronization - continuing (best effort)");
+        return BXIERR_OK;
+    }
+    if (0 == strncmp(BXILOG_RECORD_HEADER,
+                     header, ARRAYLEN(BXILOG_RECORD_HEADER)-1)) {
+        bxierr_p err  = _process_new_log(self, tsd);
+        BXILOG_REPORT(LOGGER, BXILOG_WARNING, err,
+                      "Problem while receiving bxilog record - continuing (best effort)");
+        return BXIERR_OK;
+    }
+    bxierr_p tmp_err = bxierr_simple(_BAD_HEADER_ERR,
+                                     "Wrong bxilog header: %s",
+                                     header);
+    BXILOG_REPORT(LOGGER, BXILOG_WARNING, tmp_err,
+                  "Error detected but continuing anyway (best-effort).");
+    return BXIERR_OK;
+}
 
 bxierr_p _recv_log_record(void * zock, bxilog_record_p * record_p, size_t * record_len) {
 
@@ -626,28 +656,28 @@ bxierr_p _connect_zocket(bxilog_remote_receiver_p self) {
 }
 
 
-void _sync_sub(bxilog_remote_receiver_p self) {
-    TRACE(LOGGER, "SUB Synchronization");
-    // TODO: make the timeout configurable
-    double timeout = BXILOG_REMOTE_HANDLER_SYNC_DEFAULT_TIMEOUT;
+//void _sync_sub(bxilog_remote_receiver_p self) {
+//    TRACE(LOGGER, "Performing SUB Synchronization");
+//    // TODO: make the timeout configurable
+//    double timeout = BXILOG_REMOTE_HANDLER_SYNC_DEFAULT_TIMEOUT;
+//
+//    bxierr_p tmp = bxizmq_sync_sub(self->zmq_ctx, self->data_zock, timeout);
+//    if (bxierr_isko(tmp)){
+//        BXILOG_REPORT(LOGGER, BXILOG_NOTICE,
+//                      tmp,
+//                      "SUB synchronization failed. First published messages "
+//                      "might have been lost!");
+//    }
+//}
 
-    bxierr_p tmp = bxizmq_sync_sub(self->zmq_ctx, self->data_zock, timeout);
-    if (bxierr_isko(tmp)){
-        BXILOG_REPORT(LOGGER, BXILOG_NOTICE,
-                      tmp,
-                      "SUB synchronization failed. First published messages "
-                      "might have been lost!");
-    }
-}
 
-
-bxierr_p _process_new_log(void *zock, tsd_p tsd) {
+bxierr_p _process_new_log(bxilog_remote_receiver_p self, tsd_p tsd) {
     bxierr_p err = BXIERR_OK, err2;
 
     bxilog_record_p record;
     size_t record_len;
 
-    bxierr_p tmp = _recv_log_record(zock, &record, &record_len);
+    bxierr_p tmp = _recv_log_record(self->data_zock, &record, &record_len);
 
     if (bxierr_isko(tmp)) {
         bxierr_report_keep(tmp, STDERR_FILENO);
@@ -721,15 +751,6 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     // Then last frame
     err2 = bxizmq_str_snd(self->data_urls[self->urls_nb - 1], self->cfg_zock, 0, 0, 0);
     BXIERR_CHAIN(err, err2);
-
-    // Then we synchronize.
-    // Yes, only on binding. The reason is that when the receiver
-    // bind, since it owns the SUB socket, no log must be missed.
-    // If the SUB is not binding, it basically, means that the other side is
-    // already there for a while and that logs have already been missed anyway.
-    // Therefore, there is no reason to synchronize if SUB is connecting.
-    TRACE(LOGGER, "Synchronizing PUB/SUB sockets");
-    _sync_sub(self);
 
     return err;
 }

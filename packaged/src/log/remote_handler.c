@@ -42,7 +42,6 @@ typedef struct bxilog_remote_handler_param_s_f * bxilog_remote_handler_param_p;
 typedef struct bxilog_remote_handler_param_s_f {
     bxilog_handler_param_s generic;
     bool bind;
-    bool synced;
     double timeout_s;
     char * cfg_url;   // Only when bind is false
     char * ctrl_url;
@@ -257,8 +256,10 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
         DBG("Connecting data zocket to %s\n", data->pub_url);
         err2 = bxizmq_zocket_connect(data->data_zock, data->pub_url);
         BXIERR_CHAIN(err, err2);
+
+        bxierr_p tmp = _sync_pub(data);
+        if (bxierr_isko(tmp)) bxierr_report(&tmp, STDERR_FILENO);
     }
-    data->synced = false;
     data->generic.private_items_nb = 1;
     data->generic.private_items = bximem_calloc(data->generic.private_items_nb * \
                                                 sizeof(*data->generic.private_items));
@@ -286,6 +287,15 @@ bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
 
     if (NULL != data->ctrl_zock) {
         err2 = bxizmq_zocket_destroy(&data->ctrl_zock);
+        BXIERR_CHAIN(err, err2);
+    }
+
+    // Prevent message lost!
+//    int linger = -1;
+    int linger = 500;
+    int rc = zmq_setsockopt(data->data_zock, ZMQ_LINGER, &linger, sizeof(linger));
+    if (rc != 0) {
+        err2 = bxizmq_err(errno, "Can't set linger for socket %p", data->data_zock);
         BXIERR_CHAIN(err, err2);
     }
 
@@ -324,29 +334,20 @@ bxierr_p _process_log(bxilog_record_p record,
     UNUSED(loggername);
     UNUSED(logmsg);
 
-    if (NULL != data->data_zock) {
+    const char * header =  _LOG_LEVEL_HEADER[record->level];
 
-        if (!data->synced) {
-            bxierr_p tmp = _sync_pub(data);
-            if (bxierr_isko(tmp)) bxierr_report(&tmp, STDERR_FILENO);
-            data->synced = true;
-        }
+    err2 = bxizmq_str_snd_zc(header, data->data_zock, ZMQ_SNDMORE,
+                             0, 0, false);
+    BXIERR_CHAIN(err, err2);
 
-        const char * header =  _LOG_LEVEL_HEADER[record->level];
+    size_t record_len = sizeof(*record) +\
+            record->filename_len +\
+            record->funcname_len +\
+            record->logname_len +\
+            record->logmsg_len;
 
-        err2 = bxizmq_str_snd_zc(header, data->data_zock, ZMQ_SNDMORE,
-                                 0, 0, false);
-        BXIERR_CHAIN(err, err2);
-
-        size_t record_len = sizeof(*record) +\
-                record->filename_len +\
-                record->funcname_len +\
-                record->logname_len +\
-                record->logmsg_len;
-
-        err2 = bxizmq_data_snd(record, record_len, data->data_zock, 0, 0, 0);
-        BXIERR_CHAIN(err, err2);
-    }
+    err2 = bxizmq_data_snd(record, record_len, data->data_zock, 0, 0, 0);
+    BXIERR_CHAIN(err, err2);
 
     return err;
 }
@@ -537,7 +538,7 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
             handlers_str,
             loggers_str);
 
-//    fprintf(stderr, "Sending: %s", json_str);
+    DBG("Sending: %s", json_str);
     err2 = bxizmq_str_snd(json_str, data->ctrl_zock, 0, 0, 0);
     BXIERR_CHAIN(err, err2);
 

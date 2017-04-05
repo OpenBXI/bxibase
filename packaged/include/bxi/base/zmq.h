@@ -44,7 +44,7 @@
 #define BXIZMQ_RETRIES_MAX_ERR      202372135              // Leet code: Z.QRETRIES
 #define BXIZMQ_FSM_ERR              205322                 // Leet code: Z.Q.S.ERR
 #define BXIZMQ_MISSING_FRAME_ERR    2015516                // Leet code: Z.Q.ISSI.G
-
+#define BXIZMQ_UNEXPECTED_MSG       203893730              // Leet code: Z.Q..EXPE.TED
 
 /**
  * The bxierr code for protocol error
@@ -72,6 +72,7 @@
  * Default zeromq linger period used at zocket creation time
  */
 #define BXIZMQ_DEFAULT_LINGER 1000u
+//#define BXIZMQ_DEFAULT_LINGER -1
 // *********************************************************************************
 // ********************************** Types   **************************************
 // *********************************************************************************
@@ -658,4 +659,6 @@ bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result);
 char * bxizmq_create_url_from(const char * const url, const int tcp_port);
 
 bxierr_p bxizmq_split_url(const char * const url, char * elements[3]);
+
+bxierr_p bxizmq_err(int errnum, const char * fmt, ...);
 #endif /* BXIZMQ_H_ */
