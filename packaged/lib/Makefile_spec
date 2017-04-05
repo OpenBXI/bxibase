@@ -16,7 +16,6 @@ nodist_bxibase_PYTHON=\
 
 bxidir=$(pythondir)/bxi
 nodist_bxi_PYTHON=\
-				  bxi/${MODULE_NAME}_cffi_def.py\
 				  $(srcdir)/bxi/__init__.py
 
 $(abs_top_builddir)/packaged/lib/bxi/${MODULE_NAME}:
@@ -27,7 +26,7 @@ bxi/%/version.py:${abs_top_builddir}/version.py  $(abs_top_builddir)/packaged/li
 BUILT_SOURCES=bxi/${MODULE_NAME}/version.py
 
 dist-hook:
-	cp ${bxiutil_PYTHON} $(distdir)/bxi/${MODULE_NAME}
+	cp ${nodist_bxibase_PYTHON} $(distdir)/bxi/${MODULE_NAME}
 	cp ${nodist_bxi_PYTHON} $(distdir)/bxi
 
 # For generation
@@ -47,3 +46,6 @@ nobase_nodist_python_PYTHON=\
 							bxi/${MODULE_NAME}/version.py\
 							bxi/${MODULE_NAME}_cffi_def.py\
 							bxi/${MODULE_NAME}/cffi_h.py
+
+nobase_python_PYTHON+=\
+							bxi/${MODULE_NAME}/cffi_builder.py

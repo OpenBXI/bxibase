@@ -199,6 +199,8 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 #%{_libdir}/lib*
 %{target_lib_dir}/lib*
 %{target_python_lib_dir}/*
+%exclude %{target_python_lib_dir}/bxi/*_cffi_def.py*
+%exclude %{target_python_lib_dir}/bxi/base/cffi_builder.py*
 
 
 %doc
@@ -207,6 +209,8 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %files devel
 %{_includedir}/bxi/base/*.h
 %{_includedir}/bxi/base/log/*.h
+%{target_python_lib_dir}/bxi/*_cffi_def.py*
+%{target_python_lib_dir}/bxi/base/cffi_builder.py*
 
 #%config(noreplace) %{target_conf_dir}/my.conf
 
