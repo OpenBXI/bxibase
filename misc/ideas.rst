@@ -28,6 +28,10 @@ Interface
     elle doit apporter sa contribution au nombre de logs générés pour chaque logger 
     utilisé... À voir, à étudier. ATTENTION: l'API aujourd'hui est lockless, ce serait
     bien qu'elle le reste. 
+    
+ - Provide a progress API such that according to handler implementation, one can provide
+   percentage bar growing from left to right in console, a simple log line in file_handler
+   for each 10% reached, and so on... 
 
 
 Implementation
@@ -112,5 +116,7 @@ Misc
   fin de la connexion du client?
 - Permettre la rotation des fichiers de logs générés par le file_handler en fonction 
   d'une taille maximale ou d'une date.
+- Before exiting bxilog, produce a log with all loggers and their respective level at 
+  DEBUG level so it will be easy for the end-user to set up its filter.
 
 
