@@ -11,6 +11,22 @@ Project
 - For each release candidate, the benchmark is launched and the release is produced according to it as
   with Pypy (http://speed.pypy.org/)
 - Use Coverity for code quality check 
+- Find an automated way to check the behavior of file_handler when the filesystem is full
+  Problems to check:
+
+        - Can't write due to permission denied;
+        - Can't write due to no more space;
+        - Can't write due to quota;
+        - Can't write due to other problem ...
+
+        On jenkins with FUSE -> it might be possible to write a unit test that
+
+                - create a file with dd of a given small size;
+                - mount it in userspace so we can try to log on it;
+                - check that after a given amount of bytes, writing is no more possible
+
+	- ulimit or cgroups or docker might be a better option.
+
 
 Interface
 ------------
@@ -63,6 +79,11 @@ Implementation
   uthash.h mais non disponible dans POSIX) ou hsearch (de search.h dans POSIX mais non 
   réentrant, hsearch_r est réentrant mais GNU seulement) ou dans un arbre binaire 
   (tsearch qui est réentrant et POSIX).
+- Do not change sighandler if they are already ignored:
+    
+    - Cf. TheLinuxProgramingInterface section 34.7.3
+    - True for signals: HUP; INT; QUIT TTIN; TTOU et TSTP
+
 
 
 
