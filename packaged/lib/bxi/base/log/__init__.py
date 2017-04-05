@@ -382,7 +382,8 @@ def init():
         err_p = __BXIBASE_CAPI__.bxilog_install_sighandler()
         bxierr.BXICError.raise_if_ko(err_p)
 
-    get_logger(LIB_PREFIX + 'bxilog').debug("BXI logging configuration: %s", _CONFIG)
+    get_logger(LIB_PREFIX + 'bxilog.config').debug("BXI logging configuration: %s",
+                                                   _CONFIG)
 
 
 def get_logger(name):
