@@ -57,9 +57,9 @@ void bxilog__tsd_free(void * const data) {
 
     if (NULL != tsd->data_channel) {
         bxierr_p err = BXIERR_OK, err2;
-        err2 = bxizmq_zocket_destroy(tsd->data_channel);
+        err2 = bxizmq_zocket_destroy(&tsd->data_channel);
         BXIERR_CHAIN(err, err2);
-        err2 = bxizmq_zocket_destroy(tsd->ctrl_channel);
+        err2 = bxizmq_zocket_destroy(&tsd->ctrl_channel);
         BXIERR_CHAIN(err, err2);
         if (bxierr_isko(err)) bxierr_report(&err, STDERR_FILENO);
     }
@@ -98,13 +98,12 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         bxiassert(NULL != url);
         bxierr_p err = BXIERR_OK, err2;
 
-        err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_PUSH,
-                                     url,
-                                     &tsd->data_channel);
-        BXIERR_CHAIN(err, err2);
-
-//        fprintf(stderr, "Connecting %p to %s\n", tsd->data_channel, url);
+        if (NULL == tsd->data_channel) {
+            err2 = bxizmq_zocket_create(BXILOG__GLOBALS->zmq_ctx,
+                                        ZMQ_PUSH,
+                                        &tsd->data_channel);
+            BXIERR_CHAIN(err, err2);
+        }
 
         err2 = bxizmq_zocket_setopt(tsd->data_channel,
                                     ZMQ_SNDHWM,
@@ -112,14 +111,17 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
                                     sizeof(BXILOG__GLOBALS->config->data_hwm));
         BXIERR_CHAIN(err, err2);
 
-        url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url,
-        err2 = bxizmq_zocket_connect(BXILOG__GLOBALS->zmq_ctx,
-                                     ZMQ_REQ,
-                                     url,
-                                     &tsd->ctrl_channel);
+        err2 = bxizmq_zocket_connect(tsd->data_channel, url);
         BXIERR_CHAIN(err, err2);
 
-//        fprintf(stderr, "Connecting %p to %s\n", tsd->ctrl_channel, url);
+        url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url;
+
+        if (NULL == tsd->ctrl_channel) {
+            err2 = bxizmq_zocket_create(BXILOG__GLOBALS->zmq_ctx,
+                                        ZMQ_REQ,
+                                        &tsd->ctrl_channel);
+            BXIERR_CHAIN(err, err2);
+        }
 
         err2 = bxizmq_zocket_setopt(tsd->ctrl_channel,
                                     ZMQ_SNDHWM,
@@ -127,9 +129,12 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
                                     sizeof(BXILOG__GLOBALS->config->ctrl_hwm));
         BXIERR_CHAIN(err, err2);
 
-        if (bxierr_isko(err)) bxierr_list_append(errlist, err);
+        err2 = bxizmq_zocket_connect(tsd->ctrl_channel, url);
+        BXIERR_CHAIN(err, err2);
 
+        if (bxierr_isko(err)) bxierr_list_append(errlist, err);
     }
+
     if (0 < errlist->errors_nb) {
         *result = tsd;
         return bxierr_from_list(BXIERR_GROUP_CODE,

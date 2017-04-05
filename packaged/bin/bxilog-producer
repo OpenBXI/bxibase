@@ -45,6 +45,7 @@ if __name__ == '__main__':
                         " Default: %(default)s")
 
     args = parser.parse_args()
+
     level_names = logging.LEVEL_NAMES
 
     start = time.time()

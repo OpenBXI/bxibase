@@ -23,7 +23,7 @@
 #include "bxi/base/log/file_handler.h"
 #include "bxi/base/log/console_handler.h"
 #include "bxi/base/log/syslog_handler.h"
-#include <bxi/base/log/netsnmp_handler.h>
+#include "bxi/base/log/netsnmp_handler.h"
 #include "bxi/base/log/config.h"
 
 #include "config_impl.h"
@@ -50,21 +50,6 @@
 // The internal logger
 SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.cfg");
 
-
-static char * _LOG_LEVEL_NAMES[] = { "off",
-                                     "panic",
-                                     "alert",
-                                     "critical",
-                                     "error",
-                                     "warning",
-                                     "notice",
-                                     "output",
-                                     "info",
-                                     "debug",
-                                     "fine",
-                                     "trace",
-                                     "lowest"
-};
 
 //*********************************************************************************
 //********************************** Implementation    ****************************
@@ -105,6 +90,7 @@ bxilog_config_p bxilog_unit_test_config(const char * const progname,
                                         const char * const filename,
                                         int open_flags) {
 
+    bxiassert(NULL != filename);
     const char * basename;
     bxistr_rsub(progname, strlen(progname), '/', &basename);
     bxilog_config_p config = bxilog_config_new(basename);
@@ -201,7 +187,7 @@ bxierr_p bxilog__config_destroy(bxilog_config_p * config_p) {
 bxierr_p bxilog__config_loggers() {
     bxilog_logger_p *loggers;
     static char ** level_names;
-    bxilog_get_all_level_names(&level_names);
+    bxilog_level_names(&level_names);
     size_t loggers_nb = bxilog_registry_getall(&loggers);
     for (size_t i = 0; i < loggers_nb; i++) {
 //        bxilog_level_e old_level = loggers[i]->level;
@@ -278,11 +264,6 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level) {
     }
     *level = BXILOG_LOWEST;
     return bxierr_gen("Bad log level name: %s", level_str);
-}
-
-size_t bxilog_get_all_level_names(char *** names) {
-    *names = _LOG_LEVEL_NAMES;
-    return ARRAYLEN(_LOG_LEVEL_NAMES);
 }
 
 

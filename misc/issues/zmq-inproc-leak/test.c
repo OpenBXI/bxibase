@@ -27,9 +27,9 @@ struct blob_t {
 
 void * thread_receiver(void * dummy) {
     void *worker = zmq_socket(CONTEXT, ZMQ_PULL);
-    int hwm = 0;
+    int hwm = 1000;
     size_t hwm_size = sizeof(hwm);
-//    zmq_setsockopt(worker, ZMQ_RCVHWM, &hwm, hwm_size);
+    zmq_setsockopt(worker, ZMQ_RCVHWM, &hwm, hwm_size);
 
     int rc = zmq_bind(worker, URL);
     assert(0 == rc);
@@ -144,7 +144,7 @@ void * thread_sender(void * vid) {
     assert(NULL != master);
 
 
-    int hwm = 0;
+    int hwm = 1000;
     size_t hwm_size = sizeof(hwm);
     int rc = zmq_setsockopt(master, ZMQ_SNDHWM, &hwm, hwm_size);
 

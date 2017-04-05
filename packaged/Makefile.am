@@ -9,9 +9,10 @@ lib_libbxibase_la_SOURCES=\
 		  src/zmq.c\
 		  src/log.c\
 		  src/log/logger.c\
+		  src/log/level.c\
 		  src/log/filter.c\
-		  src/log/assert.c\
 		  src/log/config.c\
+		  src/log/assert.c\
 		  src/log/exit.c\
 		  src/log/fork.c\
 		  src/log/handler.c\
@@ -60,18 +61,8 @@ AM_LDFLAGS=\
 
 dist_bin_SCRIPTS=\
 				 bin/bxilog-producer\
-		   		 bin/bxiconfig\
-				 bin/bxilog-parser
-
-bin_PROGRAMS=\
-			bin/bxilog-monitor
-
-bin_bxilog_monitor_SOURCES=\
-			src/bxilog-monitor.c
-
-bin_bxilog_monitor_LDADD=\
-			lib/libbxibase.la
-
+				 bin/bxilog-parser\
+				 bin/bxilog-console
 
 SUBDIRS=include . lib doc
 

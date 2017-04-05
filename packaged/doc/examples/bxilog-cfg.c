@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 
     // Fetching log level names
     size_t n = 0;
-    n = bxilog_get_all_level_names(&LEVEL_NAMES);
+    n = bxilog_level_names(&LEVEL_NAMES);
     // Use BXIASSERT() instead of assert(), this guarantee all logs
     // are flushed before exiting.
     BXIASSERT(MY_LOGGER, n > 0 && NULL != LEVEL_NAMES);

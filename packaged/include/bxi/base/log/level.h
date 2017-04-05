@@ -36,7 +36,7 @@
  */
 typedef enum {
     // Note: first letter of a log level name should be unique
-    BXILOG_OFF,                             //!< no log
+    BXILOG_OFF = 0,                             //!< no log
     BXILOG_PANIC,                           //!< system is unusable
     BXILOG_ALERT,                           //!< action must be taken immediately
     BXILOG_CRITICAL,                        //!< critical conditions
@@ -83,9 +83,9 @@ typedef enum {
  *
  * @result BXIERR_OK on success, anything else on error.
  *
- * @see bxilog_get_all_level_names()
+ * @see bxilog_level_names()
  */
-bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
+bxierr_p bxilog_level_from_str(char * level_str, bxilog_level_e *level);
 
 /**
  * Return an array of (statically allocated) strings representing all known
@@ -95,6 +95,6 @@ bxierr_p bxilog_get_level_from_str(char * level_str, bxilog_level_e *level);
  *
  * @return the size of the array
  */
-size_t bxilog_get_all_level_names(char *** names);
+size_t bxilog_level_names(char *** names);
 
 #endif /* BXILOG_H_ */

@@ -6,11 +6,11 @@
 #ifndef BXICFFI
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
-#include <sys/signalfd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
+#include <zmq.h>
 #endif
 
 
@@ -109,13 +109,25 @@ typedef enum {
     BXI_LOG_HANDLER_READY=1,
     BXI_LOG_HANDLER_ERROR=2,
 } bxilog_handler_state_e;
+
+
+// Log handler parameter forward reference.
+typedef struct bxilog_handler_param_s bxilog_handler_param_s;
+
 /**
- * Log handler parameter.
+ * The log handler parameter object.
  */
-typedef struct {
-    bool mask_signals;                  //!< if true, signals must be masked
-    void * zmq_context;                 //!< the ZMQ context to use, if NULL,
-                                        //!< a new one will be created
+typedef bxilog_handler_param_s * bxilog_handler_param_p;
+
+
+#ifndef BXICFFI
+typedef bxierr_p (*bxilog_handler_cbs)(bxilog_handler_param_p, int);
+#endif
+
+/**
+ * Log handler structure definition.
+ */
+struct bxilog_handler_param_s {
     int data_hwm;                       //!< ZMQ High Water Mark for the data socket
     int ctrl_hwm;                       //!< ZMQ High Water Mark for the control socket
     size_t ierr_max;                    //!< Maximal number of internal errors before
@@ -126,12 +138,20 @@ typedef struct {
     bxilog_filters_p filters;           //!< The filters
     size_t rank;                        //!< identifier of the handler
     bxilog_handler_state_e status;      //!< handler status
-} bxilog_handler_param_s;
+    size_t private_items_nb;            //!< Number of private items
+#ifndef BXICFFI
+    zmq_pollitem_t * private_items;     //!< Private items (zmq/standard sockets or
+                                        //!< file descriptors) used by the handler
+                                        //!< zmq_poll(). See zmq_poll(3) for details.
+    bxilog_handler_cbs *cbs;            //!< Callbacks to use for each private item in
+                                        //!< case of ZMQ_POLLIN, ZMQ_POLLOUT and
+                                        //!< ZMQ_POLLERR
+#else
+    void * private_items;               //!< Fake for CFFI
+    void ** cbs;                        //!< Fake for CFFI
+#endif
 
-/**
- * The log handler parameter object.
- */
-typedef bxilog_handler_param_s * bxilog_handler_param_p;
+};
 
 /**
  * A log handler.
@@ -222,6 +242,7 @@ struct bxilog_handler_s_f {
      * @param[in] param the log handler parameter as returned by param_new()
      */
     bxierr_p (*process_cfg)(bxilog_handler_param_p param);
+
     /**
      * @param[in] param the log handler parameter as returned by param_new()
      */

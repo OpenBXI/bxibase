@@ -54,7 +54,7 @@
 //*********************************************************************************
 //********************************** Defines **************************************
 //*********************************************************************************
-#define RETRIES_MAX 3u
+#define RETRIES_MAX 2u // We try once asynchronously, then back up to synchronous
 
 #define RETRY_DELAY 500000l
 
@@ -295,11 +295,12 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
 
     // We need a mallocated buffer to prevent ZMQ from making its own copy
     // We use malloc() instead of calloc() for performance reason
+    // This has been profiled! There is a significant gain doing this!
+    // If you change this, you must know what you are doing!
     record = malloc(data_len);
     bxiassert(NULL != record);
     // Fill the buffer
     record->level = level;
-
 
     err2 = bxitime_get(CLOCK_REALTIME, &record->detail_time);
     BXIERR_CHAIN(err, err2);
@@ -341,11 +342,16 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
                                RETRIES_MAX, RETRY_DELAY);
 
         // Zero-copy version (if record has been mallocated).
-//        err = bxizmq_data_snd_zc(record, data_len,
+//        err2 = bxizmq_data_snd_zc(record, data_len,
 //                                 log_channel, ZMQ_DONTWAIT,
 //                                 RETRIES_MAX, RETRY_DELAY,
 //                                 bxizmq_data_free, NULL);
-        BXIERR_CHAIN(err, err2);
+
+        if (err2->code == BXIZMQ_RETRIES_MAX_ERR) {
+            bxierr_destroy(&err2);
+        } else {
+            BXIERR_CHAIN(err, err2);
+        }
     }
     BXIFREE(record);
     return err;

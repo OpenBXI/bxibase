@@ -31,6 +31,8 @@ Specifies that file handler filters must be computed automatically.
 @see ::BXILOG_FILE_HANDLER
 """
 FILTERS_AUTO = 'auto'
+STDOUT = '-'
+STDERR = '+'
 
 
 def add_handler(configobj, section_name, c_config):
@@ -45,7 +47,7 @@ def add_handler(configobj, section_name, c_config):
     filters_str = section['filters']
     # Use absolute path to prevent fork() problem with chdir().
     filename = section['path']
-    if filename not in ['-', '+']:
+    if filename not in [STDOUT, STDERR]:
         filename = os.path.abspath(filename)
     section['path'] = filename
     append = section.as_bool('append')
@@ -87,3 +89,4 @@ def add_handler(configobj, section_name, c_config):
                                                c_config.progname,
                                                filename,
                                                open_flags)
+#    __BXIBASE_CAPI__.bxilog_filters_free(file_filters);

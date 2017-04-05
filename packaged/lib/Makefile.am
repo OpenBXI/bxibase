@@ -20,7 +20,8 @@ nobase_python_PYTHON=\
 		  bxi/base/log/file_handler.py\
 		  bxi/base/log/syslog_handler.py\
 		  bxi/base/log/netsnmp_handler.py\
-		  bxi/base/log/remote_handler.py
+		  bxi/base/log/remote_handler.py\
+		  bxi/base/log/remote_receiver.py
 
 
 $(abs_builddir)/bxi/__init__.py:

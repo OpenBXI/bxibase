@@ -203,14 +203,13 @@ bxierr_p bxilog_init(bxilog_config_p config);
  * related to a bad state such as when
  * `bxilog_init()` has not been called.
  *
- * @param[in] flush flush before exiting if true
  * @return BXIERR_OK on success, anything else on error. On error, do not use
  *         BXIREPORT, BXIEXIT or any other such functions that produce logs: since
  *         the library has not been initialized correctly, result is undefined.
  *         Use bxierr_report() in such a case.
  *
  */
-bxierr_p bxilog_finalize(bool flush);
+bxierr_p bxilog_finalize();
 
 /**
  * Return true if the logging library is ready to be used, false otherwise

@@ -33,12 +33,29 @@
  * @param[in] logger the logger to use for logging before exiting
  * @param[in] expr the boolean expression to check
  * @see BXIEXIT()
+ * @see BXIABORT_IFKO()
  */
 #define BXIASSERT(logger, expr) do {                                                \
             bxilog_assert(logger, expr,                                             \
                           (char *)__FILE__, ARRAYLEN(__FILE__),                     \
                           __func__, ARRAYLEN(__func__),                             \
                           __LINE__, #expr);                                         \
+    } while(false)
+
+/**
+ * Abort the program if the given bxierr_p  is not BXIERR_OK.
+ *
+ * @param[in] logger the logger to use for logging before exiting
+ * @param[in] err a bxierr_p
+ *
+ * @see BXIASSERT()
+ * @see BXIEXIT()
+ */
+#define BXIABORT_IFKO(logger, err) do {                                             \
+            bxilog_abort_ifko(logger, &err,                                         \
+                          (char *)__FILE__, ARRAYLEN(__FILE__),                     \
+                          __func__, ARRAYLEN(__func__),                             \
+                          __LINE__);                                                \
     } while(false)
 
 
@@ -74,12 +91,37 @@
  * @param[in] line the line number
  * @param[in] expr a string representing the expression that returned the given result
  *
- * @see BXIASSERT
+ * @see BXIASSERT()
+ * @see BXIEXIT()
+ * @see BXIABORT_IFKO()
  */
 void bxilog_assert(bxilog_logger_p logger, bool result,
                    char * file, size_t filelen,
                    const char * func, size_t funclen,
                    int line, char * expr);
 
+
+/**
+ * Exit the program if the given `bxierr_p` is not BXIERR_OK.
+ *
+ * This function sole purpose is to make the macro BXIABORT_IFKO() cleaner.
+ * Use BXIABORT_IFKO() instead.
+ *
+ * @param[in] logger a logger instance
+ * @param[in] err_p a pointer on a bxierr_p
+ * @param[in] file the file name
+ * @param[in] filelen the file name length (including the terminal NULL byte)
+ * @param[in] func the function name
+ * @param[in] funclen the function name length (including the terminal NULL byte)
+ * @param[in] line the line number
+ *
+ * @see BXIASSERT()
+ * @see BXIEXIT()
+ * @see BXIABORT_IFKO()
+ */
+void bxilog_abort_ifko(bxilog_logger_p logger, bxierr_p * err_p,
+                       char * file, size_t filelen,
+                       const char * func, size_t funclen,
+                       int line);
 
 #endif

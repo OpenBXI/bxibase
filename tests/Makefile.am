@@ -34,6 +34,9 @@ dist_inst_check_SCRIPTS=\
 						posless_suite.py\
 						simple_bxilog_user.py \
 						simple_bxilogger.py \
+						testbxilog.py\
+						testremotehandler.py\
+						remote_logger.py\
 						uncaught.py\
 						specific_argparse_poslessed.py\
 						specific_posless.py\
