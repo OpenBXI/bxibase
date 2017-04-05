@@ -12,7 +12,7 @@
  */
 
 
-#ifndef BXILOG_REMOTE_RECV_H_
+#ifndef BXILOG_REMOTE_RECEIVER_H_
 #define BXILOG_REMOTE_RECEIVER_H_
 
 #include "bxi/base/err.h"
