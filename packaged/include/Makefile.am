@@ -50,7 +50,7 @@ MODULE_NAME=base
 
 all-local: ../lib/bxi/${MODULE_NAME}_cffi_def.py
 
-.PHONY: ../lib/bxi/${MODULE_NAME}_cffi_def.py
+#.PHONY: ../lib/bxi/${MODULE_NAME}_cffi_def.py
 
 CLEANFILES=../lib/bxi/${MODULE_NAME}_cffi_def.py
 endif

@@ -12,20 +12,13 @@
 
 """
 
-import zmq
 import time
+import zmq
 
-import bxi.ffi as bxiffi
-import bxi.base as bxibase
 import bxi.base.log as bxilog
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
 import bxi.base.log.remote_receiver as remote_receiver
-
-
-# Find the C library
-__FFI__ = bxiffi.get_ffi()
-__BXIBASE_CAPI__ = bxibase.get_capi()
 
 
 def _connect(args):
@@ -154,8 +147,7 @@ def _monitor(monitoring, args):
 _ACTIONS = {'get-config': _get_config,
             'get-handlers': _get_handlers,
             'get-loggers': _get_loggers,
-            'monitor': _monitor,
-           }
+            'monitor': _monitor,}
 
 
 if __name__ == '__main__':

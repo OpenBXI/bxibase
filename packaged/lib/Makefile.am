@@ -24,12 +24,6 @@ nobase_python_PYTHON=\
 		  bxi/base/log/remote_receiver.py
 
 
-$(abs_builddir)/bxi/__init__.py:
-	touch  $@
-
-$(abs_builddir)/bxi/base/__init__.py: $(abs_builddir)/bxi/__init__.py
-	touch  $@
-
 MODULE_NAME=base
 include Makefile_spec
 EXTRA_DIST=Makefile_spec
