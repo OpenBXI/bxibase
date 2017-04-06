@@ -1,3 +1,6 @@
+$(abs_builddir)/bxi/__init__.py:
+	touch  $@
+
 $(abs_builddir)/bxi/${MODULE_NAME}/__init__.py: $(abs_builddir)/bxi/__init__.py
 	touch  $@
 

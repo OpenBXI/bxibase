@@ -26,7 +26,6 @@ nobase_python_PYTHON=\
 
 MODULE_NAME=base
 include Makefile_spec
-EXTRA_DIST=Makefile_spec
 
 #
 ##
