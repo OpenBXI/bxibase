@@ -23,7 +23,8 @@
 //********************************  Defines  **************************************
 //*********************************************************************************
 
-#define BXILOG_RECORD_HEADER "level/"
+#define BXILOG_REMOTE_HANDLER_RECORD_HEADER "level/"
+#define BXILOG_REMOTE_HANDLER_EXITING_HEADER ".ctrl/exit"
 #define BXILOG_REMOTE_HANDLER_CFG_CMD "get-config"
 
 #define BXILOG_REMOTE_HANDLER_URLS "URLs?"

@@ -54,13 +54,17 @@ class RemoteReceiver(object):
         err = __BXIBASE_CAPI__.bxilog_remote_receiver_start(self.c_receiver)
         bxierr.BXICError.raise_if_ko(err)
 
-    def stop(self):
+    def stop(self, wait_remote_exit=False):
         """
         Stop receiving bxilogs.
 
+        @param[in] wait_remote_exit if True, wait until all remote publisher have
+                                    sent their EXIT message
+
         @see start_receiving()
         """
-        err = __BXIBASE_CAPI__.bxilog_remote_receiver_stop(self.c_receiver)
+        err = __BXIBASE_CAPI__.bxilog_remote_receiver_stop(self.c_receiver,
+                                                           wait_remote_exit)
         bxierr.BXICError.raise_if_ko(err)
 
     def get_binded_urls(self):

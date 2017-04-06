@@ -102,19 +102,19 @@ static const bxilog_handler_s BXILOG_REMOTE_HANDLER_S = {
 const bxilog_handler_p BXILOG_REMOTE_HANDLER = (bxilog_handler_p) &BXILOG_REMOTE_HANDLER_S;
 
 static const char * const _LOG_LEVEL_HEADER[] = {
-        BXILOG_RECORD_HEADER,                             // BXILOG_OFF
-        BXILOG_RECORD_HEADER "LTFDIONWECAP",              // BXILOG_PANIC
-        BXILOG_RECORD_HEADER "LTFDIONWECA",               // BXILOG_ALERT
-        BXILOG_RECORD_HEADER "LTFDIONWEC",                // BXILOG_CRITICAL
-        BXILOG_RECORD_HEADER "LTFDIONWE",                 // BXILOG_ERROR
-        BXILOG_RECORD_HEADER "LTFDIONW",                  // BXILOG_WARNING
-        BXILOG_RECORD_HEADER "LTFDION",                   // BXILOG_NOTICE
-        BXILOG_RECORD_HEADER "LTFDIO",                    // BXILOG_OUTPUT
-        BXILOG_RECORD_HEADER "LTFDI",                     // BXILOG_INFO,
-        BXILOG_RECORD_HEADER "LTFD",                      // BXILOG_DEBUG,
-        BXILOG_RECORD_HEADER "LTF",                       // BXILOG_FINE,
-        BXILOG_RECORD_HEADER "LT",                        // BXILOG_TRACE,
-        BXILOG_RECORD_HEADER "L",                         // BXILOG_LOWEST
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER,                             // BXILOG_OFF
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDIONWECAP",              // BXILOG_PANIC
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDIONWECA",               // BXILOG_ALERT
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDIONWEC",                // BXILOG_CRITICAL
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDIONWE",                 // BXILOG_ERROR
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDIONW",                  // BXILOG_WARNING
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDION",                   // BXILOG_NOTICE
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDIO",                    // BXILOG_OUTPUT
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFDI",                     // BXILOG_INFO,
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTFD",                      // BXILOG_DEBUG,
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LTF",                       // BXILOG_FINE,
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "LT",                        // BXILOG_TRACE,
+        BXILOG_REMOTE_HANDLER_RECORD_HEADER "L",                         // BXILOG_LOWEST
 };
 
 //*********************************************************************************
@@ -275,10 +275,15 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
 bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
-    BXIFREE(data->pub_url);
-    BXIFREE(data->generic.private_items);
-    BXIFREE(data->generic.cbs);
+    // Inform potential receiver that we are exiting
+    const char * header =  BXILOG_REMOTE_HANDLER_EXITING_HEADER;
 
+    err2 = bxizmq_str_snd_zc(header, data->data_zock, ZMQ_SNDMORE,
+                             0, 0, false);
+    BXIERR_CHAIN(err, err2);
+
+    err2 = bxizmq_str_snd(data->pub_url, data->data_zock, 0, 0, 0);
+    BXIERR_CHAIN(err, err2);
 
     if (NULL != data->cfg_zock) {
         err2 = bxizmq_zocket_destroy(&data->cfg_zock);
@@ -306,6 +311,10 @@ bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
 
     err2 = bxizmq_context_destroy(&data->ctx);
     BXIERR_CHAIN(err, err2);
+
+    BXIFREE(data->pub_url);
+    BXIFREE(data->generic.private_items);
+    BXIFREE(data->generic.cbs);
 
     return err;
 }
