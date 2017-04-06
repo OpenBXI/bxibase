@@ -661,7 +661,7 @@ bxierr_p bxizmq_data_rcv(void ** result, const size_t expected_size,
             bxiassert(ZMQ_DONTWAIT == (flags & ZMQ_DONTWAIT));
             bxierr_destroy(&new);
             *result = NULL;
-            *received_size = 0;
+            if (NULL != received_size) *received_size = 0;
             return current;
         }
         BXIERR_CHAIN(current, new);
@@ -690,7 +690,7 @@ bxierr_p bxizmq_data_rcv(void ** result, const size_t expected_size,
 END:
     new = bxizmq_msg_close(&mzg);
     BXIERR_CHAIN(current, new);
-    if (received_size != NULL) *received_size = rcv_size;
+    if (NULL != received_size) *received_size = rcv_size;
     return current;
 }
 /********************************* END DATA ****************************************/
