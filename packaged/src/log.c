@@ -97,6 +97,7 @@ const bxilog_const_s bxilog_const = {
 
 // The internal logger
 SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog");
+SET_LOGGER(LOGGER_CONFIG_LOGGERS, BXILOG_LIB_PREFIX "bxilog.config.loggers");
 
 static pthread_mutex_t BXILOG_INITIALIZED_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 
@@ -211,8 +212,22 @@ bxierr_p bxilog_finalize() {
         goto UNLOCK;
     }
 
-    DEBUG(LOGGER, "Exiting bxilog");
+    char ** level_names;
+    bxilog_level_names(&level_names);
 
+    bxilog_logger_p * loggers = NULL;
+    size_t n = bxilog_registry_getall(&loggers);
+
+    for (size_t i = 0; i < n; i++) {
+        DEBUG(LOGGER_CONFIG_LOGGERS,
+              "Logging level of %s: %s",
+              loggers[i]->name,
+              level_names[loggers[i]->level]);
+    }
+
+    BXIFREE(loggers);
+
+    DEBUG(LOGGER, "Exiting bxilog");
     err = bxilog__finalize();
 
     if (bxierr_isko(err)) {

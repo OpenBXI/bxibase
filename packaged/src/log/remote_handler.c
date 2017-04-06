@@ -292,7 +292,7 @@ bxierr_p _process_exit(bxilog_remote_handler_param_p data) {
 
     // Prevent message lost!
 //    int linger = -1;
-    int linger = 500;
+    int linger = -1;
     int rc = zmq_setsockopt(data->data_zock, ZMQ_LINGER, &linger, sizeof(linger));
     if (rc != 0) {
         err2 = bxizmq_err(errno, "Can't set linger for socket %p", data->data_zock);
