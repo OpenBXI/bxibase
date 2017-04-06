@@ -403,7 +403,7 @@ bxierr_p bxizmq_data_snd_zc(const void * data, size_t size, void * zocket,
 /**
  * Receive a zmq message through the given zocket with the given ZMQ flags,
  * fills the given `*result` pointer with the received content and return the number of
- * bytes received in the `received_size` pointer.
+ * bytes received in the `received_size` pointer if it is not NULL.
  *
  * If `*result` is given NULL, then it is set to a new allocated area filled with
  * the message content. This area will have to be freed using BXIFREE(). The size of
@@ -425,23 +425,24 @@ bxierr_p bxizmq_data_snd_zc(const void * data, size_t size, void * zocket,
  *
  * if `check_more` is `true`, a check is made to know if another zeromq frame is expected
  * from the given zocket (using zmq_getsockopt()) that is related to a
- * zeromq multipart message. If it is not the case, a bxierr(code=BXIZMQ_MISSING_FRAME_ERR)
- * is returned.
+ * zeromq multipart message. If it is not the case,
+ * a bxierr(code=BXIZMQ_MISSING_FRAME_ERR) is returned.
  *
  * If `flags` contains ZMQ_DONTWAIT and EAGAIN was returned while receiving (meaning
  * no message was received at that time), then `*result` will be NULL and
- * `*received_size` will be 0.
+ * `*received_size` will be 0 if received_size is not NULL.
  *
  * If `expected_size` is 0 and `*received_size` is 0, the given `*result` pointer is left
  * untouched and BXIERR_OK is returned. This can be used for signaling purpose
  * (if you send something with a zero size), you will receive a zero sized message.
  *
- * @param result a pointer on the storage location where the received data must be stored
+ * @param result a pointer on the storage location where the received data must be
+ *               stored (if *result is NULL the area will be mallocated)
  * @param expected_size the expected size of the received data
  * @param zocket the zeromq socket the data should be received from
  * @param flags a zeromq flag
  * @param check_more tells if the next data must be part of a zeromq message or not
- * @param received_size the actual size of the received data
+ * @param received_size the actual size of the received data (can be NULL)
  * @return BXIERR_OK on success, bxierr(code=BXIZMQ_MISSING_FRAME_ERR) among others.
  */
 bxierr_p bxizmq_data_rcv(void ** result, size_t expected_size,

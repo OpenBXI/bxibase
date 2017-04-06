@@ -44,6 +44,7 @@ SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.remote");
  * BXILog remote receiver parameters
  */
 struct bxilog_remote_receiver_s {
+    size_t pub_connected;    //!< Number of publishers connected at a given moment
     bool bind;               //!< If true, bind instead of connect
     void * zmq_ctx;          //!< The ZMQ context used
     void * bc2it_zock;       //!< Control zocket for Business Code to
@@ -121,6 +122,7 @@ bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t u
     result->ctrl_urls = bximem_calloc(urls_nb * sizeof(*result->data_urls));
     result->data_urls = bximem_calloc(urls_nb * sizeof(*result->data_urls));
     result->bind = bind;
+    result->pub_connected = 0;
 
     return result;
 }
@@ -223,14 +225,18 @@ bxierr_p bxilog_remote_receiver_start(bxilog_remote_receiver_p self) {
 }
 
 
-bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self) {
+bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self,
+                                     bool wait_remote_exit) {
     BXIASSERT(LOGGER, NULL != self);
     BXIASSERT(LOGGER, NULL != self->zmq_ctx);
     BXIASSERT(LOGGER, NULL != self->bc2it_zock);
 
     bxierr_p err = BXIERR_OK, err2;
     TRACE(LOGGER, "Sending the exit message: '%s'", BXILOG_RECEIVER_EXIT);
-    err2 = bxizmq_str_snd(BXILOG_RECEIVER_EXIT, self->bc2it_zock, 0, 2, 500);
+    err2 = bxizmq_str_snd(BXILOG_RECEIVER_EXIT, self->bc2it_zock, ZMQ_SNDMORE, 0, 0);
+    BXIERR_CHAIN(err, err2);
+    err2 = bxizmq_data_snd(&wait_remote_exit, sizeof(wait_remote_exit), self->bc2it_zock,
+                           0, 0, 0);
     BXIERR_CHAIN(err, err2);
     if (bxierr_isko(err)) return err;
 
@@ -434,6 +440,12 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
         FINE(LOGGER, "Received message '%s' indicating to exit", msg);
         BXIFREE(msg);
 
+        bool wait_remote_exit;
+        bool *tmp_p = &wait_remote_exit;
+        err2 = bxizmq_data_rcv((void**)&tmp_p, sizeof(*tmp_p), self->it2bc_zock,
+                               0, true, NULL);
+        BXIERR_CHAIN(err, err2);
+
         // Fetch all remaining logs before exiting
         while (true) {
             char * header;
@@ -442,6 +454,14 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
 
             // When ZMQ_DONTWAIT, if header == NULL it means we have nothing to receive
             if (NULL == header) {
+                if (wait_remote_exit && 0 < self->pub_connected) {
+                    LOWEST(LOGGER,
+                           "%zu publishers still connected and wait remote "
+                           "exit requested", self->pub_connected);
+                    bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
+                    bxierr_destroy(&tmp);
+                    continue;
+                }
                 TRACE(LOGGER, "No remaining stuff to process, ready to exit");
                 break;
             }
@@ -477,8 +497,22 @@ bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p
                       "Problem during SUB synchronization - continuing (best effort)");
         return BXIERR_OK;
     }
-    if (0 == strncmp(BXILOG_RECORD_HEADER,
-                     header, ARRAYLEN(BXILOG_RECORD_HEADER)-1)) {
+    if (0 == strncmp(BXILOG_REMOTE_HANDLER_EXITING_HEADER, header,
+                     ARRAYLEN(BXILOG_REMOTE_HANDLER_EXITING_HEADER) - 1)) {
+        // One other end has exited, fetch its URL
+        char * url = NULL;
+        bxierr_p err = bxizmq_str_rcv(self->data_zock, 0, true, &url);
+        if (bxierr_isko(err)) return err;
+        self->pub_connected--;
+        FINE(LOGGER,
+             "Publisher %s has sent its exit message. "
+             "Number of connected publishers: %zu",
+             url, self->pub_connected);
+        BXIFREE(url);
+        return BXIERR_OK;
+    }
+    if (0 == strncmp(BXILOG_REMOTE_HANDLER_RECORD_HEADER,
+                     header, ARRAYLEN(BXILOG_REMOTE_HANDLER_RECORD_HEADER)-1)) {
         bxierr_p err  = _process_new_log(self, tsd);
         BXILOG_REPORT(LOGGER, BXILOG_WARNING, err,
                       "Problem while receiving bxilog record - continuing (best effort)");
@@ -751,6 +785,12 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     // Then last frame
     err2 = bxizmq_str_snd(self->data_urls[self->urls_nb - 1], self->cfg_zock, 0, 0, 0);
     BXIERR_CHAIN(err, err2);
+
+    self->pub_connected++;
+    FINE(LOGGER,
+         "New publisher synchronization completed. "
+         "Number of connected publishers: %zu",
+         self->pub_connected);
 
     return err;
 }

@@ -88,7 +88,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         # Wait a bit for the logs to be processed
         time.sleep(1)
         bxilog.out("Stopping the receiver")
-        receiver.stop()
+        receiver.stop(True)
         bxilog.out("Flushing bxilog")
         bxilog.flush()
         with open(child) as file_:

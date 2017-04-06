@@ -86,9 +86,14 @@ bxierr_p bxilog_remote_receiver_start(bxilog_remote_receiver_p self);
  * This function aims at stopping the background thread handling the remote
  * bxilogs. If no background thread has been started it returns a BXIERROR.
  *
+ * @param[in] self the remote receiver object to stop
+ * @param[in] wait_remote_exit if true, wait until all
+ *            publisher have sent their exit message
+ *
  * @return BXIERR_OK on success, anything else on error.
  */
-bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self);
+bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self,
+                                     bool wait_remote_exit);
 
 
 /**
