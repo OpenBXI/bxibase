@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""BXI Logging Parser."""
+###############################################################################
+# Author: Pierre Vignéras <pierre.vigneras@bull.net>
+###############################################################################
+# Copyright (C) 2012  Bull S. A. S.  -  All rights reserved
+# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+# This is not Free or Open Source software.
+# Please contact Bull S. A. S. for details about its license.
+###############################################################################
+from __future__ import print_function
+from datetime import datetime, timedelta
+import bxi.base.posless as posless
+import bxi.base.parserconf as bxiparserconf
+import os, sys, errno
+import bxi.base.log as logging
+
+
+_LOGGER = logging.getLogger(os.path.basename(sys.argv[0]))
+
+def get_python_ts(timestamp):
+    subsecond_idx = timestamp.rfind('.') + 1
+    if len(timestamp) - subsecond_idx > 6:
+        # Truncate to microseconds since Python cannot deal with something better
+        timestamp = timestamp[:subsecond_idx + 6]
+    return datetime.strptime(timestamp, '%Y%m%dT%H%M%S.%f')
+
+def main():
+    """Main function."""
+    parser = posless.ArgumentParser(description='BXI Log Checker',
+                                   formatter_class=bxiparserconf.FilteredHelpFormatter)
+    bxiparserconf.addargs(parser)
+    parser.add_argument("input", type=str, nargs='?', default='-',
+                        help="The logging file to check. Default is '-' for standard input")
+
+    args = parser.parse_args()
+    previous_timestamp = None
+    n = 1
+    f = open(args.input, 'r') if args.input != '-' else sys.stdin
+    for line in f:
+        n += 1
+        if len(line.strip()) == 0:
+            continue
+        start = line.find('|', 0) + 1
+        last = line.find('|', start)
+        timestamp = line[start:last]
+        if start == -1 or last == -1:
+            _LOGGER.warning("Skipping unknown line: %s", line)
+            continue
+        _LOGGER.debug("Checking line %d: %s", n, timestamp)
+        if timestamp == "......................":
+            continue
+        if timestamp < previous_timestamp:
+             ts = get_python_ts(timestamp)
+             pts = get_python_ts(previous_timestamp)
+             _LOGGER.error("Line %d: %s < %s, difference: %s",
+                           n, timestamp, previous_timestamp, pts - ts)
+        previous_timestamp = timestamp
+    f.close()
+    
+
+if __name__ == '__main__':
+    main()
+
