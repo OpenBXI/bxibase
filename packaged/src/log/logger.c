@@ -178,8 +178,10 @@ bxierr_p bxilog_logger_log_rawstr(const bxilog_logger_p logger, const bxilog_lev
 
 bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
                                          const bxilog_level_e level,
-                                         const char * const fullfilename, const size_t fullfilename_len,
-                                         const char * const funcname, const size_t funcname_len,
+                                         const char * const fullfilename,
+                                         const size_t fullfilename_len,
+                                         const char * const funcname,
+                                         const size_t funcname_len,
                                          const int line,
                                          const char * const fmt, va_list arglist) {
 
@@ -251,7 +253,8 @@ bxierr_p bxilog_logger_vlog_nolevelcheck(const bxilog_logger_p logger,
     return err;
 }
 
-bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger, const bxilog_level_e level,
+bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger,
+                                        const bxilog_level_e level,
                                         char * filename, size_t filename_len,
                                         const char * funcname, size_t funcname_len,
                                         const int line,
