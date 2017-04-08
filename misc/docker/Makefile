@@ -13,6 +13,7 @@ bxibase: bxibase.deps
 	echo "Creating the YUM repo"
 	createrepo ${TARGET_DOCKER_DIR}/RPMS
 	echo "Creating the bxibase docker"
+
 	docker build --tag local/centos-bxibase \
 		     --rm=true \
 		     --file ${TARGET_DOCKER_DIR}/Dockerfile.centos-bxibase \
