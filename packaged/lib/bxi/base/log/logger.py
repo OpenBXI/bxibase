@@ -21,14 +21,23 @@ import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 from bxi.base.err import BXICError
 
+
 # Find the C library
 __FFI__ = bxibase.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
+# Optimization (after profiling)
+# If you change this below, better know what you are doing! This has been 
+# implemented this way after profiling (see misc/profile)
+from sys import _getframe        # Remove '.' since it is time consuming in sys._getframe
+from os.path import normcase, basename, dirname, join               # Remove '.' here too
+bxierr_isko = __BXIBASE_CAPI__.bxierr_isko                                         # idem
+bxilog_logger_is_enabled_for = __BXIBASE_CAPI__.bxilog_logger_is_enabled_for       # idem
+bxilog_logger_log_rawstr = __BXIBASE_CAPI__.bxilog_logger_log_rawstr               # idem
+
 
 # _SRCFILE is used when walking the stack to check when we've got the first
 # caller stack frame.
-#
 if hasattr(sys, 'frozen'):  # support for py2exe
     _SRCFILE = "bxilog%s__init__%s" % (os.sep, __file__[-4:])
 elif __file__[-4:].lower() in ['.pyc', '.pyo']:
@@ -44,13 +53,14 @@ def _FindCaller():
 
     @return a triplet (file name, line number, function name)
     """
-    frame = sys._getframe(0)
+    # WARNING: this function is a hotspot!
+    frame = _getframe(0)
     if frame is not None:
         frame = frame.f_back
     rv = "(unknown file)", 0, "(unknown function)"
     while hasattr(frame, "f_code"):
         co = frame.f_code
-        filename = os.path.normcase(co.co_filename)
+        filename = normcase(co.co_filename)
         if filename == _SRCFILE:
             frame = frame.f_back
             continue
@@ -65,12 +75,12 @@ def _bxierr_report(bxierr_p):
 
     @param[in] bxierr_p the error to report and destroy
     """
-    if bxierr_p is None:
-        return
+    # Warning: this function is a hotspot!
     bxierr_pp = __FFI__.new('bxierr_p[1]')
     bxierr_pp[0] = bxierr_p
     __BXIBASE_CAPI__.bxierr_report(bxierr_pp, 2)
     
+
 def _get_usable_filename_from(fullfilename):
     """
     Try to find a usable filename from the given filename
@@ -78,12 +88,14 @@ def _get_usable_filename_from(fullfilename):
     Currently handle only when filename is __init__.py, 
     it returns: (module)/__init__.py instead. 
     """
-    filename = os.path.basename(fullfilename)
+    # Warning: this function is a hotspot!
+    filename = basename(fullfilename)
     if filename == '__init__.py':
-        directory = os.path.dirname(fullfilename)
-        module = os.path.basename(directory)
-        return os.path.join(module, filename)
+        directory = dirname(fullfilename)
+        module = basename(directory)
+        return join(module, filename)
     return filename
+
 
 class BXILogger(object):
     """
@@ -114,30 +126,33 @@ class BXILogger(object):
 
         @exception BXICError if an error occurred at the underlying C layer
         """
+        # Warning this function is a hotspot!
         if not bxilog._INITIALIZED:
             bxilog.init()
-        if __BXIBASE_CAPI__.bxilog_logger_is_enabled_for(self.clogger, level):
+        clogger = self.clogger              # Remote the dot for performance reason
+        if bxilog_logger_is_enabled_for(clogger, level):
             msg_str = msg % args if len(args) > 0 else str(msg)
             fullfilename, lineno, funcname = _FindCaller()
             filename = _get_usable_filename_from(fullfilename)
             filename_len = len(filename) + 1
             funcname_len = len(funcname) + 1
             msg_str_len = len(msg_str) + 1
-            bxierr_p = __BXIBASE_CAPI__.bxilog_logger_log_rawstr(self.clogger,
-                                                                 level,
-                                                                 filename,
-                                                                 filename_len,
-                                                                 funcname,
-                                                                 funcname_len,
-                                                                 lineno,
-                                                                 msg_str,
-                                                                 msg_str_len)
+            bxierr_p = bxilog_logger_log_rawstr(clogger,
+                                                level,
+                                                filename,
+                                                filename_len,
+                                                funcname,
+                                                funcname_len,
+                                                lineno,
+                                                msg_str,
+                                                msg_str_len)
             # Recursive call: this will raise an exception that might be catched
             # again by the logging library and so on...
             # So instead of:
             # bxierr.BXICError.raise_if_ko(bxierr_p)
             # We use directly the bxierr C reporting to stderr (fd=2)
-            _bxierr_report(bxierr_p)
+            if bxierr_isko(bxierr_p):
+                _bxierr_report(bxierr_p)
 
     def _report(self, ei, level, msg, *args, **kwargs):
         if not bxilog._INITIALIZED:
