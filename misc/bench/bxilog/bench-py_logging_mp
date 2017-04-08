@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 ###############################################################################
-# Author: Sébastien Miquée <sebastien.miquee@bull.net>
+# Author: Pierre Vignéras <pierre.vigneras@atos.net>
 ###############################################################################
 # Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
 # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
@@ -26,6 +26,7 @@ AGAIN = multiprocessing.Value('b', True, lock=False)
 N = None
 MIN = None
 MAX = None
+LEVELS = [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
 def benched_log(level, msg, stats):
     start = time.clock()
@@ -53,7 +54,8 @@ def logging_thread(id):
                                                               min_str,
                                                               max_str,
                                                               avg_str)
-        benched_log(stats['n'] % logging.CRITICAL + 1,
+        level = (stats['n'] % len(LEVELS)) * 10
+        benched_log(level,
                     msg,
                     stats);
     global TOTAL, N, MIN, MAX

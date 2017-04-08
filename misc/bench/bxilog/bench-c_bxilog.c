@@ -39,7 +39,7 @@
 
 static volatile bool AGAIN = true;
 
-SET_LOGGER(logger, "bench");
+SET_LOGGER(logger, "bench")
 
 static inline void benched_log(bxilog_level_e level, char * str, struct stats_s *  stats) {
 
