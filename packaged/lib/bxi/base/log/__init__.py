@@ -466,7 +466,7 @@ def get_default_logger():
         default = _PROGNAME
 
     if _DEFAULT_LOGGER is None:
-        _DEFAULT_LOGGER = getLogger(default)
+        _DEFAULT_LOGGER = get_logger(default)
     return _DEFAULT_LOGGER
 
 

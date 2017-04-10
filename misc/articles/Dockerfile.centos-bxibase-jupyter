@@ -8,7 +8,7 @@ RUN sudo -E yum --assumeyes install gcc python34-devel zeromq-devel wget && \
     sudo -E sed -i "s/'-std=c11'/'-std=c11', '-lbxibase', '-D_POSIX_C_SOURCE=200809L'/g" /usr/lib/python3.4/site-packages/jupyter_c_kernel/kernel.py
 
 RUN echo $'#!/bin/bash\n\
-/usr/bin/jupyter notebook --ip='*' --port=8080 --NotebookApp.token=''  --notebook-dir=/srv/ --no-browser'\
+/usr/bin/jupyter notebook --ip='*' --port=8080 --NotebookApp.token='' --notebook-dir=/srv --NotebookApp.default_url=notebooks/index.ipynb --NotebookApp.open_browser=False --no-browser'\
 >> /home/fantom/jupyter-wrapper.sh && chmod +x /home/fantom/jupyter-wrapper.sh
 
 #RUN cat /home/fantom/jupyter-wrapper.sh
