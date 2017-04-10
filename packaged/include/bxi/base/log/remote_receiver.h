@@ -44,7 +44,6 @@ typedef struct bxilog_remote_receiver_s * bxilog_remote_receiver_p;
  *
  * @param[in] urls a set of urls to bind/connect to
  * @param[in] urls_nb the number of urls to bind/connect to
- * @param[in] pub_nb the number of logs publisher to synchronize with
  * @param[in] bind whether given urls must be binded or connected to
  *
  * @return a new receiver instance
@@ -71,9 +70,6 @@ void bxilog_remote_receiver_destroy(bxilog_remote_receiver_p *self_p);
  * blocking version is also available as `bxilog_remote_recv`.
  *
  * @param[in] self the bxilog_remote_recv_s parameters
- * @param[out] binded_cfg_urls a pointer to store the urls that the internal thread
- *             has binded to if not NULL and if bind was true when calling
- *             bxilog_remote_receiver_new()
  *
  * @return BXIERR_OK on success, anything else on error.
  */

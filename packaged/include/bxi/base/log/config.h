@@ -96,6 +96,7 @@ typedef bxilog_config_s * bxilog_config_p;
  * @param[in] filename if not NULL, the full file name where the bxilog_file_handler_p
  *            must produce its output
  * @param[in] open_flags the flags to give to open() (man 2 open).
+ * @param[in] filters the set of filters for the console handler
  *
  * @return a new bxilog "standard" configuration
  *
