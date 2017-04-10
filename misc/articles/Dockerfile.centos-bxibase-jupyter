@@ -1,4 +1,4 @@
-FROM local/centos-bxibase:latest
+FROM openbxi/centos-bxibase:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
 RUN sudo -E yum --assumeyes install gcc python34-devel zeromq-devel wget && \

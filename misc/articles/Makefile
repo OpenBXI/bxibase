@@ -2,7 +2,7 @@ all: centos-bxibase-jupyter
 
 centos-bxibase-jupyter: 
 	echo "Building centos-bxibase-jupyter"
-	docker build --tag local/centos-bxibase-jupyter \
+	docker build --tag openbxi/centos-bxibase-jupyter \
 		     --rm=true \
 		     --file Dockerfile.centos-bxibase-jupyter \
 		     --build-arg HTTP_PROXY=$(http_proxy)\

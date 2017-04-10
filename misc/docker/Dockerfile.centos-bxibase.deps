@@ -1,4 +1,4 @@
-FROM local/centos-backtrace
+FROM openbxi/centos-backtrace
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
 RUN sudo -E yum --assumeyes install \

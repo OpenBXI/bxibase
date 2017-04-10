@@ -1,4 +1,4 @@
-FROM local/centos-bxibase.deps
+FROM openbxi/centos-bxibase.deps
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
 ADD RPMS /rpms
