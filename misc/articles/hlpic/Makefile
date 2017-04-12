@@ -18,7 +18,7 @@ image:
 		    ${PWD}
 
 run: image
-	echo "Running in production mode  -- You cann access it through http://localhost:8080"
+	echo "Running in production mode  -- You can access it through http://localhost:8080"
 	echo "All modifications made in the notebook will *not* be impacted anywhere!"
 	docker rm -f hlpic || /bin/true
 	docker run  --name hlpic --publish 8080:8080 --detach openbxi/hlpic

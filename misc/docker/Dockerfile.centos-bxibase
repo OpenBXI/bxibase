@@ -1,6 +1,6 @@
-FROM openbxi/centos-bxibase.deps
+FROM openbxi/centos-backtrace
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
 ADD RPMS /rpms
 
-RUN sudo -E yum --assumeyes clean all && sudo -E yum --assumeyes install bxibase*
+RUN yum --assumeyes clean all && yum --assumeyes install bxibase

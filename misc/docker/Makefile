@@ -3,12 +3,12 @@ all: bxibase
 MKRPMS_DIR := $(shell cat ~/.config/mkrpms.conf|grep RPMS_DIR|cut -d '=' -f 2)
 TARGET_DOCKER_DIR = /tmp/bxibase.docker
 
-bxibase: bxibase.deps
+bxibase: 
 	echo "Building bxibase rpm"
-	${PWD}/../shared/docker/pdp/mkrpms openbxi/centos-bxibase.deps bxibase
+	$(CURDIR)/../shared/docker/mkrpms/mkrpms openbxi/centos-bxibase-devel bxibase
 	echo "Copying bxibase rpm"
 	mkdir -p ${TARGET_DOCKER_DIR}/RPMS/x86_64
-	cp Dockerfile.centos-bxibase ${TARGET_DOCKER_DIR}
+	cp Dockerfile.centos-bxibase* ${TARGET_DOCKER_DIR}
 	cp -a ${MKRPMS_DIR}/RPMS/x86_64/bxibase* ${TARGET_DOCKER_DIR}/RPMS/x86_64/
 	echo "Creating the YUM repo"
 	createrepo ${TARGET_DOCKER_DIR}/RPMS
@@ -23,13 +23,12 @@ bxibase: bxibase.deps
 		     --build-arg NO_PROXY=${no_proxy}\
 		     ${TARGET_DOCKER_DIR}
 
-bxibase.deps: 
-	echo "Building docker deps for bxibase"
-	docker build --tag openbxi/centos-bxibase.deps \
+	echo "Building docker for bxibase-devel"
+	docker build --tag openbxi/centos-bxibase-devel \
 		     --rm=true \
-		     --file Dockerfile.centos-bxibase.deps \
+		     --file ${TARGET_DOCKER_DIR}/Dockerfile.centos-bxibase-devel \
 		     --build-arg HTTP_PROXY=$(http_proxy)\
 		     --build-arg HTTPS_PROXY=${https_proxy}\
 		     --build-arg FTP_PROXY=${ftp_proxy}\
 		     --build-arg NO_PROXY=${no_proxy}\
-		     ${PWD}
+		     ${TARGET_DOCKER_DIR}

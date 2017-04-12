@@ -1,11 +1,25 @@
 FROM openbxi/centos-bxibase:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-RUN sudo -E yum --assumeyes install gcc python34-devel zeromq-devel wget && \
-    wget --directory-prefix=/tmp/ https://bootstrap.pypa.io/get-pip.py && sudo -E python3.4 /tmp/get-pip.py && \
-    sudo -E pip3 install jupyter && \
-    wget -O - https://raw.githubusercontent.com/https://raw.githubusercontent.com/vigneras/jupyter-c-kernel/master/install.sh | sudo -E sh  && \
-    sudo -E sed -i "s/'-std=c11'/'-std=c11', '-lbxibase', '-D_POSIX_C_SOURCE=200809L'/g" /usr/lib/python3.4/site-packages/jupyter_c_kernel/kernel.py
+ADD RPMS /rpms
+
+RUN yum --assumeyes install gcc python34-devel zeromq-devel wget git bxibase* && \
+    wget --directory-prefix=/tmp/ https://bootstrap.pypa.io/get-pip.py && python3.4 /tmp/get-pip.py && \
+    rm /tmp/get-pip.py && \
+    pip3 install jupyter && \
+    wget -O - https://raw.githubusercontent.com/https://raw.githubusercontent.com/vigneras/jupyter-c-kernel/master/install.sh | sh  && \
+    sed -i "s/'-std=c11'/'-std=c11', '-lbxibase', '-D_POSIX_C_SOURCE=200809L'/g" /usr/lib/python3.4/site-packages/jupyter_c_kernel/kernel.py
+
+# Create the fantom user
+RUN useradd -u 1000 -g users -G wheel -m fantom
+
+# Trust the wheel groop by default for su & sudo
+RUN sed -i '/^#auth.*pam_wheel.so.*trust /s/^#//' /etc/pam.d/su && \
+    echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+WORKDIR /home/fantom
+USER fantom
+
 
 RUN echo $'#!/bin/bash\n\
 /usr/bin/jupyter notebook --ip='*' --port=8080 --NotebookApp.token='' --notebook-dir=/srv --NotebookApp.default_url=notebooks/index.ipynb --NotebookApp.open_browser=False --no-browser'\
