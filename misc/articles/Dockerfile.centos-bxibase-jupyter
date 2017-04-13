@@ -1,9 +1,9 @@
 FROM openbxi/centos-bxibase:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-ADD RPMS /rpms
+ADD RPMS /mkrpms_directory
 
-RUN yum --assumeyes install gcc python34-devel zeromq-devel wget git bxibase* && \
+RUN yum --assumeyes clean metadata && yum --assumeyes install gcc python34-devel zeromq-devel wget git bxibase* && \
     wget --directory-prefix=/tmp/ https://bootstrap.pypa.io/get-pip.py && python3.4 /tmp/get-pip.py && \
     rm /tmp/get-pip.py && \
     pip3 install jupyter && \

@@ -5,7 +5,7 @@ TARGET_DOCKER_DIR = /tmp/bxibase.docker
 
 bxibase: 
 	echo "Building bxibase rpm"
-	$(CURDIR)/../shared/docker/mkrpms/mkrpms openbxi/centos-bxibase-devel bxibase
+	$(CURDIR)/../shared/docker/mkrpms/mkrpms openbxi/centos-backtrace-devel bxibase
 	echo "Copying bxibase rpm"
 	mkdir -p ${TARGET_DOCKER_DIR}/RPMS/x86_64
 	cp Dockerfile.centos-bxibase* ${TARGET_DOCKER_DIR}
