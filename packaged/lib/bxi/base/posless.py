@@ -1,27 +1,7 @@
 # posless argparse extention by A. Cady <alain.cady@atos.net>
 # argparse is authored by Steven J. Bethard <steven.bethard@gmail.com>.
-# pylint: disable=I0011
-# pylint: disable=C0111
-# pylint: disable=W0212
-# pylint: disable=W0622
-# pylint: disable=C0103
-# pylint: disable=C0302
-# pylint: disable=E1101
-# pylint: disable=R0201
-# pylint: disable=R0902
-# pylint: disable=R0911
-# pylint: disable=R0912
-# pylint: disable=R0913
-# pylint: disable=R0914
-# pylint: disable=R0915
-# pylint: disable=W0102
-# pylint: disable=W0107
-# pylint: disable=W0141
-# pylint: disable=W0142
-# pylint: disable=W0223
-# pylint: disable=W0231
-# pylint: disable=W0233
-# pylint: disable=W0631
+# pylint: disable=I0011,C0111,W0212,W0622,C0103,C0302,E1101,R0201,R0902,R0911
+# pylint: disable=R0912,R0913,R0914,R0915,W0102,W0107,W0141,W0223,W0231,W0233,W0631
 
 """Command-line parsing library
 
@@ -689,7 +669,7 @@ class HelpFormatter(object):
     def _fill_text(self, text, width, indent):
         text = self._whitespace_matcher.sub(' ', text).strip()
         return _textwrap.fill(text, width, initial_indent=indent,
-                                           subsequent_indent=indent)
+                              subsequent_indent=indent)
 
     def _get_help_string(self, action):
         return action.help
@@ -1311,7 +1291,7 @@ class Namespace(_AttributeHolder):
         return vars(self) == vars(other)
 
     def __ne__(self, other):
-        return not (self == other)
+        return not self == other
 
     def __contains__(self, key):
         return key in self.__dict__
@@ -1851,12 +1831,42 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
     # Command line argument parsing methods
     # =====================================
     def parse_args(self, args=None, namespace=None):
-        args, argv = self.parse_known_args(args, namespace)
+        gargs = self.get_known_args(args, namespace, True)[0]
+        args, argv = self.parse_known_args(args, gargs)
         if argv:
             msg = _('unrecognized arguments: %s')
             self.error(msg % ' '.join(argv))
 
         return args
+
+    def get_known_args(self, args=None, namespace=None, fromscratch=False):
+        def _pass(*args, **kwargs):
+            pass
+
+        current_args = None
+        current_namespace = None
+        if not fromscratch:
+            if 'stored_state' in self.__dict__:
+                current_namespace, current_args = self.stored_state
+        if args is not None:
+            current_args = args
+        if namespace is not None:
+            current_namespace = namespace
+
+        old_print_help = self.print_help
+        old_exit = self.exit
+        old_error = self.error
+        self.print_help = _pass
+        self.exit = _pass
+        self.error = _pass
+        self.stored_state = self.parse_known_args(current_args,
+                                                  current_namespace)
+        self.print_help = old_print_help
+        self.exit = old_exit
+        self.error = old_error
+        if self.stored_state is None:
+            self.stored_state = (None, None)
+        return self.stored_state
 
     def parse_known_args(self, args=None, namespace=None):
         # args default to the system args
@@ -2094,7 +2104,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                         positionals.remove(action)
                     except ValueError:
                         msg = ("Warning %s was already defined, "
-                        "overriding" % _get_action_name(action))
+                               "overriding" % _get_action_name(action))
                         self.warn(msg)
 
             return
@@ -2274,7 +2284,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         # if multiple actions match, the option string was ambiguous
         if len(nonoption_tuples) > 1:
             nonoptions = ', '.join([nonoption_str
-                for action_, nonoption_str, explicit_ in nonoption_tuples])
+                                    for action_, nonoption_str, explicit_ in nonoption_tuples])
             tup = arg_string, nonoptions
             self.error(_('ambiguous non-option: %s could match %s') % tup)
 
@@ -2357,7 +2367,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         # if multiple actions match, the option string was ambiguous
         if len(option_tuples) > 1:
             options = ', '.join([option_str
-                for action_, option_str, explicit_ in option_tuples])
+                                 for action_, option_str, explicit_ in option_tuples])
             tup = arg_string, options
             self.error(_('ambiguous option: %s could match %s') % tup)
 
