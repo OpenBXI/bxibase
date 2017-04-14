@@ -118,11 +118,6 @@ a simple workaround: See bxi.base.log::multiprocessing_target for details.**
 
 """
 from __future__ import print_function
-# Try to find other BXI packages in other folders
-from pkgutil import extend_path
-__path__ = extend_path(__path__, __name__)
-
-
 import atexit
 import os
 import sys
@@ -130,11 +125,15 @@ import warnings
 import unittest
 import tempfile
 import traceback
-import configobj
 import cStringIO as StringIO
+from pkgutil import extend_path
+import configobj
 
 import bxi.base as bxibase
 import bxi.base.err as bxierr
+
+# Try to find other BXI packages in other folders
+__path__ = extend_path(__path__, __name__)
 
 
 # Find the C library
@@ -345,7 +344,6 @@ def init():
         _PROGNAME = os.path.basename(sys.argv[0])
 
     from . import config as bxilogconfig
-    from . import filter as bxilogfilter
 
     c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME)
 
@@ -654,7 +652,7 @@ def lowest(msg, *args, **kwargs):
     get_default_logger().lowest(msg, *args, **kwargs)
 
 
-def  log(level, msg, *args, **kwargs):
+def log(level, msg, *args, **kwargs):
     """
     Log the given message at the given level using the default logger.
 

@@ -1831,8 +1831,8 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
     # Command line argument parsing methods
     # =====================================
     def parse_args(self, args=None, namespace=None):
-        gargs = self.get_known_args(args, namespace, True)[0]
-        args, argv = self.parse_known_args(args, gargs)
+        # gargs = self.get_known_args(args, namespace, True)[0]
+        args, argv = self.parse_known_args(args, namespace)
         if argv:
             msg = _('unrecognized arguments: %s')
             self.error(msg % ' '.join(argv))
