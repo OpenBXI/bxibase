@@ -72,8 +72,12 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
                               loggername_width,
                               BXILOG_COLORS_TC_DARK);
     if (NULL != filename) {
+        bxilog_filters_p file_filters = bxilog_filters_dup(filters);
+        for (size_t i = 0; i < filters->nb; i++) {
+            file_filters->list[i]->level += 2;
+        }
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
-                                  filters,
+                                  file_filters,
                                   basename, filename, open_flags);
     }
     // Bull default to LOG_LOCAL0
