@@ -1,4 +1,4 @@
-FROM openbxi/centos-epel:latest
+FROM local/centos-epel:latest
 
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
@@ -39,13 +39,13 @@ RUN yum -y remove git-all git && yum clean packages
 
 # Create the yum repo
 RUN cd ~/rpmbuild/RPMS/x86_64 && createrepo . && \
-    echo $'[openbxi] \n\
+    echo $'[local] \n\
 name=Git-Local \n\
 baseurl=file:///root/rpmbuild/RPMS/x86_64 \n\
 enabled=1 \n\
 gpgcheck=0 \n\
 protect=1 \n'\
-> /etc/yum.repos.d/openbxi.repo
+> /etc/yum.repos.d/local.repo
 
 # Install git
 RUN yum -y install git
@@ -59,7 +59,7 @@ RUN useradd -u 1000 -g users -G wheel -m fantom && \
 %python2_sitelib /usr/lib/python2.7/site-packages \n\
 %python2_sitearch /usr/lib64/python2.7/site-packages \n\
 %debug_package %{nil} \n\
-%_topdir /mkrpms_directory \n\
+%_topdir /rpms \n\
 %systemd_dir /usr/lib/systemd/system \n'\
 > /home/fantom/.rpmmacros
 
@@ -68,14 +68,14 @@ RUN sed -i '/^#auth.*pam_wheel.so.*trust /s/^#//' /etc/pam.d/su && \
     echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 
-# Create the openbxi yum repo
-RUN echo $'[openbxi] \n\
+# Create the local yum repo
+RUN echo $'[local] \n\
 name=Local \n\
-baseurl=file:///mkrpms_directory \n\
+baseurl=file:///rpms \n\
 enabled=1 \n\
 gpgcheck=0 \n\
 protect=1 \n'\
-> /etc/yum.repos.d/openbxi.repo
+> /etc/yum.repos.d/local.repo
 
 
 # Create the user fantom environment
