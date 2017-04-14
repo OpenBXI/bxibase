@@ -81,8 +81,7 @@ SIGNALS = ['None',
            'SIGRTMAX-3',
            'SIGRTMAX-2',
            'SIGRTMAX-1',
-           'SIGRTMAX',
-           ]
+           'SIGRTMAX', ]
 
 
 def default_handler(signum, frame):
@@ -107,12 +106,12 @@ def set_handler(sig, function):
     @return
     """
     signum = -1
-    if type(sig) == int:
+    if isinstance(sig, int):
         if sig > 0 and sig < len(SIGNALS):
             signum = sig
         else:
             _LOGGER.error("Not a valid signal to handle: %d", sig)
-    elif type(sig) == str:
+    elif isinstance(sig, basestring):
         try:
             signum = SIGNALS.index(sig)
         except ValueError:
