@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 """
 
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -12,7 +11,7 @@ from __future__ import print_function
 
 """
 
-import bxi.base.err as bxierr
+from __future__ import print_function
 import bxi.base as bxibase
 import bxi.base.log.filter as bxilogfilter
 
@@ -27,7 +26,7 @@ def add_handler(configobj, section_name, c_config):
 
     @param[in] configobj the configobj (a dict) representing the whole configuration
     @param[in] section_name the section name in the configobj that must be used
-    @param[inout] c_config the bxilog configuration where the handler must be added to 
+    @param[inout] c_config the bxilog configuration where the handler must be added to
     """
     section = configobj[section_name]
     filters_str = section['filters']
