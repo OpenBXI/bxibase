@@ -263,7 +263,7 @@ def _get_configfile(parser,
     if not os.path.exists(cmd_config):
         # Second we try to fetch a configuration for the domain name
         if domain_name is not None:
-            return os.path.join(config_dir, domain_name + cmd_config_file_suffix)
+            cmd_config = os.path.join(config_dir, domain_name + cmd_config_file_suffix)
 
         if not os.path.exists(cmd_config):
             # Third we try the default path
@@ -297,8 +297,8 @@ def _add_config(parser,
 
     # First, we try to fetch a configuration for the command line
     cmd_config = _get_configfile(parser, full_config_dir,
-                                 domain_name,
                                  default_config_filename,
+                                 domain_name,
                                  cmd_config_file_suffix)
 
     def _add_config_dir_arg(target_parser):
@@ -346,8 +346,8 @@ def _add_config(parser,
             else:
                 default_config_dir = known_args.config_dir
                 candidate = _get_configfile(target_parser, default_config_dir,
-                                            domain_name,
                                             default_config_filename,
+                                            domain_name,
                                             cmd_config_file_suffix)
                 default_config_file = candidate
 
