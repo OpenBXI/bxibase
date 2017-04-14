@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 """
 @file file_handler.py bxilog file handler
 @authors Pierre Vignéras <pierre.vigneras@bull.net>
@@ -11,6 +10,7 @@ from __future__ import print_function
 @namespace bxi.base.log.file_handler bxilog file handler
 
 """
+from __future__ import print_function
 import os
 import bxi.base as bxibase
 import bxi.base.log as bxilog
@@ -22,7 +22,7 @@ __FFI__ = bxibase.get_ffi()
 __BXIBASE_CAPI__ = bxibase.get_capi()
 
 
-""" 
+"""
 Colors Theme.
 
 Defining new color themes is really very simple.
@@ -34,8 +34,7 @@ COLORS = {'none': __BXIBASE_CAPI__.BXILOG_COLORS_NONE,
           'truecolor_dark': __BXIBASE_CAPI__.BXILOG_COLORS_TC_DARK,
           'truecolor_light': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHT,
           'truecolor_darkgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_DARKGRAY,
-          'truecolor_lightgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHTGRAY,
-          }
+          'truecolor_lightgray': __BXIBASE_CAPI__.BXILOG_COLORS_TC_LIGHTGRAY, }
 
 
 """
@@ -48,13 +47,14 @@ The environment variable used to specify the logger name width to use on display
 """
 LOGGERNAME_WIDTH_ENV_VAR = 'BXILOG_CONSOLE_HANDLER_LOGGERNAME_WIDTH'
 
+
 def add_handler(configobj, section_name, c_config):
     """
     Add a console handler configured from the given section in configobj to the c_config
 
     @param[in] configobj the configobj (a dict) representing the whole configuration
     @param[in] section_name the section name in the configobj that must be used
-    @param[inout] c_config the bxilog configuration where the handler must be added to 
+    @param[inout] c_config the bxilog configuration where the handler must be added to
     """
 
     section = configobj[section_name]
