@@ -104,7 +104,7 @@ DOCKER_MKRPMS_IMAGE=$(docker images -q ${DOCKER_MKRPMS})
 
 if [ -z "${DOCKER_MKRPMS_IMAGE}" ]
 then
-    echo "${DOCKER_MKRPMS} not found, please make it"
+    echo "DOCKER_MKRPMS_IMAGE not found, please make it"
     exit 1
 fi
 
