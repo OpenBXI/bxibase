@@ -1,6 +1,6 @@
 FROM openbxi/centos-backtrace-devel
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-ADD RPMS /rpms
+ADD RPMS /mkrpms_directory
 
 RUN sudo yum clean metadata && sudo -E yum --assumeyes install bxibase-devel

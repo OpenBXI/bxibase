@@ -1,0 +1,5 @@
+FROM openbxi/centos-bxibase-jupyter:latest
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+ADD resources/* /srv/
+RUN sudo chown -R fantom:users /srv/

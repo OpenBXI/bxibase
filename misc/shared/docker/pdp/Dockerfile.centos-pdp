@@ -59,7 +59,7 @@ RUN useradd -u 1000 -g users -G wheel -m fantom && \
 %python2_sitelib /usr/lib/python2.7/site-packages \n\
 %python2_sitearch /usr/lib64/python2.7/site-packages \n\
 %debug_package %{nil} \n\
-%_topdir /rpms \n\
+%_topdir /mkrpms_directory \n\
 %systemd_dir /usr/lib/systemd/system \n'\
 > /home/fantom/.rpmmacros
 
@@ -71,7 +71,7 @@ RUN sed -i '/^#auth.*pam_wheel.so.*trust /s/^#//' /etc/pam.d/su && \
 # Create the openbxi yum repo
 RUN echo $'[openbxi] \n\
 name=Local \n\
-baseurl=file:///rpms \n\
+baseurl=file:///mkrpms_directory \n\
 enabled=1 \n\
 gpgcheck=0 \n\
 protect=1 \n'\

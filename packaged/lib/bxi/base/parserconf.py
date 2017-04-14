@@ -15,17 +15,17 @@
 
 from __future__ import print_function
 
-from configobj import ConfigObjError
-from configobj import ConfigObj
-from gettext import gettext as _
-import bxi.base.log as logging
-import bxi.base.log.console_handler as bxilog_consolehandler
-import bxi.base.log.file_handler as bxilog_filehandler
-import configobj
-import bxi.base.posless as posless
 import tempfile
 import os.path
 import sys
+from configobj import ConfigObjError
+from configobj import ConfigObj
+from gettext import gettext as _
+import configobj
+import bxi.base.log as logging
+import bxi.base.log.console_handler as bxilog_consolehandler
+import bxi.base.log.file_handler as bxilog_filehandler
+import bxi.base.posless as posless
 import bxi.base.err as bxierr
 
 ArgumentError = posless.ArgumentError
@@ -249,6 +249,29 @@ def _get_config_from_file(filename):
         return new_conf
 
 
+def _get_configfile(parser,
+                    config_dir,
+                    default_config_filename,
+                    domain_name,
+                    cmd_config_file_suffix):
+    """
+    Looking for the configfile depending on the config dir
+    """
+    # First, we try to fetch a configuration for the command line
+    cmd_config = os.path.join(config_dir,
+                              os.path.basename(parser.prog) + cmd_config_file_suffix)
+    if not os.path.exists(cmd_config):
+        # Second we try to fetch a configuration for the domain name
+        if domain_name is not None:
+            return os.path.join(config_dir, domain_name + cmd_config_file_suffix)
+
+        if not os.path.exists(cmd_config):
+            # Third we try the default path
+            return os.path.join(config_dir, default_config_filename)
+
+    return cmd_config
+
+
 def _add_config(parser,
                 default_config_dirname,
                 default_config_filename,
@@ -273,18 +296,12 @@ def _add_config(parser,
     full_config_dir = os.getenv('BXICONFIGDIR', full_config_dir)
 
     # First, we try to fetch a configuration for the command line
-    cmd_config = os.path.join(full_config_dir,
-                              parser.prog + cmd_config_file_suffix)
-    if not os.path.exists(cmd_config):
-        # Second we try to fetch a configuration for the domain name
-        if domain_name is not None:
-            cmd_config = os.path.join(full_config_dir,
-                                      domain_name + cmd_config_file_suffix)
-        if not os.path.exists(cmd_config):
-            # Third we try the default path
-            cmd_config = os.path.join(full_config_dir, default_config_filename)
+    cmd_config = _get_configfile(parser, full_config_dir,
+                                 domain_name,
+                                 default_config_filename,
+                                 cmd_config_file_suffix)
 
-    def _add_config_dir_arg(target_parser, known_args=None):
+    def _add_config_dir_arg(target_parser):
         """
         Add the config_dir option to the given target_parser
 
@@ -293,42 +310,12 @@ def _add_config(parser,
         """
         group = target_parser.add_argument_group('File Based Configuration'
                                                  ' (domain: %s)' % domain_name)
-
-        if known_args is None:
-            default_config_dir = None
-            default_config_file = None
-        else:
-            # Check if the --config-file option has been given
-            if known_args.config_file is not None:
-                default_config_dir = None
-                default_config_file = known_args.config_file
-            else:
-                if known_args.config_dir is None:
-                    default_config_dir = full_config_dir
-                    default_config_file = cmd_config
-                else:
-                    default_config_dir = known_args.config_dir
-                    candidate = os.path.join(default_config_dir,
-                                             os.path.basename(target_parser.prog) +
-                                             cmd_config_file_suffix)
-                    if not os.path.exists(candidate):
-                        # Second we try to fetch a configuration for the domain name
-                        if domain_name is not None:
-                            candidate = os.path.join(default_config_dir,
-                                                     domain_name +
-                                                     cmd_config_file_suffix)
-                        if not os.path.exists(candidate):
-                            # Third we try the default path
-                            candidate = os.path.join(default_config_dir,
-                                                     default_config_filename)
-                    default_config_file = candidate
-
         group.add_argument("--config-dir",
                            help="The directory where the configuration file "
                                 "must be looked for."
                                 " Value: %(default)s. "
                                 "Environment variable: %(envvar)s",
-                           default=default_config_dir,
+                           default=None,
                            envvar="BXICONFIGDIR",
                            metavar="DIR")
 
@@ -338,17 +325,37 @@ def _add_config(parser,
                            "the file is taken from the configuration directory. "
                            "Value: %(default)s. "
                            "Environment variable: %(envvar)s",
-                           default=default_config_file,
+                           default=None,
                            envvar="BXICONFIGFILE",
                            metavar="FILE")
+
+        known_args = target_parser.get_known_args()[0]
+
+        if known_args is None:
+            target_parser.known_config_file = cmd_config
+            return
+
+        # Check if the --config-file option has been given
+        if known_args.config_file is not None:
+            default_config_dir = None
+            default_config_file = known_args.config_file
+        else:
+            if known_args.config_dir is None:
+                default_config_dir = full_config_dir
+                default_config_file = cmd_config
+            else:
+                default_config_dir = known_args.config_dir
+                candidate = _get_configfile(target_parser, default_config_dir,
+                                            domain_name,
+                                            default_config_filename,
+                                            cmd_config_file_suffix)
+                default_config_file = candidate
+
+        parser.set_defaults(config_file=default_config_file,
+                            config_dir=default_config_dir)
         target_parser.known_config_file = default_config_file
 
-    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
-    _add_config_dir_arg(dummy)
-
-    known_args = dummy.parse_known_args()[0]
-
-    _add_config_dir_arg(parser, known_args)
+    _add_config_dir_arg(parser)
 
     if os.path.exists(parser.known_config_file):
         try:
@@ -432,13 +439,13 @@ def _configure_log(parser):
                                envvar='BXILOG_%s_FILTERS' % console_handler.upper(),
                                default=default,
                                help="Define the logging filters for the "
-                                    " %s handler " % console_handler + \
-                                    "Value: '%(default)s'. "
-                                    "Logging filters are defined by the following "
-                                    "format: logger_name_prefix:level[,prefix:level]*")
+                               " %s handler " % console_handler +
+                               "Value: '%(default)s'. "
+                               "Logging filters are defined by the following "
+                               "format: logger_name_prefix:level[,prefix:level]*")
 
-            group.add_argument("--quiet", action='store_true', mustbeprinted=True, 
-								help="Set log console filter to off.")
+            group.add_argument("--quiet", action='store_true', mustbeprinted=True,
+                               help="Set log console filter to off.")
 
             if 'colors' not in console_section:
                 default = DEFAULT_CONSOLE_COLORS
@@ -451,10 +458,10 @@ def _configure_log(parser):
                                envvar='BXILOG_%s_COLORS' % console_handler.upper(),
                                default=default,
                                choices=bxilog_consolehandler.COLORS.keys(),
-                               help="Define the logging colors for the %s handler " % \
-                                    console_handler + \
-                                    "Value: '%(default)s'. " + \
-                                    "choices=%s. " % bxilog_consolehandler.COLORS.keys())
+                               help="Define the logging colors for the %s handler " %
+                               console_handler +
+                               "Value: '%(default)s'." +
+                               " choices=%s. " % bxilog_consolehandler.COLORS.keys())
 
         sections = find_logconfigs(bxilog_filehandler.__name__, config)
         for section in sections:
@@ -477,13 +484,12 @@ def _configure_log(parser):
                                envvar='BXILOG_%s_FILTERS' % section.upper(),
                                default=default,
                                help="Define the logging filters for the "
-                                    "%s handler " % section + \
-                                    "of the default logging configuration. " + \
-                                    auto_help_msg + \
-                                    "The format is the one defined by "
-                                    "console_filters option. "
-                                    "Value: '%(default)s'. ")      
-            
+                               "%s handler " % section +
+                               "of the default logging configuration. " +
+                               auto_help_msg +
+                               "The format is the one defined by "
+                               "console_filters option. Value: '%(default)s'. ")
+
             if 'path' not in conf:
                 target_parser.error("Bad logging configuration: 'path' is missing "
                                     "in section '%s' of config %s" % (section, config))
@@ -493,8 +499,8 @@ def _configure_log(parser):
                                envvar='BXILOGPATH',
                                mustbeprinted=False,
                                default=default,
-                               help="Define the destination file for the %s handler " % \
-                                    section + "Value: %(default)s")
+                               help="Define the destination file for the %s handler " %
+                               section + "Value: %(default)s")
 
             if 'append' not in conf:
                 default = True
@@ -505,10 +511,10 @@ def _configure_log(parser):
                                mustbeprinted=False,
                                default=default,
                                help="When true, append to destination path of handler "
-                                    "%s, instead of owerwriting. " % section + \
-                                    "Value: %(default)s")
+                               "%s, instead of owerwriting. " % section +
+                               "Value: %(default)s")
 
-    def _override_logconfig(config, known_args):
+    def _override_logconfig(config, known_args, parser):
         """
         Override the given logging configuration with given known_args
 
@@ -534,7 +540,7 @@ def _configure_log(parser):
                 config[handler_name][key] = args[option]
 
         args = vars(known_args)
-        
+
         for option in args:
             _override_kv(option, 'filters', config, args)
             _override_kv(option, 'colors', config, args)
@@ -544,15 +550,15 @@ def _configure_log(parser):
             # if --quiet option is provided, set output log level for console handlers
             # to minimal settings so that nothing is printed on stdout (nothing change
             # for stderr).
-            if option is "quiet":		
-	            if args[option] is True:
-	                sections = find_logconfigs(bxilog_consolehandler.__name__, config)
-	                if len(sections) > 1:
-		                target_parser.error("Multiple instances of module %s is "
-		                                    "currently unsupported. Configuration: %s " %
-    	                                    (bxilog_consolehandler.__name__, config))
-	                if len(sections) == 1:
-	                    option = "log_console_filters"
+            if option is "quiet":
+                if args[option] is True:
+                    sections = find_logconfigs(bxilog_consolehandler.__name__, config)
+                    if len(sections) > 1:
+                        parser.error("Multiple instances of module %s is "
+                                     "currently unsupported. Configuration: %s " %
+                                     (bxilog_consolehandler.__name__, config))
+                        if len(sections) == 1:
+                            option = "log_console_filters"
                         key = 'filters'
                         handler_name = option[len('log_'):option.index(key) - 1]
                         args[option] = ":%s" % config[handler_name]["stderr_level"]
@@ -563,26 +569,24 @@ def _configure_log(parser):
                         default=posless.SUPPRESS,
                         help=_('Show detailed logging options and exit'))
 
-    dummy = posless.ArgumentParser(prog=parser.prog, add_help=False)
-    group1 = _add_common(dummy)
     group = _add_common(parser)
 
-    known_args = dummy.parse_known_args()[0]
+    known_args = parser.get_known_args()[0]
+
+    if known_args is None:
+        return
 
     baseconf = {'handlers': ['console', 'file'],
                 'setsighandler': True,
                 'console': {'module': bxilog_consolehandler.__name__,
                             'filters': ':output',
                             'stderr_level': 'WARNING',
-                            'colors': '216_dark',
-                           },
+                            'colors': '216_dark', },
                 'file': {'module': bxilog_filehandler.__name__,
                          'filters': 'auto',
                          'path': os.path.join(tempfile.gettempdir(),
                                               '%(prog)s') + '.bxilog',
-                         'append': True,
-                        }
-               }
+                         'append': True, }}
 
     if known_args.output_default_logcfg:
         config = configobj.ConfigObj(infile=baseconf, interpolation=False)
@@ -612,18 +616,17 @@ def _configure_log(parser):
 
         config = configobj.ConfigObj(infile=infile, interpolation=False)
     elif not os.path.exists(known_args.logcfgfile):
-        dummy.error("File not found: %s" % known_args.logcfgfile)
+        parser.error("File not found: %s" % known_args.logcfgfile)
     else:
         config = configobj.ConfigObj(infile=known_args.logcfgfile, interpolation=False)
         logcfg_msg = "Using logging configuration file '%s' specified by command line" %\
                      known_args.logcfgfile
 
-    _add_others(dummy, known_args, group1, config)
     _add_others(parser, known_args, group, config)
 
-    known_args = dummy.parse_known_args()[0]
+    known_args = parser.get_known_args()[0]
 
-    _override_logconfig(config, known_args)
+    _override_logconfig(config, known_args, parser)
 
     logging.captureWarnings(True)
     if logging.is_configured():
