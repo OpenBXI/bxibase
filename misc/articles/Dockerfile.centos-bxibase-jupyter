@@ -1,14 +1,10 @@
 FROM openbxi/centos-bxibase:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-ADD RPMS /mkrpms_directory
-
-RUN yum --assumeyes clean metadata && yum --assumeyes install gcc python34-devel zeromq-devel wget git bxibase* && \
-    wget --directory-prefix=/tmp/ https://bootstrap.pypa.io/get-pip.py && python3.4 /tmp/get-pip.py && \
-    rm /tmp/get-pip.py && \
-    pip3 install jupyter && \
-    wget -O - https://raw.githubusercontent.com/https://raw.githubusercontent.com/vigneras/jupyter-c-kernel/master/install.sh | sh  && \
-    sed -i "s/'-std=c11'/'-std=c11', '-lbxibase', '-D_POSIX_C_SOURCE=200809L'/g" /usr/lib/python3.4/site-packages/jupyter_c_kernel/kernel.py
+RUN yum --assumeyes install gcc python-pip python-devel && \
+    pip install jupyter && \
+    yum --assumeyes erase gcc pip python-devel && \
+    package-cleanup --leaves --all 
 
 # Create the fantom user
 RUN useradd -u 1000 -g users -G wheel -m fantom

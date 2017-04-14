@@ -1,4 +1,4 @@
-FROM openbxi/centos-bxibase-jupyter:latest
+FROM openbxi/centos-bxibase-jupyter-c:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
 ADD resources/* /srv/
