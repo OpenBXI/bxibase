@@ -47,6 +47,8 @@ void * bximem_calloc(const size_t n) {
 
 /*
  * New realloc
+ *
+ * Note: If ptr is NULL, acts like bximem_calloc
  */
 void * bximem_realloc(void* ptr, const size_t old_size, const size_t new_size) {
     char * new_ptr = realloc(ptr, new_size);
@@ -58,12 +60,10 @@ void * bximem_realloc(void* ptr, const size_t old_size, const size_t new_size) {
         bxierr_destroy(&err);
         return NULL;
     }
-    if (old_size > 0) {
-        bxiassert(old_size < new_size);
+    if (old_size < new_size) {
         // Initialize the memory.
         memset(new_ptr + old_size, 0, new_size - old_size);
     }
-
     return new_ptr;
 }
 
