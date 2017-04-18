@@ -33,7 +33,15 @@ def add_handler(configobj, section_name, c_config):
 
     filters = bxilogfilter.parse_filters(filters_str)
 
-    url = __FFI__.new('char[]', section['url'])
+
+    url = section['url']
+    if '%(prog)s' in url:
+        import bxi.base.log as bxilog
+        import sys
+        url = url % {'prog': bxilog._PROGNAME if bxilog._PROGNAME is not None\
+                                              else sys.argv[0]}
+
+    url = __FFI__.new('char[]', url)
     bind = __FFI__.cast('bool', section.as_bool('bind'))
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,
