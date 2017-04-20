@@ -396,14 +396,10 @@ def _configure_log(parser):
                            mustbeprinted=False,
                            help="Output the default logging configuration and exit.")
 
-        default_logcfgfile = getdefaultvalue(target_parser,
-                                             ['Defaults'],
-                                             BXILOG_DEFAULT_CONFIGFILE_KEY,
-                                             None)
         group.add_argument("--logcfgfile",
                            mustbeprinted=False,
                            metavar='logcfgfile',
-                           default=default_logcfgfile,
+                           default=None,
                            help="Logging configuration file. "
                            " Use '--logoutput-default-config' to customize one to your "
                            "own needs. Value: %(default)s.")
@@ -595,7 +591,16 @@ def _configure_log(parser):
         sys.exit(0)
 
     if known_args.logcfgfile is None:
-        infile = parser.get_default('logcfgfile')
+
+        # The Environment and command line does not define a specific file
+        # Use the one from the configuration
+        default_logcfgfile = getdefaultvalue(parser,
+                                             ['Defaults'],
+                                             BXILOG_DEFAULT_CONFIGFILE_KEY,
+                                             None)
+        parser.set_defaults(logcfgfile=default_logcfgfile)
+
+        infile = default_logcfgfile
         if infile is None:
             # Default case: no logging configuration given and no file found by default
             infile = baseconf
@@ -616,7 +621,8 @@ def _configure_log(parser):
 
         config = configobj.ConfigObj(infile=infile, interpolation=False)
     elif not os.path.exists(known_args.logcfgfile):
-        parser.error("File not found: %s" % known_args.logcfgfile)
+        parser.error("For option logcfgfile, provided file not found: %s"
+                     % known_args.logcfgfile)
     else:
         config = configobj.ConfigObj(infile=known_args.logcfgfile, interpolation=False)
         logcfg_msg = "Using logging configuration file '%s' specified by command line" %\
