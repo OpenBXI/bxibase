@@ -32,7 +32,7 @@ N = None
 MIN = None
 MAX = None
 
-LOGGER = bxilog.get_default_logger()
+LOGGER = bxilog.get_logger('bench')
 
 def benched_log(level, msg, stats):
     start = time.clock()
@@ -48,7 +48,7 @@ def benched_log(level, msg, stats):
 
 @bxilog.multiprocessing_target
 def logging_thread(id):
-    bxilog.set_config(StringIO.StringIO(CONFIG.value))
+#    bxilog.set_config(StringIO.StringIO(CONFIG.value))
     stats = {'n': 0, 'total_duration': 0, 'min_duration': 1.0e20, 'max_duration': 0.0}
     while AGAIN.value:
         if stats['n'] == 0:
@@ -81,14 +81,14 @@ if __name__ == "__main__":
 
     # We need to share the config between processes
     # So we make it a string
-    CONFIG.value = """
-handlers = file,
-[file]
-    module = bxi.base.log.file_handler
-    filters = ':lowest'
-    path = %s
-    append = False""" % FILENAME.value
-    bxilog.set_config(StringIO.StringIO(CONFIG.value))
+   #  CONFIG.value = """
+# handlers = file,
+# [file]
+#     module = bxi.base.log.file_handler
+#     filters = ':lowest'
+#     path = %s
+#     append = False""" % FILENAME.value
+#     bxilog.set_config(StringIO.StringIO(CONFIG.value))
 
     threads_nb = int(sys.argv[1])
     timeout = int(sys.argv[2])

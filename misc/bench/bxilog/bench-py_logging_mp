@@ -70,7 +70,7 @@ if __name__ == "__main__":
         exit(1)
 
     filename="/tmp/%s.log" % sys.argv[0]
-    logging.basicConfig(filename=filename)
+    logging.basicConfig(filename=filename, level=logging.DEBUG)
     threads_nb = int(sys.argv[1])
     timeout = int(sys.argv[2])
 
