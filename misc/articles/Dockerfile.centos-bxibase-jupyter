@@ -1,9 +1,11 @@
 FROM openbxi/centos-bxibase:latest
 MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
 
-RUN yum --assumeyes install gcc python-pip python-devel && \
+RUN yum --assumeyes upgrade && \
+    yum --assumeyes install gcc python-pip python-devel && \
+    pip install --upgrade pip && \
     pip install jupyter && \
-    yum --assumeyes erase gcc pip python-devel && \
+    yum --assumeyes erase gcc python-pip python-devel && \
     package-cleanup --leaves --all 
 
 # Create the fantom user
