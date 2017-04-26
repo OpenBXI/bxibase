@@ -1,0 +1,103 @@
+FROM alpine:latest
+MAINTAINER "Pierre Vignéras" <pierre.vigneras@atos.net>
+
+
+RUN apk add --no-cache \
+        gcc \
+        g++ \
+        make \
+        libzmq \
+        zeromq-dev \
+        libexecinfo \
+        libexecinfo-dev \
+        build-base \
+        wget \
+        python3-dev \
+        python3
+
+
+RUN wget --no-check-certificate https://github.com/vigneras/backtrace/releases/download/1.2.1-Bull.7.0/backtrace-1.2.1.tar.gz && \
+    tar xvf backtrace-1.2.1.tar.gz && \
+    cd backtrace-1.2.1 &&  \
+    ./configure && \
+    make && \
+    make install
+
+RUN wget --no-check-certificate  https://github.com/vigneras/shoutloud/releases/download/7.0.0-Bull.1.0/bxibase-7.0.0.tar.gz && \
+    tar xvf bxibase-7.0.0.tar.gz && \
+    cd bxibase-7.0.0 && \
+    ./configure --disable-python --disable-tests --disable-doc --disable-net-snmp-handler && \
+    make CFLAGS="-DHAVE_STDINT_H" && \
+    make install 
+
+RUN pip3 install --upgrade pip && \
+    pip3 install jupyter
+
+RUN  apk add --no-cache git && \
+     wget --no-check-certificate -O - https://raw.githubusercontent.com/https://raw.githubusercontent.com/vigneras/jupyter-c-kernel/master/install.sh | sh  && \
+     sed -i "s/'-std=c11'/'-std=c11', '-lbxibase', '-D_POSIX_C_SOURCE=200809L'/g" /usr/lib/python3.5/site-packages/jupyter_c_kernel/kernel.py && \
+     apk --purge del git 
+
+# Create the fantom user
+RUN adduser -u 1000 -G users -D fantom && \
+    echo $'#!/bin/sh\n\
+/usr/bin/jupyter notebook --ip='*' --port=8080 --NotebookApp.token='' --notebook-dir=/srv --NotebookApp.default_url=notebooks/index.ipynb --NotebookApp.open_browser=False --no-browser'\
+>> /home/fantom/jupyter-wrapper.sh && chmod +x /home/fantom/jupyter-wrapper.sh
+
+RUN ldconfig /
+
+# Trust the wheel groop by default for su & sudo
+#RUN sed -i '/^#auth.*pam_wheel.so.*trust /s/^#//' /etc/pam.d/su && \
+#    echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+WORKDIR /home/fantom
+USER fantom
+#RUN cat /home/fantom/jupyter-wrapper.sh
+CMD /home/fantom/jupyter-wrapper.sh
+EXPOSE 80
+    
+
+ # 5 apk
+ #   6 apk add --no-cache libtool
+ #   8 apk add --no-cache m4
+ #  10 apk add --no-cache autotools
+ #  11 apk add --no-cache autotool
+ #  12 apk search --no-cache autoheader
+ #  13 apk add --no-cache autoheader
+ #  14 apk add --no-cache autoconf
+ #  15 apk add --no-cache libtool asciidoc autoconf automake CUnit-devel curl-devel doxygen expat-devel git
+ #  16 apk add --no-cache libtool asciidoc autoconf automake CUnit curl doxygen expat git
+ #  17 apk add --no-cache libtool asciidoc autoconf automake  curl doxygen expat git
+ #  22 apk add --no-cache gcc
+ #  24 apk add --no-cache g++
+ #  27 apk add --no-cache make
+ #  38 apk add --no-cache zmq
+ #  39 apk add --no-cache zeromq
+ #  41 apk add --no-cache libzmq
+ #  43 apk search --no-cache zmq
+ #  44 apk add --no-cache zeromq-dev
+ #  49 apk search --no-cache execinfo
+ #  50 apk add --no-cache libexecinfo
+ #  52 apk add --no-cache libexecinfo-devel
+ #  53 apk add --no-cache libexecinfo-dev
+ #  55 apk search --no-cache error
+ #  56 apk add --no-cache build-base
+ #  58 apk --help --no-cache
+ #  59 apk search --no-cache error
+ #  60 apk search --no-cache linux-header
+ #  61 apk search --no-cache linux-headers
+ #  62 apk search --no-cache musl-dev
+ #  94 history|grep apk
+ # 100 apk search --no-cache jupyter
+ # 101 apk search --no-cache pip
+ # 102 apk search --no-cache py2-pip
+ # 103 apk install --no-cache py2-pip
+ # 104 apk add --no-cache py2-pip
+ # 109 apk add --no-cache Python-dev
+ # 110 apk search --no-cache Python-dev
+ # 111 apk add --no-cache python-dev
+ # 114 history|grep apk
+
+
+# RUN apk add --no-cache libtool asciidoc autoconf automake CUnit-devel curl-devel doxygen expat-devel git gcc g++ make zeromq zeromq-dev
+
