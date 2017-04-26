@@ -41,7 +41,7 @@ struct tsd_s {
     pid_t tid;                      // Cache the tid on Linux since we assume NPTL
                                     // and therefore a 1:1 thread implementation.
 #endif
-    uint16_t thread_rank;           // user thread rank
+    uintptr_t thread_rank;          // user thread rank
 };
 
 typedef struct tsd_s * tsd_p;

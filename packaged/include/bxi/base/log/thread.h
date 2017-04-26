@@ -58,7 +58,7 @@
  * @see bxilog_get_thread_rank
  * @return BXIERR_OK on success, any other values is an error
  */
-bxierr_p bxilog_set_thread_rank(uint16_t rank);
+bxierr_p bxilog_set_thread_rank(uintptr_t rank);
 
 /**
  * Return the logical rank of the current pthread.
@@ -71,7 +71,7 @@ bxierr_p bxilog_set_thread_rank(uint16_t rank);
  *
  * @return BXIERR_OK on success, any other values is an error
  */
-bxierr_p bxilog_get_thread_rank(uint16_t * rank_p);
+bxierr_p bxilog_get_thread_rank(uintptr_t * rank_p);
 
 
 #endif /* BXILOG_H_ */

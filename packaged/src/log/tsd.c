@@ -152,7 +152,7 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
     // Linux relies on a 1:1 mapping between kernel threads and user threads
     // but this is an NTPL implementation choice. Let's assume it might change
     // in the future.
-    tsd->thread_rank = (uint16_t) pthread_self();
+    tsd->thread_rank = (uint16_t) (uintptr_t) pthread_self();
     int rc = pthread_setspecific(BXILOG__GLOBALS->tsd_key, tsd);
     // Nothing to do otherwise. Using a log will add a recursive call... Bad.
     // And the man page specified that there is

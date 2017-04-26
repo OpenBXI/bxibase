@@ -12,7 +12,6 @@
  */
 
 #include <unistd.h>
-#include <error.h>
 #include <sysexits.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -72,7 +71,7 @@ static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_
 #ifdef __linux__
                                pid_t tid,
 #endif
-                               uint16_t thread_rank,
+                               uintptr_t thread_rank,
                                const char * filename, size_t filename_len,
                                const char * funcname, size_t funcname_len,
                                int line,
@@ -283,7 +282,7 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
 #ifdef __linux__
                         const pid_t tid,
 #endif
-                        const uint16_t thread_rank,
+                        const uintptr_t thread_rank,
                         const char * const filename, const size_t filename_len,
                         const char * const funcname, const size_t funcname_len,
                         const int line,
