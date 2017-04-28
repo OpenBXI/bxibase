@@ -76,7 +76,7 @@ static bxierr_p _param_destroy(bxilog_remote_handler_param_p *data_p);
 static bxierr_p _process_ctrl_msg(bxilog_remote_handler_param_p data, int revent);
 static bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data,
                                      zmq_msg_t id_frame);
-static bxierr_p _sync_pub(bxilog_remote_handler_param_p data);
+//static bxierr_p _sync_pub(bxilog_remote_handler_param_p data);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -257,8 +257,8 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
         err2 = bxizmq_zocket_connect(data->data_zock, data->pub_url);
         BXIERR_CHAIN(err, err2);
 
-        bxierr_p tmp = _sync_pub(data);
-        if (bxierr_isko(tmp)) bxierr_report(&tmp, STDERR_FILENO);
+        // bxierr_p tmp = _sync_pub(data);
+        // if (bxierr_isko(tmp)) bxierr_report(&tmp, STDERR_FILENO);
     }
     data->generic.private_items_nb = 1;
     data->generic.private_items = bximem_calloc(data->generic.private_items_nb * \
@@ -569,42 +569,42 @@ bxierr_p _process_get_cfg_msg(bxilog_remote_handler_param_p data, zmq_msg_t id_f
 
 }
 
-bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
-    bxierr_p err = BXIERR_OK, err2;
-
-    char * url;
-    err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
-    BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) return err;
-
-    void * sync_zock = NULL;
-    int port;
-    err2 = bxizmq_zocket_create_binded(data->ctx, ZMQ_REP, url, &port, &sync_zock);
-    BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) return err;
-
-    char * actual_url = bxizmq_create_url_from(url, port);
-    DBG("Syncing on '%s' '%s' '%s'\n", data->pub_url, url, actual_url);
-    err2 = bxizmq_sync_pub(data->data_zock,
-                           sync_zock,
-                           actual_url,
-                           strlen(actual_url),
-                           data->timeout_s);
-    BXIERR_CHAIN(err, err2);
-    BXIFREE(url);
-    BXIFREE(actual_url);
-    err2 = bxizmq_zocket_destroy(&sync_zock);
-    BXIERR_CHAIN(err, err2);
-
-    if (bxierr_isko(err)) {
-        bxierr_p dummy = bxierr_new(1057322, NULL, NULL, NULL,
-                                    err,
-                                    "Problem with zeromq "
-                                    "PUB synchronization in %s: "
-                                    "messages might be lost", INTERNAL_LOGGER_NAME);
-        bxierr_report(&dummy, STDERR_FILENO);
-    }
-
-    return err;
-
-}
+//bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
+//    bxierr_p err = BXIERR_OK, err2;
+//
+//    char * url;
+//    err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
+//    BXIERR_CHAIN(err, err2);
+//    if (bxierr_isko(err)) return err;
+//
+//    void * sync_zock = NULL;
+//    int port;
+//    err2 = bxizmq_zocket_create_binded(data->ctx, ZMQ_REP, url, &port, &sync_zock);
+//    BXIERR_CHAIN(err, err2);
+//    if (bxierr_isko(err)) return err;
+//
+//    char * actual_url = bxizmq_create_url_from(url, port);
+//    DBG("Syncing on '%s' '%s' '%s'\n", data->pub_url, url, actual_url);
+//    err2 = bxizmq_sync_pub(data->data_zock,
+//                           sync_zock,
+//                           actual_url,
+//                           strlen(actual_url),
+//                           data->timeout_s);
+//    BXIERR_CHAIN(err, err2);
+//    BXIFREE(url);
+//    BXIFREE(actual_url);
+//    err2 = bxizmq_zocket_destroy(&sync_zock);
+//    BXIERR_CHAIN(err, err2);
+//
+//    if (bxierr_isko(err)) {
+//        bxierr_p dummy = bxierr_new(1057322, NULL, NULL, NULL,
+//                                    err,
+//                                    "Problem with zeromq "
+//                                    "PUB synchronization in %s: "
+//                                    "messages might be lost", INTERNAL_LOGGER_NAME);
+//        bxierr_report(&dummy, STDERR_FILENO);
+//    }
+//
+//    return err;
+//
+//}
