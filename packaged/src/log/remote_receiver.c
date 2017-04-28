@@ -44,21 +44,22 @@ SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.remote");
  * BXILog remote receiver parameters
  */
 struct bxilog_remote_receiver_s {
-    size_t pub_connected;    //!< Number of publishers connected at a given moment
-    bool bind;               //!< If true, bind instead of connect
-    void * zmq_ctx;          //!< The ZMQ context used
-    void * bc2it_zock;       //!< Control zocket for Business Code to
-                             //!< Internal Thread communication
-    void * it2bc_zock;       //!< Control zocket for IT to BC communication
-    void * cfg_zock;         //!< The socket that receive configuration request
-                             //!< NULL if bind is true.
-    void * ctrl_zock;        //!< The control zocket
-    void * data_zock;        //!< The socket that actually receive logs
-    size_t urls_nb;          //!< Number of urls to connect/bind to
-    const char ** urls;      //!< The urls to connect/bind to
-    const char ** cfg_urls;  //!< Config urls used (if bind is true)
-    const char ** ctrl_urls; //!< Control urls used
-    const char ** data_urls; //!< Data urls used
+    size_t pub_connected;      //!< Number of publishers connected at a given moment
+    bool bind;                 //!< If true, bind instead of connect
+    void * zmq_ctx;            //!< The ZMQ context used
+    void * bc2it_zock;         //!< Control zocket for Business Code to
+                               //!< Internal Thread communication
+    void * it2bc_zock;         //!< Control zocket for IT to BC communication
+    void * cfg_zock;           //!< The socket that receive configuration request
+                               //!< NULL if bind is true.
+    void * ctrl_zock;          //!< The control zocket
+    void * data_zock;          //!< The socket that actually receive logs
+    size_t urls_nb;            //!< Number of urls to connect/bind to
+    const char ** urls;        //!< The urls to connect/bind to
+    const char ** cfg_urls;    //!< Config urls used (if bind is true)
+    const char ** ctrl_urls;   //!< Control urls used
+    const char ** data_urls;   //!< Data urls used
+    const char *  hostname;    //!< hostname of the remote handler
 };
 
 
@@ -100,7 +101,7 @@ static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header
 //*********************************************************************************
 
 bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t urls_nb,
-                                                    bool bind) {
+                                                    bool bind, char * hostname) {
 
     if (bind && urls_nb > 1) {
         bxierr_p err = bxierr_gen("Binding on multiple urls is not supported yet!");
@@ -109,6 +110,11 @@ bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t u
     }
 
     bxilog_remote_receiver_p result = bximem_calloc(sizeof(*result));
+
+    if (NULL != hostname) {
+        result->hostname = strdup(hostname);
+    }
+
     result->urls_nb = urls_nb;
     result->urls = bximem_calloc(urls_nb * sizeof(*result->urls));
     for (size_t i = 0; i < urls_nb; i++) {
@@ -139,6 +145,7 @@ void bxilog_remote_receiver_destroy(bxilog_remote_receiver_p *self_p) {
 
     }
     BXIFREE(self->urls);
+    BXIFREE(self->hostname);
     if (self->bind) BXIFREE(self->cfg_urls);
     BXIFREE(self->ctrl_urls);
     BXIFREE(self->data_urls);
@@ -767,6 +774,17 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     // First frame: id
     err2 = bxizmq_msg_snd(&id, self->cfg_zock, ZMQ_SNDMORE, 0, 0);
     BXIERR_CHAIN(err, err2);
+    size_t hostnames_nb = 0;
+    if (NULL != self->hostname) {
+        hostnames_nb++;
+    }
+    err2 = bxizmq_data_snd(&hostnames_nb, sizeof(hostnames_nb), self->cfg_zock,
+                            ZMQ_SNDMORE, 0, 0);
+    BXIERR_CHAIN(err, err2);
+    if (1 == hostnames_nb) {
+        err2 = bxizmq_str_snd(self->hostname, self->cfg_zock, ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
+    }
 
     // Next frame: number of urls
     err2 = bxizmq_data_snd_zc(&self->urls_nb, sizeof(self->urls_nb), self->cfg_zock,
