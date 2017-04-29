@@ -589,7 +589,8 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
     char * url;
-    if (0 == strncmp("tcp", url, ARRAYLEN("tcp") - 1)) {
+    if ((0 == strncmp("tcp", data->pub_url, ARRAYLEN("tcp") - 1))
+        && (NULL != data->hostname)) {
         url = bxistr_new("tcp://%s:*", data->hostname);
     } else {
         err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
