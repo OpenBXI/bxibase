@@ -946,6 +946,11 @@ bxierr_p bxizmq_sub_sync_manage(void * zmq_ctx,
     char * sync_url = NULL;
     err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
     BXIERR_CHAIN(err, err2);
+    if (NULL == sync_url) {
+        err2 = bxierr_gen("Do not receive the sync url");
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
     DBG("Received %s through %p\n", sync_url, sub_zocket);
 
     void * sync_zocket = NULL;

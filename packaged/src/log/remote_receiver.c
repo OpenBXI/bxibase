@@ -575,7 +575,7 @@ bxierr_p _dispatch_log_record(tsd_p tsd, bxilog_record_p record, size_t data_len
            "Dispatching the log to all %zu handlers",
            BXILOG__GLOBALS->internal_handlers_nb);
 
-    for (size_t i = 0; i< BXILOG__GLOBALS->internal_handlers_nb; i++) {
+    for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
       // Send the frame
       // normal version if record comes from the stack 'buf'
       err2 = bxizmq_data_snd(record, data_len,
