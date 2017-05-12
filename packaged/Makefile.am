@@ -61,6 +61,8 @@ AM_LDFLAGS=\
 
 dist_bin_SCRIPTS=\
 				 bin/bxilog-producer\
+				 bin/bxilog-check-order\
+				 bin/bxiconfig\
 				 bin/bxilog-parser\
 				 bin/bxilog-console
 
