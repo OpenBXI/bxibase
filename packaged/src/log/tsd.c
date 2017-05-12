@@ -84,6 +84,13 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
         *result = tsd;
         return BXIERR_OK;
     }
+
+    if (0 != BXILOG__GLOBALS->config->handlers_nb &&
+        NULL == BXILOG__GLOBALS->zmq_ctx) {
+        //In this case we will try to create a socket with a null context
+        *result = NULL;
+        return bxierr_gen("No zmq context available for socket creation");
+    }
     errno = 0;
     tsd = bximem_calloc(sizeof(*tsd));
     tsd->min_log_size = SIZE_MAX;
