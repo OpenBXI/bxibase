@@ -957,6 +957,12 @@ bxierr_p bxizmq_sub_sync_manage(void * zmq_ctx,
     err2 = bxizmq_zocket_create_connected(zmq_ctx, ZMQ_REQ, sync_url, &sync_zocket);
     BXIERR_CHAIN(err, err2);
 
+    if (NULL == sync_zocket) {
+        err2 = bxierr_gen("Can't connect on url %s", sync_url);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
     DBG("Sending %s through %p\n", sync_url, sync_zocket);
     err2 = bxizmq_str_snd(sync_url, sync_zocket, ZMQ_DONTWAIT, 0, 0);
     BXIERR_CHAIN(err, err2);
