@@ -245,10 +245,27 @@ bxierr_p _bind_ctrl_zocket(bxilog_handler_p handler,
                                 &data->ctrl_zocket);
     BXIERR_CHAIN(err, err2);
 
+    //Ugly Patch but if the hwm on reception is not zero
+    //Some logs are duplicated and others lost
+    //try with this pacthed test if you don't beleive me:
+    //diff --git a/tests/test_logger.c b/tests/test_logger.c
+    //index 64a21c7..1617c9f 100644
+    //--- a/tests/test_logger.c
+    //+++ b/tests/test_logger.c
+    //@@ -724,7 +724,7 @@ void test_logger_fork(void) {
+    // void * logging_thread(void * data) {
+    //     bxilog_logger_p logger = (bxilog_logger_p) data;
+    //
+    //-    size_t loop_nb = 5;
+    //+    size_t loop_nb = 500;
+    //     size_t log_nb = 0;
+    //     for (size_t i = 0; i < loop_nb; i++) {
+    //         PANIC(logger, "One log line at PANIC level");
+    int hwm = 0;
     err2 = bxizmq_zocket_setopt(data->ctrl_zocket,
                                 ZMQ_RCVHWM,
-                                &param->ctrl_hwm,
-                                sizeof(param->ctrl_hwm));
+                                &hwm,
+                                sizeof(hwm));
     BXIERR_CHAIN(err, err2);
 
     int affected_port;
@@ -273,10 +290,14 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
                                 &data->data_zocket);
     BXIERR_CHAIN(err, err2);
 
+    //Ugly Patch but if the hwm on reception is not zero
+    //Some logs are duplicated and others lost
+    //See above
+    int hwm = 0;
     err2 = bxizmq_zocket_setopt(data->data_zocket,
                                 ZMQ_RCVHWM,
-                                &param->data_hwm,
-                                sizeof(param->data_hwm));
+                                &hwm,
+                                sizeof(hwm));
     BXIERR_CHAIN(err, err2);
 
     int affected_port;
