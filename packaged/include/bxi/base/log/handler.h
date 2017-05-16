@@ -74,6 +74,7 @@ typedef struct {
 // TODO: reorganize with most-often used data first
 // see cachegrind results.
     bxilog_level_e level;               //!< log level
+    uint16_t       ref_nb;             //!< number of references
 #ifndef BXICFFI
     struct timespec detail_time;        //!< log timestamp
 #else

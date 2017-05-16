@@ -77,6 +77,7 @@ static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_
                                const char * funcname, size_t funcname_len,
                                int line,
                                const char * rawstr, size_t rawstr_len);
+static void _record_destroy(void * const data, void * const hint);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
 //*********************************************************************************
@@ -304,6 +305,7 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
     bxiassert(NULL != record);
     // Fill the buffer
     record->level = level;
+    record->ref_nb = 0;
 
     err2 = bxitime_get(CLOCK_REALTIME, &record->detail_time);
     BXIERR_CHAIN(err, err2);
@@ -340,15 +342,16 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
     for (size_t i = 0; i< BXILOG__GLOBALS->internal_handlers_nb; i++) {
         // Send the frame
         // normal version if record comes from the stack 'buf'
-        err2 = bxizmq_data_snd(record, data_len,
-                               log_channel[i], ZMQ_DONTWAIT,
-                               RETRIES_MAX, RETRY_DELAY);
+        __sync_fetch_and_add(&record->ref_nb, 1);
+//        err2 = bxizmq_data_snd(record, data_len,
+//                               log_channel[i], ZMQ_DONTWAIT,
+//                               RETRIES_MAX, RETRY_DELAY);
 
         // Zero-copy version (if record has been mallocated).
-//        err2 = bxizmq_data_snd_zc(record, data_len,
-//                                 log_channel[i], ZMQ_DONTWAIT,
-//                                 RETRIES_MAX, RETRY_DELAY,
-//                                 bxizmq_data_free, NULL);
+        err2 = bxizmq_data_snd_zc(record, data_len,
+                                 log_channel[i], ZMQ_DONTWAIT,
+                                 RETRIES_MAX, RETRY_DELAY,
+                                 _record_destroy, NULL);
 
         if (err2->code == BXIZMQ_RETRIES_MAX_ERR) {
             bxierr_destroy(&err2);
@@ -356,6 +359,18 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
             BXIERR_CHAIN(err, err2);
         }
     }
-    BXIFREE(record);
+    //BXIFREE(record);
     return err;
+}
+
+void _record_destroy(void * const data, void * const hint) {
+    UNUSED(hint);
+    bxilog_record_p record = (bxilog_record_p) data;
+    if (NULL != record) {
+        uint32_t nb_ref = __sync_fetch_and_sub(&record->ref_nb, 1);
+        if (nb_ref == 0) {
+            // Free the memory inside the KVMsg
+            BXIFREE(record);
+        }
+    }
 }
