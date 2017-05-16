@@ -579,13 +579,13 @@ bxierr_p _dispatch_log_record(tsd_p tsd, bxilog_record_p record, size_t data_len
       // Send the frame
       // normal version if record comes from the stack 'buf'
       err2 = bxizmq_data_snd(record, data_len,
-                             tsd->data_channel, ZMQ_DONTWAIT,
+                             tsd->data_channel[i], ZMQ_DONTWAIT,
                              BXILOG_RECEIVER_RETRIES_MAX,
                              BXILOG_RECEIVER_RETRY_DELAY);
 
       // Zero-copy version (if record has been mallocated).
       //            err2 = bxizmq_data_snd_zc(record, data_len,
-      //                                      tsd->data_channel, ZMQ_DONTWAIT,
+      //                                      tsd->data_channel[i], ZMQ_DONTWAIT,
       //                                      RETRIES_MAX, RETRY_DELAY,
       //                                      bxizmq_data_free, NULL);
       BXIERR_CHAIN(err, err2);
