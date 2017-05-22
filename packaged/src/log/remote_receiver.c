@@ -758,7 +758,9 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     char * msg = NULL;
     err2 = bxizmq_str_rcv(self->cfg_zock, 0, true, &msg);
     BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) {
+        return err;
+    }
 
     if (0 != strncmp(msg, BXILOG_REMOTE_HANDLER_URLS,
                      ARRAYLEN(BXILOG_REMOTE_HANDLER_URLS) - 1)) {
@@ -782,6 +784,7 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
                             ZMQ_SNDMORE, 0, 0);
     BXIERR_CHAIN(err, err2);
     if (1 == hostnames_nb) {
+        TRACE(LOGGER, "Sending back hostname %s", self->hostname);
         err2 = bxizmq_str_snd(self->hostname, self->cfg_zock, ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, err2);
     }
@@ -792,6 +795,7 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
 
     // Then all ctrl urls
     for (size_t i = 0; i < self->urls_nb; i++) {
+        TRACE(LOGGER, "Sending back url %s", self->ctrl_urls[i]);
         err2 = bxizmq_str_snd(self->ctrl_urls[i], self->cfg_zock, ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, err2);
     }

@@ -132,6 +132,7 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
                        "Can't create a zmq socket of type %d",
                        type);
         BXIERR_CHAIN(err, err2);
+        return err;
     } else {
         DBG("Zocket %p created\n", zocket);
     }
