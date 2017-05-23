@@ -454,6 +454,10 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
                                0, true, NULL);
         BXIERR_CHAIN(err, err2);
 
+        struct timespec last_message;
+        err2 = bxitime_get(CLOCK_MONOTONIC, &last_message);
+        BXIERR_CHAIN(err, err2);
+
         // Fetch all remaining logs before exiting
         while (true) {
             char * header;
@@ -462,13 +466,19 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
 
             // When ZMQ_DONTWAIT, if header == NULL it means we have nothing to receive
             if (NULL == header) {
-                if (wait_remote_exit && 0 < self->pub_connected) {
-                    LOWEST(LOGGER,
-                           "%zu publishers still connected and wait remote "
-                           "exit requested", self->pub_connected);
-                    bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
-                    bxierr_destroy(&tmp);
-                    continue;
+                if (wait_remote_exit) {
+                    double duration = 0;
+                    err2 = bxitime_duration(CLOCK_MONOTONIC, last_message,
+                                            &duration);
+                    BXIERR_CHAIN(err, err2);
+                    if (0 < self->pub_connected || duration > 5.0) {
+                        LOWEST(LOGGER,
+                               "%zu publishers still connected and wait remote "
+                               "exit requested", self->pub_connected);
+                        bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
+                        bxierr_destroy(&tmp);
+                        continue;
+                    }
                 }
                 TRACE(LOGGER, "No remaining stuff to process, ready to exit");
                 break;
@@ -479,6 +489,8 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
             BXIERR_CHAIN(err, err2);
             BXIFREE(header);
             if (bxierr_isko(err)) break;
+            err2 = bxitime_get(CLOCK_MONOTONIC, &last_message);
+            BXIERR_CHAIN(err, err2);
         }
 
         FINE(LOGGER, "Sending back the exit confirmation message");
