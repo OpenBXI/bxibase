@@ -76,7 +76,8 @@ static bxierr_p _recv_loop(bxilog_remote_receiver_p self);
 static bxierr_p _recv_async(bxilog_remote_receiver_p self);
 //static void _sync_sub(bxilog_remote_receiver_p self);
 static bxierr_p _process_cfg_request(bxilog_remote_receiver_p self);
-static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd);
+static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header,
+                                     tsd_p tsd, bool exiting);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -421,7 +422,7 @@ bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
             err2 = bxizmq_str_rcv(poller[2].socket, 0, false, &header);
             BXIERR_CHAIN(err, err2);
 
-            err2 = _process_data_header(self, header, tsd);
+            err2 = _process_data_header(self, header, tsd, false);
             BXIERR_CHAIN(err, err2);
             BXIFREE(header);
             if (bxierr_isko(err)) break;
@@ -474,7 +475,7 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
             }
 
             TRACE(LOGGER, "Header '%s' remains to be processed while exiting", header);
-            err2 = _process_data_header(self, header, tsd);
+            err2 = _process_data_header(self, header, tsd, true);
             BXIERR_CHAIN(err, err2);
             BXIFREE(header);
             if (bxierr_isko(err)) break;
@@ -492,7 +493,8 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
 }
 
 
-bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd) {
+bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd,
+                              bool exiting) {
     BXIASSERT(LOGGER, NULL != self);
     BXIASSERT(LOGGER, NULL != header);
 
@@ -500,6 +502,13 @@ bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p
                      ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
         // Synchronization required
         TRACE(LOGGER, "Received sync message");
+        if (exiting) {
+            char * sync_url = NULL;
+            bxierr_p err = bxizmq_str_rcv(self->data_zock,
+                                          ZMQ_DONTWAIT, false, &sync_url);
+            BXIFREE(sync_url);
+            return err;
+        }
         bxierr_p err = bxizmq_sub_sync_manage(self->zmq_ctx, self->data_zock);
         BXILOG_REPORT(LOGGER, BXILOG_WARNING, err,
                       "Problem during SUB synchronization - continuing (best effort)");
