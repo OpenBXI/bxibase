@@ -81,7 +81,7 @@ BuildRequires: backtrace-devel
 
 # External
 Requires: zeromq
-Requires: python-cffi >= 0.8.6
+Requires: python-cffi >= 1.6.0
 Requires: python-configobj
 
 BuildRequires: zeromq-devel
