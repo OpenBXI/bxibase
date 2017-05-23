@@ -499,6 +499,7 @@ bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p
     if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_HEADER, header,
                      ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
         // Synchronization required
+        TRACE(LOGGER, "Received sync message");
         bxierr_p err = bxizmq_sub_sync_manage(self->zmq_ctx, self->data_zock);
         BXILOG_REPORT(LOGGER, BXILOG_WARNING, err,
                       "Problem during SUB synchronization - continuing (best effort)");
@@ -784,7 +785,7 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
                             ZMQ_SNDMORE, 0, 0);
     BXIERR_CHAIN(err, err2);
     if (1 == hostnames_nb) {
-        TRACE(LOGGER, "Sending back hostname %s", self->hostname);
+        DEBUG(LOGGER, "Sending back hostname %s", self->hostname);
         err2 = bxizmq_str_snd(self->hostname, self->cfg_zock, ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, err2);
     }
@@ -795,7 +796,7 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
 
     // Then all ctrl urls
     for (size_t i = 0; i < self->urls_nb; i++) {
-        TRACE(LOGGER, "Sending back url %s", self->ctrl_urls[i]);
+        DEBUG(LOGGER, "Sending back url %s", self->ctrl_urls[i]);
         err2 = bxizmq_str_snd(self->ctrl_urls[i], self->cfg_zock, ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, err2);
     }
