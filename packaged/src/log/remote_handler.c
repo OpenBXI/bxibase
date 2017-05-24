@@ -624,6 +624,7 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
                                     "PUB synchronization in %s: "
                                     "messages might be lost", INTERNAL_LOGGER_NAME);
         bxierr_report(&dummy, STDERR_FILENO);
+        err = BXIERR_OK;
     }
 
     return err;
