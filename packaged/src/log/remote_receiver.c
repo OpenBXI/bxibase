@@ -471,7 +471,7 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
                     err2 = bxitime_duration(CLOCK_MONOTONIC, last_message,
                                             &duration);
                     BXIERR_CHAIN(err, err2);
-                    if (0 < self->pub_connected || duration > 5.0) {
+                    if (0 < self->pub_connected && duration < 5.0) {
                         LOWEST(LOGGER,
                                "%zu publishers still connected and wait remote "
                                "exit requested", self->pub_connected);
