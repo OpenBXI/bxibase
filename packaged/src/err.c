@@ -484,7 +484,8 @@ void bxierr_list_add_to_report(bxierr_p err, bxierr_report_p report, size_t dept
         if (NULL == ierr) continue;
         char * s = bxistr_new("Error n°%zu", current);
         bxierr_report_add(report, s, strlen(s) + 1, "", 1);
-        bxierr_report_add_from_limit(ierr, report, depth);
+        // bxierr_report_add_from_limit(ierr, report, depth);
+        ierr->add_to_report(ierr, report, depth);
         current++;
     }
 }
