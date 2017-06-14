@@ -249,7 +249,7 @@ bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self,
     if (bxierr_isko(err)) return err;
 
     long int timeout = BXILOG_RECEIVER_SYNC_TIMEOUT * 10;
-    TRACE(LOGGER, "Polling the reply for %zu ms", timeout);
+    TRACE(LOGGER, "Polling the reply for %lu ms", timeout);
     zmq_pollitem_t poller[] = {{self->bc2it_zock, 0, ZMQ_POLLIN, 0}};
     int rc =  zmq_poll(poller, 1, timeout);
 
