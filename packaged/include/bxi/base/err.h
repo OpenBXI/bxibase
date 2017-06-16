@@ -289,7 +289,7 @@
 #define bxiassert(expr)                                             \
         ((expr)                                                     \
           ? (void) (0)                                              \
-          : bxierr_assert_fail(__STRING(expr),                      \
+         : bxierr_assert_fail(#expr,                                \
                                __FILE__, __LINE__,                  \
                                __func__))
 

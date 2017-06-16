@@ -1,4 +1,4 @@
-all: centos-bxibase-jupyter centos-bxibase-jupyter-c
+all: centos-bxibase-jupyter centos-bxibase-jupyter-c alpine-bxibase-jupyter
 
 MKRPMS_DIR := $(shell cat ~/.config/mkrpms.conf|grep RPMS_DIR|cut -d '=' -f 2)
 TARGET_DOCKER_DIR = /tmp/bxibase-jupyter.docker
@@ -37,3 +37,15 @@ centos-bxibase-jupyter-c:
 		     --build-arg FTP_PROXY=${ftp_proxy}\
 		     --build-arg NO_PROXY=${no_proxy}\
 		    ${TARGET_DOCKER_DIR}
+
+alpine-bxibase-jupyter: 
+	echo "Building alpine-bxibase-jupyter"
+
+	docker build --tag openbxi/alpine-bxibase-jupyter \
+		     --rm=true \
+		     --file Dockerfile.alpine-bxibase-jupyter \
+		     --build-arg HTTP_PROXY=$(http_proxy)\
+		     --build-arg HTTPS_PROXY=${https_proxy}\
+		     --build-arg FTP_PROXY=${ftp_proxy}\
+		     --build-arg NO_PROXY=${no_proxy}\
+		    .

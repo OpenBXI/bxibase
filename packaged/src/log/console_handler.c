@@ -55,7 +55,7 @@ typedef struct bxilog_console_handler_param_s_f {
     bxilog_handler_param_s generic;
 
     pid_t pid, tid;
-    uint16_t thread_rank;
+    uintptr_t thread_rank;
 
     bxilog_level_e stderr_level;
     bxierr_set_p errset;
@@ -296,7 +296,7 @@ bxierr_p _init(bxilog_console_handler_param_p data) {
      // TODO: find something better for the rank of the IHT
      // Maybe, define already the related string instead of
      // a rank number?
-     data->thread_rank = (uint16_t) pthread_self();
+     data->thread_rank = (uintptr_t) pthread_self();
 
     if (data->stderr_level > BXILOG_LOWEST) {
         err2 = bxierr_gen("Bad stderr level value '%d', must be between [%d, %d]",

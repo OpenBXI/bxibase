@@ -12,7 +12,6 @@
  */
 
 #include <unistd.h>
-#include <error.h>
 #include <sysexits.h>
 #include <stdlib.h>
 #include <stdarg.h>

@@ -40,6 +40,8 @@
 // ********************************** Types ****************************************
 // *********************************************************************************
 
+typedef int (*_compar_fn_t) (const void *, const void *);
+
 // *********************************************************************************
 // **************************** Static function declaration ************************
 // *********************************************************************************
@@ -1217,7 +1219,7 @@ bxierr_p bxizmq_sync_sub_many(void * const zmq_ctx,
 #else
     while (NULL != already_pinged_root) {
         char * header = *(char **) already_pinged_root;
-        tdelete(header, &already_pinged_root, (__compar_fn_t) strcmp);
+        tdelete(header, &already_pinged_root, (_compar_fn_t) strcmp);
         BXIFREE(header);
     }
 #endif
@@ -1246,9 +1248,9 @@ bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
         bxierr_p tmp = bxitime_get(CLOCK_MONOTONIC, &time);
         if (bxierr_isko(tmp)) {
             bxierr_report(&tmp, STDERR_FILENO);
-            *result = bxistr_new("%s-%x", url, (unsigned int) thread);
+            *result = bxistr_new("%s-%p", url, (void*) thread);
         } else {
-            *result = bxistr_new("%s-%x.%x", url, (unsigned int) thread,
+            *result = bxistr_new("%s-%p.%x", url, (void*) thread,
                                  (unsigned int) (time.tv_sec * 1000000000 + time.tv_nsec));
         }
         return BXIERR_OK;
@@ -1473,9 +1475,7 @@ bxierr_p _process_sub_ping_msg(void* sub_zocket, void * sync_zocket,
     bxierr_p err = BXIERR_OK, err2;
 
     // Search if we have already pinged this publisher
-    char ** found = tsearch(header,
-                            already_pinged_root,
-                            (__compar_fn_t) strcmp);
+    char ** found = tsearch(header, already_pinged_root, (_compar_fn_t) strcmp);
     bxiassert(NULL != found);
 
     if (*found != header) { // Already seen

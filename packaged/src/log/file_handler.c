@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -91,7 +92,7 @@ typedef struct bxilog_file_handler_param_s_f {
 #ifdef __linux__
     pid_t tid;
 #endif
-    uint16_t thread_rank;
+    uintptr_t thread_rank;
     bxierr_set_p errset;
     size_t err_max;
     bool dirty;
@@ -147,7 +148,7 @@ static size_t _mkmsg(const size_t n, char buf[n],
 #ifdef __linux__
                      const pid_t tid,
 #endif
-                     const uint16_t thread_rank,
+                     const uintptr_t thread_rank,
                      const char * const progname,
                      const char * const filename,
                      const int line_nb,
@@ -178,7 +179,7 @@ const char BXILOG_FILE_HANDLER_LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W',
 // WARNING: If you change this format, change also different #define above
 // along with FIXED_LOG_SIZE
 #ifdef __linux__
-static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*u:%s|%s:%d@%s|%s|";
+static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*" PRIxPTR ":%s|%s:%d@%s|%s|";
 #else
 static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u:%s|%s:%d@%s|%s|";
 #endif
@@ -242,7 +243,7 @@ bxierr_p _init(bxilog_file_handler_param_p data) {
     // TODO: find something better for the rank of the IHT
     // Maybe, define already the related string instead of
     // a rank number?
-    data->thread_rank = (uint16_t) pthread_self();
+    data->thread_rank = (uintptr_t) pthread_self();
     data->errset = bxierr_set_new();
     data->err_max = 10;
     data->bytes_lost = 0;
@@ -518,7 +519,7 @@ size_t _mkmsg(const size_t n, char buf[n],
 #ifdef __linux__
                const pid_t tid,
 #endif
-               const uint16_t thread_rank,
+               const uintptr_t thread_rank,
                const char * const progname,
                const char * const filename,
                const int line_nb,
