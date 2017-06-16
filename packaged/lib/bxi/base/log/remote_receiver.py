@@ -20,8 +20,11 @@ __BXIBASE_CAPI__ = bxibase.get_capi()
 
 
 class RemoteReceiver(object):
+    """
+    Receive log messages from a remote handler.
+    """
 
-    def __init__(self, urls, bind):
+    def __init__(self, urls, bind, hostname=None):
         """
         Create a new instance connected or binded to given urls.
 
@@ -31,6 +34,7 @@ class RemoteReceiver(object):
         @param[in] urls the urls to bind/connect to
         @param[in] pub_nb the number of publishers to synchronize with
         @param[in] bind if true, bind instead of connecting
+        @param[in] hostname or ip of the remote node required when binding with tcp
 
         """
         tmpref = []
@@ -38,8 +42,12 @@ class RemoteReceiver(object):
             tmpref.append(__FFI__.new('char[]', str(url)))
         c_urls = __FFI__.new('char *[]', tmpref)
         self.urls = urls
+        if hostname is None:
+            chostname = __FFI__.NULL
+        else:
+            chostname = hostname
         self.c_receiver = __BXIBASE_CAPI__.bxilog_remote_receiver_new(c_urls, len(urls),
-                                                                      bind)
+                                                                      bind, chostname)
 
     def start(self):
         """

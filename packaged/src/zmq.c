@@ -134,6 +134,7 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
                        "Can't create a zmq socket of type %d",
                        type);
         BXIERR_CHAIN(err, err2);
+        return err;
     } else {
         DBG("Zocket %p created\n", zocket);
     }
@@ -789,7 +790,7 @@ bxierr_p bxizmq_sync_pub(void * pub_zocket,
 
     double delay = 0.0;
     double send_delay = timeout_s;
-    double nb_msg = 1000;
+    double nb_msg = 100;
     do {
         err2 = bxitime_duration(CLOCK_MONOTONIC, last_send, &send_delay);
         BXIERR_CHAIN(err, err2);
@@ -948,14 +949,25 @@ bxierr_p bxizmq_sub_sync_manage(void * zmq_ctx,
     char * sync_url = NULL;
     err2 = bxizmq_str_rcv(sub_zocket, ZMQ_DONTWAIT, false, &sync_url);
     BXIERR_CHAIN(err, err2);
+    if (NULL == sync_url) {
+        err2 = bxierr_gen("Do not receive the sync url");
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
     DBG("Received %s through %p\n", sync_url, sub_zocket);
 
     void * sync_zocket = NULL;
     err2 = bxizmq_zocket_create_connected(zmq_ctx, ZMQ_REQ, sync_url, &sync_zocket);
     BXIERR_CHAIN(err, err2);
 
+    if (NULL == sync_zocket) {
+        err2 = bxierr_gen("Can't connect on url %s", sync_url);
+        BXIERR_CHAIN(err, err2);
+        return err;
+    }
+
     DBG("Sending %s through %p\n", sync_url, sync_zocket);
-    err2 = bxizmq_str_snd(sync_url, sync_zocket, ZMQ_DONTWAIT, 0, 0);
+    err2 = bxizmq_str_snd(sync_url, sync_zocket, 0, 0, 0);
     BXIERR_CHAIN(err, err2);
     BXIFREE(sync_url);
 
@@ -998,7 +1010,7 @@ bxierr_p bxizmq_sync_pub_many(void * const zmq_ctx,
     const char * const key = bxistr_new("%s|%s", BXIZMQ_PUBSUB_SYNC_PING, url);
 
     double time_spent = 0.0;
-    const long nb_msg = 1000; // We will send at most that amount of messages
+    const long nb_msg = 100; // We will send at most that amount of messages
     long poll_timeout = ((long)(timeout_s * 1000)) / nb_msg;
 
     zmq_pollitem_t poll_set[] = {

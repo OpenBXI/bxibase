@@ -45,11 +45,15 @@ typedef struct bxilog_remote_receiver_s * bxilog_remote_receiver_p;
  * @param[in] urls a set of urls to bind/connect to
  * @param[in] urls_nb the number of urls to bind/connect to
  * @param[in] bind whether given urls must be binded or connected to
+ * @param[in] hostname of the remote server
  *
  * @return a new receiver instance
+ * @note when executing on a remote handler on a different node and binding on the
+ * node of the remote handler the hostname is required in other cases
+ * the hostname could be NULL
  */
 bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t urls_nb,
-                                                    bool bind);
+                                                    bool bind, char * hostname);
 
 
 /**

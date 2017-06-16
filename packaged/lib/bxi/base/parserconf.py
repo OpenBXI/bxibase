@@ -95,7 +95,7 @@ class LogLevelsAction(posless.Action):
                                               help=help)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        names = list(logging.get_level_names_iter())
+        names = logging.LEVEL_NAMES
         for i in xrange(len(names)):
             print("%s = %s" % (i, names[i]))
         sys.exit(0)

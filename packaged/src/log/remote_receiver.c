@@ -44,21 +44,22 @@ SET_LOGGER(LOGGER, BXILOG_LIB_PREFIX "bxilog.remote");
  * BXILog remote receiver parameters
  */
 struct bxilog_remote_receiver_s {
-    size_t pub_connected;    //!< Number of publishers connected at a given moment
-    bool bind;               //!< If true, bind instead of connect
-    void * zmq_ctx;          //!< The ZMQ context used
-    void * bc2it_zock;       //!< Control zocket for Business Code to
-                             //!< Internal Thread communication
-    void * it2bc_zock;       //!< Control zocket for IT to BC communication
-    void * cfg_zock;         //!< The socket that receive configuration request
-                             //!< NULL if bind is true.
-    void * ctrl_zock;        //!< The control zocket
-    void * data_zock;        //!< The socket that actually receive logs
-    size_t urls_nb;          //!< Number of urls to connect/bind to
-    const char ** urls;      //!< The urls to connect/bind to
-    const char ** cfg_urls;  //!< Config urls used (if bind is true)
-    const char ** ctrl_urls; //!< Control urls used
-    const char ** data_urls; //!< Data urls used
+    size_t pub_connected;      //!< Number of publishers connected at a given moment
+    bool bind;                 //!< If true, bind instead of connect
+    void * zmq_ctx;            //!< The ZMQ context used
+    void * bc2it_zock;         //!< Control zocket for Business Code to
+                               //!< Internal Thread communication
+    void * it2bc_zock;         //!< Control zocket for IT to BC communication
+    void * cfg_zock;           //!< The socket that receive configuration request
+                               //!< NULL if bind is true.
+    void * ctrl_zock;          //!< The control zocket
+    void * data_zock;          //!< The socket that actually receive logs
+    size_t urls_nb;            //!< Number of urls to connect/bind to
+    const char ** urls;        //!< The urls to connect/bind to
+    const char ** cfg_urls;    //!< Config urls used (if bind is true)
+    const char ** ctrl_urls;   //!< Control urls used
+    const char ** data_urls;   //!< Data urls used
+    const char *  hostname;    //!< hostname of the remote handler
 };
 
 
@@ -75,7 +76,8 @@ static bxierr_p _recv_loop(bxilog_remote_receiver_p self);
 static bxierr_p _recv_async(bxilog_remote_receiver_p self);
 //static void _sync_sub(bxilog_remote_receiver_p self);
 static bxierr_p _process_cfg_request(bxilog_remote_receiver_p self);
-static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd);
+static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header,
+                                     tsd_p tsd, bool exiting);
 
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -100,7 +102,7 @@ static bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header
 //*********************************************************************************
 
 bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t urls_nb,
-                                                    bool bind) {
+                                                    bool bind, char * hostname) {
 
     if (bind && urls_nb > 1) {
         bxierr_p err = bxierr_gen("Binding on multiple urls is not supported yet!");
@@ -109,6 +111,11 @@ bxilog_remote_receiver_p bxilog_remote_receiver_new(const char ** urls, size_t u
     }
 
     bxilog_remote_receiver_p result = bximem_calloc(sizeof(*result));
+
+    if (NULL != hostname) {
+        result->hostname = strdup(hostname);
+    }
+
     result->urls_nb = urls_nb;
     result->urls = bximem_calloc(urls_nb * sizeof(*result->urls));
     for (size_t i = 0; i < urls_nb; i++) {
@@ -139,6 +146,7 @@ void bxilog_remote_receiver_destroy(bxilog_remote_receiver_p *self_p) {
 
     }
     BXIFREE(self->urls);
+    BXIFREE(self->hostname);
     if (self->bind) BXIFREE(self->cfg_urls);
     BXIFREE(self->ctrl_urls);
     BXIFREE(self->data_urls);
@@ -241,7 +249,7 @@ bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self,
     if (bxierr_isko(err)) return err;
 
     long int timeout = BXILOG_RECEIVER_SYNC_TIMEOUT * 10;
-    TRACE(LOGGER, "Polling the reply for %zu ms", timeout);
+    TRACE(LOGGER, "Polling the reply for %lu ms", timeout);
     zmq_pollitem_t poller[] = {{self->bc2it_zock, 0, ZMQ_POLLIN, 0}};
     int rc =  zmq_poll(poller, 1, timeout);
 
@@ -414,7 +422,7 @@ bxierr_p _recv_loop(bxilog_remote_receiver_p self) {
             err2 = bxizmq_str_rcv(poller[2].socket, 0, false, &header);
             BXIERR_CHAIN(err, err2);
 
-            err2 = _process_data_header(self, header, tsd);
+            err2 = _process_data_header(self, header, tsd, false);
             BXIERR_CHAIN(err, err2);
             BXIFREE(header);
             if (bxierr_isko(err)) break;
@@ -446,6 +454,10 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
                                0, true, NULL);
         BXIERR_CHAIN(err, err2);
 
+        struct timespec last_message;
+        err2 = bxitime_get(CLOCK_MONOTONIC, &last_message);
+        BXIERR_CHAIN(err, err2);
+
         // Fetch all remaining logs before exiting
         while (true) {
             char * header;
@@ -454,23 +466,31 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
 
             // When ZMQ_DONTWAIT, if header == NULL it means we have nothing to receive
             if (NULL == header) {
-                if (wait_remote_exit && 0 < self->pub_connected) {
-                    LOWEST(LOGGER,
-                           "%zu publishers still connected and wait remote "
-                           "exit requested", self->pub_connected);
-                    bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
-                    bxierr_destroy(&tmp);
-                    continue;
+                if (wait_remote_exit) {
+                    double duration = 0;
+                    err2 = bxitime_duration(CLOCK_MONOTONIC, last_message,
+                                            &duration);
+                    BXIERR_CHAIN(err, err2);
+                    if (0 < self->pub_connected && duration < 5.0) {
+                        LOWEST(LOGGER,
+                               "%zu publishers still connected and wait remote "
+                               "exit requested", self->pub_connected);
+                        bxierr_p tmp = bxitime_sleep(CLOCK_MONOTONIC, 0, 500000);
+                        bxierr_destroy(&tmp);
+                        continue;
+                    }
                 }
                 TRACE(LOGGER, "No remaining stuff to process, ready to exit");
                 break;
             }
 
             TRACE(LOGGER, "Header '%s' remains to be processed while exiting", header);
-            err2 = _process_data_header(self, header, tsd);
+            err2 = _process_data_header(self, header, tsd, true);
             BXIERR_CHAIN(err, err2);
             BXIFREE(header);
             if (bxierr_isko(err)) break;
+            err2 = bxitime_get(CLOCK_MONOTONIC, &last_message);
+            BXIERR_CHAIN(err, err2);
         }
 
         FINE(LOGGER, "Sending back the exit confirmation message");
@@ -485,13 +505,22 @@ bxierr_p _process_ctrl_msg(bxilog_remote_receiver_p self, tsd_p tsd) {
 }
 
 
-bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd) {
+bxierr_p _process_data_header(bxilog_remote_receiver_p self, char *header, tsd_p tsd,
+                              bool exiting) {
     BXIASSERT(LOGGER, NULL != self);
     BXIASSERT(LOGGER, NULL != header);
 
     if (0 == strncmp(BXIZMQ_PUBSUB_SYNC_HEADER, header,
                      ARRAYLEN(BXIZMQ_PUBSUB_SYNC_HEADER) - 1)) {
         // Synchronization required
+        TRACE(LOGGER, "Received sync message");
+        if (exiting) {
+            char * sync_url = NULL;
+            bxierr_p err = bxizmq_str_rcv(self->data_zock,
+                                          ZMQ_DONTWAIT, false, &sync_url);
+            BXIFREE(sync_url);
+            return err;
+        }
         bxierr_p err = bxizmq_sub_sync_manage(self->zmq_ctx, self->data_zock);
         BXILOG_REPORT(LOGGER, BXILOG_WARNING, err,
                       "Problem during SUB synchronization - continuing (best effort)");
@@ -568,17 +597,17 @@ bxierr_p _dispatch_log_record(tsd_p tsd, bxilog_record_p record, size_t data_len
            "Dispatching the log to all %zu handlers",
            BXILOG__GLOBALS->internal_handlers_nb);
 
-    for (size_t i = 0; i< BXILOG__GLOBALS->internal_handlers_nb; i++) {
+    for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
       // Send the frame
       // normal version if record comes from the stack 'buf'
       err2 = bxizmq_data_snd(record, data_len,
-                             tsd->data_channel, ZMQ_DONTWAIT,
+                             tsd->data_channel[i], ZMQ_DONTWAIT,
                              BXILOG_RECEIVER_RETRIES_MAX,
                              BXILOG_RECEIVER_RETRY_DELAY);
 
       // Zero-copy version (if record has been mallocated).
       //            err2 = bxizmq_data_snd_zc(record, data_len,
-      //                                      tsd->data_channel, ZMQ_DONTWAIT,
+      //                                      tsd->data_channel[i], ZMQ_DONTWAIT,
       //                                      RETRIES_MAX, RETRY_DELAY,
       //                                      bxizmq_data_free, NULL);
       BXIERR_CHAIN(err, err2);
@@ -751,7 +780,9 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     char * msg = NULL;
     err2 = bxizmq_str_rcv(self->cfg_zock, 0, true, &msg);
     BXIERR_CHAIN(err, err2);
-    if (bxierr_isko(err)) return err;
+    if (bxierr_isko(err)) {
+        return err;
+    }
 
     if (0 != strncmp(msg, BXILOG_REMOTE_HANDLER_URLS,
                      ARRAYLEN(BXILOG_REMOTE_HANDLER_URLS) - 1)) {
@@ -767,6 +798,18 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
     // First frame: id
     err2 = bxizmq_msg_snd(&id, self->cfg_zock, ZMQ_SNDMORE, 0, 0);
     BXIERR_CHAIN(err, err2);
+    size_t hostnames_nb = 0;
+    if (NULL != self->hostname) {
+        hostnames_nb++;
+    }
+    err2 = bxizmq_data_snd(&hostnames_nb, sizeof(hostnames_nb), self->cfg_zock,
+                            ZMQ_SNDMORE, 0, 0);
+    BXIERR_CHAIN(err, err2);
+    if (1 == hostnames_nb) {
+        DEBUG(LOGGER, "Sending back hostname %s", self->hostname);
+        err2 = bxizmq_str_snd(self->hostname, self->cfg_zock, ZMQ_SNDMORE, 0, 0);
+        BXIERR_CHAIN(err, err2);
+    }
 
     // Next frame: number of urls
     err2 = bxizmq_data_snd_zc(&self->urls_nb, sizeof(self->urls_nb), self->cfg_zock,
@@ -774,6 +817,7 @@ bxierr_p _process_cfg_request(bxilog_remote_receiver_p self) {
 
     // Then all ctrl urls
     for (size_t i = 0; i < self->urls_nb; i++) {
+        DEBUG(LOGGER, "Sending back url %s", self->ctrl_urls[i]);
         err2 = bxizmq_str_snd(self->ctrl_urls[i], self->cfg_zock, ZMQ_SNDMORE, 0, 0);
         BXIERR_CHAIN(err, err2);
     }

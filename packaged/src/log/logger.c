@@ -67,7 +67,7 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_e level,
-                               void * log_channel,
+                               void ** log_channel,
 #ifdef __linux__
                                pid_t tid,
 #endif
@@ -278,7 +278,7 @@ bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger,
 
 bxierr_p _send2handlers(const bxilog_logger_p logger,
                         const bxilog_level_e level,
-                        void * const log_channel,
+                        void ** const log_channel,
 #ifdef __linux__
                         const pid_t tid,
 #endif
@@ -340,12 +340,12 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
         // Send the frame
         // normal version if record comes from the stack 'buf'
         err2 = bxizmq_data_snd(record, data_len,
-                               log_channel, ZMQ_DONTWAIT,
+                               log_channel[i], ZMQ_DONTWAIT,
                                RETRIES_MAX, RETRY_DELAY);
 
         // Zero-copy version (if record has been mallocated).
 //        err2 = bxizmq_data_snd_zc(record, data_len,
-//                                 log_channel, ZMQ_DONTWAIT,
+//                                 log_channel[i], ZMQ_DONTWAIT,
 //                                 RETRIES_MAX, RETRY_DELAY,
 //                                 bxizmq_data_free, NULL);
 

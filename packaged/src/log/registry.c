@@ -130,9 +130,9 @@ void bxilog_registry_del(bxilog_logger_p logger) {
     for (size_t i = 0; i < REGISTERED_LOGGERS_ARRAY_SIZE; i++) {
         bxilog_logger_p current = REGISTERED_LOGGERS[i];
         if (NULL == current) continue;
-        DBG(stderr, "Logger[%zu]: %s\n", i, current->name);
+        DBG("Logger[%zu]: %s\n", i, current->name);
         if (current == logger) {
-         DBG(stderr, "Unregistering loggers[%zu]: %s\n", i, current->name);
+         DBG("Unregistering loggers[%zu]: %s\n", i, current->name);
             REGISTERED_LOGGERS[i] = NULL;
             found = true;
         }

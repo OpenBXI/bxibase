@@ -43,6 +43,7 @@ typedef struct bxilog_remote_handler_param_s_f {
     bxilog_handler_param_s generic;
     bool bind;
     double timeout_s;
+    char * hostname;
     char * cfg_url;   // Only when bind is false
     char * ctrl_url;
     char * pub_url;
@@ -217,6 +218,20 @@ bxierr_p _init(bxilog_remote_handler_param_p data) {
         BXIERR_CHAIN(err, err2);
         if (bxierr_isko(err)) return err;
 
+        size_t hostnames_nb;
+        size_t * hostnames_nb_p = &hostnames_nb;
+        err2 = bxizmq_data_rcv((void**)&hostnames_nb_p, sizeof(*hostnames_nb_p), data->cfg_zock, 0, false, NULL);
+        BXIERR_CHAIN(err, err2);
+
+        if (1 == hostnames_nb) {
+            char * hostname = NULL;
+            err2 = bxizmq_str_rcv(data->cfg_zock, 0, true, &hostname);
+            BXIERR_CHAIN(err, err2);
+            DBG("Received localhost name: '%s'\n", hostname);
+            if (NULL == hostname) return err;
+            data->hostname = hostname;
+        }
+
         size_t urls_nb;
         size_t * urls_nb_p = &urls_nb;
         err2 = bxizmq_data_rcv((void**)&urls_nb_p, sizeof(*urls_nb_p), data->cfg_zock, 0, false, NULL);
@@ -381,6 +396,7 @@ bxierr_p _param_destroy(bxilog_remote_handler_param_p * data_p) {
     bxilog_handler_clean_param(&data->generic);
 
     BXIFREE(data->ctrl_url);
+    BXIFREE(data->hostname);
 
     bximem_destroy((char**) data_p);
 
@@ -573,8 +589,13 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
     bxierr_p err = BXIERR_OK, err2;
 
     char * url;
-    err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
-    BXIERR_CHAIN(err, err2);
+    if ((0 == strncmp("tcp", data->pub_url, ARRAYLEN("tcp") - 1))
+        && (NULL != data->hostname)) {
+        url = bxistr_new("tcp://%s:*", data->hostname);
+    } else {
+        err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
+        BXIERR_CHAIN(err, err2);
+    }
     if (bxierr_isko(err)) return err;
 
     void * sync_zock = NULL;
@@ -603,6 +624,7 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
                                     "PUB synchronization in %s: "
                                     "messages might be lost", INTERNAL_LOGGER_NAME);
         bxierr_report(&dummy, STDERR_FILENO);
+        err = BXIERR_OK;
     }
 
     return err;

@@ -278,7 +278,7 @@ bxierr_p bxilog_flush(void) {
     if (bxierr_isko(err)) return err;
     void * ctl_channel = tsd->ctrl_channel;
     bxierr_list_p errlist = bxierr_list_new();
-    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+    for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
 
         int ret = pthread_kill(BXILOG__GLOBALS->handlers_threads[i], 0);
         if (ESRCH == ret) continue;
@@ -370,8 +370,8 @@ void bxilog__wipeout() {
 bxierr_p bxilog__init_globals() {
     BXILOG__GLOBALS->pid = getpid();
     pthread_t * threads = bximem_calloc(BXILOG__GLOBALS->config->handlers_nb * sizeof(*threads));
-    BXILOG__GLOBALS->handlers_threads = threads;
     BXILOG__GLOBALS->internal_handlers_nb = 0;
+    BXILOG__GLOBALS->handlers_threads = threads;
 
     bxiassert(NULL == BXILOG__GLOBALS->zmq_ctx);
 
@@ -475,7 +475,7 @@ bxierr_p bxilog__stop_handlers(void) {
     bxierr_p err = BXIERR_OK, err2;
     bxierr_list_p errlist = bxierr_list_new();
 
-    for (size_t i = 0; i < BXILOG__GLOBALS->config->handlers_nb; i++) {
+    for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
         pthread_t handler_thread = BXILOG__GLOBALS->handlers_threads[i];
         int ret = pthread_kill(handler_thread, 0);
 
@@ -615,8 +615,8 @@ bxierr_p _reset_globals() {
     int rc = pthread_key_delete(BXILOG__GLOBALS->tsd_key);
     UNUSED(rc); // Nothing to do on pthread_key_delete() see man page
     BXILOG__GLOBALS->tsd_key_once = PTHREAD_ONCE_INIT;
-    BXIFREE(BXILOG__GLOBALS->handlers_threads);
     BXILOG__GLOBALS->internal_handlers_nb = 0;
+    BXIFREE(BXILOG__GLOBALS->handlers_threads);
 
     return err;
 }

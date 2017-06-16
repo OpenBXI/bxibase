@@ -8,6 +8,7 @@
 
 %define version 7.1.0
 
+
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
 # to get the auto_tag man file
@@ -81,7 +82,7 @@ BuildRequires: backtrace-devel
 
 # External
 Requires: zeromq
-Requires: python-cffi >= 0.8.6
+Requires: python-cffi >= 1.6.0
 Requires: python-configobj
 
 BuildRequires: zeromq-devel
@@ -120,6 +121,7 @@ Test for the BXI base library
 %package tools
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
+Requires: python-zmq >= 14.0.0
 
 %description tools
 Commands to manipulate and interact with bxilogs
