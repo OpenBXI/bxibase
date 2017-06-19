@@ -1251,7 +1251,7 @@ bxierr_p bxizmq_generate_new_url_from(const char * const url, char ** result) {
             *result = bxistr_new("%s-%p", url, (void*) thread);
         } else {
             *result = bxistr_new("%s-%p.%x", url, (void*) thread,
-                                 (unsigned uint16_t) (time.tv_sec * 1000000000 + time.tv_nsec));
+                                 (uint16_t) (time.tv_sec * 1000000000 + time.tv_nsec));
         }
         return BXIERR_OK;
     }
