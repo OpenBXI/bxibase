@@ -593,8 +593,15 @@ bxierr_p _sync_pub(bxilog_remote_handler_param_p data) {
         && (NULL != data->hostname)) {
         url = bxistr_new("tcp://%s:*", data->hostname);
     } else {
-        err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
-        BXIERR_CHAIN(err, err2);
+        if (data->bind) {
+            char * tmp_url = bxistr_new("%s-sync", data->ctrl_url);
+            err2 = bxizmq_generate_new_url_from(tmp_url, &url);
+            BXIFREE(tmp_url);
+            BXIERR_CHAIN(err, err2);
+        } else {
+            err2 = bxizmq_generate_new_url_from(data->pub_url, &url);
+            BXIERR_CHAIN(err, err2);
+        }
     }
     if (bxierr_isko(err)) return err;
 

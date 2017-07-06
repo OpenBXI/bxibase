@@ -91,7 +91,7 @@ typedef struct {
     int tid;                            // fake for CFFI
 #endif
 #endif
-    uint16_t thread_rank;               //!< user thread rank
+    uintptr_t thread_rank;              //!< user thread rank
     int line_nb;                        //!< line nb
     size_t filename_len;                //!< file name length
     size_t funcname_len;                //!< function name length

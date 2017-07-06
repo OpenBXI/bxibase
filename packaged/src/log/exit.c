@@ -12,7 +12,6 @@
  */
 
 
-#include <error.h>
 #include <sysexits.h>
 
 #include "bxi/base/err.h"

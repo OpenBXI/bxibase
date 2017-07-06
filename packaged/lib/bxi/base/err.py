@@ -34,7 +34,7 @@ class BXIError(Exception):
         """
         super(BXIError, self).__init__(msg)
         self.msg = msg
-        self.cause = cause
+        self._cause = cause
         tb = sys.exc_info()
         if tb == (None, None, None):
             self.traceback_str = ""
@@ -44,6 +44,14 @@ class BXIError(Exception):
     def __str__(self):
         return self.msg + ("" if self.cause is None
                            else "\n caused by: " + str(self.cause))
+
+    @property
+    def cause(self):
+        """
+        Get the cause of the error
+        @return python cause
+        """
+        return self._cause
 
 
 class BXICError(BXIError, bxibase.Wrapper):
@@ -62,8 +70,6 @@ class BXICError(BXIError, bxibase.Wrapper):
         super(BXICError, self).__init__(err_msg)
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
-        cause_ = bxierr_p.cause
-        self.cause = BXICError(cause_, gc=False) if cause_ != __FFI__.NULL else None
         if gc:
             self.bxierr_pp = __FFI__.gc(self.bxierr_pp,
                                         __BXIBASE_CAPI__.bxierr_destroy)
@@ -77,6 +83,19 @@ class BXICError(BXIError, bxibase.Wrapper):
         result = "\n".join(lines)
         __BXIBASE_CAPI__.bxierr_report_free(c_report)
         return result
+
+    @property
+    def cause(self):
+        """
+        Generate the cause python object only if needed
+        @return python object of the cause
+        """
+        if self._cause is not None:
+            return self._cause
+
+        cause_ = self.bxierr_pp[0].cause
+        self._cause = BXICError(cause_, gc=False) if cause_ != __FFI__.NULL else None
+        return self._cause
 
     @staticmethod
     def chain(cause, err):

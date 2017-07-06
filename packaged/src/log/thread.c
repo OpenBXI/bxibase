@@ -46,7 +46,7 @@
 //*********************************************************************************
 
 
-bxierr_p bxilog_set_thread_rank(uint16_t rank) {
+bxierr_p bxilog_set_thread_rank(uintptr_t rank) {
     tsd_p tsd;
     bxierr_p err = bxilog__tsd_get(&tsd);
     if (bxierr_isko(err)) return err;
@@ -54,7 +54,7 @@ bxierr_p bxilog_set_thread_rank(uint16_t rank) {
     return BXIERR_OK;
 }
 
-bxierr_p bxilog_get_thread_rank(uint16_t * rank_p) {
+bxierr_p bxilog_get_thread_rank(uintptr_t * rank_p) {
     tsd_p tsd;
     bxierr_p err = bxilog__tsd_get(&tsd);
     if (bxierr_isko(err)) return err;

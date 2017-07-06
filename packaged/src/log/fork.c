@@ -13,7 +13,6 @@
 
 #include <pthread.h>
 #include <errno.h>
-#include <error.h>
 #include <sysexits.h>
 
 #include "bxi/base/str.h"
@@ -65,7 +64,10 @@ void _parent_before_fork(void) {
     // WARNING: If you change the FSM transition,
     // comment you changes in bxilog_state_e above.
     if (INITIALIZING == BXILOG__GLOBALS->state || FINALIZING == BXILOG__GLOBALS->state) {
-        error(EX_SOFTWARE, 0, "Forking while bxilog is in state %d! Aborting", BXILOG__GLOBALS->state);
+        bxierr_p err = bxierr_gen("Forking while bxilog is in state %d! Aborting",
+                                  BXILOG__GLOBALS->state);
+        bxierr_report(&err, STDERR_FILENO);
+        exit(EX_SOFTWARE);
     }
     if(INITIALIZED != BXILOG__GLOBALS->state) return;
     FINE(LOGGER, "Preparing for a fork() (state == %d)", BXILOG__GLOBALS->state);
@@ -86,9 +88,10 @@ void _parent_before_fork(void) {
         bxierr_destroy(&err);
     }
     if (FINALIZING != BXILOG__GLOBALS->state) {
-        error(EX_SOFTWARE, 0,
-              "Forking should lead bxilog to reach state %d (current state is %d)!",
-              FINALIZING, BXILOG__GLOBALS->state);
+        bxierr_p err = bxierr_gen("Forking should lead bxilog to reach state %d (current state is %d)!",
+                                  FINALIZING, BXILOG__GLOBALS->state);
+        bxierr_report(&err, STDERR_FILENO);
+        exit(EX_SOFTWARE);
     }
     BXILOG__GLOBALS->state = FORKED;
 }
@@ -117,9 +120,11 @@ void _parent_after_fork(void) {
     }
 
     if (INITIALIZING != BXILOG__GLOBALS->state) {
-        error(EX_SOFTWARE, 0,
-              "Forking should leads bxilog to reach state %d (current state is %d)!",
-              INITIALIZING, BXILOG__GLOBALS->state);
+         bxierr_p err = bxierr_gen("Forking should leads bxilog to reach state %d "
+                                   "(current state is %d)!",
+                                    INITIALIZING, BXILOG__GLOBALS->state);
+         bxierr_report(&err, STDERR_FILENO);
+         exit(EX_SOFTWARE);
     }
     BXILOG__GLOBALS->state = INITIALIZED;
     // Sending a log required the log library to be initialized.

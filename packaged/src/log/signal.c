@@ -13,7 +13,6 @@
 
 #include <string.h>
 #include <errno.h>
-#include <error.h>
 
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -144,9 +143,10 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
        it might still get invoked recursively by delivery of some other kind
        of signal.  Use a static variable to keep track of that. */
     if (FATAL_ERROR_IN_PROGRESS) {
-        error(signum, 0,
-              "(%s#tid-%u) %s\n. Already handling a signal... Exiting",
-              BXILOG__GLOBALS->config->progname, tid, sigstr);
+        bxierr_p err = bxierr_gen("(%s#tid-%u) %s\n. Already handling a signal... Exiting",
+                                  BXILOG__GLOBALS->config->progname, tid, sigstr);
+        bxierr_report(&err, STDERR_FILENO);
+        exit(signum);
     }
     FATAL_ERROR_IN_PROGRESS = 1;
     char * str;
@@ -191,7 +191,9 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     errno = 0;
     int rc = sigaction(signum, &dft_action, NULL);
     if (-1 == rc) {
-        error(128 + signum, errno, "Calling sigaction(%d, ...) failed", signum);
+        bxierr_p err = bxierr_errno("Calling sigaction(%d, ...) failed", signum);
+        bxierr_report(&err, STDERR_FILENO);
+        exit(128 + signum);
     }
     errno = 0;
     // Unblock all signals
@@ -202,7 +204,9 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     if (-1 == rc) bxilog_rawprint("Calling pthread_sigmask() failed\n", STDERR_FILENO);
     rc = pthread_kill(pthread_self(), signum);
     if (0 != rc) {
-        error(128 + signum, errno, "Calling pthread_kill(self, %d) failed", signum);
+        bxierr_p err = bxierr_errno("Calling pthread_kill(self, %d) failed", signum);
+        bxierr_report(&err, STDERR_FILENO);
+        exit(128 + signum);
     }
     _exit(128 + signum);
 }
