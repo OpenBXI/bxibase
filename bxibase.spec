@@ -85,11 +85,15 @@ Requires: zeromq
 Requires: python-cffi >= 1.6.0
 Requires: python-configobj
 
+BuildRequires: python-cffi >= 1.6.0
 BuildRequires: zeromq-devel
 BuildRequires: gcc
 buildRequires: gcc-c++
 BuildRequires: net-snmp-devel
 BuildRequires: CUnit-devel
+BuildRequires: doxygen
+BuildRequires: doxypypy
+BuildRequires: graphviz
 #BuildRequires: python-cffi >= 0.8.6
 
 
@@ -122,6 +126,7 @@ Test for the BXI base library
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
 Requires: python-zmq >= 14.0.0
+BuildRequires: python-zmq >= 14.0.0
 
 %description tools
 Commands to manipulate and interact with bxilogs
