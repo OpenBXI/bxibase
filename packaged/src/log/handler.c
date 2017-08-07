@@ -17,7 +17,6 @@
 #include <pthread.h>
 #include <sysexits.h>
 #include <string.h>
-#include <error.h>
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"

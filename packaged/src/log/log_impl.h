@@ -15,6 +15,8 @@
 #ifndef BXILOG_LOG_IMPL_H
 #define BXILOG_LOG_IMPL_H
 
+#include <pthread.h>
+
 #include "bxi/base/log.h"
 
 //*********************************************************************************

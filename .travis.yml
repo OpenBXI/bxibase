@@ -13,6 +13,7 @@ before_install:
         - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python-pip libcunit1 libcunit1-dev valgrind
         - pip install cffi configobj coverage
         - ./misc/travis/install-dependencies.sh
+        - pip install  pyzmq
 install:
         - ./bootstrap.sh
 

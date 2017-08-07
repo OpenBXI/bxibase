@@ -74,7 +74,10 @@ bxilog_config_p bxilog_basic_config(const char * const progname,
     if (NULL != filename) {
         bxilog_filters_p file_filters = bxilog_filters_dup(filters);
         for (size_t i = 0; i < filters->nb; i++) {
-            file_filters->list[i]->level += 2;
+            file_filters->list[i]->level += (bxilog_level_e)2;
+            if (BXILOG_LOWEST < file_filters->list[i]->level) {
+                file_filters->list[i]->level = BXILOG_LOWEST;
+            }
         }
         bxilog_config_add_handler(config, BXILOG_FILE_HANDLER,
                                   file_filters,

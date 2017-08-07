@@ -13,7 +13,6 @@
 
 #include <unistd.h>
 #include <execinfo.h>
-#include <error.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
@@ -359,7 +358,7 @@ size_t bxierr_backtrace_str(char ** result) {
     errno = 0;
     FILE * faked_file = open_memstream(result, &size);
     if (NULL == faked_file) {
-        error(0, errno, "Calling open_memstream() failed");
+        perror("Calling open_memstream() failed");
         *result = strdup("Unavailable backtrace (open_memstream() failed)");
         return strlen(*result) + 1;
     }
@@ -371,7 +370,7 @@ size_t bxierr_backtrace_str(char ** result) {
 
     int rc = pthread_sigmask(SIG_BLOCK, &mask, &orig_set);
     if (rc != 0) {
-        error(0, errno, "Calling pthread_sigmask() failed");
+        perror("Calling pthread_sigmask() failed");
         *result = strdup("Unavailable backtrace (pthread_sigmask() failed)");
         return strlen(*result) + 1;
     }
@@ -382,7 +381,7 @@ size_t bxierr_backtrace_str(char ** result) {
 
     rc = pthread_sigmask(SIG_SETMASK, &orig_set, NULL);
     if (rc != 0) {
-        error(0, errno, "Calling pthread_sigmask() unblocking failed");
+        perror("Calling pthread_sigmask() unblocking failed");
     }
 
 #ifdef __linux__
@@ -484,7 +483,8 @@ void bxierr_list_add_to_report(bxierr_p err, bxierr_report_p report, size_t dept
         if (NULL == ierr) continue;
         char * s = bxistr_new("Error n°%zu", current);
         bxierr_report_add(report, s, strlen(s) + 1, "", 1);
-        bxierr_report_add_from_limit(ierr, report, depth);
+        // bxierr_report_add_from_limit(ierr, report, depth);
+        ierr->add_to_report(ierr, report, depth);
         current++;
     }
 }

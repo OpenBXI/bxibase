@@ -29,6 +29,7 @@ PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
                   ])
 AC_ARG_ENABLE([net-snmp-handler], [AS_HELP_STRING([--enable-net-snmp-handler], [enable debugging, default: yes])])
 if test x"$enable_net_snmp_handler" != "xno"; then
+LDFLAGS="$LDFLAGS $(net-snmp-config --libs)"
 AC_CHECK_LIB([netsnmp], [netsnmp_ds_toggle_boolean], [],
              [AC_MSG_ERROR([Could not find netsnmp library])])
 fi

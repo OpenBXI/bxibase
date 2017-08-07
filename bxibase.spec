@@ -6,7 +6,8 @@
 #TODO: define your package name
 %define name bxibase
 
-%define version 7.0.0
+%define version 7.1.0
+
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
@@ -84,11 +85,15 @@ Requires: zeromq
 Requires: python-cffi >= 1.6.0
 Requires: python-configobj
 
+BuildRequires: python-cffi >= 1.6.0
 BuildRequires: zeromq-devel
 BuildRequires: gcc
 buildRequires: gcc-c++
 BuildRequires: net-snmp-devel
 BuildRequires: CUnit-devel
+BuildRequires: doxygen
+BuildRequires: doxypypy
+BuildRequires: graphviz
 #BuildRequires: python-cffi >= 0.8.6
 
 
@@ -121,6 +126,7 @@ Test for the BXI base library
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
 Requires: python-zmq >= 14.0.0
+BuildRequires: python-zmq >= 14.0.0
 
 %description tools
 Commands to manipulate and interact with bxilogs
