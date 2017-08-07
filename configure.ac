@@ -29,7 +29,6 @@ PKG_CHECK_MODULES([ZMQ], [libzmq >= 3.0.0], [],
                   ])
 AC_ARG_ENABLE([net-snmp-handler], [AS_HELP_STRING([--enable-net-snmp-handler], [enable debugging, default: yes])])
 if test x"$enable_net_snmp_handler" != "xno"; then
-if test x"$enable_net_snmp_handler" != "xno"; then
 AC_CHECK_PROG([NETSNMPCONFIG], [net-snmp-config-$build_cpu],
               ["$(net-snmp-config-$build_cpu --libs)"])
 if test "$NETSNMPCONFIG" = ""; then
