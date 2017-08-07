@@ -361,7 +361,7 @@ bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps) {
     // Modified from:
     // http://stackoverflow.com/questions/6357031/how-do-you-convert-buffer-byte-array-to-hex-string-in-c
 
-    static const char hex_str[]= "0123456789abcdef";
+    static const char hex_str[]= "0123456789ABCDEF";
 
     if (NULL == buf) return bxierr_gen("Null pointer given for buf parameter.");
     if (NULL == ps) return bxierr_gen("Null pointer given for ps parameter");

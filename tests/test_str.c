@@ -386,12 +386,12 @@ void test_bxistr_hex(void) {
     CU_ASSERT_TRUE(bxierr_isko(err));
     bxierr_destroy(&err);
 
-    s = "abcdef";
+    s = "ABCDEF";
     err = bxistr_hex2bytes(s, strlen(s), &pbuf);
     CU_ASSERT_TRUE(bxierr_isok(err));
-    CU_ASSERT_EQUAL(0xab, buf[0]);
-    CU_ASSERT_EQUAL(0xcd, buf[1]);
-    CU_ASSERT_EQUAL(0xef, buf[2]);
+    CU_ASSERT_EQUAL(0xAB, buf[0]);
+    CU_ASSERT_EQUAL(0xCD, buf[1]);
+    CU_ASSERT_EQUAL(0xEF, buf[2]);
 
     char * t = NULL;
     err = bxistr_bytes2hex(buf, strlen(s)/2, &t);
