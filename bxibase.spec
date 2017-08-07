@@ -8,14 +8,13 @@
 
 %define version 7.1.0
 
-
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
 # to get the auto_tag man file
 # and to understand the SVN tagging process.
 # If you don't care, then, just starts with Bull.1.0%{?dist}.%{?revision}snapshot
 # and run 'make tag' when you want to tag.
-%define release Bull.1.0%{?dist}
+%define release Bull.1.0%{?dist}.%{?revision}snapshot
 
 # Warning: Bull's continuous compilation tools refuse the use of
 # %release in the src_dir variable!
@@ -111,6 +110,7 @@ Doxygen documentation of Bxi Basic library for high-level C and Python programmi
 %package devel
 Summary: Header files providing the bxibase API
 Requires: %{name}
+Requires: zeromq-devel
 
 %description devel
 Header files providing the bxibase API
