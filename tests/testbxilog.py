@@ -66,7 +66,7 @@ def threads_in_process(again):
                        filemode='a',
                        level=bxilog.LOWEST)
     threads = []
-    for i in xrange(multiprocessing.cpu_count()):
+    for i in range(multiprocessing.cpu_count()):
         thread = threading.Thread(target=do_some_logs_threading)
         bxilog.out("Starting new thread")
         thread.start()
@@ -117,7 +117,7 @@ class BXILogTest(unittest.TestCase):
         """
         Test bxilog_level parsing function"
         """
-        for i in xrange(len(bxilog.LEVEL_NAMES)):
+        for i in range(len(bxilog.LEVEL_NAMES)):
             level = bxilog.get_level_from_str(bxilog.LEVEL_NAMES[i])
             self.assertEquals(i, level)
 
@@ -225,7 +225,7 @@ class BXILogTest(unittest.TestCase):
 
     def test_strange_char(self):
         """Test logging with non-printable character, and especially, NULL char"""
-        for i in xrange(256):
+        for i in range(128):
             bxilog.output("A message with ascii character %d just between "
                           "the two following quotes '%s'", i, chr(i))
 
@@ -298,11 +298,11 @@ class BXILogTest(unittest.TestCase):
         bxilog.init()
 
         foo = bxilog.getLogger('foo')
-        self.assertEqual(foo.level, bxilog.FINE)
+        self.assertEquals(foo.level, bxilog.FINE)
         bar = bxilog.getLogger('foo.bar')
-        self.assertEqual(bar.level, bxilog.TRACE)
+        self.assertEquals(bar.level, bxilog.TRACE)
         any = bxilog.getLogger('bebopalula')
-        self.assertEqual(any.level, bxilog.OUTPUT)
+        self.assertEquals(any.level, bxilog.OUTPUT)
 
         any.info('This message must not appear in file %s', FILENAME)
         bxilog.flush()
@@ -329,7 +329,7 @@ class BXILogTest(unittest.TestCase):
 
     def test_threading(self):
         threads = []
-        for i in xrange(multiprocessing.cpu_count() * 2):
+        for i in range(multiprocessing.cpu_count() * 2):
             thread = threading.Thread(target=do_some_logs_threading)
             bxilog.out("Starting new thread")
             thread.start()
@@ -350,7 +350,7 @@ class BXILogTest(unittest.TestCase):
     def test_multiprocessing(self):
         processes = []
         again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
-        for i in xrange(multiprocessing.cpu_count() * 2):
+        for i in range(multiprocessing.cpu_count() * 2):
             process = multiprocessing.Process(target=do_some_logs_multiprocessing,
                                               args=(again,))
             bxilog.out("Starting new process")
@@ -371,7 +371,7 @@ class BXILogTest(unittest.TestCase):
     def test_threads_and_forks(self):
         processes = []
         again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
-        for i in xrange(multiprocessing.cpu_count()):
+        for i in range(multiprocessing.cpu_count()):
             process = multiprocessing.Process(target=threads_in_process,
                                               args=(again,))
             bxilog.out("Starting new process")
@@ -472,7 +472,7 @@ class BXILogTest(unittest.TestCase):
             bxilog.out("Invoking %s. It must create file: %s", exe, filename)
             subprocess.check_call([exe])
         except subprocess.CalledProcessError as cpe:
-            self.assertEqual(cpe.returncode, 1)
+            self.assertEquals(cpe.returncode, 1)
         filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'
         with open(filename) as logfile:
             found = False

@@ -11,6 +11,8 @@
 
 """
 from __future__ import print_function
+from builtins import range
+
 import collections
 
 import bxi.base as bxibase
@@ -74,7 +76,8 @@ def parse_filters(filter_str):
     @return an instance of the Filters class
     """
     filters_p = __FFI__.new('bxilog_filters_p[1]')
-    err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str, filters_p)
+    err = __BXIBASE_CAPI__.bxilog_filters_parse(filter_str.encode("utf-8", "replace"),
+                                                filters_p)
     bxierr.BXICError.raise_if_ko(err)
     return Filters(filters_p[0])
 
@@ -98,7 +101,7 @@ def merge_filters(filters_set):
     Merge the given set of filters.
     """
     c_filters_set = __FFI__.new('bxilog_filters_p[%d]' % len(filters_set))
-    for i in xrange(len(filters_set)):
+    for i in range(len(filters_set)):
         c_filters_set[i] = filters_set[i]._cstruct  # pylint: disable=locally-disabled, protected-access
     c_result = __BXIBASE_CAPI__.bxilog_filters_merge(c_filters_set, len(filters_set))
     return Filters(c_result)

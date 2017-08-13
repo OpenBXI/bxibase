@@ -1,6 +1,7 @@
 # PosLess unitesting: extending the original argparse test suite
 # Writen by Steven J. Bethard <steven.bethard@gmail.com>.
 
+import six
 import codecs
 import inspect
 import os
@@ -12,9 +13,9 @@ import tempfile
 import unittest
 import bxi.base.posless as posless
 
-from StringIO import StringIO
+from io import BytesIO
 
-class StdIOBuffer(StringIO):
+class StdIOBuffer(BytesIO):
     pass
 
 from test import test_support
@@ -241,7 +242,7 @@ class ParserTesterMetaclass(type):
             def test_successes(self, tester):
                 parser = self._get_parser(tester)
                 for args, expected_ns in tester.successes:
-                    if isinstance(args, str):
+                    if isinstance(args, six.string_types):
                         args = args.split()
                     result_ns = self._parse_args(parser, args)
                     tester.assertEqual(expected_ns, result_ns)

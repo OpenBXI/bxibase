@@ -12,6 +12,7 @@
 Signal handling"""
 
 
+import six
 import signal
 import bxi.base.log as bxilog
 
@@ -111,7 +112,7 @@ def set_handler(sig, function):
             signum = sig
         else:
             _LOGGER.error("Not a valid signal to handle: %d", sig)
-    elif isinstance(sig, basestring):
+    elif isinstance(sig, six.string_types):
         try:
             signum = SIGNALS.index(sig)
         except ValueError:
@@ -128,7 +129,7 @@ def mask_all():
 
     @return
     """
-    for i in xrange(1, len(SIGNALS)):
+    for i in range(1, len(SIGNALS)):
         if i != 9 and i != 19 and i != 32 and i != 33:
             _LOGGER.debug('Setting default handler for signal: %d (%s)', i, SIGNALS[i])
             signal.signal(i, default_handler)
