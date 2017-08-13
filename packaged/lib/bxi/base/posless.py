@@ -91,6 +91,7 @@ __all__ = [
 #                                                               #
 #################################################################
 
+import six
 import collections as _collections
 import copy as _copy
 import os as _os
@@ -1883,7 +1884,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 if not hasattr(namespace, action.dest):
                     if action.default is not SUPPRESS:
                         default = action.default
-                        if isinstance(action.default, basestring):
+                        if isinstance(action.default, six.string_types):
                             default = self._get_value(action, default)
                         setattr(namespace, action.dest, default)
 
@@ -1903,7 +1904,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             for attr in namespace.__dict__:
                 if hasattr(namespace, attr):
                     value = getattr(namespace, attr)
-                    if isinstance(value, str):
+                    if isinstance(value, six.string_types):
                         try:
                             set_value = value % defaults_value
                         except BaseException as e:
@@ -2491,7 +2492,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 value = action.const
             else:
                 value = action.default
-            if isinstance(value, basestring):
+            if isinstance(value, six.string_types):
                 value = self._get_value(action, value)
                 self._check_value(action, value)
 

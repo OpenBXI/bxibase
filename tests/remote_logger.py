@@ -9,6 +9,7 @@
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
 from __future__ import print_function
+
 import os
 import sys
 import configobj
@@ -28,7 +29,7 @@ _LOGGER = bxilog.get_logger(BASENAME)
 
 def _do_log(start, end):
     nb = 0
-    for i in xrange(start, end):
+    for i in range(int(start), int(end)):
         bxilog.out("Message #%d sent from the child", i)
         nb += 1
     return nb

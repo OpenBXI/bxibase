@@ -137,12 +137,12 @@ class BXILogger(object):
             msg_str_len = len(msg_str) + 1
             bxierr_p = bxilog_logger_log_rawstr(clogger,
                                                 level,
-                                                filename,
+                                                filename.encode('utf-8', 'replace'),
                                                 filename_len,
-                                                funcname,
+                                                funcname.encode('utf-8', 'replace'),
                                                 funcname_len,
                                                 lineno,
-                                                msg_str,
+                                                msg_str.encode('utf-8', 'replace'),
                                                 msg_str_len)
             # Recursive call: this will raise an exception that might be catched
             # again by the logging library and so on...
@@ -191,8 +191,8 @@ class BXILogger(object):
                 else:
                     err_bt = bxibase.traceback2str(ei[2])
                 __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                                   err_msg, len(err_msg) + 1,
-                                                   err_bt, len(err_bt) + 1)
+                                                   err_msg.encode('utf-8'), len(err_msg) + 1,
+                                                   err_bt.encode('utf-8'), len(err_bt) + 1)
 
             if not hasattr(value, 'cause') or value.cause is None:
                 break
@@ -214,12 +214,12 @@ class BXILogger(object):
         __BXIBASE_CAPI__.bxilog_report_raw(report_c,
                                            self.clogger,
                                            level,
-                                           filename,
+                                           filename.encode('utf-8'),
                                            filename_len,
-                                           funcname,
+                                           funcname.encode('utf-8'),
                                            funcname_len,
                                            lineno,
-                                           msg_str,
+                                           msg_str.encode('utf-8'),
                                            msg_str_len)
         __BXIBASE_CAPI__.bxierr_report_free(report_c)
 
@@ -470,7 +470,7 @@ class BXILogger(object):
                                       ' got: %r. Use bxilog.exception() instead?' % err)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
-        cmsg_str = __FFI__.new("char []", msg_str)
+        cmsg_str = __FFI__.new("char []", msg_str.encode("utf-8", "replace"))
         filename, lineno, funcname = _FindCaller()
         filename_len = len(filename) + 1
         funcname_len = len(funcname) + 1

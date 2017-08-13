@@ -39,7 +39,7 @@ def add_handler(configobj, section_name, c_config):
     filters = bxilogfilter.parse_filters(filters_str)
     facility = __FFI__.cast('int', eval('syslog.%s' % facility_str))
 
-    identity = __FFI__.new('char[]', sys.argv[0])
+    identity = __FFI__.new('char[]', sys.argv[0].encode("utf-8", "replace"))
     option = __FFI__.cast('int', syslog.LOG_PID)
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_SYSLOG_HANDLER,

@@ -13,6 +13,7 @@ This module exposes all BXI Exception classes.
 
 """
 import sys
+from builtins import range
 
 import bxi.base as bxibase
 
@@ -78,7 +79,7 @@ class BXICError(BXIError, bxibase.Wrapper):
         c_report = __BXIBASE_CAPI__.bxierr_report_new()
         self.bxierr_pp[0].add_to_report(self.bxierr_pp[0], c_report, 20)
         lines = []
-        for i in xrange(0, c_report.err_nb):
+        for i in range(0, c_report.err_nb):
             lines.append(__FFI__.string(c_report.err_msgs[i]))
         result = "\n".join(lines)
         __BXIBASE_CAPI__.bxierr_report_free(c_report)

@@ -13,6 +13,7 @@
 
 import bxi.base as bxibase
 import bxi.base.err as bxierr
+from builtins import range
 
 # Find the C library
 __FFI__ = bxibase.get_ffi()
@@ -39,13 +40,13 @@ class RemoteReceiver(object):
         """
         tmpref = []
         for url in urls:
-            tmpref.append(__FFI__.new('char[]', str(url)))
+            tmpref.append(__FFI__.new('char[]', url.encode("utf-8", "replace")))
         c_urls = __FFI__.new('char *[]', tmpref)
         self.urls = urls
         if hostname is None:
             chostname = __FFI__.NULL
         else:
-            chostname = hostname
+            chostname = hostname.encode("utf-8", "replace")
         self.c_receiver = __BXIBASE_CAPI__.bxilog_remote_receiver_new(c_urls, len(urls),
                                                                       bind, chostname)
 
@@ -84,4 +85,4 @@ class RemoteReceiver(object):
         nb = __BXIBASE_CAPI__.bxilog_get_binded_urls(self.c_receiver, urls_c)
         if nb == 0:
             return None
-        return [__FFI__.string(urls_c[0][i]) for i in xrange(nb)]
+        return [__FFI__.string(urls_c[0][i]) for i in range(nb)]

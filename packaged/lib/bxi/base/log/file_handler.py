@@ -78,7 +78,7 @@ def add_handler(configobj, section_name, c_config):
     else:
         file_filters = bxilogfilter.parse_filters(filters_str)
 
-    filename = __FFI__.new('char[]', filename)
+    filename = __FFI__.new('char[]', filename.encode("utf-8", "replace"))
     open_flags = __FFI__.cast('int',
                               os.O_CREAT |
                               (os.O_APPEND if append else os.O_TRUNC))

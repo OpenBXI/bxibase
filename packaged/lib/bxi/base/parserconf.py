@@ -12,8 +12,9 @@
 @namespace bxi.base.parserconf add basic configuration options to a posless parser
 """
 
-
 from __future__ import print_function
+from builtins import range
+from six import string_types as basestring
 
 import tempfile
 import os.path
@@ -96,7 +97,7 @@ class LogLevelsAction(posless.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         names = logging.LEVEL_NAMES
-        for i in xrange(len(names)):
+        for i in range(len(names)):
             print("%s = %s" % (i, names[i]))
         sys.exit(0)
 
@@ -453,11 +454,11 @@ def _configure_log(parser):
                                metavar='log-%s-colors' % console_handler,
                                envvar='BXILOG_%s_COLORS' % console_handler.upper(),
                                default=default,
-                               choices=bxilog_consolehandler.COLORS.keys(),
+                               choices=list(bxilog_consolehandler.COLORS),
                                help="Define the logging colors for the %s handler " %
                                console_handler +
                                "Value: '%(default)s'." +
-                               " choices=%s. " % bxilog_consolehandler.COLORS.keys())
+                               " choices=%s. " % list(bxilog_consolehandler.COLORS))
 
         sections = find_logconfigs(bxilog_filehandler.__name__, config)
         for section in sections:
