@@ -225,7 +225,7 @@ class BXILogTest(unittest.TestCase):
 
     def test_strange_char(self):
         """Test logging with non-printable character, and especially, NULL char"""
-        for i in range(128):
+        for i in range(256):
             bxilog.output("A message with ascii character %d just between "
                           "the two following quotes '%s'", i, chr(i))
 

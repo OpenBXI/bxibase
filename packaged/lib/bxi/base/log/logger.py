@@ -26,6 +26,12 @@ import bxi.base.err as bxierr
 import bxi.base.log as bxilog
 from bxi.base.err import BXICError
 
+# For compatibility between python 2 and 3
+try:
+    isinstance("", unicode)
+except:
+    from builtins import str as unicode
+
 
 # Find the C library
 __FFI__ = bxibase.get_ffi()
@@ -135,14 +141,20 @@ class BXILogger(object):
             filename_len = len(filename) + 1
             funcname_len = len(funcname) + 1
             msg_str_len = len(msg_str) + 1
+            if isinstance(msg_str, unicode):
+                msg_str = msg_str.encode('utf-8', 'replace')
+            if isinstance(filename, unicode):
+                filename = filename.encode('utf-8', 'replace')
+            if isinstance(funcname, unicode):
+                funcname = funcname.encode('utf-8', 'replace')
             bxierr_p = bxilog_logger_log_rawstr(clogger,
                                                 level,
-                                                filename.encode('utf-8', 'replace'),
+                                                filename,
                                                 filename_len,
-                                                funcname.encode('utf-8', 'replace'),
+                                                funcname,
                                                 funcname_len,
                                                 lineno,
-                                                msg_str.encode('utf-8', 'replace'),
+                                                msg_str,
                                                 msg_str_len)
             # Recursive call: this will raise an exception that might be catched
             # again by the logging library and so on...
@@ -190,9 +202,17 @@ class BXILogger(object):
                     err_bt = "-- Backtrace unavailable --"
                 else:
                     err_bt = bxibase.traceback2str(ei[2])
+
+                if isinstance(err_msg, unicode):
+                    err_msg = err_msg.encode('utf-8', 'replace')
+                if isinstance(err_bt, unicode):
+                    err_bt = err_bt.encode('utf-8', 'replace')
+
                 __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                                   err_msg.encode('utf-8'), len(err_msg) + 1,
-                                                   err_bt.encode('utf-8'), len(err_bt) + 1)
+                                                   err_msg,
+                                                   len(err_msg) + 1,
+                                                   err_bt,
+                                                   len(err_bt) + 1)
 
             if not hasattr(value, 'cause') or value.cause is None:
                 break
@@ -211,15 +231,22 @@ class BXILogger(object):
         funcname_len = len(funcname) + 1
         msg_str_len = len(msg_str) + 1
 
+        if isinstance(msg_str, unicode):
+            msg_str = msg_str.encode('utf-8', 'replace')
+        if isinstance(filename, unicode):
+            filename = filename.encode('utf-8', 'replace')
+        if isinstance(funcname, unicode):
+            funcname = funcname.encode('utf-8', 'replace')
+
         __BXIBASE_CAPI__.bxilog_report_raw(report_c,
                                            self.clogger,
                                            level,
-                                           filename.encode('utf-8'),
+                                           filename,
                                            filename_len,
-                                           funcname.encode('utf-8'),
+                                           funcname,
                                            funcname_len,
                                            lineno,
-                                           msg_str.encode('utf-8'),
+                                           msg_str,
                                            msg_str_len)
         __BXIBASE_CAPI__.bxierr_report_free(report_c)
 
@@ -470,7 +497,9 @@ class BXILogger(object):
                                       ' got: %r. Use bxilog.exception() instead?' % err)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
-        cmsg_str = __FFI__.new("char []", msg_str.encode("utf-8", "replace"))
+        if isinstance(msg_str, unicode):
+            msg_str = msg_str.encode('utf-8', 'replace')
+        cmsg_str = __FFI__.new("char []", msg_str)
         filename, lineno, funcname = _FindCaller()
         filename_len = len(filename) + 1
         funcname_len = len(funcname) + 1
