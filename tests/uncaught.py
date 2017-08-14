@@ -14,8 +14,7 @@ See testbxilog.py for details.
 """
 
 
-from builtins import str
-import os, time, signal
+import os
 
 import bxi.base.log as bxilog
 

@@ -119,7 +119,11 @@ a simple workaround: See bxi.base.log::multiprocessing_target for details.**
 """
 
 from __future__ import print_function
-from builtins import range
+try:
+    from builtins import range
+except ImportError:
+    pass
+
 import six
 
 import atexit
