@@ -13,7 +13,11 @@ This module exposes all BXI Exception classes.
 
 """
 import sys
-from builtins import range
+
+try:
+    from builtins import range
+except ImportError:
+    pass
 
 import bxi.base as bxibase
 

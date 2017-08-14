@@ -13,7 +13,11 @@
 
 import bxi.base as bxibase
 import bxi.base.err as bxierr
-from builtins import range
+
+try:
+    from builtins import range
+except ImportError:
+    pass
 
 # Find the C library
 __FFI__ = bxibase.get_ffi()

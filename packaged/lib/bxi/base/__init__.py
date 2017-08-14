@@ -14,7 +14,11 @@ import sys
 import collections  # noqa
 import traceback
 from functools import total_ordering  # noqa
-from builtins import range
+
+try:
+    from builtins import range
+except ImportError:
+    pass
 
 # pylint: disable=I0011,C0413,C0411,W0221
 # Try to find other BXI packages in other folders

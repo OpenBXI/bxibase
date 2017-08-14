@@ -13,7 +13,11 @@
 """
 
 from __future__ import print_function
-from builtins import range
+try:
+    from builtins import range
+except ImportError:
+    pass
+
 from six import string_types as basestring
 
 import tempfile
