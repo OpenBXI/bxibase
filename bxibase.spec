@@ -6,7 +6,7 @@
 #TODO: define your package name
 %define name bxibase
 
-%define version 7.1.0
+%define version 7.1.1
 
 
 # Using the .snapshot suffix helps the SVN tagging process.
@@ -77,6 +77,7 @@ Provides: %{name}
 # BXI
 Requires: backtrace
 Requires: net-snmp
+Requires: python-six
 
 BuildRequires: backtrace-devel
 
