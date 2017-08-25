@@ -7,7 +7,6 @@ define([REPLACE_BRIEF],[
 
 
 define([ADD_BXISYSTEMD],[
-       PKG_PROG_PKG_CONFIG
        AC_PROG_SED
        AC_ARG_WITH([systemdsysdir],
                         [AS_HELP_STRING([--with-systemdsysdir=DIR],
@@ -37,6 +36,7 @@ define([INIT_BXIPRODUCT], [
 	AC_CONFIG_HEADERS([template_config.h])
 	AC_CONFIG_FILES([template_version.py])
 	AM_INIT_AUTOMAKE([foreign subdir-objects])
+    PKG_PROG_PKG_CONFIG
 
 	if test "$2" = "systemd"
 	then
