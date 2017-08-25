@@ -39,7 +39,7 @@
             bxilog_assert(logger, expr,                                             \
                           (char *)__FILE__, ARRAYLEN(__FILE__),                     \
                           __func__, ARRAYLEN(__func__),                             \
-                          __LINE__, #expr);                                         \
+                          __LINE__, (char*)#expr);                                         \
     } while(false)
 
 /**
