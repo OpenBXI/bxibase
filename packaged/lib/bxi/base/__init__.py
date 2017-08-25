@@ -28,8 +28,7 @@ __path__ = extend_path(__path__, __name__)
 try:
     from bxi.base.cffi_h import ffi
 except ImportError as e:
-    raise type(e), \
-          type(e)(e.message + "\n\nPackage bxi.base.cffi_h is missing. "
+    raise type(e)(e.message + "\n\nPackage bxi.base.cffi_h is missing. "
                             + "It should be generated with bximake.")
 
 
