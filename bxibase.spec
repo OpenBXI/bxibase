@@ -21,6 +21,7 @@
 # %release in the src_dir variable!
 %define src_dir %{name}-%{version}
 %define src_tarall %{src_dir}.tar.gz
+%define pythonname %{?python_version]
 
 # Predefined variables:
 # {%_mandir} => normally /usr/share/man (depends on the PDP)
@@ -77,16 +78,16 @@ Provides: %{name}
 # BXI
 Requires: backtrace
 Requires: net-snmp
-Requires: python-six
+Requires: python%{pythonname}-six
 
 BuildRequires: backtrace-devel
 
 # External
 Requires: zeromq
-Requires: python-cffi >= 1.6.0
-Requires: python-configobj
+Requires: python%{pythonname}-cffi >= 1.6.0
+Requires: python%{pythonname}-configobj
 
-BuildRequires: python-cffi >= 1.6.0
+BuildRequires: python%{pythonname}-cffi >= 1.6.0
 BuildRequires: zeromq-devel
 BuildRequires: gcc
 buildRequires: gcc-c++
@@ -116,6 +117,22 @@ Requires: %{name}
 %description devel
 Header files providing the bxibase API
 
+
+%package python%{pythonname}
+Summary: Python Bxi Basic library
+Requires: %{name}
+
+#TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
+%description python%{pythonname}
+Python Bxi Basic library
+
+%package python%{pythonname}-devel
+Summary: Python files required for compiling dependencies based on cffi
+Requires: %{name}-devel
+
+%description python%{pythonname}-devel
+Python files required for compiling dependencies based on cffi
+
 %package tests
 Requires: %{name}
 Summary: Tests for the BXI base library
@@ -126,8 +143,8 @@ Test for the BXI base library
 %package tools
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
-Requires: python-zmq >= 14.0.0
-BuildRequires: python-zmq >= 14.0.0
+Requires: python%{pythonname}-zmq >= 14.0.0
+BuildRequires: python%{pythonname}-zmq >= 14.0.0
 
 %description tools
 Commands to manipulate and interact with bxilogs
@@ -145,7 +162,9 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
     --with-tagfiles-prefix=%{src_tagfiles_prefix} \
     --with-tagfiles-suffix=%{src_tagfiles_suffix} \
     --with-htmldirs-prefix=%{target_htmldirs_prefix} \
-    --with-htmldirs-suffix=%{target_htmldirs_suffix}
+    --with-htmldirs-suffix=%{target_htmldirs_suffix} \
+    PYTHON=/usr/bin/python3.4
+
 
 ###############################################################################
 # The current directory is the one main directory of the tar
@@ -207,6 +226,7 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 #%{_libdir}/lib*
 %{target_lib_dir}/lib*
+%files python%{pythonname}
 %{target_python_lib_dir}/*
 %exclude %{target_python_lib_dir}/bxi/*_cffi_def.py*
 %exclude %{target_python_lib_dir}/bxi/base/cffi_builder.py*
@@ -218,6 +238,7 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %files devel
 %{_includedir}/bxi/base/*.h
 %{_includedir}/bxi/base/log/*.h
+%files python%{pythonname}-devel
 %{target_python_lib_dir}/bxi/*_cffi_def.py*
 %{target_python_lib_dir}/bxi/base/cffi_builder.py*
 
