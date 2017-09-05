@@ -13,7 +13,6 @@
 
 
 #include <unistd.h>
-#include <sys/syscall.h>
 #include <pthread.h>
 #include <sysexits.h>
 #include <string.h>
@@ -360,7 +359,7 @@ bxierr_p _loop(bxilog_handler_p handler,
 
     long actual_timeout = param->flush_freq_ms;
     struct timespec last_flush_time;
-    err2 = bxitime_get(CLOCK_MONOTONIC_RAW, &last_flush_time);
+    err2 = bxitime_get(CLOCK_MONOTONIC, &last_flush_time);
     if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
 
     while (true) {
@@ -382,7 +381,7 @@ bxierr_p _loop(bxilog_handler_p handler,
             if (bxierr_isko(err)) goto QUIT;
         }
         double tmp;
-        err2 = bxitime_duration(CLOCK_MONOTONIC_RAW, last_flush_time, &tmp);
+        err2 = bxitime_duration(CLOCK_MONOTONIC, last_flush_time, &tmp);
         if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
         long duration_since_last_flush = (long) (tmp * 1e3);
 
@@ -409,7 +408,7 @@ bxierr_p _loop(bxilog_handler_p handler,
             err2 = _process_implicit_flush(handler, param, data);
             BXIERR_CHAIN(err, err2);
 
-            err2 = bxitime_get(CLOCK_MONOTONIC_RAW, &last_flush_time);
+            err2 = bxitime_get(CLOCK_MONOTONIC, &last_flush_time);
             if (bxierr_isko(err2)) bxierr_report(&err2, STDERR_FILENO);
             actual_timeout = param->flush_freq_ms;
 

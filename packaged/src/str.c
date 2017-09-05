@@ -394,7 +394,7 @@ char * bxistr_from_signal(const siginfo_t * siginfo,
     uid_t uid = (NULL == siginfo) ? (uid_t) sfdinfo->ssi_uid : siginfo->si_uid;
 #else
 char * bxistr_from_signal(const siginfo_t * siginfo,
-                         const struct signalfd_siginfo * sfdinfo) {
+                         const void * sfdinfo) {
 
     bxiassert(siginfo != NULL || sfdinfo != NULL);
 

@@ -12,12 +12,14 @@
  */
 
 #include <unistd.h>
+#ifdef __linux__
 #include <execinfo.h>
+#include <sys/syscall.h>
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <signal.h>
-#include <sys/syscall.h>
 #include <backtrace.h>
 #include <backtrace-supported.h>
 
@@ -44,11 +46,13 @@
 // **************************** Static function declaration ************************
 // *********************************************************************************
 static void _err_list_init(bxierr_list_p errlist);
+#ifdef __linux__
 static int _bt_full_cb(void *data, uintptr_t pc,
                        const char *filename, int lineno, const char *function);
 static void _bt_error_cb(void *data, const char *msg, int errnum);
 static char** _pretty_backtrace(void* addresses[], int array_size);
 static void __bt_init__(void);
+#endif
 // *********************************************************************************
 // ********************************** Global Variables *****************************
 // *********************************************************************************
@@ -362,7 +366,9 @@ size_t bxierr_backtrace_str(char ** result) {
         *result = strdup("Unavailable backtrace (open_memstream() failed)");
         return strlen(*result) + 1;
     }
+#ifdef __linux__
     void *addresses[BACKTRACE_MAX];
+#endif
     sigset_t orig_set;
     sigset_t mask;
     sigfillset(&mask);
@@ -374,10 +380,12 @@ size_t bxierr_backtrace_str(char ** result) {
         *result = strdup("Unavailable backtrace (pthread_sigmask() failed)");
         return strlen(*result) + 1;
     }
+#ifdef __linux__
     int c = backtrace(addresses, BACKTRACE_MAX);
     errno = 0;
     char **symbols = backtrace_symbols(addresses, c);
     char **strings = _pretty_backtrace(addresses, c);
+#endif
 
     rc = pthread_sigmask(SIG_SETMASK, &orig_set, NULL);
     if (rc != 0) {
@@ -387,10 +395,13 @@ size_t bxierr_backtrace_str(char ** result) {
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
 #else
+#ifdef __linux__
     int tid;
     bxierr_p err = bxilog_get_thread_rank(&tid);
     if (BXIERR_OK != err) tid = -1;
 #endif
+#endif
+#ifdef __linux__
     const char * const truncated = (c == BACKTRACE_MAX) ? "(truncated) " : "";
 
     fprintf(faked_file,
@@ -402,9 +413,10 @@ size_t bxierr_backtrace_str(char ** result) {
         BXIFREE(strings[i]);
     }
     fprintf(faked_file,ERR_BT_PREFIX"Backtrace end\n");
-    fclose(faked_file);
     BXIFREE(symbols);
     BXIFREE(strings);
+#endif
+    fclose(faked_file);
     return size;
 }
 
@@ -556,6 +568,7 @@ void _err_list_init(bxierr_list_p errlist) {
 }
 
 
+#ifdef __linux__
 char** _pretty_backtrace(void* addresses[], int array_size) {
     // Used to return the strings generated from the addresses
     char** backtrace_strings = bximem_calloc(sizeof(*backtrace_strings) * (unsigned)array_size);
@@ -598,4 +611,4 @@ int _bt_full_cb(void *data, uintptr_t pc,
     }
     return 0;
 }
-
+#endif

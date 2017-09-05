@@ -12,7 +12,9 @@
  */
 
 #include <unistd.h>
+#ifdef __linux__
 #include <syscall.h>
+#endif
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
@@ -54,7 +56,6 @@
 #define THREAD_RANK_SIZE 5
 
 // WARNING: highly dependent on the log format
-#ifdef __linux__
 // LOG_FMT "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*u:%s|%s:%d@%s|%s|%s\n";
 // O|20140918T090752.472145261|11297.11302=01792:unit_t|unit_t.c:308@_dummy|bxiclib.test|msg
 
@@ -63,13 +64,6 @@
                        1 + PID_SIZE + 1 + TID_SIZE + 1 + THREAD_RANK_SIZE + \
                        1 + 1 + 1 + 1 + 1 + 1 + 1  // Add all remaining fixed characters
                                                   // such as ':|:@||\n' in that order
-#else
-#define FIXED_LOG_SIZE 2 + YEAR_SIZE + MONTH_SIZE + DAY_SIZE +\
-                       1 + HOUR_SIZE + MINUTE_SIZE + SECOND_SIZE + 1 + SUBSECOND_SIZE +\
-                       1 + PID_SIZE + 1 + THREAD_RANK_SIZE + \
-                       1 + 1 + 1 + 1 + 1 + 1 +1  // Add all remaining fixed characters
-                                                 // such as ':|:@||\n' in that order
-#endif
 
 #define _ilog(level, data, ...) _internal_log_func(level, data, __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__)
 
@@ -85,9 +79,7 @@ typedef struct bxilog_file_handler_param_s_f {
     size_t progname_len;
     pid_t pid;
     FILE * file;                         // the file where log must be produced
-#ifdef __linux__
     pid_t tid;
-#endif
     uintptr_t thread_rank;
     bxierr_set_p errset;
     size_t lost_logs;
@@ -150,11 +142,7 @@ static const char LOG_LEVEL_STR[] = { '-', 'P', 'A', 'C', 'E', 'W', 'N', 'O',
 // The log format used by the IHT when writing
 // WARNING: If you change this format, change also different #define above
 // along with FIXED_LOG_SIZE
-#ifdef __linux__
 static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u=%0*" PRIxPTR ":%s|%s:%d@%s|%s|%s\n";
-#else
-static const char LOG_FMT[] = "%c|%0*d%0*d%0*dT%0*d%0*d%0*d.%0*ld|%0*u.%0*u:%s|%s:%d@%s|%s|%s\n";
-#endif
 
 static const bxilog_handler_s BXILOG_FILE_HANDLER_STDIO_S = {
                   .name = "BXI Logging File Handler",
@@ -386,9 +374,7 @@ bxierr_p _log_single_line(char * line,
                           SECOND_SIZE, now->tm_sec,
                           SUBSECOND_SIZE, record->detail_time.tv_nsec,
                           PID_SIZE, record->pid,
-#ifdef __linux__
                           TID_SIZE, record->tid,
-#endif
                           THREAD_RANK_SIZE, record->thread_rank,
                           data->progname,
                           param->filename,
@@ -497,10 +483,8 @@ bxierr_p _internal_log_func(bxilog_level_e level,
     BXIERR_CHAIN(err, err2);
 
     record.pid = data->pid;
-#ifdef __linux__
     record.tid = data->tid;
 //    size_t thread_name_len
-#endif
     record.thread_rank = data->thread_rank;
     record.line_nb = line_nb;
     //  size_t progname_len;            // program name length

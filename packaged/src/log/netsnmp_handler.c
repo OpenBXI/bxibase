@@ -13,7 +13,9 @@
 
 #include <bxi/base/log/netsnmp_handler.h>
 #include <unistd.h>
+#ifdef __linux__
 #include <syscall.h>
+#endif
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
@@ -45,7 +47,7 @@ typedef struct bxilog_snmplog_handler_param_s_f {
     bxilog_handler_param_s generic;
 
     pid_t pid, tid;
-    uint16_t thread_rank;
+    uintptr_t thread_rank;
 
     bxierr_set_p errset;
     size_t error_limit;
@@ -191,7 +193,7 @@ bxierr_p _init(bxilog_snmplog_handler_param_p data) {
     // TODO: find something better for the rank of the IHT
     // Maybe, define already the related string instead of
     // a rank number?
-    data->thread_rank = (uint16_t) pthread_self();
+    data->thread_rank = (uintptr_t) pthread_self();
     data->errset = bxierr_set_new();
     data->error_limit = 10;
 

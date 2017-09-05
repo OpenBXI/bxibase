@@ -12,7 +12,9 @@
  */
 
 #include <unistd.h>
+#ifdef __linux__
 #include <syscall.h>
+#endif
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>

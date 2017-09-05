@@ -81,15 +81,11 @@ typedef struct {
 #endif
 #ifndef BXICFFI
     pid_t pid;                          //!< process pid
-#ifdef __linux__
     pid_t tid;                          //!< kernel thread id
 //    size_t thread_name_len            //!< Thread name (see pthread_getname_np())
-#endif
 #else
     int pid;                            // fake for CFFI
-#ifdef __linux__
     int tid;                            // fake for CFFI
-#endif
 #endif
     uintptr_t thread_rank;              //!< user thread rank
     int line_nb;                        //!< line nb

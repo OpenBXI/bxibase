@@ -15,8 +15,10 @@
 #include <errno.h>
 
 #include <unistd.h>
-#include <sys/syscall.h>
 #include <pthread.h>
+#ifdef __linux__
+#include <sysclass.h>
+#endif
 
 #include "bxi/base/err.h"
 #include "bxi/base/str.h"
@@ -133,18 +135,22 @@ bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n) {
 void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     (void) (dummy); // Unused, prevent warning == error at compilation time
     char * sigstr = bxistr_from_signal(siginfo, NULL);
+    bxierr_p err = BXIERR_OK, err2 = BXIERR_OK;
 #ifdef __linux__
     pid_t tid = (pid_t) syscall(SYS_gettid);
 
 #else
-    uint16_t tid = bxilog_get_thread_rank(pthread_self());
+    uintptr_t tid = 0;
+    err2 = bxilog_get_thread_rank(&tid);
+    BXIERR_CHAIN(err, err2);
 #endif
     /* Since this handler is established for more than one kind of signal,
        it might still get invoked recursively by delivery of some other kind
        of signal.  Use a static variable to keep track of that. */
     if (FATAL_ERROR_IN_PROGRESS) {
-        bxierr_p err = bxierr_gen("(%s#tid-%u) %s\n. Already handling a signal... Exiting",
-                                  BXILOG__GLOBALS->config->progname, tid, sigstr);
+        err2 = bxierr_gen("(%s#tid-%u) %s\n. Already handling a signal... Exiting",
+			  BXILOG__GLOBALS->config->progname, (uint16_t)tid, sigstr);
+	BXIERR_CHAIN(err, err2);
         bxierr_report(&err, STDERR_FILENO);
         exit(signum);
     }
@@ -166,7 +172,6 @@ void _sig_handler(int signum, siginfo_t * siginfo, void * dummy) {
     CRITICAL(LOGGER, "%s", str);
     BXIFREE(str);
     // Flush all logs before terminating -> ask handlers to stop.
-    bxierr_p err = BXIERR_OK, err2;
     err2 = bxilog_flush();
     BXIERR_CHAIN(err, err2);
     err2 = bxilog__stop_handlers();
