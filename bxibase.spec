@@ -21,7 +21,7 @@
 # %release in the src_dir variable!
 %define src_dir %{name}-%{version}
 %define src_tarall %{src_dir}.tar.gz
-%define pythonname %{?python_version]
+%define pythonname %{?python_version}
 
 # Predefined variables:
 # {%_mandir} => normally /usr/share/man (depends on the PDP)

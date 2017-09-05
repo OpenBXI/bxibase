@@ -282,6 +282,7 @@ define([BXI_CHECK_C_COMPILER],[
     # Checks for header files.
     # if some header are optional you could add tests there and get the macro defined
     #AC_CHECK_HEADERS([stdbool.h])
+    AC_CHECK_HEADERS([sys/signalfd.h])
 
     # Checks for typedefs, structures, and compiler characteristics.
 

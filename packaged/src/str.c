@@ -380,6 +380,7 @@ bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps) {
 }
 
 
+#ifdef HAVE_SYS_SIGNALFD_H
 char * bxistr_from_signal(const siginfo_t * siginfo,
                          const struct signalfd_siginfo * sfdinfo) {
 
@@ -391,6 +392,19 @@ char * bxistr_from_signal(const siginfo_t * siginfo,
     int code = (NULL == siginfo) ? (int) sfdinfo->ssi_code: siginfo->si_code;
     pid_t pid = (NULL == siginfo) ? (pid_t) sfdinfo->ssi_pid : siginfo->si_pid;
     uid_t uid = (NULL == siginfo) ? (uid_t) sfdinfo->ssi_uid : siginfo->si_uid;
+#else
+char * bxistr_from_signal(const siginfo_t * siginfo,
+                         const struct signalfd_siginfo * sfdinfo) {
+
+    bxiassert(siginfo != NULL || sfdinfo != NULL);
+
+    int signum = (NULL == siginfo) ? (int)-255: siginfo->si_signo;
+    char * sigstr = strsignal(signum);
+    bxiassert(NULL != sigstr);
+    int code = (NULL == siginfo) ? (int)-255: siginfo->si_code;
+    pid_t pid = (NULL == siginfo) ? (pid_t) 0 : siginfo->si_pid;
+    uid_t uid = (NULL == siginfo) ? (uid_t) 0 : siginfo->si_uid;
+#endif
 
     switch(signum) {
     case SIGTERM:

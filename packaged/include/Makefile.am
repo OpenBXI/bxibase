@@ -2,7 +2,6 @@
 cffi_files=\
 			 bxi/base/version.h\
 			 bxi/base/mem.h\
-			 bxi/base/str.h\
 			 bxi/base/err.h\
 			 bxi/base/zmq.h\
 			 bxi/base/log.h\
@@ -24,6 +23,9 @@ cffi_files=\
 			 bxi/base/log/thread.h\
 			 bxi/base/log/registry.h
 
+nodist_include_HEADERS=\
+			 bxi/base/str.h
+
 if HAVE_SNMP_LOG
 cffi_files+=\
 		  bxi/base/log/netsnmp_handler.h
@@ -37,7 +39,7 @@ nobase_include_HEADERS = \
 
 if HAVE_PYTHON
 MODULE_NAME=base
-../lib/bxi/${MODULE_NAME}_cffi_def.py: $(cffi_files)
+../lib/bxi/${MODULE_NAME}_cffi_def.py: $(cffi_files) bxi/base/str.h
 	mkdir -p $$(dirname $@)
 	for i in $^; do \
 		echo "#include <$$i>";\

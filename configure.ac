@@ -66,11 +66,12 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_STRERROR_R
 AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 
-SUBPACKAGES="debuginfo doc devel tests tools"
+SUBPACKAGES='debuginfo doc devel tests tools python[[0-9]]*'
 AC_SUBST([SUBPACKAGES])
 AC_BXIEXTRA_DIST="h2py.sh"
 AC_SUBST([AC_BXIEXTRA_DIST])
 #TODO add the pc.in file
+AC_CONFIG_HEADERS([packaged/include/bxi/base/str.h])
 AC_CONFIG_FILES([Makefile packaged/Makefile packaged/lib/Makefile packaged/include/Makefile packaged/doc/Makefile tests/Makefile packaged/src/version.c packaged/include/bxi/base/version.h])
 
 AC_OUTPUT

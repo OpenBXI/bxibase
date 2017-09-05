@@ -18,7 +18,11 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <signal.h>
+/* Define to 1 if you have the <sys/signalfd.h> header file. */
+#undef HAVE_SYS_SIGNALFD_H
+#ifdef HAVE_SYS_SIGNALFD_H
 #include <sys/signalfd.h>
+#endif
 #endif
 
 
@@ -124,8 +128,13 @@ size_t bxistr_vnew(char ** str_p, const char * fmt, va_list ap);
  * @return a string representation of the given signal number
  *
  */
+#ifdef HAVE_SYS_SIGNALFD_H
 char * bxistr_from_signal(const siginfo_t * siginfo,
                           const struct signalfd_siginfo * sfdinfo);
+#else
+char * bxistr_from_signal(const siginfo_t * siginfo,
+                          const void * sfdinfo);
+#endif
 
 #endif
 
