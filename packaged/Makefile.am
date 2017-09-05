@@ -42,6 +42,7 @@ lib_libbxibase_la_LDFLAGS=\
 					 $(UUID_LIBS)
 
 lib_libbxibase_la_CFLAGS=\
+					 -I$(top_builddir)
 					 -I$(top_srcdir)/packaged/include\
 					 $(ZMQ_CFLAGS)\
 					 $(UUID_CFLAGS)\

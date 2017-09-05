@@ -35,7 +35,7 @@ define([INIT_BXIPRODUCT], [
 	AC_CONFIG_AUX_DIR([.autotools_cache])
 	AC_CONFIG_HEADERS([template_config.h])
 	AC_CONFIG_FILES([template_version.py])
-	AM_INIT_AUTOMAKE([foreign subdir-objects])
+	AM_INIT_AUTOMAKE([foreign subdir-objects nostdinc])
     PKG_PROG_PKG_CONFIG
 
 	if test "$2" = "systemd"
