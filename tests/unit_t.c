@@ -23,7 +23,7 @@
 
 #include <sched.h>
 
-#include <linux/limits.h>
+#include <limits.h>
 
 #include <bxi/base/err.h>
 #include <bxi/base/str.h>
