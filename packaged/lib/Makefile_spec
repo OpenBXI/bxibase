@@ -9,7 +9,7 @@ bxi/${MODULE_NAME}/cffi_h.py:bxi/${MODULE_NAME}/cffi_builder.py bxi/${MODULE_NAM
 	C_INCLUDE_PATH="$(top_srcdir)/packaged/include:$(abs_top_builddir)/packaged/include:\
 	${C_INCLUDE_PATH}" \
 	PYTHONPATH="$(top_srcdir)/packaged/lib:$(abs_top_builddir)/packaged/lib:${PYTHONPATH}" \
-	$<
+	${PYTHON} $<
 	touch $@
 
 

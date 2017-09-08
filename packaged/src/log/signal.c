@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #ifdef __linux__
-#include <sysclass.h>
+#include <syscall.h>
 #endif
 
 #include "bxi/base/err.h"

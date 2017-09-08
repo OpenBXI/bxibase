@@ -16,6 +16,9 @@
 #include <pthread.h>
 #include <sysexits.h>
 #include <string.h>
+#ifdef __linux__
+#include <syscall.h>
+#endif
 
 #include "bxi/base/err.h"
 #include "bxi/base/mem.h"
