@@ -223,7 +223,7 @@ define([BXIDISABLE_PYTHON],[
 
 define([INIT_BXIPYTHON], [
 	#AM_PATH_PYTHON
-	PC_INIT([2.7], [2.99], , [AM_MSG_ERROR([Python not found])])
+	PC_INIT([2.7], [3.99], , [AM_MSG_ERROR([Python not found])])
 	PC_PYTHON_SITE_PACKAGE_DIR
 	#PC_PYTHON_EXEC_PACKAGE_DIR
     PC_PYTHON_CHECK_MODULE([cffi], [], [AC_MSG_ERROR(Module not found)])
