@@ -164,7 +164,7 @@ class Wrapper(object):
     _UINT8_TUPLE_ITEM_CNAME = __FFI__.typeof('uint8_t [0]').item.cname
 
     def __init__(self, cstruct):
-        super(Wrapper, self).__init__()
+        object.__init__(self)
 #        self._cstruct = cstruct
 #        _LOGGER.lowest("Wrapping: %s", cstruct)
         super(Wrapper, self).__setattr__('_cstruct', cstruct)
