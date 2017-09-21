@@ -306,13 +306,13 @@ def _flush_frame(logs, output):
         output.write("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m\n"
                      % (16 + 36 * color[0] + 6 * color[1] + color[2],
                         pkrid, process, source, logger, log))
+        dots = "." * len(timestamp)
 
         # then print all remaining lines (for the considered timestamp)
         for (level, color, pkrid, process, source, logger, log) in entries[1:]:
             lcolor = LEVEL_COLORS[level]
             output.write("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]))
-            output.write("%s|" % level)
-            output.write('.' * len(timestamp))
+            output.write("%s|%s" % (level, dots))
             output.write("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m\n"
                          % (16 + 36 * color[0] + 6 * color[1] + color[2],
                             pkrid, process, source, logger, log))
