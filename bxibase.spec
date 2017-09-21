@@ -6,7 +6,8 @@
 #TODO: define your package name
 %define name bxibase
 
-%define version 7.1.1
+# previous version 7.1.1
+%define version 8.0.0
 
 
 # Using the .snapshot suffix helps the SVN tagging process.
