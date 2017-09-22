@@ -122,15 +122,17 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
                                     ZMQ_PUSH,
                                     &tsd->data_channel[i]);
         BXIERR_CHAIN(err, err2);
+        if (tsd->data_channel[i] != NULL) {
 
-        err2 = bxizmq_zocket_setopt(tsd->data_channel[i],
-                                    ZMQ_SNDHWM,
-                                    &BXILOG__GLOBALS->config->data_hwm,
-                                    sizeof(BXILOG__GLOBALS->config->data_hwm));
-        BXIERR_CHAIN(err, err2);
+            err2 = bxizmq_zocket_setopt(tsd->data_channel[i],
+                                        ZMQ_SNDHWM,
+                                        &BXILOG__GLOBALS->config->data_hwm,
+                                        sizeof(BXILOG__GLOBALS->config->data_hwm));
+            BXIERR_CHAIN(err, err2);
 
-        err2 = bxizmq_zocket_connect(tsd->data_channel[i], url);
-        BXIERR_CHAIN(err, err2);
+            err2 = bxizmq_zocket_connect(tsd->data_channel[i], url);
+            BXIERR_CHAIN(err, err2);
+        }
 
         url = BXILOG__GLOBALS->config->handlers_params[i]->ctrl_url;
 
@@ -141,14 +143,16 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
             BXIERR_CHAIN(err, err2);
         }
 
-        err2 = bxizmq_zocket_setopt(tsd->ctrl_channel,
-                                    ZMQ_SNDHWM,
-                                    &BXILOG__GLOBALS->config->ctrl_hwm,
-                                    sizeof(BXILOG__GLOBALS->config->ctrl_hwm));
-        BXIERR_CHAIN(err, err2);
+        if (NULL != tsd->ctrl_channel) {
+            err2 = bxizmq_zocket_setopt(tsd->ctrl_channel,
+                                        ZMQ_SNDHWM,
+                                        &BXILOG__GLOBALS->config->ctrl_hwm,
+                                        sizeof(BXILOG__GLOBALS->config->ctrl_hwm));
+            BXIERR_CHAIN(err, err2);
 
-        err2 = bxizmq_zocket_connect(tsd->ctrl_channel, url);
-        BXIERR_CHAIN(err, err2);
+            err2 = bxizmq_zocket_connect(tsd->ctrl_channel, url);
+            BXIERR_CHAIN(err, err2);
+        }
 
         if (bxierr_isko(err)) bxierr_list_append(errlist, err);
     }
