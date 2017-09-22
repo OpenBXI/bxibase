@@ -19,7 +19,10 @@
 #include <signal.h>
 #include <libgen.h>
 #include <fcntl.h>
+#ifdef __linux__
 #include <execinfo.h>
+#include <sys/syscall.h>
+#endif
 #include <time.h>
 #include <errno.h>
 
@@ -28,7 +31,6 @@
 
 #include <pthread.h>
 
-#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -83,7 +85,7 @@ static bxierr_p _start_handler_thread(bxilog_handler_p handler,
                                       bxilog_handler_param_p param);
 static bxierr_p _sync_handler();
 static bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err);
-static void _setprocname();
+static void _setprocname(const char *name);
 static bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout);
 //*********************************************************************************
 //********************************** Global Variables  ****************************
@@ -614,7 +616,7 @@ bxierr_p _reset_globals() {
     }
     int rc = pthread_key_delete(BXILOG__GLOBALS->tsd_key);
     UNUSED(rc); // Nothing to do on pthread_key_delete() see man page
-    BXILOG__GLOBALS->tsd_key_once = PTHREAD_ONCE_INIT;
+    BXILOG__GLOBALS->tsd_key_once = (pthread_once_t)PTHREAD_ONCE_INIT;
     BXILOG__GLOBALS->internal_handlers_nb = 0;
     BXIFREE(BXILOG__GLOBALS->handlers_threads);
 
@@ -730,7 +732,7 @@ bxierr_p _join_handler(size_t handler_rank, bxierr_p *handler_err) {
 }
 
 
-void _setprocname(char * name) {
+void _setprocname(const char * name) {
 #ifdef __linux__
     errno = 0;
     const char * progname = NULL;
@@ -745,6 +747,7 @@ void _setprocname(char * name) {
         bxierr_report(&err, STDERR_FILENO);
     }
 #endif
+    UNUSED(name);
 }
 
 bxierr_p _zmq_str_rcv_timeout(void * zocket, char ** reply, long timeout) {

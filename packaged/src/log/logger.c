@@ -19,7 +19,6 @@
 #include <signal.h>
 #include <libgen.h>
 #include <fcntl.h>
-#include <execinfo.h>
 #include <time.h>
 #include <errno.h>
 
@@ -28,7 +27,6 @@
 
 #include <pthread.h>
 
-#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>

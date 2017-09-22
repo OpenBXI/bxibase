@@ -13,7 +13,9 @@
 
 
 #include <pthread.h>
+#ifdef __linux__
 #include <sys/syscall.h>
+#endif
 
 #include "bxi/base/zmq.h"
 

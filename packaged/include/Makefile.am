@@ -23,7 +23,7 @@ cffi_files=\
 			 bxi/base/log/thread.h\
 			 bxi/base/log/registry.h
 
-nodist_include_HEADERS=\
+nodist_nobase_include_HEADERS=\
 			 bxi/base/str.h
 
 if HAVE_SNMP_LOG
