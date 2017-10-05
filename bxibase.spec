@@ -8,7 +8,6 @@
 
 %define version 7.1.1
 
-
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
 # to get the auto_tag man file
@@ -113,6 +112,7 @@ Doxygen documentation of Bxi Basic library for high-level C and Python programmi
 %package devel
 Summary: Header files providing the bxibase API
 Requires: %{name}
+Requires: zeromq-devel
 
 %description devel
 Header files providing the bxibase API
