@@ -14,7 +14,6 @@ The summary is made by dispatching issues on different logger
 and ordering those issues.
 """
 
-from builtins import range
 import bxi.base.log as bxilog
 import bxi.base.parserconf as bxiparserconf
 
