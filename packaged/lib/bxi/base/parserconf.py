@@ -658,7 +658,8 @@ def addargs(parser,
             config_filename=DEFAULT_CONFIG_FILENAME,            # /etc/bxi/*default.conf*
             domain_name=None,                                   # /etc/bxi/*domain*.conf
             filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
-            setsighandler=True):
+            setsighandler=True,
+            version='NA'):
     """
     Add this parserconf standards arguments to the given parser
 
@@ -679,6 +680,10 @@ def addargs(parser,
     parser.add_argument('--help-full',
                         action=_FullHelpAction, default=posless.SUPPRESS,
                         help=_('Show all options and exit'))
+
+    parser.add_argument('--version',
+                        action='version',
+                        version=version)
 
 
 def getdefaultvalue(parser, sections, value, logger, default=None, config=None):
