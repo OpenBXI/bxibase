@@ -113,6 +113,7 @@ Doxygen documentation of Bxi Basic library for high-level C and Python programmi
 %package devel
 Summary: Header files providing the bxibase API
 Requires: %{name}
+Requires: zeromq-devel
 
 %description devel
 Header files providing the bxibase API
