@@ -10,11 +10,10 @@
 @namespace bxi.base.summary Python BXI Issues Summary
 
 This module provides a summary of multiple issues.
-The summary is made by dispatching issues on different logger
+The summary is made by dispatching issues on different loggers
 and ordering those issues.
 """
 
-from builtins import range
 import bxi.base.log as bxilog
 import bxi.base.parserconf as bxiparserconf
 
@@ -48,38 +47,23 @@ def addargs(parser, config=None):
 
 class Issue(object):
     '''
-    Represent an encounter error.
+    An encountered error
     '''
+
     def __init__(self,
                  name,
                  msg,
-                 details='',):
+                 details=''):
         '''
-        Build an issue.
+        Build an issue
 
         @param name of the component in error.
         @param msg describing the error
         @param details about the error
-        @return
         '''
         self.name = name
         self.details = details
         self.msg = msg
-
-    def get_name(self):
-        '''
-        Return the name of the issue
-
-        @return The name associated to the issue
-        '''
-        return self.name
-
-    def get_error(self):
-        """
-        Return the error message
-        """
-        return self.msg
-
 
 class Issues(object):
     """
@@ -240,7 +224,7 @@ class Issues(object):
         """
         Display all the errors
         """
-        for level in range(len(self.errors)):
+        for level in xrange(len(self.errors)):
             self.display(level)
 
     def display(self, level):
