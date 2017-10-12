@@ -91,6 +91,7 @@ __all__ = [
 #                                                               #
 #################################################################
 
+import six
 import collections as _collections
 import copy as _copy
 import os as _os
@@ -1152,6 +1153,54 @@ class _VersionAction(Action):
         parser.exit(message=formatter.format_help())
 
 
+class _AuthorAction(Action):
+
+    def __init__(self,
+                 option_strings,
+                 author=None,
+                 dest=SUPPRESS,
+                 default=SUPPRESS):
+        super(_AuthorAction, self).__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            nargs=0,
+            help=SUPPRESS)
+        self.author = author
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        author = self.author
+        if author is None:
+            author = parser.author
+        formatter = parser._get_formatter()
+        formatter.add_text(author)
+        parser.exit(message=formatter.format_help())
+
+
+class _BriefAction(Action):
+
+    def __init__(self,
+                 option_strings,
+                 brief=None,
+                 dest=SUPPRESS,
+                 default=SUPPRESS):
+        super(_BriefAction, self).__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            nargs=0,
+            help=SUPPRESS)
+        self.brief = brief
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        brief = self.brief
+        if brief is None:
+            brief = parser.brief
+        formatter = parser._get_formatter()
+        formatter.add_text(brief)
+        parser.exit(message=formatter.format_help())
+
+
 class _SubParsersAction(Action):
 
     class _ChoicesPseudoAction(Action):
@@ -1325,6 +1374,8 @@ class _ActionsContainer(object):
         self.register('action', 'count', _CountAction)
         self.register('action', 'help', _HelpAction)
         self.register('action', 'version', _VersionAction)
+        self.register('action', 'author', _AuthorAction)
+        self.register('action', 'brief', _BriefAction)
         self.register('action', 'parsers', _SubParsersAction)
 
         # raise an exception if the conflict handler is invalid
@@ -1687,6 +1738,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                  prog=None,
                  usage=None,
                  description=None,
+                 docstring=None, # Prefered over description, but compatible
                  epilog=None,
                  version=None,
                  parents=[],
@@ -1704,6 +1756,24 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 """Please use """
                 """"add_argument(..., action='version', version="N", ...)" """
                 """instead""", DeprecationWarning)
+
+        author = None
+        brief = None
+        if docstring is not None:
+            description = ""
+            for paragraph in docstring.strip().split("\n\n"):
+                if paragraph.startswith("@author"):
+                    # Add to AuthorAction
+                    author = paragraph.split(" ")[1]
+                elif paragraph.startswith("@brief"):
+                    # Add to BriefAction
+                    brief = paragraph.split(" ", 1)[1]
+                elif paragraph.startswith("@copyright"):
+                    # Discard copyright
+                    pass
+                else:
+                    description += "\n\n" + paragraph
+            description = description.strip()
 
         superinit = super(ArgumentParser, self).__init__
         superinit(description=description,
@@ -1750,6 +1820,15 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 action='version', default=SUPPRESS,
                 version=self.version,
                 help=_("Show program's version number and exit"))
+        if author is not None:
+            self.add_argument(default_prefix     + "A",
+                              default_prefix * 2 + "author",
+                              action="author", author=author)
+        if brief is not None:
+            self.add_argument(default_prefix     + "B",
+                              default_prefix * 2 + "brief",
+                              action="brief", brief=brief)
+
 
         # add parent arguments and defaults
         for parent in parents:
@@ -1883,7 +1962,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 if not hasattr(namespace, action.dest):
                     if action.default is not SUPPRESS:
                         default = action.default
-                        if isinstance(action.default, basestring):
+                        if isinstance(action.default, six.string_types):
                             default = self._get_value(action, default)
                         setattr(namespace, action.dest, default)
 
@@ -1903,7 +1982,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             for attr in namespace.__dict__:
                 if hasattr(namespace, attr):
                     value = getattr(namespace, attr)
-                    if isinstance(value, str):
+                    if isinstance(value, six.string_types):
                         try:
                             set_value = value % defaults_value
                         except BaseException as e:
@@ -2491,7 +2570,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 value = action.const
             else:
                 value = action.default
-            if isinstance(value, basestring):
+            if isinstance(value, six.string_types):
                 value = self._get_value(action, value)
                 self._check_value(action, value)
 

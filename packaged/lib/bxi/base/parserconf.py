@@ -12,8 +12,13 @@
 @namespace bxi.base.parserconf add basic configuration options to a posless parser
 """
 
-
 from __future__ import print_function
+try:
+    from builtins import range
+except ImportError:
+    pass
+
+from six import string_types as basestring
 
 import tempfile
 import os.path
@@ -96,7 +101,7 @@ class LogLevelsAction(posless.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         names = logging.LEVEL_NAMES
-        for i in xrange(len(names)):
+        for i in range(len(names)):
             print("%s = %s" % (i, names[i]))
         sys.exit(0)
 
@@ -125,15 +130,28 @@ class FilteredHelpFormatter(posless.HelpFormatter):
                  indent_increment=2,
                  max_help_position=24,
                  width=None):
-        super(FilteredHelpFormatter, self).__init__(prog,
-                                                    indent_increment=indent_increment,
-                                                    max_help_position=max_help_position,
-                                                    width=width)
+        superinit = super(FilteredHelpFormatter, self).__init__
+        superinit(prog, indent_increment=indent_increment,
+                  max_help_position=max_help_position, width=width)
 
     def add_argument(self, action, namespace):
         isactionprinted = FilteredHelpFormatter.getfilterfunction
         if isactionprinted(action):
             super(FilteredHelpFormatter, self).add_argument(action, namespace)
+
+
+class RawDescriptionFilteredHelpFormatter(FilteredHelpFormatter,
+                                          posless.RawDescriptionHelpFormatter):
+    """
+    Formatter for help messages, with filtering features,
+    which also preserves formatting in descriptions
+    """
+
+    def __init__(self, prog, indent_increment=2,
+                 max_help_position=24, width=None):
+        superinit = super(RawDescriptionFilteredHelpFormatter, self).__init__
+        superinit(prog, indent_increment=indent_increment,
+                  max_help_position=max_help_position, width=width)
 
 
 class HelpActionFormatted(posless._HelpAction):
@@ -142,7 +160,11 @@ class HelpActionFormatted(posless._HelpAction):
     """
     def __call__(self, parser, namespace, values,
                  option_string=None, filter_function=_defaultfiltering):
-        parser.formatter_class = FilteredHelpFormatter
+        if issubclass(parser.formatter_class,
+                      posless.RawDescriptionHelpFormatter):
+            parser.formatter_class = RawDescriptionHelpFormatter
+        else:
+            parser.formatter_class = FilteredHelpFormatter
         parser.formatter_class.getfilterfunction = filter_function
         parser.print_help(namespace=namespace)
         parser.exit()
@@ -165,9 +187,9 @@ class _LoggedHelpAction(HelpActionFormatted):
     Action used for filtering logs only options
     """
     def __call__(self, parser, namespace, values, option_string=None):
-        super(_LoggedHelpAction, self).__call__(parser, namespace, values,
-                                                option_string,
-                                                filter_function=_logfiltering)
+        supercall = super(_LoggedHelpAction, self).__call__
+        supercall(parser, namespace, values, option_string,
+                  filter_function=_logfiltering)
 
 
 @staticmethod
@@ -182,14 +204,14 @@ def _fullfiltering(action):
 
 def find_logconfigs(module_name, config):
     """
-    Return the list of configuration found in config for the bxilog handler with the
-    given module_name
+    Return the list of configuration found in config
+    for the bxilog handler with the given module_name
 
     @param[in] module_name the name of the bxilog handler
     @param[in] config the configuration
 
-    @return the list of configuration found in config for the bxilog handler with the
-    given module_name
+    @return the list of configuration found in config
+            for the bxilog handler with the given module_name
     """
     result = []
     if 'handlers' not in config:
@@ -214,9 +236,9 @@ class _FullHelpAction(HelpActionFormatted):
     Class to display the full help
     """
     def __call__(self, parser, namespace, values, option_string=None):
-        super(_FullHelpAction, self).__call__(parser, namespace, values,
-                                              option_string,
-                                              filter_function=_fullfiltering)
+        supercall = super(_FullHelpAction, self).__call__
+        supercall(parser, namespace, values, option_string,
+                  filter_function=_fullfiltering)
 
 
 def _get_config_from_file(filename):
@@ -259,11 +281,13 @@ def _get_configfile(parser,
     """
     # First, we try to fetch a configuration for the command line
     cmd_config = os.path.join(config_dir,
-                              os.path.basename(parser.prog) + cmd_config_file_suffix)
+                              os.path.basename(parser.prog)
+                              + cmd_config_file_suffix)
     if not os.path.exists(cmd_config):
         # Second we try to fetch a configuration for the domain name
         if domain_name is not None:
-            cmd_config = os.path.join(config_dir, domain_name + cmd_config_file_suffix)
+            cmd_config = os.path.join(config_dir,
+                                      domain_name + cmd_config_file_suffix)
 
         if not os.path.exists(cmd_config):
             # Third we try the default path
@@ -453,11 +477,11 @@ def _configure_log(parser):
                                metavar='log-%s-colors' % console_handler,
                                envvar='BXILOG_%s_COLORS' % console_handler.upper(),
                                default=default,
-                               choices=bxilog_consolehandler.COLORS.keys(),
+                               choices=list(bxilog_consolehandler.COLORS),
                                help="Define the logging colors for the %s handler " %
                                console_handler +
                                "Value: '%(default)s'." +
-                               " choices=%s. " % bxilog_consolehandler.COLORS.keys())
+                               " choices=%s. " % list(bxilog_consolehandler.COLORS))
 
         sections = find_logconfigs(bxilog_filehandler.__name__, config)
         for section in sections:
@@ -653,7 +677,8 @@ def addargs(parser,
             config_filename=DEFAULT_CONFIG_FILENAME,            # /etc/bxi/*default.conf*
             domain_name=None,                                   # /etc/bxi/*domain*.conf
             filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
-            setsighandler=True):
+            setsighandler=True,
+            version='NA'):
     """
     Add this parserconf standards arguments to the given parser
 
@@ -674,6 +699,10 @@ def addargs(parser,
     parser.add_argument('--help-full',
                         action=_FullHelpAction, default=posless.SUPPRESS,
                         help=_('Show all options and exit'))
+
+    parser.add_argument('--version',
+                        action='version',
+                        version=version)
 
 
 def getdefaultvalue(parser, sections, value, logger, default=None, config=None):

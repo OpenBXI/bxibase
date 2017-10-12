@@ -39,4 +39,3 @@ if __name__ == "__main__":
     bxilog.fine("A fine message")
     bxilog.trace("A trace message")
     bxilog.lowest("A lowest message")
-

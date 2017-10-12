@@ -1,14 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-@file bxilog-parser
-@authors Pierre Vignéras <pierre.vigneras@bull.net>
-@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
-           This is not Free or Open Source software.\n
-           Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
-@namespace bxilog-parser BXI logging Parser.
+@author BXIHL <bxihl@atos.net>
 
+@copyright 2016  Bull S.A.S.  -  All rights reserved.
+           This is not Free or Open Source software.
+           Please contact Bull SAS for details about its license.
+           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
 """
 
 from __future__ import print_function
@@ -58,7 +56,7 @@ LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
 #I|20160208T104136.033206346|31029.31164=46848:dvDaemon|divio_agent.c:437@lltc_receive|bxivirt.divio.agent|link on port 7 is now up
 LOGLINE_RE = re.compile(r'^(?P<level>\w+)\|'
                         '(?P<timestamp>\d+T\d+.\d+)\|'
-                        '(?P<pkrid>\d+.\d+=\d+):(?P<process>.*)\|'
+                        '(?P<pkrid>\d+.\d+=.+):(?P<process>.*)\|'
                         '(?P<source>.+:\d+@.*)\|'
                         '(?P<logger>.*)\|'
                         '(?P<logmsg>.*)$')
@@ -299,31 +297,24 @@ def _flush_frame(logs, output):
             lcolor = LEVEL_COLORS[level]
         except KeyError:
             lcolor = LEVEL_COLORS['E']
+        lcolor = 16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]
+        color  = 16 + 36 *  color[0] + 6 *  color[1] +  color[2]
         # print the first line with the timestamp
-        print("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]),
-               end='', file=output)
-        print("%s|" % level, end='', file=output)
-        print(timestamp, end='', file=output)
-        print("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m" % (16 + 36 * color[0] + 6 * color[1] + color[2],
-                                                        pkrid,
-                                                        process,
-                                                        source,
-                                                        logger,
-                                                        log), file=output)
+        output.write("\033[38;5;%dm" % lcolor)
+        output.write("%s|" % level)
+        output.write(timestamp)
+        output.write("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m\n"
+                     % (color, pkrid, process, source, logger, log))
+        dots = "." * len(timestamp)
 
         # then print all remaining lines (for the considered timestamp)
         for (level, color, pkrid, process, source, logger, log) in entries[1:]:
             lcolor = LEVEL_COLORS[level]
-            print("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]),
-               end='', file=output)
-            print("%s|" % level, end='', file=output)
-            print('.' * len(timestamp), end='', file=output)
-            print("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m" % (16 + 36 * color[0] + 6 * color[1] + color[2],
-                                                            pkrid,
-                                                            process,
-                                                            source,
-                                                            logger,
-                                                            log), file=output)
+            lcolor = 16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]
+            output.write("\033[38;5;%dm" % lcolor)
+            output.write("%s|%s" % (level, dots))
+            output.write("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m\n"
+                         % (color, pkrid, process, source, logger, log))
 
 @bxilog.multiprocessing_target
 def merger(args, q, bxilog_config):
@@ -422,10 +413,12 @@ def merger(args, q, bxilog_config):
             output.close()
 
 
-def main():
-    """Main function."""
-    parser = posless.ArgumentParser(description='BXI Log Parser',
-                                    formatter_class=bxiparserconf.FilteredHelpFormatter)
+if __name__ == '__main__':
+
+    __doc__ += "\nBXI Log Parser."
+    formatter = bxiparserconf.RawDescriptionFilteredHelpFormatter
+    parser = posless.ArgumentParser(docstring=__doc__,
+                                    formatter_class=formatter)
     bxiparserconf.addargs(parser, domain_name='bxilog')
     parser.add_argument("input", type=str, nargs='?', default='-',
                         help="The logging file. Default is '-' for standard input")
@@ -451,8 +444,3 @@ def main():
     t.daemon = False  # thread dies with the program
     t.start()
     enqueue_input(args.input, q, args.last)
-
-
-if __name__ == '__main__':
-    main()
-
