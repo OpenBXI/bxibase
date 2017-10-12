@@ -1,14 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+"""
+@author BXIHL <bxihl@atos.net>
 
-'''
-@authors Alain Cady <<alain.cady@atos.net>>
-@authors Sébastien Miquée <<sebastien.miquee@atos.net>>
-@copyright 2016  Bull S.A.S.  -  All rights reserved.\n
-           This is not Free or Open Source software.\n
-           Please contact Bull SAS for details about its license.\n
+@copyright 2016  Bull S.A.S.  -  All rights reserved.
+           This is not Free or Open Source software.
+           Please contact Bull SAS for details about its license.
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
-'''
+"""
+
 import bxi
 import bxi.base.parserconf as bxiparserconf
 import bxi.base.posless as posless
@@ -19,81 +19,103 @@ from configobj import ConfigObj
 
 _LOGGER = bxilog.getLogger(os.path.basename(sys.argv[0]))
 
+def addepilog(parser, conf):
+    """list supported variables
+    """
+    parser.epilog = 'Valid config_key are:\n   '
+    linelen = len("  ")
+    for elt in conf:
+        parser.epilog += ' ' + elt
+        linelen += len(elt) + 4
+        if linelen > 80:
+            parser.epilog += "\n   "
+            linelen = len("   ")
 
-parser = posless.ArgumentParser(description='BXI FM Configuration fetcher',
-                                formatter_class=bxiparserconf.FilteredHelpFormatter)
 
-conf_parser = posless.ArgumentParser(description='_internal',
-                                     formatter_class=bxiparserconf.FilteredHelpFormatter)
+def getvalues(config_file_obj, conf_parser):
+    """
+    retrieve actual values, considering configuration file/environment
+    @parma[in] config_file_obj configuration file where bxi modules are defines
+    @param[in] conf_parser values read in config_file_obj will be added to this parser
+    """
+    if conf_file_obj.has_key('modules'):
+        for module in conf_file_obj.get('modules'):
+            module_params = {}
+            try:
+                section = conf_file_obj.get(module)
+                section_dict = section.dict()
+                module_path = section_dict['module']
+                del section_dict['module']
+    
+                for key, value in section_dict.items():
+                    module_params[key] = eval(value)
+                __import__(module_path)
+                parser_name = eval(module_path)
+                parser_name.addargs(conf_parser, **module_params)
+            except AttributeError:
+                _LOGGER.error(
+                    "Can't find %s section in bxiconfig.conf" % module)
+            except KeyError as err:
+                _LOGGER.critical(
+                    "module value is not defined in %s section: %s", module, err)
+            except ImportError as err:
+                _LOGGER.warning(
+                    "%s. Install the corresponding package or update bxiconfig.conf to "
+                    "remove %s from the list of module to load", module, err)
+    else:
+        _LOGGER.warning(
+            "No BXI module loaded. Update bxiconfig.conf 'include' and/or 'modules' "
+            "sections to remove this warning")
 
-# Include available parsers
-bxiparserconf.addargs(parser)
-bxiparserconf.addargs(conf_parser)
 
-# retrieve actual values, considering configuration file/environment,
-# not actually parsing cmd line!
-conf = conf_parser.parse_args([])
-conf_file_obj = ConfigObj(conf.config_file)
+if __name__ == '__main__':
 
-if conf_file_obj.has_key('modules'):
-    for module in conf_file_obj.get('modules'):
-        module_params = {}
+    __doc__ += "\nBXI FM Configuration fetcher."
+    formatter = bxiparserconf.RawDescriptionFilteredHelpFormatter
+    parser = posless.ArgumentParser(docstring=__doc__,
+                                    formatter_class=formatter)
+
+    conf_parser = posless.ArgumentParser(description='_internal',
+                                         formatter_class=bxiparserconf.FilteredHelpFormatter)
+    
+    # Include available parsers
+    bxiparserconf.addargs(parser)
+    bxiparserconf.addargs(conf_parser)
+    
+    # retrieve actual values
+    conf = conf_parser.parse_args([])
+    conf_file_obj = ConfigObj(conf.config_file)
+    getvalues(conf_file_obj, conf_parser)
+
+    
+    conf = conf_parser.parse_args([])
+    # transform conf into dict
+    conf = vars(conf)
+    # fetch help string from conf_parser dict
+    helps = {v.dest: v.help for _, v in
+             conf_parser.__dict__['_option_string_actions'].items()}
+    
+    parser.add_argument('config_key', nargs='+', help='Config value(s) to fetch')
+    
+    # list supported variables
+    addepilog(parser, conf)
+
+    if 1 == len(sys.argv):
+        for key in sorted(conf):
+            _LOGGER.output('%s=%s', key, conf[key])
+    
+        sys.exit(os.EX_OK)
+    
+    # Parse the arguments
+    args = parser.parse_args()
+    selected_entries = []
+    for key in args.config_key:
         try:
-            section = conf_file_obj.get(module)
-            section_dict = section.dict()
-            module_path = section_dict['module']
-            del section_dict['module']
-
-            for key, value in section_dict.items():
-                module_params[key] = eval(value)
-            __import__(module_path)
-            parser_name = eval(module_path)
-            parser_name.addargs(conf_parser, **module_params)
-        except AttributeError:
-            _LOGGER.error(
-                "Can't find %s section in bxiconfig.conf" % module)
-        except KeyError as err:
-            _LOGGER.critical(
-                "module value is not defined in %s section: %s", module, err)
-        except ImportError as err:
-            _LOGGER.warning(
-                "%s. Install the corresponding package or update bxiconfig.conf to "
-                "remove %s from the list of module to load", module, err)
-else:
-    _LOGGER.warning(
-        "No BXI module loaded. Update bxiconfig.conf 'include' and/or 'modules' "
-        "sections to remove this warning")
-
-conf = conf_parser.parse_args([])
-# transform conf into dict
-conf = vars(conf)
-# fetch help string from conf_parser dict
-helps = {v.dest: v.help for _, v in
-         conf_parser.__dict__['_option_string_actions'].items()}
-
-parser.add_argument('config_key', nargs='+', help='Config value(s) to fetch')
-
-# list supported variables
-parser.epilog = 'Valid config_key are: '
-for elt in conf:
-    parser.epilog += ' ' + elt
-
-if 1 == len(sys.argv):
-    for key in sorted(conf):
-        _LOGGER.output('%s=%s', key, conf[key])
-
-    sys.exit(os.EX_OK)
-
-# Parse the arguments
-args = parser.parse_args()
-selected_entries = []
-for key in args.config_key:
-    try:
-        value = conf[key]
-        selected_entries.append(str(value))
-    except KeyError:
-        _LOGGER.exception("Key %s not found in configuration. Skipping.",
-                          key, level=bxilog.DEBUG)
-
-# print out gathered value of selected configuration entries
-_LOGGER.output(' '.join(selected_entries))
+            value = conf[key]
+            selected_entries.append(str(value))
+        except KeyError:
+            _LOGGER.exception("Key %s not found in configuration. Skipping.",
+                              key, level=bxilog.DEBUG)
+    
+    # print out gathered value of selected configuration entries
+    _LOGGER.output(' '.join(selected_entries))
