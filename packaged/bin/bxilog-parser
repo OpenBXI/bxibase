@@ -315,7 +315,7 @@ def _flush_frame(logs, output):
             lcolor = 16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]
             output.write("\033[38;5;%dm" % lcolor)
             output.write("%s|%s" % (level, dots))
-            output.write("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m\n"
+            output.write("|\033[38;5;%sm%s:%s|%s|%s|%s\033[39m\n"
                          % (color, pkrid, process, source, logger, log))
 
 @bxilog.multiprocessing_target
