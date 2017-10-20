@@ -6,7 +6,7 @@
 #TODO: define your package name
 %define name bxibase
 
-%define version 7.1.1
+%define version 7.1.2
 
 
 # Using the .snapshot suffix helps the SVN tagging process.
@@ -15,7 +15,7 @@
 # and to understand the SVN tagging process.
 # If you don't care, then, just starts with Bull.1.0%{?dist}.%{?revision}snapshot
 # and run 'make tag' when you want to tag.
-%define release Bull.1.0%{?dist}
+%define release Bull.1.0%{?dist}.%{?revision}snapshot
 
 # Warning: Bull's continuous compilation tools refuse the use of
 # %release in the src_dir variable!
