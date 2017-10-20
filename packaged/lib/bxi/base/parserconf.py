@@ -281,7 +281,9 @@ def _add_config(parser,
                 default_config_dirname,
                 default_config_filename,
                 domain_name,
-                cmd_config_file_suffix):
+                cmd_config_file_suffix,
+                configdir_envvar,
+                configfile_envvar):
     """
     Add the configuration options to the given parser
 
@@ -298,7 +300,7 @@ def _add_config(parser,
         config_dir_prefix = os.path.join(os.path.expanduser('~'), '.config')
 
     full_config_dir = os.path.join(config_dir_prefix, default_config_dirname)
-    full_config_dir = os.getenv('BXICONFIGDIR', full_config_dir)
+    full_config_dir = os.getenv(configdir_envvar, full_config_dir)
 
     # First, we try to fetch a configuration for the command line
     cmd_config = _get_configfile(parser, full_config_dir,
@@ -321,7 +323,7 @@ def _add_config(parser,
                                 " Value: %(default)s. "
                                 "Environment variable: %(envvar)s",
                            default=None,
-                           envvar="BXICONFIGDIR",
+                           envvar=configdir_envvar,
                            metavar="DIR")
 
         group.add_argument("-C", "--config-file",
@@ -331,7 +333,7 @@ def _add_config(parser,
                            "Value: %(default)s. "
                            "Environment variable: %(envvar)s",
                            default=None,
-                           envvar="BXICONFIGFILE",
+                           envvar=configfile_envvar,
                            metavar="FILE")
 
         known_args = target_parser.get_known_args()[0]
@@ -658,7 +660,9 @@ def addargs(parser,
             config_filename=DEFAULT_CONFIG_FILENAME,            # /etc/bxi/*default.conf*
             domain_name=None,                                   # /etc/bxi/*domain*.conf
             filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
-            setsighandler=True):
+            setsighandler=True,
+            configdir_envvar='BXICONFIGDIR',
+            configfile_envvar="BXICONFIGFILE"):
     """
     Add this parserconf standards arguments to the given parser
 
@@ -673,7 +677,9 @@ def addargs(parser,
     @return
     """
 
-    _add_config(parser, config_dirname, config_filename, domain_name, filename_suffix)
+    _add_config(parser, config_dirname, config_filename, domain_name, filename_suffix,
+                configdir_envvar,
+               configfile_envvar)
     _configure_log(parser)
 
     parser.add_argument('--help-full',
