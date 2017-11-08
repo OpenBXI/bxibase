@@ -67,7 +67,7 @@ LOG_DRIVER=$(top_srcdir)/custom-test-driver
 PY_LOG_DRIVER=PYTHONPATH=${abs_top_srcdir}/packaged/lib/:${abs_top_builddir}/packaged/lib/:${abs_top_srcdir}/tests:$${PYTHONPATH} \
 			   PATH=${abs_top_srcdir}/packaged/bin:${abs_top_srcdir}/packaged/doc/examples:${PATH}\
 			   LD_LIBRARY_PATH=${abs_top_builddir}/packaged/lib/.libs:$${LD_LIBRARY_PATH} \
-			   ${PYTHON} ${LOG_DRIVER}
+			   ${LOG_DRIVER} ${PYTHON}
 
 compile_tests:$(check_PROGRAMS)
 
