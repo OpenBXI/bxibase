@@ -17,7 +17,11 @@ from six import StringIO
 class StdIOBuffer(StringIO):
     pass
 
-from test import test_support
+try:
+    from test import test_support
+    env = test_support.EnvironmentVarGuard()
+except:
+    import test.support as test_support
 
 class TestCase(unittest.TestCase):
 
