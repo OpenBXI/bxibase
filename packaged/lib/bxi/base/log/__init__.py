@@ -201,7 +201,7 @@ ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 __names__ = __FFI__.new("char ***")
 __nb__ = __BXIBASE_CAPI__.bxilog_level_names(__names__)
 # The list of level names as a tuple
-LEVEL_NAMES = tuple(__FFI__.string(__names__[0][i]) for i in range(__nb__))
+LEVEL_NAMES = tuple(str(__FFI__.string(__names__[0][i]).decode('utf-8', 'replace')) for i in range(__nb__))
 
 LIB_PREFIX = str(__FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX))
 
@@ -242,7 +242,7 @@ def get_level_from_str(level_str):
     Return the ::bxilog_level_e related to the given string.
     """
     level_p = __FFI__.new('bxilog_level_e[1]')
-    err = __BXIBASE_CAPI__.bxilog_level_from_str(level_str.encode("utf-8", "replace"), level_p)
+    err = __BXIBASE_CAPI__.bxilog_level_from_str(level_str.encode('utf-8', 'replace'), level_p)
 
     bxierr.BXICError.raise_if_ko(err)
     return level_p[0]

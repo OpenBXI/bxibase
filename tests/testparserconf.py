@@ -259,14 +259,16 @@ class ParserConfTest(unittest.TestCase):
     def _test_logs(self, param):
         exe = os.path.join(os.path.dirname(__file__), "simple_bxilogger.py")
         
-        args = [exe]
+        args = [sys.executable, exe]
         args.extend(param)
         process = subprocess.Popen(args,
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-#         print(stdout)
-#         print(stderr)
+        stdout = stdout.decode('utf-8', 'replace')
+        stderr = stderr.decode('utf-8', 'replace')
+        #print(stdout)
+        #print(stderr)
         self.assertEquals(len(stdout.strip().split('\n')), 2) # output and notice lines
         self.assertEquals(len(stderr.strip().split('\n')), 5) # All above warning
         
@@ -275,6 +277,8 @@ class ParserConfTest(unittest.TestCase):
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
+        stdout = stdout.decode('utf-8', 'replace')
+        stderr = stderr.decode('utf-8', 'replace')
 #         print(stdout)
 #         print(stderr)
         self.assertEquals(len(stdout.strip().split('\n')), 1) # Empty line
@@ -295,7 +299,7 @@ class ParserConfTest(unittest.TestCase):
                               },
                  }
         fileconf = os.path.join(self.bxiconfigdir, 'bxilog.conf')
-        with open(fileconf, 'w') as f:
+        with open(fileconf, 'wb') as f:
             configobj.ConfigObj(config).write(f)
         self._test_logs(['--logcfgfile=%s' % fileconf])
     
@@ -309,12 +313,12 @@ class ParserConfTest(unittest.TestCase):
                               },
                  }
         fileconf = os.path.join(self.bxiconfigdir, 'bxilog.conf')
-        with open(fileconf, 'w') as f:
+        with open(fileconf, 'wb') as f:
             configobj.ConfigObj(config).write(f)
         
         globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE_KEY: fileconf}
         globalconf_file = os.path.join(self.bxiconfigdir, 'global.conf')
-        with open(globalconf_file, 'w') as f:
+        with open(globalconf_file, 'wb') as f:
             configobj.ConfigObj(globalconfig).write(f)
             
         self._test_logs(['--config-file=%s' % globalconf_file])
@@ -328,12 +332,12 @@ class ParserConfTest(unittest.TestCase):
                            },
                  }
         fileconf = os.path.join(self.bxiconfigdir, 'bxilog.conf')
-        with open(fileconf, 'w') as f:
+        with open(fileconf, 'wb') as f:
             configobj.ConfigObj(config).write(f)
         
         globalconfig = {bxiparserconf.BXILOG_DEFAULT_CONFIGFILE_KEY: fileconf}
         globalconf_file = os.path.join(self.bxiconfigdir, 'global.conf')
-        with open(globalconf_file, 'w') as f:
+        with open(globalconf_file, 'wb') as f:
             configobj.ConfigObj(globalconfig).write(f)
         
         # This one will be used
@@ -346,13 +350,13 @@ class ParserConfTest(unittest.TestCase):
                               },
                  }
         fileconf = os.path.join(self.bxiconfigdir, 'specific.log.conf')
-        with open(fileconf, 'w') as f:
+        with open(fileconf, 'wb') as f:
             configobj.ConfigObj(config).write(f)
         
         specific_config = {'include': globalconf_file,
                            bxiparserconf.BXILOG_DEFAULT_CONFIGFILE_KEY: fileconf}
         specificconf_file = os.path.join(self.bxiconfigdir, 'specific.conf')
-        with open(specificconf_file, 'w') as f:
+        with open(specificconf_file, 'wb') as f:
             configobj.ConfigObj(specific_config).write(f)
             
 #         print("Config file: %s" % specificconf_file)

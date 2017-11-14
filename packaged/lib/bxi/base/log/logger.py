@@ -193,8 +193,8 @@ class BXILogger(object):
                 err_msg = value.msg
                 err_bt = value.traceback_str
                 __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                                   err_msg, len(err_msg) + 1,
-                                                   err_bt, len(err_bt) + 1)
+                                                   err_msg.encode('utf-8', 'replace'), len(err_msg) + 1,
+                                                   err_bt.encode('utf-8', 'replace'), len(err_bt) + 1)
             else:
                 err_msg = "".join(x[:-1] for x in traceback.format_exception_only(clazz,
                                                                                   value))
@@ -221,7 +221,7 @@ class BXILogger(object):
             cause_str_len = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR_LEN
             __BXIBASE_CAPI__.bxierr_report_add(report_c,
                                                cause_str, cause_str_len,
-                                               "", len("") + 1)
+                                               "".encode('utf-8', 'replace'), len("".encode('utf-8', 'replace')) + 1)
             ei = (type(value.cause), value.cause, None)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
@@ -506,12 +506,12 @@ class BXILogger(object):
         __BXIBASE_CAPI__.bxilog_report_keep(self.clogger,
                                             level,
                                             err.bxierr_pp,
-                                            filename,
+                                            filename.encode('utf-8', 'replace'),
                                             filename_len,
-                                            funcname,
+                                            funcname.encode('utf-8', 'replace'),
                                             funcname_len,
                                             lineno,
-                                            "%s",
+                                            "%s".encode('utf-8', 'replace'),
                                             cmsg_str)
 
     @staticmethod

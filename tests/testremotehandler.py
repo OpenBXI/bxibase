@@ -12,8 +12,7 @@ import os
 import unittest
 
 import configobj
-
-import zmq
+import sys
 
 import bxi.base.log as bxilog
 import bxi.base.log.remote_receiver as remote_receiver
@@ -74,7 +73,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         logger_output_file = os.path.join(tmpdir,
                                           os.path.splitext(LOGGER_CMD)[0] + '.bxilog')
 
-        args = [full_cmd_path, logger_output_file, url, 'False', '1', str(logs_nb)]
+        args = [sys.executable, full_cmd_path, logger_output_file, url, 'False', '1', str(logs_nb)]
         bxilog.out("Executing '%s': it must produce %d logs", ' '.join(args), logs_nb)
         popen = subprocess.Popen(args)
         bxilog.out("Starting logs reception thread on %s", url)

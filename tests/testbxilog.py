@@ -17,6 +17,7 @@ import ctypes
 import multiprocessing
 import os
 import time
+import sys
 import signal
 import subprocess
 import tempfile
@@ -438,10 +439,10 @@ class BXILogTest(unittest.TestCase):
         try:
             root = bxibase.__CAPI__.bxierr_new(101, __FFI__.NULL, __FFI__.NULL,
                                                __FFI__.NULL, __FFI__.NULL,
-                                               "The root cause")
+                                               "The root cause".encode('utf-8', 'replace'))
             other = bxibase.__CAPI__.bxierr_new(102, __FFI__.NULL, __FFI__.NULL,
                                                __FFI__.NULL, root,
-                                               "Consequence")
+                                               "Consequence".encode('utf-8', 'replace'))
             bce = bxierr.BXICError(other)
             be = bxierr.BXIError("Another one", cause=bce)
             te = TestException("An exception, don't worry")
@@ -455,7 +456,7 @@ class BXILogTest(unittest.TestCase):
         """Unit test for mantis#19501"""
         fnull = open(os.devnull, 'w')
         exe = os.path.join(os.path.dirname(__file__), "simple_bxilog_user.py")
-        p = subprocess.Popen([exe], stderr=fnull)
+        p = subprocess.Popen([sys.executable, exe], stderr=fnull)
         time.sleep(0.5)
         rc = p.poll()
         self.assertIsNone(rc, None)
@@ -470,7 +471,7 @@ class BXILogTest(unittest.TestCase):
         filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'
         try:
             bxilog.out("Invoking %s. It must create file: %s", exe, filename)
-            subprocess.check_call([exe])
+            subprocess.check_call([sys.executable, exe])
         except subprocess.CalledProcessError as cpe:
             self.assertEquals(cpe.returncode, 1)
         filename = os.path.splitext(os.path.basename(exe))[0] + '.bxilog'

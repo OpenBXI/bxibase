@@ -2182,8 +2182,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                     try:
                         positionals.remove(action)
                     except ValueError:
-                        msg = ("Warning %s was already defined, "
-                               "overriding" % _get_action_name(action))
+                        msg = "Warning %s was already defined, overriding" % _get_action_name(action)
                         self.warn(msg)
 
             return
@@ -2707,10 +2706,11 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         self._print_message(self.format_version(), file)
 
     def _print_message(self, message, file=None):
-        if message:
+        if isinstance(message, six.string_types):
             if file is None:
-                file = _sys.stderr
-            file.write(message)
+                _sys.stderr.write(message)
+            else:
+                file.write(message)
 
     # ===============
     # Exiting methods
@@ -2729,7 +2729,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         If you override this in a subclass, it should not return -- it
         should either exit or raise an exception.
         """
-        self.print_usage(_sys.stderr)
+        self._print_message(self.format_usage())
         self.exit(2, _('%s: error: %s\n') % (self.prog, message))
 
     def warn(self, message):
