@@ -149,7 +149,7 @@ Test for the BXI base library
 Summary: Commands to manipulate and interact with bxilogs
 Requires: %{name}
 Requires: python-zmq >= 14.0.0
-BuildRequires: python-zmq >= 14.0.0
+BuildRequires: python%{pythonname}-zmq >= 14.0.0
 
 %description tools
 Commands to manipulate and interact with bxilogs
