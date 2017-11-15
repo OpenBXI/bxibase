@@ -27,7 +27,7 @@ def _connect(args):
 
     @param[in] args the arguments of the command line
 
-    @return a "monitoring" dictionnary mapping url to zocket
+    @return a "monitoring" dictionary mapping url to zocket
     """
     ctx = zmq.Context.instance()
     monitoring = dict()
@@ -47,7 +47,7 @@ def _get_raw_config(monitoring):
 
     @param[in] monitoring the monitoring object returned by _connect().
 
-    @return a dictionnary mapping url to raw json configuration data
+    @return a dictionary mapping url to raw json configuration data
     """
     bxilog.info("Getting configuration of %s", monitoring.keys())
 

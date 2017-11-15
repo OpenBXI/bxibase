@@ -173,7 +173,7 @@ class BXILogConfigError(BXIError):
         Create a new instance with the given message.
 
         @param[in] msg the exception message
-        @param[in] cfg the bxi log configuration as a dictionnary.
+        @param[in] cfg the bxi log configuration as a dictionary.
         """
         super(BXILogConfigError, self).__init__(msg)
         self.config = cfg
