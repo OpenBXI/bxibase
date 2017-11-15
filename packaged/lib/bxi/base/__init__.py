@@ -12,7 +12,7 @@
 """
 import sys
 import collections  # noqa
-import traceback
+from traceback import extract_tb
 from functools import total_ordering  # noqa
 
 try:
@@ -206,12 +206,12 @@ def traceback2str(trace):
     @return a string representing the backtrace
     """
     try:
-        tb = traceback.extract_tb(trace)
-        bt = []
-        for trace in tb:
-            bt.append("%s at %s:%d\n"
-                      "\t%s" % (trace[2], trace[0], trace[1], trace[3]))
-        return "\n".join(bt)
+        traceback = extract_tb(trace)
+        backtrace = []
+        for trace in traceback:
+            backtrace.append("%s at %s:%d\n\t%s"
+                             % (trace[2], trace[0], trace[1], trace[3]))
+        return "\n".join(backtrace)
     finally:
         if 'exc_clear' in sys.__dict__:
             sys.exc_clear()
