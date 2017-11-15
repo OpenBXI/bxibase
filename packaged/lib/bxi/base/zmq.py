@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-@file zmq.py C binding of usefull additionnal functions for pyzmq
+@file zmq.py C binding of useful additionnal functions for pyzmq
 @authors Jean-Noel Quintin <jean-noel.quintin@atos.net>
 @copyright 2017  Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
