@@ -109,7 +109,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
         raise NotImplementedError("Can't delete from a C array")
 
     def insert(self, value):
-        raise NotImplementedError("Can't insert from a C array")
+        raise NotImplementedError("Can't insert into a C array")
 
     def __len__(self):
         return self._len
