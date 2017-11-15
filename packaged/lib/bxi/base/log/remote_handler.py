@@ -41,7 +41,7 @@ def add_handler(configobj, section_name, c_config):
         url = url % {'prog': bxilog._PROGNAME if bxilog._PROGNAME is not None\
                                               else sys.argv[0]}
 
-    url = __FFI__.new('char[]', url)
+    url = __FFI__.new('char[]', url.encode("utf-8", "replace"))
     bind = __FFI__.cast('bool', section.as_bool('bind'))
     __BXIBASE_CAPI__.bxilog_config_add_handler(c_config,
                                                __BXIBASE_CAPI__.BXILOG_REMOTE_HANDLER,

@@ -117,7 +117,15 @@ This is automatically done in Python.
 a simple workaround: See bxi.base.log::multiprocessing_target for details.**
 
 """
+
 from __future__ import print_function
+try:
+    from builtins import range
+except ImportError:
+    pass
+
+import six
+
 import atexit
 import os
 import sys
@@ -125,7 +133,7 @@ import warnings
 import unittest
 import tempfile
 import traceback
-import cStringIO as StringIO
+from six import StringIO
 from pkgutil import extend_path
 import configobj
 
@@ -193,9 +201,9 @@ ALL = __BXIBASE_CAPI__.BXILOG_LOWEST
 __names__ = __FFI__.new("char ***")
 __nb__ = __BXIBASE_CAPI__.bxilog_level_names(__names__)
 # The list of level names as a tuple
-LEVEL_NAMES = tuple(__FFI__.string(__names__[0][i]) for i in xrange(__nb__))
+LEVEL_NAMES = tuple(str(__FFI__.string(__names__[0][i]).decode('utf-8', 'replace')) for i in range(__nb__))
 
-LIB_PREFIX = __FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX)
+LIB_PREFIX = str(__FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX))
 
 
 # If True,  bxilog_init() has already been called
@@ -234,7 +242,7 @@ def get_level_from_str(level_str):
     Return the ::bxilog_level_e related to the given string.
     """
     level_p = __FFI__.new('bxilog_level_e[1]')
-    err = __BXIBASE_CAPI__.bxilog_level_from_str(level_str, level_p)
+    err = __BXIBASE_CAPI__.bxilog_level_from_str(level_str.encode('utf-8', 'replace'), level_p)
 
     bxierr.BXICError.raise_if_ko(err)
     return level_p[0]
@@ -264,7 +272,8 @@ the first _init() call  was made: %s""" % _INIT_CALLER, config)
     global _CONFIG  # pylint: disable=locally-disabled, global-statement
     _CONFIG = config
     global _PROGNAME  # pylint: disable=locally-disabled, global-statement
-    _PROGNAME = progname
+    if progname is not None:
+        _PROGNAME = progname
 
 
 def get_config():
@@ -345,9 +354,9 @@ def init():
 
     from . import config as bxilogconfig
 
-    c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME)
+    c_config = __BXIBASE_CAPI__.bxilog_config_new(_PROGNAME.encode("utf-8", "replace"))
 
-    if isinstance(_CONFIG['handlers'], basestring):
+    if isinstance(_CONFIG['handlers'], six.string_types):
         handlers = [_CONFIG['handlers']]
     else:
         handlers = _CONFIG['handlers']
@@ -369,7 +378,7 @@ def init():
     # Make sure _INITIALIZED is True before raising the exception in order to ensure
     # bxilog_init is not call recursively.
     _INITIALIZED = True
-    sio = StringIO.StringIO()
+    sio = StringIO()
     traceback.print_stack(file=sio)
     _INIT_CALLER = sio.getvalue()
     sio.close()
@@ -401,7 +410,7 @@ def get_logger(name):
             return logger
 
     logger_p = __FFI__.new('bxilog_logger_p[1]')
-    err_p = __BXIBASE_CAPI__.bxilog_registry_get(name, logger_p)
+    err_p = __BXIBASE_CAPI__.bxilog_registry_get(name.encode("utf-8"), logger_p)
     bxierr.BXICError.raise_if_ko(err_p)
 
     from . import logger as bxilogger
@@ -445,7 +454,7 @@ def get_all_loggers_iter():
     nb = __BXIBASE_CAPI__.bxilog_registry_getall(loggers)
     loggers_array = __FFI__.gc(loggers[0], __BXIBASE_CAPI__.free)
     from . import logger as bxilogger
-    for i in xrange(nb):
+    for i in range(nb):
         yield bxilogger.BXILogger(loggers_array[i])
 
 
@@ -836,7 +845,7 @@ class FileLike(object):
         if self.buf is None:
             self.buf = string
         else:
-            # Yes, we use '+' instead of StringIO, format or other tuning
+            # Yes, we use '+' instead of BytesIO, format or other tuning
             # since:
             #        1. we do not expect *lots* of write() call without '\n' and
             #           for such few number of operations, the difference is

@@ -1,6 +1,7 @@
 # PosLess unitesting: extending the original argparse test suite
 # Writen by Steven J. Bethard <steven.bethard@gmail.com>.
 
+import six
 import codecs
 import inspect
 import os
@@ -12,12 +13,17 @@ import tempfile
 import unittest
 import bxi.base.posless as posless
 
-from StringIO import StringIO
+from io import BytesIO
 
-class StdIOBuffer(StringIO):
+class StdIOBuffer(BytesIO):
     pass
 
-from test import test_support
+try:
+    from test import test_support
+    test_support.EnvironmentVarGuard()
+except:
+    from test import support as test_support
+
 
 class TestCase(unittest.TestCase):
 
@@ -52,7 +58,7 @@ class TempDirMixin(object):
 
     def create_readonly_file(self, filename):
         file_path = os.path.join(self.temp_dir, filename)
-        with open(file_path, 'w') as file:
+        with open(file_path, 'wb') as file:
             file.write(filename)
         os.chmod(file_path, stat.S_IREAD)
 
@@ -96,7 +102,7 @@ def stderr_to_parser_error(parse_args, *args, **kwargs):
     # if this is being called recursively and stderr or stdout is already being
     # redirected, simply call the function and let the enclosing function
     # catch the exception
-    if isinstance(sys.stderr, StdIOBuffer) or isinstance(sys.stdout, StdIOBuffer):
+    if isinstance(sys.stderr, StdIOBuffer) and isinstance(sys.stdout, StdIOBuffer):
         return parse_args(*args, **kwargs)
 
     # if this is not being called recursively, redirect stderr and
@@ -241,7 +247,7 @@ class ParserTesterMetaclass(type):
             def test_successes(self, tester):
                 parser = self._get_parser(tester)
                 for args, expected_ns in tester.successes:
-                    if isinstance(args, str):
+                    if isinstance(args, six.string_types):
                         args = args.split()
                     result_ns = self._parse_args(parser, args)
                     tester.assertEqual(expected_ns, result_ns)

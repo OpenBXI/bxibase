@@ -58,7 +58,7 @@ LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
 #I|20160208T104136.033206346|31029.31164=46848:dvDaemon|divio_agent.c:437@lltc_receive|bxivirt.divio.agent|link on port 7 is now up
 LOGLINE_RE = re.compile(r'^(?P<level>\w+)\|'
                         '(?P<timestamp>\d+T\d+.\d+)\|'
-                        '(?P<pkrid>\d+.\d+=\d+):(?P<process>.*)\|'
+                        '(?P<pkrid>\d+.\d+=.+):(?P<process>.*)\|'
                         '(?P<source>.+:\d+@.*)\|'
                         '(?P<logger>.*)\|'
                         '(?P<logmsg>.*)$')
@@ -210,7 +210,7 @@ def _back_in_time(log, last_seen, MAX_MULTILINE_LOG_TIME):
         if ts < ts_limit:
             break
         last_pos = pos
-    
+
     return last_pos
 
 def _start_from_last_level(name, level_str, n):
@@ -241,13 +241,13 @@ def _start_from_last_level(name, level_str, n):
             found += 1
         _LOGGER_PARSER.debug("Seeking to %s", last_seen)
         if last_seen != -1:
-            # We find last line with the pattern. However such a log might hold 
+            # We find last line with the pattern. However such a log might hold
             # multiple lines. We must start from the first line of a possibly
             # multilog line message. All such lines starts with exactly the same pattern
             # E|same-date|same-process|same-line|same-logger|might-be-different
             # A good trick is to suppose that a multi-line message is not processed in less
-            # than MAX_MULTILINE_LOG_TIME. Therefore, we 
-            # continue to seek in the file back in time up to MAX_MULTILINE_LOG_TIME 
+            # than MAX_MULTILINE_LOG_TIME. Therefore, we
+            # continue to seek in the file back in time up to MAX_MULTILINE_LOG_TIME
             back = _back_in_time(log, last_seen, MAX_MULTILINE_LOG_TIME)
             log.seek(back, os.SEEK_SET)
         else:
@@ -299,31 +299,24 @@ def _flush_frame(logs, output):
             lcolor = LEVEL_COLORS[level]
         except KeyError:
             lcolor = LEVEL_COLORS['E']
+        lcolor = 16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]
+        color  = 16 + 36 *  color[0] + 6 *  color[1] +  color[2]
         # print the first line with the timestamp
-        print("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]),
-               end='', file=output)
-        print("%s|" % level, end='', file=output)
-        print(timestamp, end='', file=output)
-        print("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m" % (16 + 36 * color[0] + 6 * color[1] + color[2],
-                                                        pkrid,
-                                                        process,
-                                                        source,
-                                                        logger,
-                                                        log), file=output)
+        output.write("\033[38;5;%dm" % lcolor)
+        output.write("%s|" % level)
+        output.write(timestamp)
+        output.write("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m\n"
+                     % (color, pkrid, process, source, logger, log))
+        dots = "." * len(timestamp)
 
         # then print all remaining lines (for the considered timestamp)
         for (level, color, pkrid, process, source, logger, log) in entries[1:]:
             lcolor = LEVEL_COLORS[level]
-            print("\033[38;5;%dm" % (16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]),
-               end='', file=output)
-            print("%s|" % level, end='', file=output)
-            print('.' * len(timestamp), end='', file=output)
-            print("|\033[38;5;%dm%s:%s|%s|%s|%s\033[39m" % (16 + 36 * color[0] + 6 * color[1] + color[2],
-                                                            pkrid,
-                                                            process,
-                                                            source,
-                                                            logger,
-                                                            log), file=output)
+            lcolor = 16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]
+            output.write("\033[38;5;%dm" % lcolor)
+            output.write("%s|%s" % (level, dots))
+            output.write("|\033[38;5;%sm%s:%s|%s|%s|%s\033[39m\n"
+                         % (color, pkrid, process, source, logger, log))
 
 @bxilog.multiprocessing_target
 def merger(args, q, bxilog_config):
@@ -331,7 +324,7 @@ def merger(args, q, bxilog_config):
     Merge lines coming from the given queue 'q' and outputs the result.
     """
     bxilog.set_config(bxilog_config, progname="bxilog-parser.merger")
-    output = sys.stdout if args.output == '-' else open(args.output, 'w') 
+    output = sys.stdout if args.output == '-' else open(args.output, 'w')
     frame_size = timedelta(seconds=args.frame)
     flush_limit = args.flush_limit
     before_logs = dict()
@@ -455,4 +448,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

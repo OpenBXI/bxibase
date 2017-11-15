@@ -39,4 +39,5 @@ if __name__ == '__main__':
 
     with open(filename) as f:
         lines = f.readlines()
+        print(lines[-1])
         assert lines[-1].endswith("An unexpected exception in subprocess\n")

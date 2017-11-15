@@ -13,7 +13,8 @@ Simple program for unit tests of BXI Log Python library.
 See testbxilog.py for details.
 """
 
-import os, time, signal
+
+import os
 
 import bxi.base.log as bxilog
 

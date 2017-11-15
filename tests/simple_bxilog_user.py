@@ -13,7 +13,7 @@ Simple program for unit tests of BXI Log Python library.
 See testbxilog.py for details.
 """
 
-import os, time, signal
+import os, time
 
 import bxi.base.log as bxilog
 
@@ -23,7 +23,9 @@ basename = os.path.basename(__main__.__file__)
 FILENAME = "%s.bxilog" % os.path.splitext(basename)[0]
 
 if __name__ == "__main__":
-    bxilog.basicConfig(filename=FILENAME)
+    bxilog.basicConfig(filename=FILENAME,
+                       level=bxilog.LOWEST,
+                      )
 
     bxilog.output("Logging a message")
     while True:

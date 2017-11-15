@@ -12,12 +12,16 @@ import tempfile
 import unittest
 import bxi.base.posless as posless
 
-from StringIO import StringIO
+from six import StringIO
 
 class StdIOBuffer(StringIO):
     pass
 
-from test import test_support
+try:
+    from test import test_support
+    env = test_support.EnvironmentVarGuard()
+except:
+    import test.support as test_support
 
 class TestCase(unittest.TestCase):
 
@@ -631,7 +635,7 @@ class TestOptionalsChoices(ParserTestCase):
 
     argument_signatures = [
         Sig('-f', choices='abc'),
-        Sig('-g', type=int, choices=range(5))]
+        Sig('-g', type=int, choices=list(range(5)))]
     failures = ['a', '-f d', '-fad', '-ga', '-g 6']
     successes = [
         ('', NS(f=None, g=None)),
@@ -1134,7 +1138,7 @@ class TestPositionalsChoicesString(ParserTestCase):
 class TestPositionalsChoicesInt(ParserTestCase):
     """Test a set of integer choices"""
 
-    argument_signatures = [Sig('spam', type=int, choices=range(20))]
+    argument_signatures = [Sig('spam', type=int, choices=list(range(20)))]
     failures = ['', '--foo', 'h', '42', 'ef']
     successes = [
         ('4', NS(spam=4)),
@@ -4656,7 +4660,7 @@ class TestImportStar(TestCase):
     def test_all_exports_everything_but_modules(self):
         items = [
             name
-            for name, value in vars(posless).items()
+            for name, value in list(vars(posless).items())
             if not name.startswith("_")
             if not inspect.ismodule(value)
         ]

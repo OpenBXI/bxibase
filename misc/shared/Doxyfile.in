@@ -638,7 +638,7 @@ SHOW_NAMESPACES        = YES
 # by doxygen. Whatever the program writes to standard output is used as the file
 # version. For an example see the documentation.
 
-FILE_VERSION_FILTER    = svnversion
+FILE_VERSION_FILTER    = "git -C @top_srcdir@ log -n 1 --pretty=format:'@PACKAGE_NAME@ '%ci -- #"
 
 # The LAYOUT_FILE tag can be used to specify a layout file which will be parsed
 # by doxygen. The layout file controls the global structure of the generated
@@ -1789,14 +1789,14 @@ XML_OUTPUT             = xml
 # The XML_SCHEMA tag can be used to specify a XML schema, which can be used by a
 # validating XML parser to check the syntax of the XML files.
 # This tag requires that the tag GENERATE_XML is set to YES.
-
-XML_SCHEMA             = 
+# Tag `XML_SCHEMA' has become obsolete. To avoid this warning, remove this line from configuration file.
+#XML_SCHEMA             =  
 
 # The XML_DTD tag can be used to specify a XML DTD, which can be used by a
 # validating XML parser to check the syntax of the XML files.
 # This tag requires that the tag GENERATE_XML is set to YES.
-
-XML_DTD                = 
+# Tag `XML_DTD' has become obsolete. To avoid this warning, remove this line from configuration file.
+#XML_DTD                = 
 
 # If the XML_PROGRAMLISTING tag is set to YES doxygen will dump the program
 # listings (including syntax highlighting and cross-referencing information) to

@@ -1,14 +1,9 @@
-/* -*- coding: utf-8 -*-
- ########################################################################################
- # Author: First Last <first.last@bull.net>
- # Created on: YYYY/MM/DD
- # Contributors:
- ########################################################################################
- # Copyright (C) YYYY  Bull S. A. S.  -  All rights reserved
- # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
- # This is not Free or Open Source software.
- # Please contact Bull S. A. S. for details about its license.
- ########################################################################################
+/** -*- coding: utf-8 -*-
+ * @authors: First Last <first.last@bull.net>
+ * @copyright 2014 - 2016  Bull S.A.S.  -  All rights reserved.\n
+ *            This is not Free or Open Source software.\n
+ *            Please contact Bull SAS for details about its license.\n
+ *            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois\n
  */
 
 
@@ -56,23 +51,23 @@ SET_LOGGER(MY_LOGGER, "my.logger");
 //***************************************************************************************
 
 // * For what purpose?
-struct something_s {}; 			  // The related .h will define:
-					  // typedef something_s * something_p;
-					  // We almost always use pointer
+struct something_s {}; // The related .h will define:
+                       // typedef something_s * something_p;
+                       // We almost always use pointer
 
 //***************************************************************************************
 //********************************  Static Functions  ***********************************
 //***************************************************************************************
 
 // * Quick description
-static int _static_fct(); 		// Note: should be underscored!
+static int _static_fct(); // Note: should be underscored!
 
 //***************************************************************************************
 //*******************************  Global Variables  ************************************
 //***************************************************************************************
 
 // * For what purpose?
-char * GLOB = "A VALUE";			// In CAPS!
+char * GLOB = "A VALUE"; // In CAPS!
 
 //***************************************************************************************
 //********************************  Implementation  *************************************

@@ -15,12 +15,21 @@ import collections  # noqa
 import traceback
 from functools import total_ordering  # noqa
 
+try:
+    from builtins import range
+except ImportError:
+    pass
+
 # pylint: disable=I0011,C0413,C0411,W0221
 # Try to find other BXI packages in other folders
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
-from bxi.base.cffi_h import ffi
+try:
+    from bxi.base.cffi_h import ffi
+except ImportError as e:
+    raise type(e)(e.message + "\n\nPackage bxi.base.cffi_h is missing. "
+                            + "It should be generated with bximake.")
 
 
 __FFI__ = ffi
@@ -53,7 +62,7 @@ class SequenceSliceImplMixin(object):
         size = len(self)
         if isinstance(val, slice):
             # Get the start, stop, and step from the slice
-            return [self.__raw_getitem__(i) for i in xrange(*val.indices(size))]
+            return [self.__raw_getitem__(i) for i in range(*val.indices(size))]
         elif isinstance(val, int):
             if val < 0:  # Handle negative indices
                 val += size
@@ -107,7 +116,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
 
     def __hash__(self):
         result = 0
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             result += self[i]
         return result
 
@@ -117,7 +126,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
         @param seq tuple to copy
         @return
         """
-        for i in xrange(len(seq)):
+        for i in range(len(seq)):
             self[i] = seq[i]
 
     def __str__(self):
@@ -129,7 +138,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
 
         if len(self) != len(other):
             return False
-        for i in xrange(len(other)):
+        for i in range(len(other)):
             if self[i] != other[i]:
                 return False
         return True
@@ -138,7 +147,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
         return not self == other
 
     def __lt__(self, other):
-        for i in xrange(len(other)):
+        for i in range(len(other)):
             if self[i] >= other[i]:
                 return False
         return True
@@ -155,7 +164,7 @@ class Wrapper(object):
     _UINT8_TUPLE_ITEM_CNAME = __FFI__.typeof('uint8_t [0]').item.cname
 
     def __init__(self, cstruct):
-        super(Wrapper, self).__init__()
+        object.__init__(self)
 #        self._cstruct = cstruct
 #        _LOGGER.lowest("Wrapping: %s", cstruct)
         super(Wrapper, self).__setattr__('_cstruct', cstruct)
@@ -207,4 +216,5 @@ def traceback2str(trace):
                       "\t%s" % (trace[2], trace[0], trace[1], trace[3]))
         return "\n".join(bt)
     finally:
-        sys.exc_clear()
+        if 'exc_clear' in sys.__dict__:
+            sys.exc_clear()

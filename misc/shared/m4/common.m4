@@ -7,7 +7,6 @@ define([REPLACE_BRIEF],[
 
 
 define([ADD_BXISYSTEMD],[
-       PKG_PROG_PKG_CONFIG
        AC_PROG_SED
        AC_ARG_WITH([systemdsysdir],
                         [AS_HELP_STRING([--with-systemdsysdir=DIR],
@@ -37,6 +36,7 @@ define([INIT_BXIPRODUCT], [
 	AC_CONFIG_HEADERS([template_config.h])
 	AC_CONFIG_FILES([template_version.py])
 	AM_INIT_AUTOMAKE([foreign subdir-objects])
+    PKG_PROG_PKG_CONFIG
 
 	if test "$2" = "systemd"
 	then
@@ -223,7 +223,7 @@ define([BXIDISABLE_PYTHON],[
 
 define([INIT_BXIPYTHON], [
 	#AM_PATH_PYTHON
-	PC_INIT([2.7], [2.99], , [AM_MSG_ERROR([Python not found])])
+	PC_INIT([2.7], [3.99], , [AM_MSG_ERROR([Python not found])])
 	PC_PYTHON_SITE_PACKAGE_DIR
 	#PC_PYTHON_EXEC_PACKAGE_DIR
     PC_PYTHON_CHECK_MODULE([cffi], [], [AC_MSG_ERROR(Module not found)])

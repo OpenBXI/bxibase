@@ -54,7 +54,7 @@
 AC_LANG_DEFINE([Python], [py], [PY], [PYTHON], [],
 [ac_ext=py
 ac_compile='chmod +x conftest.$ac_ext >&AS_MESSAGE_LOG_FD'
-ac_link='chmod +x conftest.$ac_ext && cp conftest.$ac_ext conftest >&AS_MESSAGE_LOG_FD'
+ac_link='chmod +x conftest.$ac_ext && cp conftest.$ac_ext conftest$ac_exeext >&AS_MESSAGE_LOG_FD'
 ])
 
 
