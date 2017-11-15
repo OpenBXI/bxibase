@@ -68,6 +68,8 @@ AC_CHECK_FUNCS([gethostname memset mkdir pow strdup strtol])
 
 SUBPACKAGES="debuginfo doc devel tests tools"
 AC_SUBST([SUBPACKAGES])
+SPECIALPACKAGES="python[[0-9]]*-[\${name}] python[[0-9]]*-[\${name}]-devel"
+AC_SUBST([SPECIALPACKAGES])
 AC_BXIEXTRA_DIST="h2py.sh"
 AC_SUBST([AC_BXIEXTRA_DIST])
 #TODO add the pc.in file

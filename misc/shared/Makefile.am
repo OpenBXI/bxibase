@@ -56,7 +56,7 @@ srelease=$(shell rpm --define='revision $${revision}.' --eval=$(raw_release))
 release=$(shell rpm  --define='revision $${revision}.' --eval=$(raw_release))
 arch=$(shell awk '/^BuildArch/ {print $$NF}' $(specfile))
 pkg_dir= $(name)-$(version)
-sub_pkgs_dir= $(addsuffix -$(version), $(addprefix $(name)-, ${SUBPACKAGES}))
+sub_pkgs_dir= $(addsuffix -$(version), $(addprefix $(name)-, ${SUBPACKAGES})) $(addsuffix -$(version), ${SPECIALPACKAGES})
 tarall= $(pkg_dir).tar.gz
 spackage_name=$(pkg_dir)-$(srelease)
 package_name=$(pkg_dir)-$(release)
