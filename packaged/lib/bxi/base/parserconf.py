@@ -729,11 +729,11 @@ def getdefaultvalue(parser, sections, value, logger, default=None, config=None):
     """
     def _return_dict_value(config, _sections):
         """
-        Return the dictionnary corresponding to the given _sections
+        Return the dictionary corresponding to the given _sections
 
         @param[in] config the configuration
         @param[in] _sections _sections in the configuration
-        @return the dictionnary corresponding to the given _sections
+        @return the dictionary corresponding to the given _sections
         """
         try:
             if len(_sections) > 1:
