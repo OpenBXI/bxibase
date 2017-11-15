@@ -1,4 +1,4 @@
-C lacks a standard SDK that provides usefull libraries for standard stuff such as:
+C lacks a standard SDK that provides useful libraries for standard stuff such as:
 
 - logging
 - config file parsing

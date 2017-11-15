@@ -389,7 +389,7 @@ bxierr_p bxizmq_data_snd(const void * data, size_t size, void * zocket,
  * @param retries_max the number of maximum retries
  * @param delay_ns the maximum number of nanoseconds to wait between two retries
  * @param ffn the function to use to free the data after it has been sent
- * @param hint any data usefull for the given function `ffn`
+ * @param hint any data useful for the given function `ffn`
  *
  * @return BXIERR_OK on success
  * @see bxizmq_msg_snd()
