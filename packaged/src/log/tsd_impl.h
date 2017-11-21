@@ -35,7 +35,7 @@ struct tsd_s {
     size_t sum_log_size;
 
     char *  log_buf;                 // The per-thread log buffer
-    void ** data_channel;             // The thread-specific zmq logging socket;
+    void * data_channel;             // The thread-specific zmq logging socket;
     void *  ctrl_channel;             // The thread-specific zmq controlling socket;
 #ifdef __linux__
     pid_t tid;                      // Cache the tid on Linux since we assume NPTL
