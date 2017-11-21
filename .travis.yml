@@ -12,9 +12,9 @@ compiler:
 before_install:
         - sudo apt-get update -qq
         - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python3-pip python-pip libcunit1 libcunit1-dev valgrind
-        - sudo $TRAVIS_PYTHON -mpip install cffi configobj coverage
+        - CC=gcc sudo $TRAVIS_PYTHON -mpip install cffi configobj coverage
         - CC=gcc sudo ./misc/travis/install-dependencies.sh
-        - sudo $TRAVIS_PYTHON -mpip install  pyzmq
+        - CC=gcc sudo $TRAVIS_PYTHON -mpip install  pyzmq
 install:
         - ./bootstrap.sh
 
