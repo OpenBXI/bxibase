@@ -1,8 +1,8 @@
 language:
         - c
 env:
-        - TRAVIS_PYTHON=/usr/bin/python2
-        - TRAVIS_PYTHON=/usr/bin/python3
+        - TRAVIS_PYTHON=python2
+        - TRAVIS_PYTHON=python3
 dist: trusty
 sudo: required
 compiler:
@@ -19,6 +19,6 @@ install:
         - ./bootstrap.sh
 
 script:
-	- ./configure PYTHON=$TRAVIS_PYTHON
-	- make
-	- make check
+        - ./configure PYTHON=$(which $TRAVIS_PYTHON)
+        - make
+        - make check
