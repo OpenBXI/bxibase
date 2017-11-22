@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# pylint: disable=locally-disabled, invalid-name
 """
 @author BXIHL <bxihl@atos.net>
 
@@ -8,37 +7,37 @@
            This is not Free or Open Source software.
            Please contact Bull SAS for details about its license.
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+
+Generate fake BXI logs (for debugging purpose)
 """
 
-import bxi.base.log as logging
-import bxi.base.posless as posless
-import bxi.base.parserconf as bxiparserconf
 import time
 import random
 import warnings
+import bxi.base.log as logging
+import bxi.base.posless as posless
+import bxi.base.parserconf as bxiparserconf
 
-levels = xrange(logging.OFF, logging.LOWEST + 1)
-kinds = ['singleline', 'singleline', 'singleline', 'singleline',
+LEVELS = xrange(logging.OFF, logging.LOWEST + 1)
+KINDS = ['singleline', 'singleline', 'singleline', 'singleline',
          'singleline', 'singleline', 'singleline', 'singleline',
          'multiline', 'multiline', 'multiline', 'multiline',
          'warning', 'warning', 'warning',
          'exception', 'exception']
-loggers = ['', 'org', 'com', 'edu',
+LOGGERS = ['', 'org', 'com', 'edu',
            'org.linux', 'org.wiki', 'org.other', 'com.acme', 'com.stuff', 'edu.it',
            'org.linux.www', 'org.linux.nfs', 'org.wiki.www', 'org.wiki.ldap',
            'org.other.www', 'com.acme.www', 'com.acme.nfs', 'com.stuff.ldap',
            'edu.it.nfs']
 
 ###############################################################################
-if __name__ == '__main__':
-
-    __doc__ += "\nBXI Log Producer."
+def __main__():
     formatter = bxiparserconf.RawDescriptionFilteredHelpFormatter
     parser = posless.ArgumentParser(docstring=__doc__,
                                     formatter_class=formatter)
     bxiparserconf.addargs(parser, domain_name='bxilog')
     parser.add_argument("--time", type=float, default=float('inf'),
-                        help="How many time should we produce logs in seconds"
+                        help="Number of seconds during which to produce logs"
                         " ('inf' means infinity). Default: %(default)s")
     parser.add_argument("--max-delay-s", type=float, default=0,
                         help="How many time should we wait maximum between two logs."
@@ -54,9 +53,9 @@ if __name__ == '__main__':
         if now - start > args.time:
             logging.out("Elapsed time: %s", now - start)
             break
-        level = random.choice(levels)
-        kind = random.choice(kinds)
-        logger = logging.get_logger(random.choice(loggers))
+        level = random.choice(LEVELS)
+        kind = random.choice(KINDS)
+        logger = logging.get_logger(random.choice(LOGGERS))
         if kind is 'singleline':
             logger.log(level, "A logging message at level %s", level_names[level])
         elif kind is 'multiline':
@@ -74,3 +73,6 @@ if __name__ == '__main__':
                 logger.exception("Just checking bxilog, everything is normal, "
                                  "don't worry")
         time.sleep(args.max_delay_s)
+
+if __name__ == "__main__":
+    __main__()

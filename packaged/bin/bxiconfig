@@ -12,13 +12,14 @@
 
 BXI Configuration fetcher
 """
-import bxi
+
+import sys
+import os
+
+from configobj import ConfigObj
 import bxi.base.parserconf as bxiparserconf
 import bxi.base.posless as posless
 import bxi.base.log as bxilog
-import sys
-import os
-from configobj import ConfigObj
 
 _LOGGER = bxilog.getLogger(os.path.basename(sys.argv[0]))
 
@@ -72,7 +73,6 @@ def getvalues(config_file_obj, conf_parser):
 
 
 def __main__():
-    __doc__ += "\nBXI FM Configuration fetcher."
     formatter = bxiparserconf.RawDescriptionFilteredHelpFormatter
     parser = posless.ArgumentParser(docstring=__doc__,
                                     formatter_class=formatter)

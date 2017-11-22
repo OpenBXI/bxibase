@@ -1,13 +1,14 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# pylint: disable=locally-disabled, invalid-name
 """
-@author BXIHL <bxihl@atos.net>
-
 @copyright 2016  Bull S.A.S.  -  All rights reserved.
            This is not Free or Open Source software.
            Please contact Bull SAS for details about its license.
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+
+@namespace bxilog-console Monitoring console of a bxilog process
+
+BXI log console
 """
 
 import time
@@ -30,7 +31,7 @@ def _connect(args):
     ctx = zmq.Context.instance()
     monitoring = dict()
     for url in args.bxilog_remote_handler_url:
-        zock = ctx.socket(zmq.DEALER)
+        zock = ctx.socket(zmq.DEALER) # Blame ZMQ, pylint: disable=no-member
         if args.bind:
             zock.bind(url)
         else:
@@ -59,33 +60,31 @@ def _get_raw_config(monitoring):
     return result
 
 
-def _get_config(monitoring, args):
+def _get_config(monitoring):
     """
     Output the configuration from the given monitoring
 
     @param[in] monitoring the object returned by _connect()
     @param[in] args arguments from the command line parser
-
     """
     result = _get_raw_config(monitoring)
     for url in result:
         data = result[url]
         global_ = data['global']
-        bxilog.output("%s: %s",
-                      url,
-                      ", ".join("%s: %s" % (str(k), str(v)) for k, v in global_.items()))
+        bxilog.output("%s: %s", url,
+                      ", ".join("%s: %s" % (str(k), str(v))
+                                for k, v in global_.items()))
 
 
-def _set_config(monitoring, args):
-    pass
+def _set_config(monitoring):
+    del monitoring
 
 
-def _get_handlers(monitoring, args):
+def _get_handlers(monitoring):
     """
     Output the set of logging handlers from the given monitoring
 
     @param[in] monitoring the object returned by _connect()
-    @param[in] args arguments from the command line parser
     """
     result = _get_raw_config(monitoring)
     for url in result:
@@ -100,8 +99,7 @@ def _get_handlers(monitoring, args):
                           ", ".join("%s: %s" % (str(k), str(v))
                                     for k, v in handler.items()))
 
-
-def _get_loggers(monitoring, args):
+def _get_loggers(monitoring):
     """
     Output the set of loggers from the given monitoring
 
@@ -112,14 +110,12 @@ def _get_loggers(monitoring, args):
     for url in result:
         data = result[url]
         loggers = data['loggers']
-    for logger in sorted(loggers, key=lambda x: x['name']):
-        name = logger['name']
-        del logger['name']
-        bxilog.output("%s/logger-name='%s': %s",
-                      str(url),
-                      str(name),
-                      ", ".join("%s: %s" % (str(k), str(v)) for k, v in logger.items()))
-
+        for logger in sorted(loggers, key=lambda x: x['name']):
+            name = logger['name']
+            del logger['name']
+            bxilog.output("%s/logger-name='%s': %s", str(url), str(name),
+                          ", ".join("%s: %s" % (str(k), str(v))
+                                    for k, v in logger.items()))
 
 def _monitor(monitoring, args):
     """
@@ -142,15 +138,14 @@ def _monitor(monitoring, args):
     # Do something better here! Instead of sleeping
     time.sleep(2 ** 32)
 
+
 _ACTIONS = {'get-config': _get_config,
             'get-handlers': _get_handlers,
             'get-loggers': _get_loggers,
             'monitor': _monitor,}
 
 
-if __name__ == '__main__':
-
-    __doc__ += "\nBXI Log Console."
+def __main__():
     formatter = bxiparserconf.RawDescriptionFilteredHelpFormatter
     parser = posless.ArgumentParser(docstring=__doc__,
                                     formatter_class=formatter)
@@ -171,3 +166,6 @@ if __name__ == '__main__':
     monitoring_ = _connect(args_)
 
     _ACTIONS[args_.action](monitoring_, args_)
+
+if __name__ == "__main__":
+    __main__()
