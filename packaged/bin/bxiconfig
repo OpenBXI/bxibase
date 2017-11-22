@@ -7,8 +7,11 @@
            This is not Free or Open Source software.
            Please contact Bull SAS for details about its license.
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
-"""
 
+@brief fetch configuration
+
+BXI Configuration fetcher
+"""
 import bxi
 import bxi.base.parserconf as bxiparserconf
 import bxi.base.posless as posless
@@ -46,7 +49,7 @@ def getvalues(config_file_obj, conf_parser):
                 section_dict = section.dict()
                 module_path = section_dict['module']
                 del section_dict['module']
-    
+
                 for key, value in section_dict.items():
                     module_params[key] = eval(value)
                 __import__(module_path)
@@ -68,44 +71,43 @@ def getvalues(config_file_obj, conf_parser):
             "sections to remove this warning")
 
 
-if __name__ == '__main__':
-
+def __main__():
     __doc__ += "\nBXI FM Configuration fetcher."
     formatter = bxiparserconf.RawDescriptionFilteredHelpFormatter
     parser = posless.ArgumentParser(docstring=__doc__,
                                     formatter_class=formatter)
 
     conf_parser = posless.ArgumentParser(description='_internal',
-                                         formatter_class=bxiparserconf.FilteredHelpFormatter)
-    
+                                         formatter_class=formatter)
+
     # Include available parsers
     bxiparserconf.addargs(parser)
     bxiparserconf.addargs(conf_parser)
-    
+
     # retrieve actual values
     conf = conf_parser.parse_args([])
     conf_file_obj = ConfigObj(conf.config_file)
     getvalues(conf_file_obj, conf_parser)
 
-    
+
     conf = conf_parser.parse_args([])
     # transform conf into dict
     conf = vars(conf)
     # fetch help string from conf_parser dict
     helps = {v.dest: v.help for _, v in
              conf_parser.__dict__['_option_string_actions'].items()}
-    
+
     parser.add_argument('config_key', nargs='+', help='Config value(s) to fetch')
-    
+
     # list supported variables
     addepilog(parser, conf)
 
     if 1 == len(sys.argv):
         for key in sorted(conf):
             _LOGGER.output('%s=%s', key, conf[key])
-    
+
         sys.exit(os.EX_OK)
-    
+
     # Parse the arguments
     args = parser.parse_args()
     selected_entries = []
@@ -116,6 +118,9 @@ if __name__ == '__main__':
         except KeyError:
             _LOGGER.exception("Key %s not found in configuration. Skipping.",
                               key, level=bxilog.DEBUG)
-    
+
     # print out gathered value of selected configuration entries
     _LOGGER.output(' '.join(selected_entries))
+
+if __name__ == "__main__":
+    __main__()
