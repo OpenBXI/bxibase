@@ -146,7 +146,8 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
     --with-tagfiles-prefix=%{src_tagfiles_prefix} \
     --with-tagfiles-suffix=%{src_tagfiles_suffix} \
     --with-htmldirs-prefix=%{target_htmldirs_prefix} \
-    --with-htmldirs-suffix=%{target_htmldirs_suffix}
+    --with-htmldirs-suffix=%{target_htmldirs_suffix} \
+    %{_python_env}
 
 ###############################################################################
 # The current directory is the one main directory of the tar

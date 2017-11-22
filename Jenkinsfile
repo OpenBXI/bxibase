@@ -1,11 +1,20 @@
 #!/usr/bin/groovy
 node {
-    env.NOSETESTS_ARGS=" --where=tests --match=\".*\\.((py)|c)\" --with-xunit --verbose --process-restartworker --process-timeout=60 --xunit-file=$WORKSPACE/tests/report/nosetests.xml"
-    env.NOSETESTS_ARGS="$NOSETESTS_ARGS --with-coverage --cover-xml --cover-xml-file=$WORKSPACE/tests/report/py_coverage.xml --cover-html --cover-html-dir=$WORKSPACE/tests/report/py_html"
-    env.NOSETESTS_ARGS="$NOSETESTS_ARGS --cover-inclusive  --cover-package=bxi"
-    env.VALGRIND_ARGS="--fair-sched=yes --child-silent-after-fork=yes --tool=memcheck --xml=yes --xml-file=$WORKSPACE/tests/report/valgrind/valgrind-%p.xml --leak-check=full --show-leak-kinds=all"
-    env.GCOVR="gcovr -v -r $WORKSPACE -e '.*usr/include' -e '.*local.*' -e '.*_.*' -x -o $WORKSPACE/tests/report/c_coverage.xml"
-    env.PYTHONCONF="PYTHON=/usr/bin/python3"
+
+    if (!env.NOSETESTS_ARGS) {
+	env.NOSETESTS_ARGS=" --where=tests --match=\".*\\.((py)|c)\" --with-xunit --verbose --process-restartworker --process-timeout=60 --xunit-file=$WORKSPACE/tests/report/nosetests.xml"
+	env.NOSETESTS_ARGS="$NOSETESTS_ARGS --with-coverage --cover-xml --cover-xml-file=$WORKSPACE/tests/report/py_coverage.xml --cover-html --cover-html-dir=$WORKSPACE/tests/report/py_html"
+	env.NOSETESTS_ARGS="$NOSETESTS_ARGS --cover-inclusive  --cover-package=bxi"
+    }
+    if (!env.VALGRIND_ARGS) {
+	env.VALGRIND_ARGS="--fair-sched=yes --child-silent-after-fork=yes --tool=memcheck --xml=yes --xml-file=$WORKSPACE/tests/report/valgrind/valgrind-%p.xml --leak-check=full --show-leak-kinds=all"
+    }
+    if (!env.GCOVR) {
+	env.GCOVR="gcovr -v -r $WORKSPACE -e '.*usr/include' -e '.*local.*' -e '.*_.*' -x -o $WORKSPACE/tests/report/c_coverage.xml"
+    }
+    if (!env.PYTHONCONF) {
+	env.PYTHONCONF="PYTHON=/usr/bin/python3"
+    }
 
     stage('Checkout') {
 	echo 'Checkouting..'
@@ -27,9 +36,7 @@ node {
 	echo 'Building..'
 	sh '''
 	   sh bootstrap.sh;
-	   cd install/
-	   . $WORKSPACE/dependencies.sh
-	   cd $WORKSPACE
+	   . $WORKSPACE/dependencies.sh install
 	   mkdir -p .scanreport/;
 	   scan-build ./configure --enable-gcov --enable-debug --enable-doc --enable-valgrind=\"$VALGRIND_ARGS\" --prefix=$WORKSPACE/install $PYTHONCONF
 	   scan-build -k -o .scanbuild -v make
@@ -61,9 +68,7 @@ node {
     stage('Test') {
 	echo 'Testing..'
 	sh '''
-	cd install/
-	. $WORKSPACE/dependencies.sh
-	cd $WORKSPACE
+	. $WORKSPACE/dependencies.sh install
 	make clean check
 	'''
     }
@@ -78,9 +83,7 @@ node {
     stage('Package') {
 	echo "Packaging.."
 	sh '''
-	cd install/
- 	. $WORKSPACE/dependencies.sh
-	cd $WORKSPACE
+ 	. $WORKSPACE/dependencies.sh install
 	make devrpm
 	'''
     }
@@ -88,9 +91,7 @@ node {
     stage('doc') {
 	echo 'Generate documentation..'
 	sh '''
-	cd install/
-	. $WORKSPACE/dependencies.sh
-	cd $WORKSPACE
+	. $WORKSPACE/dependencies.sh install
 	make doc
 	'''
     }
