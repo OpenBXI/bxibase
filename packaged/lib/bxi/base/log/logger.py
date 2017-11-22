@@ -198,21 +198,19 @@ class BXILogger(object):
             else:
                 err_msg = "".join(x[:-1] for x in traceback.format_exception_only(clazz,
                                                                                   value))
-                if ei[2] is None:
-                    err_bt = "-- Backtrace unavailable --"
-                else:
+                if ei[2] is not None:
                     err_bt = bxibase.traceback2str(ei[2])
 
-                if isinstance(err_msg, unicode):
-                    err_msg = err_msg.encode('utf-8', 'replace')
-                if isinstance(err_bt, unicode):
-                    err_bt = err_bt.encode('utf-8', 'replace')
+                    if isinstance(err_msg, unicode):
+                        err_msg = err_msg.encode('utf-8', 'replace')
+                    if isinstance(err_bt, unicode):
+                        err_bt = err_bt.encode('utf-8', 'replace')
 
-                __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                                   err_msg,
-                                                   len(err_msg) + 1,
-                                                   err_bt,
-                                                   len(err_bt) + 1)
+                    __BXIBASE_CAPI__.bxierr_report_add(report_c,
+                                                       err_msg,
+                                                       len(err_msg) + 1,
+                                                       err_bt,
+                                                       len(err_bt) + 1)
 
             if not hasattr(value, 'cause') or value.cause is None:
                 break
