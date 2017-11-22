@@ -25,7 +25,7 @@ node {
 
     stage('Dependencies') {
 	echo "Checking dependecies.."
-	copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME", selector: lastSuccessful()
+	copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME", selector: lastCompleted()
 	sh '''
 	    tar -xf "$DNAME".tar
 	    mkdir -p tests/report/valgrind
@@ -40,7 +40,10 @@ node {
 	   mkdir -p .scanreport/;
 	   scan-build ./configure --enable-gcov --enable-debug --enable-doc --enable-valgrind=\"$VALGRIND_ARGS\" --prefix=$WORKSPACE/install $PYTHONCONF
 	   scan-build -k -o .scanbuild -v make
-	   cp -rf \$( find .scanbuild -maxdepth 1 -not -empty -not -name '.scanbuild')/* .scanreport/
+	   REPORT=\$( find .scanbuild -maxdepth 1 -not -empty -not -name '.scanbuild')
+	   if [ $REPORT ] ; then
+	   	cp -rf ${REPORT}/* .scanreport/
+	   fi
 	   rm -rf .scanbuild
 	   '''
     }
