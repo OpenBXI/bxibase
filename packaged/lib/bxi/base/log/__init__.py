@@ -267,6 +267,8 @@ Available solutions:
 For your convenience, the following stacktrace might help finding out where
 the first _init() call  was made: %s""" % _INIT_CALLER, config)
 
+    if config is None:
+        config = DEFAULT_CONFIG
     if not isinstance(config, configobj.ConfigObj):
         config = configobj.ConfigObj(config)
     global _CONFIG  # pylint: disable=locally-disabled, global-statement
