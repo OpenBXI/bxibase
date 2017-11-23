@@ -99,6 +99,31 @@ BuildRequires: graphviz
 #BuildRequires: python-cffi >= 0.8.6
 
 
+
+%if 0%{?python_name}
+%package -n python%{pythonname}-%{name}
+Summary: Python Bxi Basic library
+Requires: %{name}
+%endif
+Requires: python%{pythonname}-cffi >= 1.6.0
+Requires: python%{pythonname}-configobj
+Requires: python%{pythonname}-six
+
+BuildRequires: python%{pythonname:}-cffi >= 1.6.0
+
+%if 0%{?python_name}
+#TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
+%description -n python%{pythonname}-%{name}
+Python Bxi Basic library
+
+%package -n python%{pythonname}-%{name}-devel
+Summary: Python files required for compiling dependencies based on cffi
+Requires: %{name}-devel
+
+%description -n python%{pythonname}-%{name}-devel
+Python files required for compiling dependencies based on cffi
+%endif
+
 #TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
 %description
 Basic C and Python modules including the high performance BXI logging library.
@@ -118,25 +143,6 @@ Requires: zeromq-devel
 %description devel
 Header files providing the bxibase API
 
-%package -n python%{pythonname}-%{name}
-Summary: Python Bxi Basic library
-Requires: %{name}
-Requires: python%{pythonname}-cffi >= 1.6.0
-Requires: python%{pythonname}-configobj
-Requires: python%{pythonname}-six
-
-BuildRequires: python%{pythonname:}-cffi >= 1.6.0
-
-#TODO: Give a description (seen by rpm -qi) (No more than 80 characters)
-%description -n python%{pythonname}-%{name}
-Python Bxi Basic library
-
-%package -n python%{pythonname}-%{name}-devel
-Summary: Python files required for compiling dependencies based on cffi
-Requires: %{name}-devel
-
-%description -n python%{pythonname}-%{name}-devel
-Python files required for compiling dependencies based on cffi
 
 %package tests
 Requires: %{name}
