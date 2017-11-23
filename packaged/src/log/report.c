@@ -102,11 +102,11 @@ void bxilog_report_raw(bxierr_report_p self,
         bxierr_report(&logerr, STDERR_FILENO);
 
         logerr = bxilog_logger_log_rawstr(logger, level,
-										  filename, filename_len,
-										  func, funclen, line,
-										  self->err_bts[i],
-										  self->err_btslens[i]);
-		bxierr_report(&logerr, STDERR_FILENO);
+                                          filename, filename_len,
+                                          func, funclen, line,
+                                          self->err_bts[i],
+                                          self->err_btslens[i]);
+        bxierr_report(&logerr, STDERR_FILENO);
     }
 }
 
