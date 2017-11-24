@@ -67,7 +67,7 @@
 //********************************** Static Functions  ****************************
 //*********************************************************************************
 static bxierr_p _send2handlers(const bxilog_logger_p logger, const bxilog_level_e level,
-                               void ** log_channel,
+                               void * log_channel,
 #ifdef __linux__
                                pid_t tid,
 #endif
@@ -278,7 +278,7 @@ bxierr_p bxilog_logger_log_nolevelcheck(const bxilog_logger_p logger,
 
 bxierr_p _send2handlers(const bxilog_logger_p logger,
                         const bxilog_level_e level,
-                        void ** const log_channel,
+                        void * const log_channel,
 #ifdef __linux__
                         const pid_t tid,
 #endif
@@ -339,9 +339,23 @@ bxierr_p _send2handlers(const bxilog_logger_p logger,
     for (size_t i = 0; i< BXILOG__GLOBALS->internal_handlers_nb; i++) {
         // Send the frame
         // normal version if record comes from the stack 'buf'
-        err2 = bxizmq_data_snd(record, data_len,
-                               log_channel[i], ZMQ_DONTWAIT,
+        err2 = bxizmq_data_snd(&i, sizeof(i),
+                               log_channel, ZMQ_DONTWAIT | ZMQ_SNDMORE,
                                RETRIES_MAX, RETRY_DELAY);
+        if (err2->code == BXIZMQ_RETRIES_MAX_ERR) {
+            bxierr_destroy(&err2);
+        } else {
+            BXIERR_CHAIN(err, err2);
+        }
+
+        err2 = bxizmq_data_snd(record, data_len,
+                               log_channel, ZMQ_DONTWAIT,
+                               RETRIES_MAX, RETRY_DELAY);
+        if (err2->code == BXIZMQ_RETRIES_MAX_ERR) {
+            bxierr_destroy(&err2);
+        } else {
+            BXIERR_CHAIN(err, err2);
+        }
 
         // Zero-copy version (if record has been mallocated).
 //        err2 = bxizmq_data_snd_zc(record, data_len,
