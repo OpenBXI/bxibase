@@ -32,6 +32,8 @@ node {
         rpm -i --force --nodeps --dbpath rpms --relocate /usr=/$PWD/install/ --relocate /etc=$PWD/install/etc archives/*x86_64.rpm
 	    mkdir -p tests/report/valgrind
 	    '''
+	echo "Running Sloccount..."
+	sh "mkdir -p .slocdata; sloccount --datadir .slocdata --wide --details $WORKSPACE/packaged $WORKSPACE/tests $WORKSPACE/misc > sloccount.sc && echo 'sloccount complete' "
     }
 
     stage('Build') {
@@ -51,8 +53,6 @@ node {
     }
 
     stage('Static Analysis') {
-	echo "Analyzing.."
-	sh "mkdir -p .slocdata; sloccount --datadir .slocdata --wide --details $WORKSPACE/packaged $WORKSPACE/tests $WORKSPACE/misc > sloccount.sc && echo 'sloccount complete' "
 
 	echo "Running cppcheck"
 	sh "cppcheck --enable=warning --enable=style --enable=performance --enable=portability --enable=information --enable=missingInclude --template=gcc --std=c99 --xml-version=2 $WORKSPACE/packaged/src/ $WORKSPACE/packaged/include/ 2> tests/report/cppcheck_results.xml && echo 'cppcheck complete' "
