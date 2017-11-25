@@ -28,8 +28,8 @@ node {
 	copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME", selector: lastCompleted()
 	sh '''
 	    tar -xf "$DNAME".tar
-	    rm -rf install
-        rpm -i --relocate /usr=/$PWD/install/ --relocate /etc=$PWD/install/etc archives/*x86_64.rpm
+	    rm -rf install rpms
+        rpm -i --dbpath rpms --relocate /usr=/$PWD/install/ --relocate /etc=$PWD/install/etc archives/*x86_64.rpm
 	    mkdir -p tests/report/valgrind
 	    '''
     }
