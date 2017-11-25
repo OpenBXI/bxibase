@@ -81,7 +81,7 @@ node {
     stage('Install') {
 	echo 'Installing..'
 	sh "make install"
-	sh "tar -cf ${JOB_NAME}.tar install"
+	sh "tar -cf ${JOB_NAME}.tar archives"
 	archiveArtifacts "${JOB_NAME}.tar"
     }
 
