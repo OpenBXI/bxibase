@@ -14,8 +14,8 @@ else
 	if [ ${path: (-1)} == "/" ]; then
 		path=${path::-1}
 	fi
-	export LD_LIBRARY_PATH="$path""/lib":$LD_LIBRARY_PATH
-	export LIBRARY_PATH="$path""/lib":$LIBRARY_PATH
+	export LD_LIBRARY_PATH="$path""/lib64":$LD_LIBRARY_PATH
+	export LIBRARY_PATH="$path""/lib64":$LIBRARY_PATH
 	export PYTHONPATH="$path""/lib64/python3.4/site-packages/":$PYTHONPATH
 	export CPATH="$path""/include":$CPATH
 	export C_INCLUDE_PATH="$path""/include":$C_INCLUDE_PATH
