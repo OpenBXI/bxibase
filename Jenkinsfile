@@ -29,7 +29,7 @@ node {
 	sh '''
 	    tar -xf "$DNAME".tar
 	    rm -rf install rpms
-        rpm -i --nodeps --dbpath rpms --relocate /usr=/$PWD/install/ --relocate /etc=$PWD/install/etc archives/*x86_64.rpm
+        rpm -i --force --nodeps --dbpath rpms --relocate /usr=/$PWD/install/ --relocate /etc=$PWD/install/etc archives/*x86_64.rpm
 	    mkdir -p tests/report/valgrind
 	    '''
     }
