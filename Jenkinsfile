@@ -3,7 +3,7 @@ node {
 
     if (!env.NOSETESTS_ARGS) {
 	env.NOSETESTS_ARGS=" --where=tests --match=\".*\\.((py)|c)\" --with-xunit --verbose --process-restartworker --process-timeout=60 --xunit-file=$WORKSPACE/tests/report/nosetests.xml"
-	env.NOSETESTS_ARGS="$NOSETESTS_ARGS --with-coverage --cover-xml --cover-xml-file=$WORKSPACE/tests/report/py_coverage.xml --cover-html --cover-html-dir=$WORKSPACE/tests/report/py_html"
+	env.NOSETESTS_ARGS="$NOSETESTS_ARGS --with-coverage --cover-xml --cover-xml-file=$WORKSPACE/tests/report/py_coverage.xml"
 	env.NOSETESTS_ARGS="$NOSETESTS_ARGS --cover-inclusive  --cover-package=bxi"
     }
     if (!env.VALGRIND_ARGS) {
@@ -131,6 +131,5 @@ node {
 	sloccountPublish encoding: '', ignoreBuildFailure: true, pattern: 'sloccount.sc'
 	publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '.scanreport', reportFiles: 'index.html', reportName: 'Scan-Build reports', reportTitles: ''])
 	publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'packaged/doc/html', reportFiles: 'index.html', reportName: 'Doxygen reports', reportTitles: ''])
-    	publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'tests/report/py_html', reportFiles: 'index.html', reportName: 'Nosetests reports', reportTitles: ''])
     }
 }
