@@ -74,7 +74,7 @@ node {
 	echo 'Testing..'
 	sh '''
 	. $WORKSPACE/dependencies.sh install
-	make clean check
+	make check
 	'''
     }
 
