@@ -83,7 +83,8 @@ node {
     sh '''
      . $WORKSPACE/dependencies.sh install
     make devrpm
-    sh "tar -cf ${JOB_NAME}.tar archives"
+    cd $WORKSPACE
+    tar -cf ${JOB_NAME}.tar archives
     archiveArtifacts "${JOB_NAME}.tar"
     '''
     }
