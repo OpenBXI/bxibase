@@ -74,7 +74,8 @@ node {
 	echo 'Testing..'
 	sh '''
 	. $WORKSPACE/dependencies.sh install
-	make check
+    scan-build -k -o .scanbuild -v make
+    rm -rf .scanbuild
 	'''
     }
 
