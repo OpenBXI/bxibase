@@ -85,8 +85,8 @@ node {
     make devrpm
     cd $WORKSPACE
     tar -cf ${JOB_NAME}.tar archives
-    archiveArtifacts "${JOB_NAME}.tar"
     '''
+    archiveArtifacts "${JOB_NAME}.tar"
     }
 
     stage('doc') {
