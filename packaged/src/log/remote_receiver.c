@@ -764,6 +764,8 @@ bxierr_p _process_new_log(bxilog_remote_receiver_p self, tsd_p tsd) {
         BXIERR_CHAIN(err, err2);
     }
 
+    BXIFREE(record);
+
     return err;
 }
 
