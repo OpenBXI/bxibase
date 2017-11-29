@@ -71,7 +71,7 @@ class BXICError(BXIError, bxibase.Wrapper):
         @param[in] gc if bxierr_destroy should be called
         """
 #        err_msg = __FFI__.string(__BXIBASE_CAPI__.bxierr_str(bxierr_p))
-        err_msg = __FFI__.string(bxierr_p.msg)
+        err_msg = str(__FFI__.string(bxierr_p.msg))
         super(BXICError, self).__init__(err_msg)
         self.bxierr_pp = __FFI__.new('bxierr_p[1]')
         self.bxierr_pp[0] = bxierr_p
@@ -84,7 +84,7 @@ class BXICError(BXIError, bxibase.Wrapper):
         self.bxierr_pp[0].add_to_report(self.bxierr_pp[0], c_report, 20)
         lines = []
         for i in range(0, c_report.err_nb):
-            lines.append(__FFI__.string(c_report.err_msgs[i]))
+            lines.append(str(__FFI__.string(c_report.err_msgs[i])))
         result = "\n".join(lines)
         __BXIBASE_CAPI__.bxierr_report_free(c_report)
         return result
