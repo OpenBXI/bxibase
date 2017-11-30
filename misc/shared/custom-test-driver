@@ -115,7 +115,7 @@ then
 fi
 sleep 0.5
 kill %
-${GCOVR:-}
+${GCOVR:-}  > ${GCOVR_OUTFILE:-gcovr}.out 2>&1
 
 case $estatus:$expect_failure in
   0:yes) col=${red} res="XPASS" recheck="yes" gcopy="yes" ;;
