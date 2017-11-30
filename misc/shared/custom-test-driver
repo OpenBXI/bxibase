@@ -59,9 +59,8 @@ trs_file=""  # Where to save the metadata of the test run.
 expect_failure=no
 color_tests=no
 enable_hard_errors=yes
-python=""
 
-BXITESTS_DIR=${BXITESTS_DIR-$(dirname "$(dirname "${PWD}")")}
+TESTS_DIR=${TESTS_DIR-$(dirname "$(dirname "${PWD}")")}
 
 while test ${#} -gt 0
 do
@@ -69,20 +68,19 @@ do
   --help) print_usage; exit ${?};;
   --version) echo "test-driver $scriptversion"; exit ${?} ;;
   --test-name) test_name=${2}; shift ;;
-  --python) python=${2}; shift ;;
   --log-file) log_file=${2}; shift ;;
   --trs-file) trs_file=${2}; shift ;;
   --color-tests) color_tests=${2}; shift ;;
   --expect-failure) expect_failure=${2}; shift ;;
   --enable-hard-errors) enable_hard_errors=${2}; shift ;;
-  --bxitests-dir) BXITESTS_DIR=${2}; shift ;;
+  --tests-dir) TESTS_DIR=${2}; shift ;;
   --) shift; break ;;
   -*) usage_error "invalid option: '${1}'" ;;
   esac
   shift
 done
 
-export BXITESTS_DIR=${BXITESTS_DIR}
+export TESTS_DIR=${TESTS_DIR}
 
 if test "${color_tests}" = "yes"
 then
@@ -106,7 +104,7 @@ trap "st=143; ${do_exit}" 15
 # Test script is run here.
 tail -F "${log_file}" &
 
-$python "$@" > "${log_file}" 2>&1
+"$@" > "${log_file}" 2>&1
 estatus=${?}
 
 if test "${enable_hard_errors}" = "no" && test ${estatus} -eq 99
@@ -115,7 +113,7 @@ then
 fi
 sleep 0.5
 kill %
-${GCOVR:-}
+${GCOVR:-}  > ${GCOVR_OUTFILE:-gcovr}.out 2>&1
 
 case $estatus:$expect_failure in
   0:yes) col=${red} res="XPASS" recheck="yes" gcopy="yes" ;;
