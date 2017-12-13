@@ -7,7 +7,7 @@
 %define name bxibase
 
 # previous version 8.0.0
-%define version 9.0.0
+%define version 9.0.1
 
 
 # Using the .snapshot suffix helps the SVN tagging process.
