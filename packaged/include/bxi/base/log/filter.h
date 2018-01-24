@@ -151,7 +151,7 @@ void bxilog_filters_add(bxilog_filters_p * filters,
  *
  * The string must be in the following format:
  *      - lvl_str     <-  [emergency, alert, critical, crit, error, err, warning, warn,
- *                         notice, output, info, debug, fine, trace, lowest]
+ *                         notice, perf, output, info, debug, fine, trace, lowest]
  *      - lvl_num     <-  [0-9]*
  *      - lvl         <-  [lvl_num, level_str]
  *      - prefix      <-  [A-z]+

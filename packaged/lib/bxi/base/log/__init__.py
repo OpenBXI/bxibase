@@ -176,6 +176,9 @@ WARNING = __BXIBASE_CAPI__.BXILOG_WARNING
 # # @see ::BXILOG_NOTICE
 NOTICE = __BXIBASE_CAPI__.BXILOG_NOTICE
 
+# # @see ::BXILOG_NOTICE
+PERF = __BXIBASE_CAPI__.BXILOG_PERF
+
 # # @see ::BXILOG_OUTPUT
 OUTPUT = __BXIBASE_CAPI__.BXILOG_OUTPUT
 
@@ -575,6 +578,20 @@ def notice(msg, *args, **kwargs):
     @see get_default_logger
     """
     get_default_logger().notice(msg, *args, **kwargs)
+
+
+def perf(msg, *args, **kwargs):
+    """
+    Log the given message at the ::PERF logging level using the default logger.
+
+    @param[in] msg the message to log
+    @param[in] args the message arguments if any
+    @param[in] kwargs the message arguments if any
+
+    @return
+    @see get_default_logger
+    """
+    get_default_logger().perf(msg, *args, **kwargs)
 
 
 def output(msg, *args, **kwargs):
