@@ -47,6 +47,7 @@ LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
                 'E': (5, 0, 0),  # Error
                 'W': (5, 5, 0),  # Warning
                 'N': (5, 5, 3),  # Notify
+                'Pe': (5, 5, 2),  # Performance
                 'O': (5, 5, 5),  # Output
                 'I': (0, 5, 0),  # Info
                 'D': (1, 5, 1),  # Debug
@@ -74,6 +75,7 @@ _LOG_STR_LEVEL = { '-':bxilog.OFF,
                    'E':bxilog.ERROR,
                    'W':bxilog.WARNING,
                    'N':bxilog.NOTICE,
+                   'Pe':bxilog.PERF,
                    'O':bxilog.OUTPUT,
                    'I':bxilog.INFO,
                    'D':bxilog.DEBUG,
