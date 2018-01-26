@@ -33,10 +33,6 @@
 // ********************************** Defines **************************************
 // *********************************************************************************
 /**
- * Produce a log at the `BXILOG_PERF` level
- */
-#define PERF(logger, ...) bxilog_logger_log(logger, BXILOG_PERF, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);
-/**
  * Produce a log at the `BXILOG_LOWEST` level
  */
 #define LOWEST(logger, ...) bxilog_logger_log(logger, BXILOG_LOWEST, (char *)__FILE__, ARRAYLEN(__FILE__), __func__, ARRAYLEN(__func__), __LINE__, __VA_ARGS__);

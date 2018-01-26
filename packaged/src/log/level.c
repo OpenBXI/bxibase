@@ -50,7 +50,6 @@ static char * _LOG_LEVEL_NAMES[] = { "off",
                                      "error",
                                      "warning",
                                      "notice",
-                                     "perf",
                                      "output",
                                      "info",
                                      "debug",
@@ -95,10 +94,6 @@ bxierr_p bxilog_level_from_str(char * level_str, bxilog_level_e *level) {
     }
     if (0 == strcasecmp("notice", level_str)) {
         *level = BXILOG_NOTICE;
-        return BXIERR_OK;
-    }
-    if (0 == strcasecmp("perf", level_str)) {
-        *level = BXILOG_PERF;
         return BXIERR_OK;
     }
     if (0 == strcasecmp("output", level_str)

@@ -20,14 +20,12 @@ void log_stuff(bxilog_logger_p logger) {
     ERROR(logger, "An error message");
     WARNING(logger, "A warning message");
     NOTICE(logger, "A notice message");
-    PERF(logger, "A perf message");
     OUT(logger, "A normal message");
     INFO(logger, "An info message");
     DEBUG(logger, "A debug message");
     FINE(logger, "A fine message");
     TRACE(logger, "A trace message");
     LOWEST(logger, "A lowest message");
-    PERF(logger, "A performance specific message");
 
     OUT(logger,
         "A log message with a NULL character between the following "

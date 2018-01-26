@@ -72,7 +72,7 @@ size_t produce_simple_logs(bxilog_logger_p logger) {
             bxilog_logger_log(logger, level,
                               __FILE__, ARRAYLEN(__FILE__),
                               __FUNCTION__, ARRAYLEN(__FUNCTION__),
-                              __LINE__, " GEN. One log line at level %s with some garbage: %s",
+                              __LINE__, "One log line at level %s with some garbage: %s",
                               level2str[level], buf);
             logged_msg_nb++;
         }
@@ -104,7 +104,6 @@ size_t produce_simple_logs(bxilog_logger_p logger) {
     ERROR(logger, "One log line at ERROR level");
     WARNING(logger, "One log line at WARNING level");
     NOTICE(logger, "One log line at NOTICE level");
-    PERF(logger, "One log line at PERF level");
     OUT(logger, "One log line at OUTPUT level");
     INFO(logger, "One log line at INFO level");
     DEBUG(logger, "One log line at DEBUG level");
@@ -870,7 +869,6 @@ void * logging_thread(void * data) {
         ERROR(logger, "One log line at ERROR level");
         WARNING(logger, "One log line at WARNING level");
         NOTICE(logger, "One log line at NOTICE level");
-        PERF(logger, "One log line at PERF level");
         OUT(logger, "One log line at OUTPUT level");
         INFO(logger, "One log line at INFO level");
         DEBUG(logger, "One log line at DEBUG level");

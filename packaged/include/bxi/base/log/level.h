@@ -43,7 +43,6 @@ typedef enum {
     BXILOG_ERROR,                           //!< error conditions
     BXILOG_WARNING,                         //!< warning conditions
     BXILOG_NOTICE,                          //!< notice conditions
-    BXILOG_PERF,                            //!< only performance info are displayed
     BXILOG_OUTPUT,                          //!< `printf()` replacement
     BXILOG_INFO,                            //!< informational message
     BXILOG_DEBUG,                           //!< debug-level message
