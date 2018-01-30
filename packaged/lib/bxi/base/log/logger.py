@@ -378,18 +378,6 @@ class BXILogger(object):
         """
         self.log(bxilog.NOTICE, msg, *args, **kwargs)
 
-    def perf(self, msg, *args, **kwargs):
-        """
-        Log at the ::PERF level the given msg.
-
-        @param[in] msg the message to log
-        @param[in] args an array of parameters for string substitution in msg
-        @param[in] kwargs a dict of named parameters for string substitution in msg
-        @return
-
-        """
-        self.log(bxilog.PERF, msg, *args, **kwargs)
-
     def output(self, msg, *args, **kwargs):
         """
         Log at the ::OUT level the given msg.
