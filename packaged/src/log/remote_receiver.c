@@ -600,14 +600,19 @@ bxierr_p _dispatch_log_record(tsd_p tsd, bxilog_record_p record, size_t data_len
     for (size_t i = 0; i < BXILOG__GLOBALS->internal_handlers_nb; i++) {
       // Send the frame
       // normal version if record comes from the stack 'buf'
+      err2 = bxizmq_data_snd(&i, sizeof(i),
+                             tsd->data_channel, ZMQ_DONTWAIT|ZMQ_SNDMORE,
+                             BXILOG_RECEIVER_RETRIES_MAX,
+                             BXILOG_RECEIVER_RETRY_DELAY);
+      BXIERR_CHAIN(err, err2);
       err2 = bxizmq_data_snd(record, data_len,
-                             tsd->data_channel[i], ZMQ_DONTWAIT,
+                             tsd->data_channel, ZMQ_DONTWAIT,
                              BXILOG_RECEIVER_RETRIES_MAX,
                              BXILOG_RECEIVER_RETRY_DELAY);
 
       // Zero-copy version (if record has been mallocated).
       //            err2 = bxizmq_data_snd_zc(record, data_len,
-      //                                      tsd->data_channel[i], ZMQ_DONTWAIT,
+      //                                      tsd->data_channel, ZMQ_DONTWAIT,
       //                                      RETRIES_MAX, RETRY_DELAY,
       //                                      bxizmq_data_free, NULL);
       BXIERR_CHAIN(err, err2);
@@ -758,6 +763,8 @@ bxierr_p _process_new_log(bxilog_remote_receiver_p self, tsd_p tsd) {
         err2 = _dispatch_log_record(tsd, record, record_len);
         BXIERR_CHAIN(err, err2);
     }
+
+    BXIFREE(record);
 
     return err;
 }

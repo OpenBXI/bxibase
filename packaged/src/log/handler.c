@@ -268,8 +268,14 @@ bxierr_p _bind_data_zocket(bxilog_handler_p handler,
     bxiassert(NULL == data->data_zocket);
 
     err2 = bxizmq_zocket_create(BXILOG__GLOBALS->zmq_ctx,
-                                ZMQ_PULL,
+                                ZMQ_DEALER,
                                 &data->data_zocket);
+    BXIERR_CHAIN(err, err2);
+
+    err2 = bxizmq_zocket_setopt(data->data_zocket,
+                                ZMQ_IDENTITY,
+                                &param->rank,
+                                sizeof(param->rank));
     BXIERR_CHAIN(err, err2);
 
     err2 = bxizmq_zocket_setopt(data->data_zocket,

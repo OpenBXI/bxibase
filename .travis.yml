@@ -1,8 +1,8 @@
 language:
         - c
-python:
-        - 2.7
-        - 3.4
+env:
+        - TRAVIS_PYTHON=python2
+        - TRAVIS_PYTHON=python3
 dist: trusty
 sudo: required
 compiler:
@@ -11,10 +11,14 @@ compiler:
 
 before_install:
         - sudo apt-get update -qq
-        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python-pip libcunit1 libcunit1-dev valgrind
-        - sudo pip install cffi configobj coverage
-        - sudo ./misc/travis/install-dependencies.sh
-        - sudo pip install  pyzmq
+        - sudo apt-get install -qq libtool pkg-config build-essential autoconf automake pkg-config libsnmp-dev python3-pip python-pip libcunit1 libcunit1-dev valgrind
+        - CC=gcc sudo $TRAVIS_PYTHON -mpip install cffi configobj coverage
+        - CC=gcc sudo ./misc/travis/install-dependencies.sh
+        - CC=gcc sudo $TRAVIS_PYTHON -mpip install  pyzmq
 install:
         - ./bootstrap.sh
 
+script:
+        - ./configure PYTHON=$(which $TRAVIS_PYTHON)
+        - make
+        - make check
