@@ -81,19 +81,26 @@ extern void bxierr_chain(bxierr_p *err, const bxierr_p *tmp);
 extern void bxierr_list_destroy(bxierr_list_p * group_p);
 extern void bxierr_set_destroy(bxierr_set_p * group_p);
 
-bxierr_p bxierr_new(int code,
-                    void * data,
-                    void (*free_fn) (void *),
-                    void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
-                    bxierr_p cause,
-                    const char * fmt,
-                    ...) {
+
+bxierr_p bxierr_new_instance(int code,
+                             void * data,
+                             void (*free_fn) (void *),
+                             void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
+                             bxierr_p cause,
+                             bool include_bt,
+                             const char * fmt, va_list ap) {
 
     bxierr_p self = bximem_calloc(sizeof(*self));
     self->code = code;
-    char * tmp = NULL;
-    self->backtrace_len = bxierr_backtrace_str(&tmp);
-    self->backtrace = tmp;
+    self->backtrace_len = 0;
+    self->backtrace = NULL;
+    
+    if(include_bt){ 
+       char * tmp = NULL;
+       self->backtrace_len = bxierr_backtrace_str(&tmp);
+       self->backtrace = tmp;
+    }
+    
     self->data = data;
     self->free_fn = free_fn;
     self->add_to_report = (NULL == add_to_report) ?
@@ -110,13 +117,55 @@ bxierr_p bxierr_new(int code,
         }
     }
 
-    va_list ap;
-    va_start(ap, fmt);
-    self->msg_len = bxistr_vnew(&self->msg, fmt, ap);
-    va_end(ap);
+    self->msg_len  = bxistr_vnew(&self->msg, fmt, ap);
 
     return self;
 }
+
+bxierr_p bxierr_new(int code,
+                    void * data,
+                    void (*free_fn) (void *),
+                    void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
+                    bxierr_p cause,
+                    const char * fmt,
+                    ...) {
+    
+    va_list ap;
+    va_start(ap, fmt);
+    bxierr_p err = bxierr_new_instance(code,
+		                     data,
+                                     free_fn,
+                                     add_to_report,
+	                             cause,
+                                     true,
+                                     fmt,
+		                     ap);
+    va_end(ap);
+    return err;
+}
+
+bxierr_p bxierr_new_nobt(int code,
+                    void * data,
+                    void (*free_fn) (void *),
+                    void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
+                    bxierr_p cause,
+                    const char * fmt,
+                    ...) {
+    
+    va_list ap;
+    va_start(ap, fmt);     
+    bxierr_p err = bxierr_new_instance(code,
+	     	                    data,
+    		                    free_fn,
+  	 	                    add_to_report,
+                                    cause,
+                                    false, 	
+                                    fmt,
+                                    ap);
+    va_end(ap);
+    return err;
+}
+
 
 void bxierr_free(bxierr_p self) {
     if (NULL == self) return;

@@ -59,6 +59,8 @@
  * 3. generic error (no specific returned code, just a simple message):
  *    ~~~
  *    if (error) return bxierr_gen("An error occured");
+ *    or if no backtrace is needed:
+ *    if (error) return bxierr_gen_nobt("An error occured");
  *    ~~~
  * 4. error message given by an array of static messages
  *    ~~~
@@ -94,6 +96,10 @@
  *                                  NULL,
  *                                  "%s", "Error");
  *    ~~~
+ * 6. Backtrace callstack is included only when debug mode is 
+ *    activated by setting the variable BXIDEBUG: 
+ *    ~~~
+ *    export BXIDEBUG=1
  * ### Handling Errors
  *
  * When using `log.h` module (which is highly recommended),
@@ -230,15 +236,38 @@
 #define bxierr_simple(code, ...) bxierr_new(code, NULL, NULL, NULL, NULL, __VA_ARGS__)
 
 /**
+ * Return a new instance with an error code, no backtrace  and the given 
+ * printf-like message.
+ *
+ * @see bxierr_new()
+ * @see bxierr_new_instance()
+ */
+#define bxierr_simple_nobt(code, ...)      \
+                    bxierr_new_nobt(code, NULL, NULL, NULL, NULL, __VA_ARGS__)
+
+/**
  * Create a generic error, with the given printf-like message.
  *
  * @note: method bxierr_simple() should be preferred as it provides a specific error code
  *        that can be used to distinguish different errors.
  *
  * @see bxierr_new()
+ * @see bxierr_new_instance()
  * @see bxierr_simple()
  */
 #define bxierr_gen(...) bxierr_simple(BXIERR_GENERIC_CODE, __VA_ARGS__)
+
+/**
+ * Create a generic error, with the given printf-like message and no backtrace.
+ *
+ * @note: method bxierr_simple() should be preferred as it provides a specific error code
+ *        that can be used to distinguish different errors.
+ *
+ * @see bxierr_new_nobt()
+ * @see bxierr_new_instance()
+ * @see bxierr_simple_nobt()
+ */
+#define bxierr_gen_nobt(...) bxierr_simple_nobt(BXIERR_GENERIC_CODE, __VA_ARGS__)
 
 /**
  * Define an error with the given code and the given error list.
@@ -434,7 +463,7 @@ extern int BXIERR_CAUSED_BY_STR_LEN;
 // *********************************************************************************
 
 /**
- * Return a new bxi error instance.
+ * Return a new bxi error instance. The instance includes the backtrace
  *
  *
  * @param[in] code the error code
@@ -462,6 +491,39 @@ bxierr_p bxierr_new(int code,
 __attribute__ ((format (printf, 6, 7)))
 #endif
                     ;
+
+
+/**
+ * Return a new bxi error instance. The instance does not include the backtrace
+ *
+ *
+ * @param[in] code the error code
+ * @param[in] data an error specific data (can be NULL)
+ * @param[in] free_fn the function that must be used to release the given `data` (can be NULL)
+ * @param[in] add_to_report the function (can be NULL) that must be used to add the
+ *            error to a report
+ * @param[in] cause the error cause (can be NULL)
+ * @param[in] fmt the error message in a printf like style.
+ *
+ * @return a new bxi error instance
+ *
+ * @see bxierr_destroy()
+ * @see bxierr_report_p
+ * @see bxierr_p
+ */
+
+bxierr_p bxierr_new_nobt(int code,
+                    void * data,
+                    void (*free_fn) (void *),
+                    void (*add_to_report)(bxierr_p, bxierr_report_p, size_t),
+                    bxierr_p cause,
+                    const char * fmt,
+                    ...)
+#ifndef BXICFFI
+__attribute__ ((format (printf, 6, 7)))
+#endif
+                    ;
+
 
 /**
  * Release all resources in self and self itself.
