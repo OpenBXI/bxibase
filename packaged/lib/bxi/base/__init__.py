@@ -12,7 +12,7 @@
 """
 import sys
 import collections  # noqa
-import traceback
+from traceback import extract_tb
 from functools import total_ordering  # noqa
 
 try:
@@ -109,7 +109,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
         raise NotImplementedError("Can't delete from a C array")
 
     def insert(self, value):
-        raise NotImplementedError("Can't insert from a C array")
+        raise NotImplementedError("Can't insert into a C array")
 
     def __len__(self):
         return self._len
@@ -164,10 +164,7 @@ class Wrapper(object):
     _UINT8_TUPLE_ITEM_CNAME = __FFI__.typeof('uint8_t [0]').item.cname
 
     def __init__(self, cstruct):
-        object.__init__(self)
-#        self._cstruct = cstruct
-#        _LOGGER.lowest("Wrapping: %s", cstruct)
-        super(Wrapper, self).__setattr__('_cstruct', cstruct)
+        object.__setattr__(self, '_cstruct', cstruct)
 
     def __getattr__(self, name):
         cstruct = object.__getattribute__(self, '_cstruct')
@@ -209,12 +206,12 @@ def traceback2str(trace):
     @return a string representing the backtrace
     """
     try:
-        tb = traceback.extract_tb(trace)
-        bt = []
-        for trace in tb:
-            bt.append("%s at %s:%d\n"
-                      "\t%s" % (trace[2], trace[0], trace[1], trace[3]))
-        return "\n".join(bt)
+        traceback = extract_tb(trace)
+        backtrace = []
+        for trace in traceback:
+            backtrace.append("%s at %s:%d\n\t%s"
+                             % (trace[2], trace[0], trace[1], trace[3]))
+        return "\n".join(backtrace)
     finally:
         if 'exc_clear' in sys.__dict__:
             sys.exc_clear()

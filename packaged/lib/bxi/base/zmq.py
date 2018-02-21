@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-@file zmq.py C binding of useful additionnal functions for pyzmq
+@file zmq.py C binding of useful additional functions for pyzmq
 @authors Jean-Noel Quintin <jean-noel.quintin@atos.net>
 @copyright 2017  Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
@@ -9,8 +9,7 @@
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base.zmq Python BXI ZMQ additionnal functions
 
-This module exposes additionnal function for the usage of zmq sockets
-
+This module exposes additional functions for using zmq sockets
 """
 
 import bxi.base as bxibase
