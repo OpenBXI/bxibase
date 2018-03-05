@@ -185,6 +185,10 @@
 #define BXIERR_ALL_CAUSES 64
 #define ERR2STR_MAX_SIZE 1024
 
+/**
+ * Define a code to disable the inclusion of the Backtrace in the error instance 
+ */
+#define BXIERR_NOBT_CODE "NOBT"
 
 /**
  * Chain the new error with the current one and adapt the current error accordingly.
@@ -239,6 +243,19 @@
  * @see bxierr_simple()
  */
 #define bxierr_gen(...) bxierr_simple(BXIERR_GENERIC_CODE, __VA_ARGS__)
+
+
+/**
+ * Create a generic error, with the given printf-like message and no backtrace.
+ *
+ * @note: the underlying call to bxierr_new introduces a magic parameter 
+ *        "BXIERR_NOBT_CODE" to disable the inclusion of the Backtrace. 
+ *        See the definition of bxierr_new function for more information
+ *        on how the parameter is handled
+ * @see bxierr_new()
+ */
+#define bxierr_gen_nobt(...) bxierr_new(BXIERR_GENERIC_CODE, NULL, NULL, NULL, NULL, \
+                                        BXIERR_NOBT_CODE, __VA_ARGS__) 
 
 /**
  * Define an error with the given code and the given error list.
