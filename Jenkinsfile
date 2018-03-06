@@ -25,7 +25,7 @@ node {
 
     stage('Dependencies') {
     echo "Checking dependecies.."
-    copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME", selector: lastCompleted()
+    copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "${DNAME}/${BRANCH_NAME}", selector: lastCompleted()
     sh '''
         tar -xf "$DNAME".tar
         rm -rf install rpms
@@ -80,13 +80,14 @@ node {
 
     stage('Package') {
     echo "Packaging.."
+    env.BNAME = "${JOB_NAME}" - "/${BRANCH_NAME}"
     sh '''
      . $WORKSPACE/dependencies.sh install
     make devrpm
     cd $WORKSPACE
-    tar -cf ${JOB_NAME}.tar archives
+    tar -cf ${BNAME}.tar archives
     '''
-    archiveArtifacts "${JOB_NAME}.tar"
+    archiveArtifacts "${BNAME}.tar"
     }
 
     stage('doc') {
