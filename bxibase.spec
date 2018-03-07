@@ -284,8 +284,3 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 ## Do not add anything after the following line!
 ##################################################
 %changelog
-
-* Wed Feb 19 2018 BXIHL Team <bxihl@atos.net> - 9.0.1:
-[feature] Add the possiblity to raise an error without associating a backtrace to it
-
-

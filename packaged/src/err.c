@@ -91,8 +91,9 @@ bxierr_p bxierr_new(int code,
 
     bxierr_p self = bximem_calloc(sizeof(*self));
     self->code = code;
-    self->backtrace_len = 0;
-    self->backtrace = NULL;
+    char * tmp = NULL;
+    self->backtrace_len = bxierr_backtrace_str(&tmp);
+    self->backtrace = tmp;
     self->data = data;
     self->free_fn = free_fn;
     self->add_to_report = (NULL == add_to_report) ?
@@ -110,21 +111,8 @@ bxierr_p bxierr_new(int code,
     }
 
     va_list ap;
-    va_start(ap,fmt);
-    const char * real_fmt = NULL;
-    // special test: where a magic parameter BXIERR_NOBT_CODE is supplied
-    // in the location of fmt to deactivate the backtrace, in this case the 
-    // real fmt would be the first parameter in the va_list  
-    if ((fmt != NULL) &&  strcmp(fmt, BXIERR_NOBT_CODE) != 0) {
-        char * tmp = NULL;
-        self->backtrace_len = bxierr_backtrace_str(&tmp);
-        self->backtrace = tmp; 
-        real_fmt = fmt;        
-    } else {
-        real_fmt = va_arg(ap, char*);
-    }
-    
-    self->msg_len = bxistr_vnew(&self->msg, real_fmt, ap);
+    va_start(ap, fmt);
+    self->msg_len = bxistr_vnew(&self->msg, fmt, ap);
     va_end(ap);
 
     return self;
