@@ -93,6 +93,14 @@
  *                                  NULL,
  *                                  NULL,
  *                                  "%s", "Error");
+ *    ...
+ *    // error instance without backtrace 
+ *    if (error3) return bxierr_new(MY_THIRD_ERR|BXIERR_NO_BACKTRACE,
+ *                                  stuff_p,
+ *                                  free,
+ *                                  NULL,
+ *                                  NULL,
+ *                                  "%s", "Error");
  *    ~~~
  * ### Handling Errors
  *
@@ -169,6 +177,12 @@
  * Define the bxierr_p code for an error containing a bxierr_group_p in its data.
  */
 #define BXIERR_GROUP_CODE 6209
+
+/**
+ * Define the flag that is added to other error codes with a bitwise or (|) 
+ * deactivates the inclusion of the backtrace in the error instance    
+ */
+#define BXIERR_NO_BACKTRACE 0x10000000
 
 /**
  * Define the standard BXI message for a bug.
