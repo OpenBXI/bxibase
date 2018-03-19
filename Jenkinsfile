@@ -86,6 +86,7 @@ node {
     stage('Package') {
     echo "Packaging.."
     env.ANAME = sh returnStdout: true, script: 'echo ${JOB_NAME/\\//-}'
+    env.ANAME = env.ANAME.trim().trim()
     sh '''
      . $WORKSPACE/dependencies.sh install
     make devrpm
