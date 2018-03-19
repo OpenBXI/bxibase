@@ -25,7 +25,7 @@ node {
 
     stage('Dependencies') {
     echo "Checking dependecies.."
-    copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME", selector: lastCompleted()
+    copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME/${BRANCH_NAME}", selector: lastCompleted()
     sh '''
         tar -xf "$DNAME".tar
         rm -rf install rpms
