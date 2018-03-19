@@ -85,13 +85,14 @@ node {
 
     stage('Package') {
     echo "Packaging.."
+    env.ANAME = sh returnStdout: true, script: 'echo ${JOB_NAME/\//-}'
     sh '''
      . $WORKSPACE/dependencies.sh install
     make devrpm
     cd $WORKSPACE
-    tar -cf ${JOB_NAME/\\//-}.tar archives
+    tar -cf ${ANAME}.tar archives
     '''
-    archiveArtifacts "${JOB_NAME/\//-}.tar"
+    archiveArtifacts "${ANAME}.tar"
     }
 
     stage('doc') {
