@@ -91,9 +91,17 @@ bxierr_p bxierr_new(int code,
 
     bxierr_p self = bximem_calloc(sizeof(*self));
     self->code = code;
-    char * tmp = NULL;
-    self->backtrace_len = bxierr_backtrace_str(&tmp);
-    self->backtrace = tmp;
+
+    if(code & BXIERR_NO_BACKTRACE)
+    {
+        self->backtrace_len = 0;
+        self->backtrace = NULL;
+        self->code = self->code & (~BXIERR_NO_BACKTRACE);
+    }else{
+        char * tmp = NULL;
+        self->backtrace_len = bxierr_backtrace_str(&tmp);
+        self->backtrace = tmp;
+    }
     self->data = data;
     self->free_fn = free_fn;
     self->add_to_report = (NULL == add_to_report) ?

@@ -84,6 +84,16 @@
 void * bximem_calloc(size_t n);
 
 /**
+ * Short-usage macro for bximem_calloc.
+ * Usage:
+ *     BXIMEM_CALLOC(already_declared_obj, nb_elements);
+ * or  type BXIMEM_CALLOC(new_obj, nb_elements);
+ */
+#define BXIMEM_CALLOC(POINTER, N_ELTS) \
+    (POINTER) = bximem_calloc(sizeof(*(POINTER)) \
+                                * (size_t)(N_ELTS))
+
+/**
  * Replaces realloc().
  *
  * Same usage as realloc(). A check is performed to ensure the returned pointer

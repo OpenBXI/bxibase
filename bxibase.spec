@@ -6,8 +6,8 @@
 #TODO: define your package name
 %define name bxibase
 
-# previous version 8.0.0
-%define version 9.0.1
+# previous version 9.0.1
+%define version 9.1.0
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
@@ -283,3 +283,8 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 ## Do not add anything after the following line!
 ##################################################
 %changelog
+
+* Wed Mar 14 2018 BXIHL Team <bxihl@atos.net> - 9.1.0
+- [feature] Add an error code filter to be able to not include the backtrace
+- [feature] BXIMEM_CALLOC shorthand macro
+

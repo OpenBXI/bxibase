@@ -25,7 +25,12 @@ node {
 
     stage('Dependencies') {
     echo "Checking dependecies.."
-    copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME", selector: lastCompleted()
+        try {
+            copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME/${BRANCH_NAME}", selector: lastCompleted()
+        } catch (error) {
+            sh "echo copyArtifacts returned: $error try with branch develop"
+            copyArtifacts filter: "${DNAME}.tar", fingerprintArtifacts: true, projectName: "$DNAME/develop", selector: lastCompleted()
+        }
     sh '''
         tar -xf "$DNAME".tar
         rm -rf install rpms
@@ -80,13 +85,15 @@ node {
 
     stage('Package') {
     echo "Packaging.."
+    env.ANAME = sh returnStdout: true, script: 'echo ${JOB_NAME/\\//-}'
+    env.ANAME = env.ANAME.trim().trim()
     sh '''
      . $WORKSPACE/dependencies.sh install
     make devrpm
     cd $WORKSPACE
-    tar -cf ${JOB_NAME}.tar archives
+    tar -cf ${ANAME}.tar archives
     '''
-    archiveArtifacts "${JOB_NAME}.tar"
+    archiveArtifacts "${ANAME}.tar"
     }
 
     stage('doc') {
