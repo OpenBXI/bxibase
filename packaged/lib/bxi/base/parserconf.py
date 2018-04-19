@@ -33,6 +33,7 @@ import bxi.base.log.file_handler as bxilog_filehandler
 import bxi.base.posless as posless
 import bxi.base.err as bxierr
 
+
 ArgumentError = posless.ArgumentError
 ArgumentTypeError = posless.ArgumentTypeError
 FileType = posless.FileType
@@ -58,6 +59,7 @@ DEFAULT_CONSOLE_COLORS = '216_dark'
 DEFAULT_CONSOLE_FILTERS = ':output'
 
 BXILOG_DEFAULT_CONFIGFILE_KEY = 'bxilog.default.configfile'
+
 
 _LOGGER = logging.get_logger(logging.LIB_PREFIX + 'bxi.base.parserconf')
 
@@ -343,7 +345,7 @@ def _add_config(parser,
                                 "Environment variable: %(envvar)s",
                            default=None,
                            envvar=configdir_envvar,
-                           metavar="DIR")
+                           metavar="PATH")
 
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
@@ -353,7 +355,7 @@ def _add_config(parser,
                            "Environment variable: %(envvar)s",
                            default=None,
                            envvar=configfile_envvar,
-                           metavar="FILE")
+                           metavar="PATH")
 
         known_args = target_parser.get_known_args()[0]
 
