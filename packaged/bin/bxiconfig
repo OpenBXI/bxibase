@@ -9,7 +9,6 @@
            Please contact Bull SAS for details about its license.\n
            Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
 '''
-import bxi
 import bxi.base.parserconf as bxiparserconf
 import bxi.base.posless as posless
 import bxi.base.log as bxilog

@@ -10,10 +10,10 @@
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
 from __future__ import print_function
-from datetime import datetime, timedelta
+from datetime import datetime
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
-import os, sys, errno
+import os, sys
 import bxi.base.log as logging
 
 

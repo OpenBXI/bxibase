@@ -13,8 +13,6 @@
 """
 
 
-import sys
-
 import bxi.base as bxibase
 import bxi.base.log.filter as bxilogfilter
 
