@@ -5,8 +5,8 @@
  # Created on: 2013/11/21
  # Contributors:
  ###############################################################################
- # Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
- # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+ # Copyright (C) 2018 Bull S.A.S.  -  All rights reserved
+ # Bull, Rue Jean Jaures, B.P. 68, 78340 Les Clayes-sous-Bois
  # This is not Free or Open Source software.
  # Please contact Bull S. A. S. for details about its license.
  ###############################################################################
