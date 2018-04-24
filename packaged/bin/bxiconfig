@@ -34,7 +34,7 @@ bxiparserconf.addargs(conf_parser)
 conf = conf_parser.parse_args([])
 conf_file_obj = ConfigObj(conf.config_file)
 
-if conf_file_obj.has_key('modules'):
+if 'modules' in conf_file_obj:
     for module in conf_file_obj.get('modules'):
         module_params = {}
         try:
