@@ -55,7 +55,7 @@ LEVEL_COLORS = {'P': (5, 1, 5),  # Panic
                 'L': (1, 2, 1),  # Lowest
                 }
 
-#I|20160208T104136.033206346|31029.31164=46848:dvDaemon|divio_agent.c:437@lltc_receive|bxivirt.divio.agent|link on port 7 is now up
+# I|20160208T104136.033206346|31029.31164=46848:dvDaemon|divio_agent.c:437@lltc_receive|bxivirt.divio.agent|link on port 7 is now up
 LOGLINE_RE = re.compile(r'^(?P<level>\w+)\|'
                         '(?P<timestamp>\d+T\d+.\d+)\|'
                         '(?P<pkrid>\d+.\d+=.+):(?P<process>.*)\|'
@@ -67,24 +67,25 @@ BT_RE = re.compile('^(?P<prefix>##trce##\s\[\d{2}\]\s)'
                    '\((?P<funcname>\w*)\+(?P<addr>0x[0-9A-Fa-f]+).*$')
 
 _LOG_LEVEL_STR = bxilog.__BXIBASE_CAPI__.BXILOG_FILE_HANDLER_LOG_LEVEL_STR
-_LOG_STR_LEVEL = { '-':bxilog.OFF,
-                   'P':bxilog.PANIC,
-                   'A':bxilog.ALERT,
-                   'C':bxilog.CRITICAL,
-                   'E':bxilog.ERROR,
-                   'W':bxilog.WARNING,
-                   'N':bxilog.NOTICE,
-                   'O':bxilog.OUTPUT,
-                   'I':bxilog.INFO,
-                   'D':bxilog.DEBUG,
-                   'F':bxilog.FINE,
-                   'T':bxilog.TRACE,
-                   'L':bxilog.LOWEST}
+_LOG_STR_LEVEL = {'-': bxilog.OFF,
+                  'P': bxilog.PANIC,
+                  'A': bxilog.ALERT,
+                  'C': bxilog.CRITICAL,
+                  'E': bxilog.ERROR,
+                  'W': bxilog.WARNING,
+                  'N': bxilog.NOTICE,
+                  'O': bxilog.OUTPUT,
+                  'I': bxilog.INFO,
+                  'D': bxilog.DEBUG,
+                  'F': bxilog.FINE,
+                  'T': bxilog.TRACE,
+                  'L': bxilog.LOWEST}
 
 _NON_PRINTABLE_CHAR = set([chr(i) for i in range(256)]).difference(string.printable)
 _NON_PRINTABLE_STR = "".join(x for x in _NON_PRINTABLE_CHAR)
-_NON_PRINTABLE_SUB = "."*len(_NON_PRINTABLE_STR)
+_NON_PRINTABLE_SUB = "." * len(_NON_PRINTABLE_STR)
 BLOB2STR_TRANSLATE_TABLE = string.maketrans(_NON_PRINTABLE_STR, _NON_PRINTABLE_SUB)
+
 
 def blob2str(blob):
     return blob.translate(BLOB2STR_TRANSLATE_TABLE)
@@ -92,6 +93,7 @@ def blob2str(blob):
 
 _LOGGER_PARSER = bxilog.getLogger(os.path.basename(sys.argv[0]) + '.parser')
 _LOGGER_MERGER = bxilog.getLogger(os.path.basename(sys.argv[0]) + '.merger')
+
 
 def hsv_to_rgb(h, s, v, max):
     """
@@ -151,6 +153,7 @@ def parse_backtrace_log(log):
                                  " returning raw backtrace", level=bxilog.FINE)
         return log
 
+
 def _parse_timestamp(timestamp):
     subsecond_idx = timestamp.rfind('.') + 1
     if len(timestamp) - subsecond_idx > 6:
@@ -194,6 +197,7 @@ def _parse_logline(n, line):
 
     return n, level, timestamp, pkrid, process, source, logger, log
 
+
 def _back_in_time(log, last_seen, MAX_MULTILINE_LOG_TIME):
     idx = log.find('|', last_seen + 3, -1)
     timestamp = log[last_seen + 3:idx]
@@ -213,6 +217,7 @@ def _back_in_time(log, last_seen, MAX_MULTILINE_LOG_TIME):
 
     return last_pos
 
+
 def _start_from_last_level(name, level_str, n):
     level = bxilog.get_level_from_str(level_str)
     with open(name, 'rb') as f:
@@ -224,10 +229,10 @@ def _start_from_last_level(name, level_str, n):
             pos = log.rfind('\n', 0, last_pos - len('\n'))
             if pos == -1:
                 break
-            line_level_str = log[pos+1:pos+2]
+            line_level_str = log[pos + 1:pos + 2]
             line_level = _LOG_STR_LEVEL[line_level_str]
             _LOGGER_PARSER.trace("Checking %s > %s at %s: %s",
-                                 line_level_str, level_str, pos, log[pos:pos+10])
+                                 line_level_str, level_str, pos, log[pos:pos + 10])
             if line_level > level:
                 last_pos = pos
                 continue
@@ -253,6 +258,7 @@ def _start_from_last_level(name, level_str, n):
         else:
             log.seek(0, os.SEEK_END)
         return log
+
 
 def enqueue_input(input_, queue, leveln_format=None):
     if input_ == '-':
@@ -300,7 +306,7 @@ def _flush_frame(logs, output):
         except KeyError:
             lcolor = LEVEL_COLORS['E']
         lcolor = 16 + 36 * lcolor[0] + 6 * lcolor[1] + lcolor[2]
-        color  = 16 + 36 *  color[0] + 6 *  color[1] +  color[2]
+        color = 16 + 36 * color[0] + 6 * color[1] + color[2]
         # print the first line with the timestamp
         output.write("\033[38;5;%dm" % lcolor)
         output.write("%s|" % level)
@@ -317,6 +323,7 @@ def _flush_frame(logs, output):
             output.write("%s|%s" % (level, dots))
             output.write("|\033[38;5;%sm%s:%s|%s|%s|%s\033[39m\n"
                          % (color, pkrid, process, source, logger, log))
+
 
 @bxilog.multiprocessing_target
 def merger(args, q, bxilog_config):
@@ -369,7 +376,7 @@ def merger(args, q, bxilog_config):
                 pkrids_color[pkrid] = color
             try:
                 ts = _parse_timestamp(timestamp)
-            except (ValueError,TypeError) as err:
+            except (ValueError, TypeError) as err:
                 _LOGGER_MERGER.warning("Ignoring line %d - %s - %s", number, timestamp, str(err))
                 continue
             if current_frame is None:

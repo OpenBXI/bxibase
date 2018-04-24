@@ -33,13 +33,11 @@ def add_handler(configobj, section_name, c_config):
 
     filters = bxilogfilter.parse_filters(filters_str)
 
-
     url = section['url']
     if '%(prog)s' in url:
         import bxi.base.log as bxilog
         import sys
-        url = url % {'prog': bxilog._PROGNAME if bxilog._PROGNAME is not None\
-                                              else sys.argv[0]}
+        url = url % {'prog': bxilog._PROGNAME if bxilog._PROGNAME is not None else sys.argv[0]}
 
     url = __FFI__.new('char[]', url.encode("utf-8", "replace"))
     bind = __FFI__.cast('bool', section.as_bool('bind'))

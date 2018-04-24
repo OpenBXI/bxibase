@@ -214,14 +214,16 @@ _CONFIG = None
 _INIT_CALLER = None
 _PROGNAME = None
 
-DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
-                                      'setsighandler': True,
-                                      'console': {
-                                          'module': 'bxi.base.log.console_handler',
-                                          'filters': ':output',
-                                          'stderr_level': 'WARNING',
-                                          'colors': '216_dark',
-                                      }})
+DEFAULT_CONFIG = configobj.ConfigObj({
+    'handlers': ['console'],
+    'setsighandler': True,
+    'console': {
+        'module': 'bxi.base.log.console_handler',
+        'filters': ':output',
+        'stderr_level': 'WARNING',
+        'colors': '216_dark',
+    }
+})
 
 # The default logger.
 _DEFAULT_LOGGER = None
@@ -590,6 +592,7 @@ def output(msg, *args, **kwargs):
     """
     get_default_logger().output(msg, *args, **kwargs)
 
+
 out = output
 
 
@@ -755,6 +758,7 @@ def basicConfig(**kwargs):  # pylint: disable=locally-disabled, invalid-name
         config['consolehandler'] = section
 
     set_config(config)
+
 
 # Warnings integration - taken from the standard Python logging module
 _warnings_showwarning = None

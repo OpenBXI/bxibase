@@ -65,6 +65,7 @@ class Issue(object):
         self.details = details
         self.msg = msg
 
+
 class Issues(object):
     """
     Container of issues to be reported

@@ -144,10 +144,12 @@ def _monitor(monitoring, args):
     # Do something better here! Instead of sleeping
     time.sleep(2 ** 32)
 
+
 _ACTIONS = {'get-config': _get_config,
             'get-handlers': _get_handlers,
             'get-loggers': _get_loggers,
-            'monitor': _monitor,}
+            'monitor': _monitor,
+            }
 
 
 if __name__ == '__main__':

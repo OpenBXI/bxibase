@@ -13,11 +13,13 @@ from __future__ import print_function
 from datetime import datetime
 import bxi.base.posless as posless
 import bxi.base.parserconf as bxiparserconf
-import os, sys
+import os
+import sys
 import bxi.base.log as logging
 
 
 _LOGGER = logging.getLogger(os.path.basename(sys.argv[0]))
+
 
 def get_python_ts(timestamp):
     subsecond_idx = timestamp.rfind('.') + 1
@@ -26,10 +28,11 @@ def get_python_ts(timestamp):
         timestamp = timestamp[:subsecond_idx + 6]
     return datetime.strptime(timestamp, '%Y%m%dT%H%M%S.%f')
 
+
 def main():
     """Main function."""
     parser = posless.ArgumentParser(description='BXI Log Checker',
-                                   formatter_class=bxiparserconf.FilteredHelpFormatter)
+                                    formatter_class=bxiparserconf.FilteredHelpFormatter)
     bxiparserconf.addargs(parser)
     parser.add_argument("input", type=str, nargs='?', default='-',
                         help="The logging file to check. Default is '-' for standard input")
@@ -52,14 +55,13 @@ def main():
         if timestamp == "......................":
             continue
         if timestamp < previous_timestamp:
-             ts = get_python_ts(timestamp)
-             pts = get_python_ts(previous_timestamp)
-             _LOGGER.error("Line %d: %s < %s, difference: %s",
-                           n, timestamp, previous_timestamp, pts - ts)
+            ts = get_python_ts(timestamp)
+            pts = get_python_ts(previous_timestamp)
+            _LOGGER.error("Line %d: %s < %s, difference: %s",
+                          n, timestamp, previous_timestamp, pts - ts)
         previous_timestamp = timestamp
     f.close()
-    
+
 
 if __name__ == '__main__':
     main()
-

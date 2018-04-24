@@ -1738,7 +1738,7 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                  prog=None,
                  usage=None,
                  description=None,
-                 docstring=None, # Prefered over description, but compatible
+                 docstring=None,  # Prefered over description, but compatible
                  epilog=None,
                  version=None,
                  parents=[],
@@ -1821,14 +1821,13 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                 version=self.version,
                 help=_("Show program's version number and exit"))
         if author is not None:
-            self.add_argument(default_prefix     + "A",
+            self.add_argument(default_prefix + "A",
                               default_prefix * 2 + "author",
                               action="author", author=author)
         if brief is not None:
-            self.add_argument(default_prefix     + "B",
+            self.add_argument(default_prefix + "B",
                               default_prefix * 2 + "brief",
                               action="brief", brief=brief)
-
 
         # add parent arguments and defaults
         for parent in parents:

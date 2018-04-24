@@ -283,8 +283,7 @@ def _get_configfile(parser,
     """
     # First, we try to fetch a configuration for the command line
     cmd_config = os.path.join(config_dir,
-                              os.path.basename(parser.prog)
-                              + cmd_config_file_suffix)
+                              os.path.basename(parser.prog) + cmd_config_file_suffix)
     if not os.path.exists(cmd_config):
         # Second we try to fetch a configuration for the domain name
         if domain_name is not None:
@@ -702,8 +701,7 @@ def addargs(parser,
     """
 
     _add_config(parser, config_dirname, config_filename, domain_name, filename_suffix,
-                configdir_envvar,
-               configfile_envvar)
+                configdir_envvar, configfile_envvar)
     _configure_log(parser)
 
     parser.add_argument('--help-full',
