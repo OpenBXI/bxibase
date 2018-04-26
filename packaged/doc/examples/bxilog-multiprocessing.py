@@ -20,7 +20,7 @@ def my_function(logfilename):
 
     # Test 1 : simple trace message
     bxilog.trace("A simple trace message")
-    
+
     # Test 2 : simple error message
     bxilog.error("A simple error message")
 
@@ -36,6 +36,7 @@ def my_function(logfilename):
     raise ValueError("An unexpected exception in second subprocess")
 # [BXI Log and Python multiprocessing module]
 
+
 if __name__ == '__main__':
 
     filename = tempfile.NamedTemporaryFile(prefix=os.path.basename(sys.argv[0]),
@@ -47,20 +48,20 @@ if __name__ == '__main__':
 
     with open(filename) as f:
         lines = f.readlines()
-        
+
         # Test 1 : trace message not write (not good loglevel)
         assert not lines[1].startswith("T|")
-        
+
         # Test 2 : error message correctly write
         assert lines[1].startswith("E|")
         assert lines[1].endswith("A simple error message\n")
-        
-        # Test 3a : exception correctly catch and stacktrace correctly write 
+
+        # Test 3a : exception correctly catch and stacktrace correctly write
         assert lines[2].startswith("W|")
         assert lines[2].endswith("Handling an exception in subprocess\n")
         assert lines[3].startswith("W|")
         assert lines[3].endswith("An expected exception in first subprocess\n")
-        
-        # Test 4 : stacktrace correctly write 
+
+        # Test 4 : stacktrace correctly write
         assert lines[-1].startswith("E|")
         assert lines[-1].endswith("raise ValueError(\"An unexpected exception in second subprocess\")\n")
