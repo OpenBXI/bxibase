@@ -12,7 +12,6 @@ from __future__ import print_function
 
 import os
 import sys
-import configobj
 
 import bxi.base.log as bxilog
 
@@ -59,9 +58,10 @@ def main(file_out, url, bind, sync_nb, logs_nb):
 
 ###############################################################################
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 6:
-        print("Usage: %s file_out remote_handler_url bind sync_nb logs_nb" % \
+        print("Usage: %s file_out remote_handler_url bind sync_nb logs_nb" %
               os.path.basename(sys.argv[0]),
               file=sys.stderr)
         sys.exit(1)

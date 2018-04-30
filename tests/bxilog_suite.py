@@ -22,6 +22,7 @@ def suite():
 def load_tests(loader, tests, pattern):
     return suite()
 
+
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
     test_suite = suite()

@@ -25,7 +25,6 @@ import threading
 import unittest
 import re
 import configobj
-import random
 
 import bxi.base as bxibase
 import bxi.base.err as bxierr
@@ -122,7 +121,6 @@ class BXILogTest(unittest.TestCase):
             level = bxilog.get_level_from_str(bxilog.LEVEL_NAMES[i])
             self.assertEquals(i, level)
 
-
     def test_default_logger(self):
         """Test default logging functions"""
         for level in bxilog.LEVEL_NAMES:
@@ -136,15 +134,15 @@ class BXILogTest(unittest.TestCase):
         self._check_log_produced(FILENAME,
                                  bxilog.exception,
                                  "When no exception was raised - inner message: '%s'",
-                                "Who care?", level=bxilog.WARNING)
+                                 "Who care?", level=bxilog.WARNING)
         self._check_log_produced(FILENAME,
                                  bxilog.exception,
-                                 "When no exception was raised - special char "\
+                                 "When no exception was raised - special char "
                                  "but no args: '%s'",
                                  level=bxilog.DEBUG)
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
-        except ValueError as ve:
+        except ValueError:
             self._check_log_produced(FILENAME,
                                      bxilog.exception,
                                      "Exception catched: inner message: '%s'",
@@ -153,12 +151,11 @@ class BXILogTest(unittest.TestCase):
 
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what again?")
-        except ValueError as ve:
+        except ValueError:
             self._check_log_produced(FILENAME,
                                      bxilog.exception,
                                      "Exception catched - special char but no args: '%s'",
                                      level=bxilog.CRITICAL)
-
 
     def test_basic_log(self):
         """Test normal logging"""
@@ -195,7 +192,7 @@ class BXILogTest(unittest.TestCase):
 
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what?")
-        except ValueError as ve:
+        except ValueError:
             self._check_log_produced(FILENAME,
                                      logger1.exception,
                                      "Exception catched: inner message: '%s'",
@@ -204,13 +201,11 @@ class BXILogTest(unittest.TestCase):
 
         try:
             raise ValueError("Exception raised: inner message: '%s'" % "And so what again?")
-        except ValueError as ve:
+        except ValueError:
             self._check_log_produced(FILENAME,
                                      logger1.exception,
                                      "Exception catched - special char but no args: '%s'",
                                      level=bxilog.CRITICAL)
-
-
 
     def test_error_log(self):
         """Test error while logging"""
@@ -219,17 +214,16 @@ class BXILogTest(unittest.TestCase):
                           logger.output, "Testing not enough args: %d %d %s", 1)
         self.assertRaises(TypeError,
                           logger.output,
-                           "Testing too many args: %d %d %s", 1, 2, 3, 'toto', 'tata')
+                          "Testing too many args: %d %d %s", 1, 2, 3, 'toto', 'tata')
         self.assertRaises(TypeError,
                           logger.output,
-                           "Testing wrong types: %d %d %s", 'foo', 2.5, 3, 'toto')
+                          "Testing wrong types: %d %d %s", 'foo', 2.5, 3, 'toto')
 
     def test_strange_char(self):
         """Test logging with non-printable character, and especially, NULL char"""
         for i in range(256):
             bxilog.output("A message with ascii character %d just between "
                           "the two following quotes '%s'", i, chr(i))
-
 
     def test_existing_file(self):
         """Test logging into an existing file"""
@@ -286,10 +280,10 @@ class BXILogTest(unittest.TestCase):
 
         conf = {'handlers': ['out', 'null'],
                 'setsighandler': True,
-                'out':{'module': 'bxi.base.log.file_handler',
-                       'filters': ':output,foo:debug,foo.bar:trace',
-                       'path': FILENAME,
-                       'append': True},
+                'out': {'module': 'bxi.base.log.file_handler',
+                        'filters': ':output,foo:debug,foo.bar:trace',
+                        'path': FILENAME,
+                        'append': True},
                 'null': {'module': 'bxi.base.log.null_handler',
                          'filters': ':off,foo:fine,foo.bar:debug',
                          },
@@ -327,7 +321,6 @@ class BXILogTest(unittest.TestCase):
         self._check_log_produced(FILENAME, bxilog.output,
                                  "This message must also appear in file %s", FILENAME)
 
-
     def test_threading(self):
         threads = []
         for i in range(multiprocessing.cpu_count() * 2):
@@ -346,7 +339,6 @@ class BXILogTest(unittest.TestCase):
             except Error as e:
                 bxilog.out("Exception: %s", e)
             self.assertFalse(thread.is_alive())
-
 
     def test_multiprocessing(self):
         processes = []
@@ -367,7 +359,6 @@ class BXILogTest(unittest.TestCase):
             except Error as e:
                 bxilog.out("Exception: %s", e)
             self.assertFalse(process.is_alive())
-
 
     def test_threads_and_forks(self):
         processes = []
@@ -397,29 +388,29 @@ class BXILogTest(unittest.TestCase):
 
         try:
             raise ValueError("Exception 2 raised for testing purpose, don't worry")
-        except ValueError as ve:
+        except ValueError:
             bxilog.exception('Handling exception 2 with 1 argument: %s',
                              'argument')
 
         try:
             raise ValueError("Exception 3 raised for testing purpose, don't worry")
-        except ValueError as ve:
+        except ValueError:
             bxilog.exception('Handling exception 3 with 2 argument: %s - %d',
                              'argument', 3)
 
         try:
             raise ValueError("Exception 4 raised for testing purpose, don't worry")
-        except ValueError as ve:
+        except ValueError:
             bxilog.exception('Handling exception 4 with level only',
                              level=bxilog.CRITICAL)
         try:
             raise ValueError("Exception 5 raised for testing purpose, don't worry")
-        except ValueError as ve:
+        except ValueError:
             bxilog.exception('Handling exception 5 with 1 argument and the level: %s',
                              'argument', level=bxilog.CRITICAL)
         try:
             raise ValueError("Exception 6 raised for testing purpose, don't worry")
-        except ValueError as ve:
+        except ValueError:
             bxilog.exception('Handling exception 6 with 2 argument and the level: %s - %d',
                              'argument', 3, level=bxilog.CRITICAL)
 
@@ -441,8 +432,8 @@ class BXILogTest(unittest.TestCase):
                                                __FFI__.NULL, __FFI__.NULL,
                                                "The root cause".encode('utf-8', 'replace'))
             other = bxibase.__CAPI__.bxierr_new(102, __FFI__.NULL, __FFI__.NULL,
-                                               __FFI__.NULL, root,
-                                               "Consequence".encode('utf-8', 'replace'))
+                                                __FFI__.NULL, root,
+                                                "Consequence".encode('utf-8', 'replace'))
             bce = bxierr.BXICError(other)
             be = bxierr.BXIError("Another one", cause=bce)
             te = TestException("An exception, don't worry")
@@ -486,6 +477,7 @@ class BXILogTest(unittest.TestCase):
         os.unlink(filename)
 
 ###############################################################################
+
 
 if __name__ == "__main__":
     unittest.main()

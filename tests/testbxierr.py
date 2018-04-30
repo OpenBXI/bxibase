@@ -13,7 +13,6 @@
 """Unit tests of BXIError Python library.
 """
 
-import ctypes
 import random
 import unittest
 
@@ -28,10 +27,10 @@ class TestBXIError(unittest.TestCase):
         null = __FFI__.NULL
         err = bxibase.__CAPI__.bxierr_new(42, null, null, null, null, "Foo")
         self.assertEquals(err.code, 42)
-    
+
     def test_bxierr_list(self):
         pass
-    
+
     def test_bxierr_set(self):
         bxierr_set = bxibase.__CAPI__.bxierr_set_new()
         for i in range(10):
@@ -42,13 +41,13 @@ class TestBXIError(unittest.TestCase):
                                                    __FFI__.NULL,
                                                    __FFI__.NULL,
                                                    __FFI__.NULL,
-                                                    "A random error: rc=%d",
-                                                    __FFI__.cast('int', rc))
-            bxibase.__CAPI__.bxierr_set_add(bxierr_set, err_p);
-        
+                                                   "A random error: rc=%d",
+                                                   __FFI__.cast('int', rc))
+            bxibase.__CAPI__.bxierr_set_add(bxierr_set, err_p)
+
         func = __FFI__.cast('void (*)(void*)', bxibase.__CAPI__.bxierr_set_free)
 
-        err = bxibase.__CAPI__.bxierr_new(10, 
+        err = bxibase.__CAPI__.bxierr_new(10,
                                           bxierr_set,
                                           func,
                                           bxibase.__CAPI__.bxierr_list_add_to_report,
@@ -56,9 +55,9 @@ class TestBXIError(unittest.TestCase):
                                           "An error from an errset")
         self.assertTrue(bxierr.BXICError.is_ko(err))
 
-    
 
 ###############################################################################
+
 
 if __name__ == "__main__":
     unittest.main()
