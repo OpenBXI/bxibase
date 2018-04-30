@@ -11,9 +11,9 @@
 
 """
 import sys
-import collections  # noqa
+import collections
 import traceback
-from functools import total_ordering  # noqa
+from functools import total_ordering
 
 try:
     from builtins import range
