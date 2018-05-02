@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#import bxi.base.log as bxilog
+# import bxi.base.log as bxilog
 import logging as bxilog
 
 import sys
@@ -17,5 +17,4 @@ bxilog.basicConfig(level=bxilog.WARNING)
 logger = bxilog.getLogger('foo.bar')
 
 for i in xrange(int(sys.argv[1])):
-
     logger.warning("Something to say?")

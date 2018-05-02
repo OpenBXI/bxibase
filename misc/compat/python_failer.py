@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import time
 import sys
 
 import multiprocessing
@@ -15,7 +14,7 @@ MODULES = ['logging', 'bxilog']
 def main(logging):
     print("Write stop to stop the whole process")
 
-#    logging.basicConfig(level=logging.DEBUG, filename='/dev/null')
+    # logging.basicConfig(level=logging.DEBUG, filename='/dev/null')
     logging.basicConfig(level=logging.DEBUG)
     again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
     # (1)
@@ -32,7 +31,7 @@ def main(logging):
     #    iterations - make the threads stop after some time - processes
     #    in the case (2) will never resume anyway
     workers.extend(startProcessWorkers(2, again, logging))  # problem
-    #workers.extend(startThreadWorkers(2, iterations = 10000))
+    # workers.extend(startThreadWorkers(2, iterations = 10000))
 
     logging.debug("workers created: %s" % workers)
     waitingLoop()
