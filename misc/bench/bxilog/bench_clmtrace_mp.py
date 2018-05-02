@@ -20,12 +20,14 @@ import time
 
 AGAIN = multiprocessing.Value('b', True, lock=False)
 
+
 def logging_thread():
     t = CLM.trace.clmTrace()
     t.setTraceThreshold(CLM.trace.LEVEL_DEBUG)
 
     while AGAIN.value:
-        t.debug("Logging something...");
+        t.debug("Logging something...")
+
 
 if __name__ == "__main__":
 
@@ -44,7 +46,7 @@ if __name__ == "__main__":
 
     time.sleep(timeout)
 
-    AGAIN.value = False;
+    AGAIN.value = False
 
     for i in xrange(threads_nb):
         threads[i].join()

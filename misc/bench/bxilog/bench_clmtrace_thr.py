@@ -21,12 +21,14 @@ import time
 
 AGAIN = True
 
+
 def logging_thread():
     t = CLM.trace.clmTrace()
     t.setTraceThreshold(CLM.trace.LEVEL_DEBUG)
 
     while AGAIN:
-        t.debug("Logging something...");
+        t.debug("Logging something...")
+
 
 if __name__ == "__main__":
 
@@ -45,7 +47,7 @@ if __name__ == "__main__":
 
     time.sleep(timeout)
 
-    AGAIN = False;
+    AGAIN = False
 
     for i in xrange(threads_nb):
         threads[i].join()

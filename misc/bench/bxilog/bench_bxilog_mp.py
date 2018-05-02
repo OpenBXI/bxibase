@@ -30,6 +30,7 @@ N = None
 MIN = None
 MAX = None
 
+
 def logging_thread(id):
 
     n = 0
@@ -38,7 +39,7 @@ def logging_thread(id):
     max_ = 0.0
     while AGAIN.value:
         start = time.clock()
-        bxilog.debug("Logging something...");
+        bxilog.debug("Logging something...")
         duration = time.clock() - start
         n += 1
         total += duration
@@ -50,7 +51,7 @@ def logging_thread(id):
     N[id] = n
     MIN[id] = min_
     MAX[id] = max_
-        
+
 
 if __name__ == "__main__":
 
@@ -79,7 +80,7 @@ if __name__ == "__main__":
 
     time.sleep(timeout)
 
-    AGAIN.value = False;
+    AGAIN.value = False
 
     for i in xrange(threads_nb):
         threads[i].join()
@@ -91,5 +92,5 @@ if __name__ == "__main__":
     for i in xrange(threads_nb):
         total += TOTAL[i]
         n += N[i]
-    
-    print("Average: %s us, min: %s us, max: %s us" % (total*1e6/n, min_*1e6, max_*1e6))
+
+    print("Average: %s us, min: %s us, max: %s us" % (total * 1e6 / n, min_ * 1e6, max_ * 1e6))
