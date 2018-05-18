@@ -70,6 +70,7 @@ class Issues(object):
     """
     Container of issues to be reported
     """
+
     def __init__(self, resolution, prefix):
         """
         Build a container of errors.
@@ -242,6 +243,7 @@ class Summary(object):
     """
     Handle Reporting of issues
     """
+
     def __init__(self, order='level'):
         """
         Build a reporter of errors

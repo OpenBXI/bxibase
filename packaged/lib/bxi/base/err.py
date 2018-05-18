@@ -30,6 +30,7 @@ class BXIError(Exception):
     """
     The root class of all BXI exceptions
     """
+
     def __init__(self, msg, cause=None):
         """
         Create a new BXIError instance.
@@ -63,6 +64,7 @@ class BXICError(BXIError, bxibase.Wrapper):
     """
     Wrap a ::bxierr_p into a Python exception
     """
+
     def __init__(self, bxierr_p, gc=True):
         """
         Create a new instance for the given ::bxierr_p
@@ -168,6 +170,7 @@ class BXILogConfigError(BXIError):
     """
     Raised on error during bxilog configuration.
     """
+
     def __init__(self, msg, cfg):
         """
         Create a new instance with the given message.

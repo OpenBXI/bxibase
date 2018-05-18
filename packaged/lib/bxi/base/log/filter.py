@@ -33,6 +33,7 @@ class Filter(bxibase.Wrapper):
     """
     Wraps the ::bxilog_filter_p object
     """
+
     def __init__(self, filter_p):
         super(Filter, self).__init__(filter_p)
 
@@ -46,6 +47,7 @@ class Filters(bxibase.SequenceSliceImplMixin,
     """
     Wraps the ::bxilog_filters_p object
     """
+
     def __init__(self, filters_p):
         super(Filters, self).__init__()
         self._cstruct = filters_p

@@ -802,6 +802,7 @@ class FileLike(object):
     """
     A file like object that can be used for writing backed by the logging api.
     """
+
     def __init__(self, logger, level=OUTPUT):
         """
         Create a file like object using the given logger.

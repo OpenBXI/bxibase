@@ -79,6 +79,7 @@ class LogLevelsAction(posless.Action):
     """
     Action used to display the various log level names
     """
+
     def __init__(self,
                  option_strings,
                  dest,
@@ -160,6 +161,7 @@ class HelpActionFormatted(posless._HelpAction):
     """
     Action used to format the help
     """
+
     def __call__(self, parser, namespace, values,
                  option_string=None, filter_function=_defaultfiltering):
         if issubclass(parser.formatter_class,
@@ -188,6 +190,7 @@ class _LoggedHelpAction(HelpActionFormatted):
     """
     Action used for filtering logs only options
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
         supercall = super(_LoggedHelpAction, self).__call__
         supercall(parser, namespace, values, option_string,
@@ -237,6 +240,7 @@ class _FullHelpAction(HelpActionFormatted):
     """
     Class to display the full help
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
         supercall = super(_FullHelpAction, self).__call__
         supercall(parser, namespace, values, option_string,

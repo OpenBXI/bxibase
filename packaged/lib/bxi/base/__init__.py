@@ -57,6 +57,7 @@ class SequenceSliceImplMixin(object):
     """
     Implement the python array access for c array
     """
+
     def __getitem__(self, val):
         size = len(self)
         if isinstance(val, slice):
@@ -77,6 +78,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
     """
     Wrapper for C tuple of uint8_t objects
     """
+
     def __init__(self, ctab, n):
         super(Uint8CTuple, self).__init__()
         self._ctab = ctab
