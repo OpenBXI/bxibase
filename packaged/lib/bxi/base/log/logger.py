@@ -214,12 +214,18 @@ class BXILogger(object):
 
             if not hasattr(value, 'cause') or value.cause is None:
                 break
-
-            cause_str = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR
-            cause_str_len = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR_LEN
+            caused_by_str = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR
+            caused_by_str_len = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR_LEN
             __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                               cause_str, cause_str_len,
-                                               "".encode('utf-8', 'replace'), len("".encode('utf-8', 'replace')) + 1)
+                                               caused_by_str, caused_by_str_len,
+                                               "".encode('utf-8', 'replace'),
+                                               len("".encode('utf-8', 'replace')) + 1)
+            cause_str = list(str(value.cause))
+            print(cause_str)
+            __BXIBASE_CAPI__.bxierr_report_add(report_c,
+                                               cause_str, len(cause_str)+1,
+                                               "".encode('utf-8', 'replace'),
+                                               len("".encode('utf-8', 'replace')) + 1)
             ei = (type(value.cause), value.cause, None)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
