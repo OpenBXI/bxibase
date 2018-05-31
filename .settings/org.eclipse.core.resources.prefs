@@ -1,8 +1,4 @@
 eclipse.preferences.version=1
-encoding//build/packaged/lib/bxi/base/version.py=utf-8
-encoding//build/packaged/lib/bxi/base_cffi_def.py=utf-8
-encoding//build/template_version.py=utf-8
-encoding//build/version.py=utf-8
 encoding//misc/bench/bxilog/bench-py_bxilog_mp=utf-8
 encoding//misc/bench/bxilog/bench-py_bxilog_thr=utf-8
 encoding//misc/bench/bxilog/bench-py_logging_mp=utf-8
