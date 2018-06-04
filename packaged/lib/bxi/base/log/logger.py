@@ -231,7 +231,7 @@ class BXILogger(object):
                 cause_str = str(value.cause)
 
             __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                               cause_str, len(cause_str)+1,
+                                               cause_str, len(cause_str) + 1,
                                                "".encode('utf-8', 'replace'),
                                                len("".encode('utf-8', 'replace')) + 1)
             ei = (type(value.cause), value.cause, None)
