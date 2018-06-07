@@ -35,7 +35,7 @@ void bench_clock(clockid_t id, char * clock_name, size_t loop) {
     double calls_per_ns = (double) loop / (double) result/1e-9;
     double ns_per_call = (double) result / (double) loop;
 
-    printf("%zu ns\t%g calls/s\t%g ns/call\t %zu calls to clock_gettime(%s, ...)\n",
+    printf("%lu ns\t%g calls/s\t%g ns/call\t %zu calls to clock_gettime(%s, ...)\n",
            result, calls_per_ns, ns_per_call, loop, clock_name);
 }
 
