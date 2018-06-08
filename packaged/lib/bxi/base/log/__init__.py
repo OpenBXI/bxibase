@@ -203,7 +203,7 @@ __nb__ = __BXIBASE_CAPI__.bxilog_level_names(__names__)
 # The list of level names as a tuple
 LEVEL_NAMES = tuple(str(__FFI__.string(__names__[0][i]).decode('utf-8', 'replace')) for i in range(__nb__))
 
-LIB_PREFIX = str(__FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX))
+LIB_PREFIX = str(__FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX).decode('utf-8', 'replace'))
 
 
 # If True,  bxilog_init() has already been called

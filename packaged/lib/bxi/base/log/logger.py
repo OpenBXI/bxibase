@@ -239,9 +239,6 @@ class BXILogger(object):
         msg_str = msg % args if len(args) > 0 else str(msg)
         fullfilename, lineno, funcname = _FindCaller()
         filename = _get_usable_filename_from(fullfilename)
-        filename_len = len(filename) + 1
-        funcname_len = len(funcname) + 1
-        msg_str_len = len(msg_str) + 1
 
         if isinstance(msg_str, unicode):
             msg_str = msg_str.encode('utf-8', 'replace')
@@ -249,6 +246,10 @@ class BXILogger(object):
             filename = filename.encode('utf-8', 'replace')
         if isinstance(funcname, unicode):
             funcname = funcname.encode('utf-8', 'replace')
+
+        filename_len = len(filename) + 1
+        funcname_len = len(funcname) + 1
+        msg_str_len = len(msg_str) + 1
 
         __BXIBASE_CAPI__.bxilog_report_raw(report_c,
                                            self.clogger,
