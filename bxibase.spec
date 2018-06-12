@@ -6,8 +6,8 @@
 #TODO: define your package name
 %define name bxibase
 
-# previous version 9.0.1
-%define version 9.1.1
+# previous version 9.1.1
+%define version 9.1.2
 
 
 # Using the .snapshot suffix helps the SVN tagging process.
@@ -284,6 +284,9 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 ## Do not add anything after the following line!
 ##################################################
 %changelog
+
+* Tue Jun 12 2018 BXIHL Team <bxihl@atos.net> - 9.1.2
+- [misc] Write backtrace in bxilog trace level except if main error is Uncaught
 
 * Wed May 30 2018 BXIHL Team <bxihl@atos.net> - 9.1.1
 - [misc] Write backtrace in bxilog trace level
