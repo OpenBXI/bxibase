@@ -41,7 +41,7 @@ def my_function(logfilename, logfilter):
 
 if __name__ == '__main__':
 
-    # Test with TRACE loglevel
+    # Test with TRACE loglevel (print all backtrace)
     filename = tempfile.NamedTemporaryFile(prefix=os.path.basename(sys.argv[0]),
                                            suffix='.bxilog', delete=False).name
     logfilter = "%s,~bxilog:off" % bxilog.TRACE
@@ -52,8 +52,9 @@ if __name__ == '__main__':
     idx = 0
     with open(filename) as f:
         lines = f.readlines()
+        print lines
 
-        # Test 0 :
+        # Test 0 : simple out message
         assert lines[0].startswith("O|")
         assert lines[0].endswith("In subprocess\n")
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
         assert lines[1].startswith("E|")
         assert lines[1].endswith("A simple error message\n")
 
-        # Test 3 : exception correctly catch and stacktrace correctly write
+        # Test 3 : exception correctly catch and stacktrace correctly write in trace level
         assert lines[2].startswith("W|")
         assert lines[2].endswith("Handling an exception in subprocess\n")
         assert lines[3].startswith("W|")
@@ -73,13 +74,15 @@ if __name__ == '__main__':
         assert lines[5].startswith("T|")
         assert lines[5].endswith("raise ValueError(\"An expected exception in first subprocess\")\n")
 
-        # Test 4 : stacktrace correctly write
+        # Test 4 : stacktrace correctly write in error level (Uncaught Exception)
         assert lines[6].startswith("E|")
         assert lines[6].endswith("Uncaught Exception: ValueError\n")
-        assert lines[-1].startswith("T|")
+        assert lines[7].startswith("E|")
+        assert lines[7].endswith("An unexpected exception in second subprocess\n")
+        assert lines[-1].startswith("E|")
         assert lines[-1].endswith("raise ValueError(\"An unexpected exception in second subprocess\")\n")
 
-    # Test with OUTPUT loglevel
+    # Test with OUTPUT loglevel (not print backtrace except for Uncaught Exception)
     filename = tempfile.NamedTemporaryFile(prefix=os.path.basename(sys.argv[0]),
                                            suffix='.bxilog', delete=True).name
     logfilter = bxilog.OUTPUT
@@ -91,7 +94,7 @@ if __name__ == '__main__':
     with open(filename) as f:
         lines = f.readlines()
 
-        # Test 0 :
+        # Test 0 : simple out message
         assert lines[0].startswith("O|")
         assert lines[0].endswith("In subprocess\n")
 
@@ -102,14 +105,16 @@ if __name__ == '__main__':
         assert lines[1].startswith("E|")
         assert lines[1].endswith("A simple error message\n")
 
-        # Test 3 : exception correctly catch and stacktrace correctly write
+        # Test 3 : exception correctly catch and stacktrace not write (not good loglevel)
         assert lines[2].startswith("W|")
         assert lines[2].endswith("Handling an exception in subprocess\n")
         assert lines[3].startswith("W|")
         assert lines[3].endswith("ValueError: An expected exception in first subprocess\n")
 
-        # Test 4 : stacktrace correctly write
+        # Test 4 : stacktrace correctly write in error level (Uncaught Exception)
         assert lines[4].startswith("E|")
         assert lines[4].endswith("Uncaught Exception: ValueError\n")
         assert lines[5].startswith("E|")
         assert lines[5].endswith("An unexpected exception in second subprocess\n")
+        assert lines[-1].startswith("E|")
+        assert lines[-1].endswith("raise ValueError(\"An unexpected exception in second subprocess\")\n")
