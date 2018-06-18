@@ -52,7 +52,6 @@ if __name__ == '__main__':
     idx = 0
     with open(filename) as f:
         lines = f.readlines()
-        print lines
 
         # Test 0 : simple out message
         assert lines[0].startswith("O|")
