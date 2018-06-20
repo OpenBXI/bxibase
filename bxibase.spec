@@ -7,7 +7,7 @@
 %define name bxibase
 
 # previous version 9.1.1
-%define version 9.1.2
+%define version 9.2.0
 
 
 # Using the .snapshot suffix helps the SVN tagging process.
@@ -16,7 +16,7 @@
 # and to understand the SVN tagging process.
 # If you don't care, then, just starts with Bull.1.0%{?dist}.%{?revision}snapshot
 # and run 'make tag' when you want to tag.
-%define release Bull.2.1%{?dist}.%{?revision}snapshot
+%define release Bull.1.0%{?dist}.%{?revision}snapshot
 
 # Warning: Bull's continuous compilation tools refuse the use of
 # %release in the src_dir variable!
@@ -285,6 +285,9 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 ##################################################
 %changelog
 
+* Wed Jun 20 2018 BXIHL Team <bxihl@atos.net> - 9.2.0
+- [feature] Add the ability to add domains to parser configuration
+
 * Tue Jun 12 2018 BXIHL Team <bxihl@atos.net> - 9.1.2
 - [misc] Write backtrace in bxilog trace level except if main error is Uncaught
 
@@ -294,4 +297,3 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 * Wed Mar 14 2018 BXIHL Team <bxihl@atos.net> - 9.1.0
 - [feature] Add an error code filter to be able to not include the backtrace
 - [feature] BXIMEM_CALLOC shorthand macro
-

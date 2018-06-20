@@ -679,11 +679,49 @@ def _configure_log(parser):
     _LOGGER.debug(logcfg_msg)
 
 
+def adddomain(parser,
+              config_dirname=DEFAULT_CONFIG_DIRNAME,    # /etc/*bxi*
+              config_filename=DEFAULT_CONFIG_FILENAME,  # /etc/bxi/*default.conf*
+              domain_name=None,                         # /etc/bxi/*domain*.conf
+              filename_suffix=DEFAULT_CONFIG_SUFFIX,    # /etc/bxi/cmd*.conf*
+              configdir_envvar='BXICONFIGDIR',
+              configfile_envvar="BXICONFIGFILE"):
+    """
+    Add a domain for configuration to allow reading multiple configuration files
+
+    @param[in] parser the parser to add arguments to
+    @param[in] config_dirname the default configuration directory
+    @param[in] config_filename the default configuration file
+    @param[in] domain_name the domain name
+    @param[in] filename_suffix the configuration filename suffix
+    @param[in] configdir_envvar environment variable configdir
+    @param[in] configfile_envvar environment variable configfile
+
+    @return None
+    """
+    if os.getuid() == 0:
+        config_dir_prefix = '/etc/'
+    else:
+        config_dir_prefix = os.path.join(os.path.expanduser('~'), '.config')
+
+    full_config_dir = os.path.join(config_dir_prefix, config_dirname)
+    full_config_dir = os.getenv(configdir_envvar, full_config_dir)
+
+    cmd_config = _get_configfile(parser, full_config_dir,
+                                 config_filename,
+                                 domain_name,
+                                 filename_suffix)
+
+    addcfg = _get_config_from_file(cmd_config)
+
+    parser.config.merge(addcfg)
+
+
 def addargs(parser,
-            config_dirname=DEFAULT_CONFIG_DIRNAME,              # /etc/*bxi*
-            config_filename=DEFAULT_CONFIG_FILENAME,            # /etc/bxi/*default.conf*
-            domain_name=None,                                   # /etc/bxi/*domain*.conf
-            filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
+            config_dirname=DEFAULT_CONFIG_DIRNAME,      # /etc/*bxi*
+            config_filename=DEFAULT_CONFIG_FILENAME,    # /etc/bxi/*default.conf*
+            domain_name=None,                           # /etc/bxi/*domain*.conf
+            filename_suffix=DEFAULT_CONFIG_SUFFIX,      # /etc/bxi/cmd*.conf*
             setsighandler=True,
             configdir_envvar='BXICONFIGDIR',
             configfile_envvar="BXICONFIGFILE",
@@ -700,6 +738,7 @@ def addargs(parser,
                              underlying bxi.base.log library.
     @param[in] configdir_envvar environment variable configdir
     @param[in] configfile_envvar environment variable configfile
+    @param[in] version version of the command
 
     @return
     """
