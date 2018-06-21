@@ -133,6 +133,16 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
 bxierr_p bxizmq_zocket_destroy(void ** const zocket_p);
 
 /**
+ * Cleanup the given zeromq socket, releasing all underlying resources and nullifying
+ * the given pointer. This version sets a linger at 0 to not wait for closing zocket.
+ *
+ * @param[inout] zocket_p the pointer on the socket to cleanup.
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_destroy_no_wait(void ** const zocket_p);
+
+
+/**
  * Bind the socket to the given url and set the specified option on it. If the
  * socket given as a parameter is NULL, then it will be created.
  *

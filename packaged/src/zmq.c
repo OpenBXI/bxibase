@@ -147,7 +147,6 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** result) 
         BXIERR_CHAIN(err, err2);
     }
 
-
     *result = zocket;
     return err;
 
@@ -163,6 +162,10 @@ bxierr_p bxizmq_zocket_destroy(void ** const zocket_p) {
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
     int rc;
+
+    rc = zmq_setsockopt(socket, ZMQ_SUBSCRIBE, "", 0);
+    assert (rc == 0);
+
     do {
         rc = zmq_close(zocket);
     } while (rc == -1 && errno == EINTR);
@@ -177,6 +180,44 @@ bxierr_p bxizmq_zocket_destroy(void ** const zocket_p) {
 
     return err;
 }
+
+
+bxierr_p bxizmq_zocket_destroy_no_wait(void ** const zocket_p) {
+    bxiassert(NULL != zocket_p);
+
+    void * zocket = *zocket_p;
+
+    if (NULL == zocket) return BXIERR_OK;
+
+    bxierr_p err = BXIERR_OK, err2;
+    errno = 0;
+    int rc;
+
+    rc = zmq_setsockopt(zocket, ZMQ_SUBSCRIBE, "", 0);
+    assert (rc == 0);
+
+    int linger = 0u;
+    rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
+    if (rc != 0) {
+        err2 = bxizmq_err(errno, "Can't set linger for socket %p", zocket);
+        BXIERR_CHAIN(err, err2);
+    }
+
+    do {
+        rc = zmq_close(zocket);
+    } while (rc == -1 && errno == EINTR);
+
+    if (rc != 0) {
+        err2 = bxizmq_err(errno, "Can't close socket %p", zocket);
+        BXIERR_CHAIN(err, err2);
+    } else {
+        DBG("Zocket %p destroyed\n", zocket);
+    }
+    *zocket_p = NULL;
+
+    return err;
+}
+
 
 bxierr_p bxizmq_zocket_bind(void * const zocket,
                             const char * const url,
