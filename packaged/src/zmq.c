@@ -163,9 +163,6 @@ bxierr_p bxizmq_zocket_destroy(void ** const zocket_p) {
     errno = 0;
     int rc;
 
-    rc = zmq_setsockopt(socket, ZMQ_SUBSCRIBE, "", 0);
-    assert (rc == 0);
-
     do {
         rc = zmq_close(zocket);
     } while (rc == -1 && errno == EINTR);
@@ -192,9 +189,6 @@ bxierr_p bxizmq_zocket_destroy_no_wait(void ** const zocket_p) {
     bxierr_p err = BXIERR_OK, err2;
     errno = 0;
     int rc;
-
-    rc = zmq_setsockopt(zocket, ZMQ_SUBSCRIBE, "", 0);
-    assert (rc == 0);
 
     int linger = 0u;
     rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
