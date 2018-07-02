@@ -3,8 +3,8 @@
 ###############################################################################
 # Author: Pierre Vignéras <pierre.vigneras@bull.net>
 ###############################################################################
-# Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
-# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+# Copyright (C) 2018 Bull S.A.S.  -  All rights reserved
+# Bull, Rue Jean Jaures, B.P. 68, 78340 Les Clayes-sous-Bois
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
@@ -12,7 +12,6 @@ from __future__ import print_function
 
 import os
 import sys
-import configobj
 
 import bxi.base.log as bxilog
 
@@ -59,9 +58,10 @@ def main(file_out, url, bind, sync_nb, logs_nb):
 
 ###############################################################################
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 6:
-        print("Usage: %s file_out remote_handler_url bind sync_nb logs_nb" % \
+        print("Usage: %s file_out remote_handler_url bind sync_nb logs_nb" %
               os.path.basename(sys.argv[0]),
               file=sys.stderr)
         sys.exit(1)

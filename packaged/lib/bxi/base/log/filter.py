@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 @file filter.py bxilog filtering utilities
-@authors Pierre Vignéras <pierre.vigneras@bull.net>
-@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+@author Pierre Vignéras <<pierre.vigneras@bull.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base.log.filters bxilog filtering utilities
 
 """
@@ -33,6 +33,7 @@ class Filter(bxibase.Wrapper):
     """
     Wraps the ::bxilog_filter_p object
     """
+
     def __init__(self, filter_p):
         super(Filter, self).__init__(filter_p)
 
@@ -46,6 +47,7 @@ class Filters(bxibase.SequenceSliceImplMixin,
     """
     Wraps the ::bxilog_filters_p object
     """
+
     def __init__(self, filters_p):
         super(Filters, self).__init__()
         self._cstruct = filters_p

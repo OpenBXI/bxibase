@@ -6,8 +6,8 @@
 #TODO: define your package name
 %define name bxibase
 
-# previous version 9.0.1
-%define version 9.1.0
+# previous version 9.1.1
+%define version 9.2.0
 
 # Using the .snapshot suffix helps the SVN tagging process.
 # Please run <your_svn_checkout>/devtools/packaged/bin/auto_tag -m
@@ -15,7 +15,7 @@
 # and to understand the SVN tagging process.
 # If you don't care, then, just starts with Bull.1.0%{?dist}.%{?revision}snapshot
 # and run 'make tag' when you want to tag.
-%define release Bull.2.0%{?dist}.%{?revision}snapshot
+%define release Bull.1.0%{?dist}.%{?revision}snapshot
 
 # Warning: Bull's continuous compilation tools refuse the use of
 # %release in the src_dir variable!
@@ -66,7 +66,7 @@ Source:		%{src_tarall}
 Group:		Development/Libraries
 BuildRoot:	%{_tmppath}/%{name}-root
 # Automatically filled in by PDP: it should not appear therefore!
-#Packager:	Bull <help@bull.net>
+#Packager:	BXIHL <bxihl@atos.net>
 Distribution:	Bull HPC
 
 # Automatically filled in by PDP: it should not appear therefore!
@@ -284,7 +284,15 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 ##################################################
 %changelog
 
+* Wed Jun 20 2018 BXIHL Team <bxihl@atos.net> - 9.2.0
+- [feature] Add the ability to add domains to parser configuration
+
+* Tue Jun 12 2018 BXIHL Team <bxihl@atos.net> - 9.1.2
+- [misc] Write backtrace in bxilog trace level except if main error is Uncaught
+
+* Wed May 30 2018 BXIHL Team <bxihl@atos.net> - 9.1.1
+- [misc] Write backtrace in bxilog trace level
+
 * Wed Mar 14 2018 BXIHL Team <bxihl@atos.net> - 9.1.0
 - [feature] Add an error code filter to be able to not include the backtrace
 - [feature] BXIMEM_CALLOC shorthand macro
-

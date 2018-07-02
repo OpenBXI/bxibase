@@ -4,12 +4,11 @@
 '''
 @authors Alain Cady <<alain.cady@atos.net>>
 @authors Sébastien Miquée <<sebastien.miquee@atos.net>>
-@copyright 2016  Bull S.A.S.  -  All rights reserved.\n
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 '''
-import bxi
 import bxi.base.parserconf as bxiparserconf
 import bxi.base.posless as posless
 import bxi.base.log as bxilog
@@ -35,7 +34,7 @@ bxiparserconf.addargs(conf_parser)
 conf = conf_parser.parse_args([])
 conf_file_obj = ConfigObj(conf.config_file)
 
-if conf_file_obj.has_key('modules'):
+if 'modules' in conf_file_obj:
     for module in conf_file_obj.get('modules'):
         module_params = {}
         try:

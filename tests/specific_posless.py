@@ -2,21 +2,21 @@
 # Writen by Steven J. Bethard <steven.bethard@gmail.com>.
 
 import six
-import codecs
 import inspect
 import os
 import shutil
 import stat
 import sys
-import textwrap
 import tempfile
 import unittest
 import bxi.base.posless as posless
 
 from io import BytesIO
 
+
 class StdIOBuffer(BytesIO):
     pass
+
 
 try:
     from test import test_support
@@ -61,6 +61,7 @@ class TempDirMixin(object):
         with open(file_path, 'wb') as file:
             file.write(filename)
         os.chmod(file_path, stat.S_IREAD)
+
 
 class Sig(object):
 
@@ -258,6 +259,7 @@ class ParserTesterMetaclass(type):
             for parse_args in [listargs, sysargs]:
                 AddTests(cls, add_arguments, parse_args)
 
+
 bases = TestCase,
 ParserTestCase = ParserTesterMetaclass('ParserTestCase', bases, {})
 
@@ -265,11 +267,12 @@ ParserTestCase = ParserTesterMetaclass('ParserTestCase', bases, {})
 # Optionals tests
 # ===============
 
+
 class TestOnePositionnal(ParserTestCase):
     """Test an argument with a equal sign"""
 
     argument_signatures = [
-            Sig('x')
+        Sig('x')
     ]
     failures = ['--foo', '-x --foo', '-x -y']
     successes = [
@@ -279,12 +282,13 @@ class TestOnePositionnal(ParserTestCase):
         ('x=-1', NS(x='-1')),
     ]
 
+
 class TestTwoPositionnal(ParserTestCase):
     """Test an argument with a equal sign"""
 
     argument_signatures = [
-            Sig('foo'),
-            Sig('bar'),
+        Sig('foo'),
+        Sig('bar'),
     ]
     failures = ['--foo', '-bar --foo', '-x --foo', '-x -y']
     successes = [
@@ -294,13 +298,14 @@ class TestTwoPositionnal(ParserTestCase):
         ('foo=-1 bar=1', NS(foo='-1', bar='1')),
     ]
 
+
 class TestFooBarBob(ParserTestCase):
     """Test thre arguments with a equal sign"""
 
     argument_signatures = [
-            Sig('foo'),
-            Sig('bar'),
-            Sig('bob'),
+        Sig('foo'),
+        Sig('bar'),
+        Sig('bob'),
     ]
     failures = ['--foo', '-x --foo', '-x -y']
     successes = [
@@ -311,11 +316,12 @@ class TestFooBarBob(ParserTestCase):
         ('bar=1 bob=2 foo=3', NS(foo='3', bar='1', bob='2')),
     ]
 
+
 class TestOverride(ParserTestCase):
     """Test an argument with a equal sign"""
 
     argument_signatures = [
-            Sig('x')
+        Sig('x')
     ]
     failures = ['--foo', '-x --foo', '-x -y', '1 x=a']
     successes = [
@@ -343,20 +349,19 @@ class TestImportStar(TestCase):
         ]
         self.assertEqual(sorted(items), sorted(posless.__all__))
 
+
 def test_main():
-#    # silence warnings about version argument - these are expected
-#    with test_support.check_warnings(
-#            ('The "version" argument to ArgumentParser is deprecated.',
-#             DeprecationWarning),
-#            ('The (format|print)_version method is deprecated',
-#             DeprecationWarning)):
+    #    # silence warnings about version argument - these are expected
+    #    with test_support.check_warnings(
+    #            ('The "version" argument to ArgumentParser is deprecated.',
+    #             DeprecationWarning),
+    #            ('The (format|print)_version method is deprecated',
+    #             DeprecationWarning)):
     test_support.run_unittest(__name__)
 #    # Remove global references to avoid looking like we have refleaks.
 #    RFile.seen = {}
 #    WFile.seen = set()
 
 
-
 if __name__ == '__main__':
     test_main()
-

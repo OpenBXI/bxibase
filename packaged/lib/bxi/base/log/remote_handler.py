@@ -2,11 +2,11 @@
 
 """
 @file remote_handler.py bxilog remote handler
-@authors Sébastien Miquée <sebastien.miquee@atos.net>
-@copyright 2016  Bull S.A.S.  -  All rights reserved.\n
+@author Sébastien Miquée <<sebastien.miquee@atos.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base.log.remote_handler bxilog remote handler
 
 """
@@ -33,13 +33,11 @@ def add_handler(configobj, section_name, c_config):
 
     filters = bxilogfilter.parse_filters(filters_str)
 
-
     url = section['url']
     if '%(prog)s' in url:
         import bxi.base.log as bxilog
         import sys
-        url = url % {'prog': bxilog._PROGNAME if bxilog._PROGNAME is not None\
-                                              else sys.argv[0]}
+        url = url % {'prog': bxilog._PROGNAME if bxilog._PROGNAME is not None else sys.argv[0]}
 
     url = __FFI__.new('char[]', url.encode("utf-8", "replace"))
     bind = __FFI__.cast('bool', section.as_bool('bind'))

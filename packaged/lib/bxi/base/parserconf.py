@@ -5,10 +5,10 @@
 @file parserconf.py add basic configuration options to a posless parser
 @authors Jean-Noël Quintin <<jean-noel.quintin@bull.net>>
 @authors Pierre Vignéras <<pierre.vigneras@bull.net>>
-@copyright 2015  Bull S.A.S.  -  All rights reserved.\n
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base.parserconf add basic configuration options to a posless parser
 """
 
@@ -32,6 +32,7 @@ import bxi.base.log.console_handler as bxilog_consolehandler
 import bxi.base.log.file_handler as bxilog_filehandler
 import bxi.base.posless as posless
 import bxi.base.err as bxierr
+
 
 ArgumentError = posless.ArgumentError
 ArgumentTypeError = posless.ArgumentTypeError
@@ -59,6 +60,7 @@ DEFAULT_CONSOLE_FILTERS = ':output'
 
 BXILOG_DEFAULT_CONFIGFILE_KEY = 'bxilog.default.configfile'
 
+
 _LOGGER = logging.get_logger(logging.LIB_PREFIX + 'bxi.base.parserconf')
 
 
@@ -77,6 +79,7 @@ class LogLevelsAction(posless.Action):
     """
     Action used to display the various log level names
     """
+
     def __init__(self,
                  option_strings,
                  dest,
@@ -158,6 +161,7 @@ class HelpActionFormatted(posless._HelpAction):
     """
     Action used to format the help
     """
+
     def __call__(self, parser, namespace, values,
                  option_string=None, filter_function=_defaultfiltering):
         if issubclass(parser.formatter_class,
@@ -186,6 +190,7 @@ class _LoggedHelpAction(HelpActionFormatted):
     """
     Action used for filtering logs only options
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
         supercall = super(_LoggedHelpAction, self).__call__
         supercall(parser, namespace, values, option_string,
@@ -235,6 +240,7 @@ class _FullHelpAction(HelpActionFormatted):
     """
     Class to display the full help
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
         supercall = super(_FullHelpAction, self).__call__
         supercall(parser, namespace, values, option_string,
@@ -281,8 +287,7 @@ def _get_configfile(parser,
     """
     # First, we try to fetch a configuration for the command line
     cmd_config = os.path.join(config_dir,
-                              os.path.basename(parser.prog)
-                              + cmd_config_file_suffix)
+                              os.path.basename(parser.prog) + cmd_config_file_suffix)
     if not os.path.exists(cmd_config):
         # Second we try to fetch a configuration for the domain name
         if domain_name is not None:
@@ -343,7 +348,7 @@ def _add_config(parser,
                                 "Environment variable: %(envvar)s",
                            default=None,
                            envvar=configdir_envvar,
-                           metavar="DIR")
+                           metavar="PATH")
 
         group.add_argument("-C", "--config-file",
                            mustbeprinted=False,
@@ -353,7 +358,7 @@ def _add_config(parser,
                            "Environment variable: %(envvar)s",
                            default=None,
                            envvar=configfile_envvar,
-                           metavar="FILE")
+                           metavar="PATH")
 
         known_args = target_parser.get_known_args()[0]
 
@@ -674,11 +679,49 @@ def _configure_log(parser):
     _LOGGER.debug(logcfg_msg)
 
 
+def adddomain(parser,
+              config_dirname=DEFAULT_CONFIG_DIRNAME,    # /etc/*bxi*
+              config_filename=DEFAULT_CONFIG_FILENAME,  # /etc/bxi/*default.conf*
+              domain_name=None,                         # /etc/bxi/*domain*.conf
+              filename_suffix=DEFAULT_CONFIG_SUFFIX,    # /etc/bxi/cmd*.conf*
+              configdir_envvar='BXICONFIGDIR',
+              configfile_envvar="BXICONFIGFILE"):
+    """
+    Add a domain for configuration to allow reading multiple configuration files
+
+    @param[in] parser the parser to add arguments to
+    @param[in] config_dirname the default configuration directory
+    @param[in] config_filename the default configuration file
+    @param[in] domain_name the domain name
+    @param[in] filename_suffix the configuration filename suffix
+    @param[in] configdir_envvar environment variable configdir
+    @param[in] configfile_envvar environment variable configfile
+
+    @return None
+    """
+    if os.getuid() == 0:
+        config_dir_prefix = '/etc/'
+    else:
+        config_dir_prefix = os.path.join(os.path.expanduser('~'), '.config')
+
+    full_config_dir = os.path.join(config_dir_prefix, config_dirname)
+    full_config_dir = os.getenv(configdir_envvar, full_config_dir)
+
+    cmd_config = _get_configfile(parser, full_config_dir,
+                                 config_filename,
+                                 domain_name,
+                                 filename_suffix)
+
+    addcfg = _get_config_from_file(cmd_config)
+
+    parser.config.merge(addcfg)
+
+
 def addargs(parser,
-            config_dirname=DEFAULT_CONFIG_DIRNAME,              # /etc/*bxi*
-            config_filename=DEFAULT_CONFIG_FILENAME,            # /etc/bxi/*default.conf*
-            domain_name=None,                                   # /etc/bxi/*domain*.conf
-            filename_suffix=DEFAULT_CONFIG_SUFFIX,              # /etc/bxi/cmd*.conf*
+            config_dirname=DEFAULT_CONFIG_DIRNAME,      # /etc/*bxi*
+            config_filename=DEFAULT_CONFIG_FILENAME,    # /etc/bxi/*default.conf*
+            domain_name=None,                           # /etc/bxi/*domain*.conf
+            filename_suffix=DEFAULT_CONFIG_SUFFIX,      # /etc/bxi/cmd*.conf*
             setsighandler=True,
             configdir_envvar='BXICONFIGDIR',
             configfile_envvar="BXICONFIGFILE",
@@ -695,13 +738,13 @@ def addargs(parser,
                              underlying bxi.base.log library.
     @param[in] configdir_envvar environment variable configdir
     @param[in] configfile_envvar environment variable configfile
+    @param[in] version version of the command
 
     @return
     """
 
     _add_config(parser, config_dirname, config_filename, domain_name, filename_suffix,
-                configdir_envvar,
-               configfile_envvar)
+                configdir_envvar, configfile_envvar)
     _configure_log(parser)
 
     parser.add_argument('--help-full',

@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 @file err.py Defines all Python exceptions classes for all BXI modules
-@authors Pierre Vignéras <pierre.vigneras@bull.net>
-@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+@author Pierre Vignéras <<pierre.vigneras@bull.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base.err Python BXI Exceptions
 
 This module exposes all BXI Exception classes.
@@ -30,6 +30,7 @@ class BXIError(Exception):
     """
     The root class of all BXI exceptions
     """
+
     def __init__(self, msg, cause=None):
         """
         Create a new BXIError instance.
@@ -63,6 +64,7 @@ class BXICError(BXIError, bxibase.Wrapper):
     """
     Wrap a ::bxierr_p into a Python exception
     """
+
     def __init__(self, bxierr_p, gc=True):
         """
         Create a new instance for the given ::bxierr_p
@@ -168,6 +170,7 @@ class BXILogConfigError(BXIError):
     """
     Raised on error during bxilog configuration.
     """
+
     def __init__(self, msg, cfg):
         """
         Create a new instance with the given message.

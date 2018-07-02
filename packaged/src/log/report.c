@@ -4,8 +4,8 @@
  # Created on: May 24, 2013
  # Contributors:
  ###############################################################################
- # Copyright (C) 2012  Bull S. A. S.  -  All rights reserved
- # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+ # Copyright (C) 2018 Bull S.A.S.  -  All rights reserved
+ # Bull, Rue Jean Jaures, B.P. 68, 78340 Les Clayes-sous-Bois
  # This is not Free or Open Source software.
  # Please contact Bull S. A. S. for details about its license.
  ###############################################################################
@@ -94,6 +94,7 @@ void bxilog_report_raw(bxierr_report_p self,
     bxierr_report(&logerr, STDERR_FILENO);
 
     for (size_t i = 0; i < self->err_nb; i++) {
+        //Write message in selected logger level
         bxierr_p logerr = bxilog_logger_log_rawstr(logger, level,
                                                    filename, filename_len,
                                                    func, funclen, line,
@@ -101,7 +102,12 @@ void bxilog_report_raw(bxierr_report_p self,
                                                    self->err_msglens[i]);
         bxierr_report(&logerr, STDERR_FILENO);
 
-        logerr = bxilog_logger_log_rawstr(logger, level,
+        //Write backtrace in bxilog trace level except if main error is Uncaught
+        bxilog_level_e backtrace_level = BXILOG_TRACE;
+        if (strstr(msg, "Uncaught Exception") != NULL) {
+            backtrace_level = level;
+        }
+        logerr = bxilog_logger_log_rawstr(logger, backtrace_level,
                                           filename, filename_len,
                                           func, funclen, line,
                                           self->err_bts[i],

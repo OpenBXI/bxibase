@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 @file logger.py Logger class
-@authors Pierre Vignéras <pierre.vigneras@bull.net>
-@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+@author Pierre Vignéras <<pierre.vigneras@bull.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base.log.logger Logger class
 
 """
@@ -214,20 +214,31 @@ class BXILogger(object):
 
             if not hasattr(value, 'cause') or value.cause is None:
                 break
-
-            cause_str = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR
-            cause_str_len = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR_LEN
+            caused_by_str = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR
+            caused_by_str_len = __BXIBASE_CAPI__.BXIERR_CAUSED_BY_STR_LEN
             __BXIBASE_CAPI__.bxierr_report_add(report_c,
-                                               cause_str, cause_str_len,
-                                               "".encode('utf-8', 'replace'), len("".encode('utf-8', 'replace')) + 1)
+                                               caused_by_str, caused_by_str_len,
+                                               "".encode('utf-8', 'replace'),
+                                               len("".encode('utf-8', 'replace')) + 1)
+
+            # Workaround for Python2/3 compatibility issue :
+            # Using a bytes object for initializing a C string (char*) seems mandatory in
+            # Python 3.
+            # In Python 2, an str object is sufficient.
+            try:
+                cause_str = bytes(str(value.cause), 'utf-8')
+            except TypeError:
+                cause_str = str(value.cause)
+
+            __BXIBASE_CAPI__.bxierr_report_add(report_c,
+                                               cause_str, len(cause_str) + 1,
+                                               "".encode('utf-8', 'replace'),
+                                               len("".encode('utf-8', 'replace')) + 1)
             ei = (type(value.cause), value.cause, None)
 
         msg_str = msg % args if len(args) > 0 else str(msg)
         fullfilename, lineno, funcname = _FindCaller()
         filename = _get_usable_filename_from(fullfilename)
-        filename_len = len(filename) + 1
-        funcname_len = len(funcname) + 1
-        msg_str_len = len(msg_str) + 1
 
         if isinstance(msg_str, unicode):
             msg_str = msg_str.encode('utf-8', 'replace')
@@ -235,6 +246,10 @@ class BXILogger(object):
             filename = filename.encode('utf-8', 'replace')
         if isinstance(funcname, unicode):
             funcname = funcname.encode('utf-8', 'replace')
+
+        filename_len = len(filename) + 1
+        funcname_len = len(funcname) + 1
+        msg_str_len = len(msg_str) + 1
 
         __BXIBASE_CAPI__.bxilog_report_raw(report_c,
                                            self.clogger,

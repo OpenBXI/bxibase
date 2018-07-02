@@ -4,11 +4,11 @@
 """
 Python binding of the BXI High Performance Logging Library
 @namespace bxi.base.log
-@authors Pierre Vignéras <pierre.vigneras@bull.net>
-@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+@author Pierre Vignéras <<pierre.vigneras@bull.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 
 
 This module exposes a simple Python binding over the BXI High Performance Logging Library.
@@ -203,7 +203,7 @@ __nb__ = __BXIBASE_CAPI__.bxilog_level_names(__names__)
 # The list of level names as a tuple
 LEVEL_NAMES = tuple(str(__FFI__.string(__names__[0][i]).decode('utf-8', 'replace')) for i in range(__nb__))
 
-LIB_PREFIX = str(__FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX))
+LIB_PREFIX = str(__FFI__.string(__BXIBASE_CAPI__.bxilog_const.LIB_PREFIX).decode('utf-8', 'replace'))
 
 
 # If True,  bxilog_init() has already been called
@@ -214,14 +214,16 @@ _CONFIG = None
 _INIT_CALLER = None
 _PROGNAME = None
 
-DEFAULT_CONFIG = configobj.ConfigObj({'handlers': ['console'],
-                                      'setsighandler': True,
-                                      'console': {
-                                          'module': 'bxi.base.log.console_handler',
-                                          'filters': ':output',
-                                          'stderr_level': 'WARNING',
-                                          'colors': '216_dark',
-                                      }})
+DEFAULT_CONFIG = configobj.ConfigObj({
+    'handlers': ['console'],
+    'setsighandler': True,
+    'console': {
+        'module': 'bxi.base.log.console_handler',
+        'filters': ':output',
+        'stderr_level': 'WARNING',
+        'colors': '216_dark',
+    }
+})
 
 # The default logger.
 _DEFAULT_LOGGER = None
@@ -590,6 +592,7 @@ def output(msg, *args, **kwargs):
     """
     get_default_logger().output(msg, *args, **kwargs)
 
+
 out = output
 
 
@@ -756,6 +759,7 @@ def basicConfig(**kwargs):  # pylint: disable=locally-disabled, invalid-name
 
     set_config(config)
 
+
 # Warnings integration - taken from the standard Python logging module
 _warnings_showwarning = None
 
@@ -798,6 +802,7 @@ class FileLike(object):
     """
     A file like object that can be used for writing backed by the logging api.
     """
+
     def __init__(self, logger, level=OUTPUT):
         """
         Create a file like object using the given logger.

@@ -3,8 +3,8 @@
 ###############################################################################
 # Author: Pierre Vignéras <pierre.vigneras@atos.net>
 ###############################################################################
-# Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
-# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+# Copyright (C) 2018 Bull S.A.S.  -  All rights reserved
+# Bull, Rue Jean Jaures, B.P. 68, 78340 Les Clayes-sous-Bois
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
@@ -20,12 +20,14 @@ import time
 
 AGAIN = multiprocessing.Value('b', True, lock=False)
 
+
 def logging_thread():
     t = CLM.trace.clmTrace()
     t.setTraceThreshold(CLM.trace.LEVEL_DEBUG)
 
     while AGAIN.value:
-        t.debug("Logging something...");
+        t.debug("Logging something...")
+
 
 if __name__ == "__main__":
 
@@ -44,7 +46,7 @@ if __name__ == "__main__":
 
     time.sleep(timeout)
 
-    AGAIN.value = False;
+    AGAIN.value = False
 
     for i in xrange(threads_nb):
         threads[i].join()

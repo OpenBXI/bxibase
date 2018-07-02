@@ -3,8 +3,8 @@
 ###############################################################################
 # Author: Pierre Vignéras <pierre.vigneras@bull.net>
 ###############################################################################
-# Copyright (C) 2013  Bull S. A. S.  -  All rights reserved
-# Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+# Copyright (C) 2018 Bull S.A.S.  -  All rights reserved
+# Bull, Rue Jean Jaures, B.P. 68, 78340 Les Clayes-sous-Bois
 # This is not Free or Open Source software.
 # Please contact Bull S. A. S. for details about its license.
 ###############################################################################
@@ -32,15 +32,17 @@ FILENAME = "%s.bxilog" % os.path.splitext(BASENAME)[0]
 
 LOGGER_CMD = 'remote_logger.py'
 
+
 class BXIRemoteLoggerTest(unittest.TestCase):
     """
     Unit tests for the bxilog remote handler
     """
+
     def tearDown(self):
         """Cleaning up for each test.
         """
         bxilog.cleanup()
-    
+
     def test_remote_logging_bind_simple(self):
         """
         Process Parent receives logs from child process
@@ -53,17 +55,17 @@ class BXIRemoteLoggerTest(unittest.TestCase):
         all = os.path.join(tmpdir, 'all.bxilog')
         child = os.path.join(tmpdir, 'child.bxilog')
         parent_config = {'handlers': ['all', 'child'],
-                        'all': {'module': 'bxi.base.log.file_handler',
-                                'filters': ':lowest',
-                                'path': all,
-                                'append': True,
-                               },
-                        'child': {'module': 'bxi.base.log.file_handler',
-                                'filters': ':off,%s:lowest' % LOGGER_CMD,
-                                'path': child,
-                                'append': True,
-                               }
-                        }
+                         'all': {'module': 'bxi.base.log.file_handler',
+                                 'filters': ':lowest',
+                                 'path': all,
+                                 'append': True,
+                                 },
+                         'child': {'module': 'bxi.base.log.file_handler',
+                                   'filters': ':off,%s:lowest' % LOGGER_CMD,
+                                   'path': child,
+                                   'append': True,
+                                   }
+                         }
         bxilog.set_config(configobj.ConfigObj(parent_config))
         print("Logging output: all: %s, child: %s" % (all, child))
         url = 'ipc://%s/rh-cfg.zock' % tmpdir
@@ -96,7 +98,7 @@ class BXIRemoteLoggerTest(unittest.TestCase):
 
     def test_remote_logging_connect(self):
         pass
-    
+
 
 ###############################################################################
 

@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-@authors Pierre Vignéras <pierre.vigneras@bull.net>
-@copyright 2013  Bull S.A.S.  -  All rights reserved.\n
+@author Pierre Vignéras <<pierre.vigneras@atos.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
 @namespace bxi.base Python BXI Base module
 
 """
 import sys
-import collections  # noqa
+import collections
 import traceback
-from functools import total_ordering  # noqa
+from functools import total_ordering
 
 try:
     from builtins import range
@@ -28,8 +28,7 @@ __path__ = extend_path(__path__, __name__)
 try:
     from bxi.base.cffi_h import ffi
 except ImportError as e:
-    raise type(e)(e.message + "\n\nPackage bxi.base.cffi_h is missing. "
-                            + "It should be generated with bximake.")
+    raise type(e)(e.message + "\n\nPackage bxi.base.cffi_h is missing. It should be generated with bximake.")
 
 
 __FFI__ = ffi
@@ -58,6 +57,7 @@ class SequenceSliceImplMixin(object):
     """
     Implement the python array access for c array
     """
+
     def __getitem__(self, val):
         size = len(self)
         if isinstance(val, slice):
@@ -78,6 +78,7 @@ class Uint8CTuple(SequenceSliceImplMixin, collections.MutableSequence):
     """
     Wrapper for C tuple of uint8_t objects
     """
+
     def __init__(self, ctab, n):
         super(Uint8CTuple, self).__init__()
         self._ctab = ctab

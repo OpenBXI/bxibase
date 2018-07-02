@@ -5,8 +5,8 @@
  # Created on: 2013/11/21
  # Contributors:
  ###############################################################################
- # Copyright (C) 2013 - 2016  Bull S. A. S.  -  All rights reserved
- # Bull, Rue Jean Jaures, B.P.68, 78340, Les Clayes-sous-Bois
+ # Copyright (C) 2018 Bull S.A.S.  -  All rights reserved
+ # Bull, Rue Jean Jaures, B.P. 68, 78340 Les Clayes-sous-Bois
  # This is not Free or Open Source software.
  # Please contact Bull S. A. S. for details about its license.
  ###############################################################################
@@ -131,6 +131,16 @@ bxierr_p bxizmq_zocket_create(void * const ctx, const int type, void ** zocket);
  * @return BXIERR_OK on success, any other on failure.
  */
 bxierr_p bxizmq_zocket_destroy(void ** const zocket_p);
+
+/**
+ * Cleanup the given zeromq socket, releasing all underlying resources and nullifying
+ * the given pointer. This version sets a linger at 0 to not wait for closing zocket.
+ *
+ * @param[inout] zocket_p the pointer on the socket to cleanup.
+ * @return BXIERR_OK on success, any other on failure.
+ */
+bxierr_p bxizmq_zocket_destroy_no_wait(void ** const zocket_p);
+
 
 /**
  * Bind the socket to the given url and set the specified option on it. If the

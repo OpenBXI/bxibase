@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-@author Alain Cady <alain.cady@atos.net>
-@copyright 2015  Bull S.A.S.  -  All rights reserved.\n
+@author Alain Cady <<alain.cady@atos.net>>
+@copyright 2018 Bull S.A.S.  -  All rights reserved.\n
            This is not Free or Open Source software.\n
            Please contact Bull SAS for details about its license.\n
-           Bull - Rue Jean Jaurès - B.P. 68 - 78340 Les Clayes-sous-Bois
+           Bull - Rue Jean Jaures - B.P. 68 - 78340 Les Clayes-sous-Bois
  cov_merge XML Coverage Merger
 '''
 from lxml import etree
@@ -42,6 +42,7 @@ def merge(to, *from_files):
 
     with open(to, 'w') as destinationXML:
         destinationXML.write(etree.tostring(cov, pretty_print=True))
+
 
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()

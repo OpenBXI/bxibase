@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 ##
-## requires Benchmarker 3.0
-##   http://pypi.python.org/pypi/Benchmarker/
+# requires Benchmarker 3.0
+# http://pypi.python.org/pypi/Benchmarker/
 ##
 
 from __future__ import with_statement
@@ -14,9 +14,9 @@ LOOP = 10
 
 s1, s2, s3, s4, s5 = "Haruhi", "Mikuru", "Yuki", "Itsuki", "Kyon"
 with Benchmarker(width=20, loop=100) as bm:
-#for bm in Benchmarker(width=20, loop=1000*1000, cycle=5, extra=1):
+    # for bm in Benchmarker(width=20, loop=1000*1000, cycle=5, extra=1):
 
-    for _ in bm.empty():   ## empty loop
+    for _ in bm.empty():  # empty loop
         pass
 
     for _ in bm('plus op'):
@@ -45,7 +45,7 @@ with Benchmarker(width=20, loop=100) as bm:
         sos = io.getvalue()
 
 ###
-### output example
+# output example
 ###
 # $ py ex01.py
 # ## benchmarker:       release 0.0.0 (for python)
@@ -68,4 +68,3 @@ with Benchmarker(width=20, loop=100) as bm:
 # [01] plus op           0.5768  100.0%  112.2%  130.0%
 # [02] join              0.6472   89.1%  100.0%  115.9%
 # [03] format            0.7499   76.9%   86.3%  100.0%
-
