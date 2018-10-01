@@ -14,6 +14,9 @@
 
 #ifndef BXIZMQ_H_
 #define BXIZMQ_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdint.h>
@@ -672,4 +675,7 @@ char * bxizmq_create_url_from(const char * const url, const int tcp_port);
 bxierr_p bxizmq_split_url(const char * const url, char * elements[3]);
 
 bxierr_p bxizmq_err(int errnum, const char * fmt, ...);
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXIZMQ_H_ */

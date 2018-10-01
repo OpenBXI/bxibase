@@ -13,6 +13,9 @@
 
 #ifndef BXILOG_CONSOLE_HANDLER_H_
 #define BXILOG_CONSOLE_HANDLER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "bxi/base/err.h"
 #include "bxi/base/log.h"
@@ -118,8 +121,7 @@ extern char ** BXILOG_COLORS_NONE;
 //*********************************************************************************
 
 
+#ifdef __cplusplus
+}
 #endif
-
-
-
-
+#endif

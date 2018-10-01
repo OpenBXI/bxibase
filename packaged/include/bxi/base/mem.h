@@ -13,6 +13,9 @@
 
 #ifndef BXIMEM_H_
 #define BXIMEM_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdlib.h>
@@ -126,4 +129,7 @@ void * bximem_realloc(void *ptr, size_t old_size, size_t n);
  */
 void bximem_destroy(char ** pointer);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXIMEM_H_ */

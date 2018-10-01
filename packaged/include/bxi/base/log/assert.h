@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_ASSERT_H_
 #define BXILOG_ASSERT_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #endif
@@ -124,4 +127,7 @@ void bxilog_abort_ifko(bxilog_logger_p logger, bxierr_p * err_p,
                        const char * func, size_t funclen,
                        int line);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

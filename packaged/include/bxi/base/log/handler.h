@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_HANDLER_H_
 #define BXILOG_HANDLER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdlib.h>
@@ -281,4 +284,7 @@ void bxilog_handler_init_param(bxilog_handler_p handler,
  */
 void bxilog_handler_clean_param(bxilog_handler_param_p param);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

@@ -13,6 +13,9 @@
 
 #ifndef BXILOG_SYSLOG_HANDLER_H_
 #define BXILOG_SYSLOG_HANDLER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "bxi/base/log.h"
 
@@ -61,8 +64,7 @@ extern bxilog_handler_p BXILOG_SYSLOG_HANDLER;
 //*********************************************************************************
 
 
+#ifdef __cplusplus
+}
 #endif
-
-
-
-
+#endif

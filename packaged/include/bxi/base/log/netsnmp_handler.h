@@ -13,6 +13,9 @@
 
 #ifndef BXILOG_NETSNMP_HANDLER_H_
 #define BXILOG_NETSNMP_HANDLER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "bxi/base/log.h"
 
@@ -64,8 +67,7 @@ int bxilog_netsnmp_callback(int majorID, int minorID,
 
 
 
+#ifdef __cplusplus
+}
 #endif
-
-
-
-
+#endif

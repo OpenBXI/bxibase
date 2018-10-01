@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_LOGGER_H_
 #define BXILOG_LOGGER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdbool.h>
@@ -342,6 +345,7 @@ inline bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger,
 bool bxilog_logger_is_enabled_for(const bxilog_logger_p logger, const bxilog_level_e level);
 #endif
 
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

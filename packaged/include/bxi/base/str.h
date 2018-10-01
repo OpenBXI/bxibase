@@ -13,6 +13,9 @@
 
 #ifndef BXISTR_H_
 #define BXISTR_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdlib.h>
@@ -329,4 +332,7 @@ bxierr_p bxistr_bytes2hex(uint8_t * buf, size_t len, char ** ps);
  */
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXISTR_H_ */

@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_LEVEL_H_
 #define BXILOG_LEVEL_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 
@@ -97,4 +100,7 @@ bxierr_p bxilog_level_from_str(char * level_str, bxilog_level_e *level);
  */
 size_t bxilog_level_names(char *** names);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_H_
 #define BXILOG_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdbool.h>
@@ -262,4 +265,7 @@ void bxilog_rawprint(char* msg, int fd);
  *
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_EXIT_H_
 #define BXILOG_EXIT_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <sysexits.h>
@@ -125,4 +128,7 @@ void bxilog_exit(int exit_code,
                  size_t funclen,
                  int line);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

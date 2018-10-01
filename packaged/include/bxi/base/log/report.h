@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_REPORT_H_
 #define BXILOG_REPORT_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #endif
@@ -178,4 +181,7 @@ void bxilog_report_raw(bxierr_report_p self,
                        const char * msg, size_t msglen);
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif

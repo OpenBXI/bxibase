@@ -13,6 +13,9 @@
 
 #ifndef BXILOG_FILE_HANDLER_H_
 #define BXILOG_FILE_HANDLER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "bxi/base/err.h"
 #include "bxi/base/log.h"
@@ -68,8 +71,7 @@ extern char BXILOG_FILE_HANDLER_LOG_LEVEL_STR[];
 //*********************************************************************************
 
 
+#ifdef __cplusplus
+}
 #endif
-
-
-
-
+#endif

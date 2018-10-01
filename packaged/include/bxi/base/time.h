@@ -13,6 +13,9 @@
 
 #ifndef BXITIME_H_
 #define BXITIME_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <time.h>
@@ -141,4 +144,7 @@ bxierr_p bxitime_str(struct timespec * time, char ** result);
  */
 char * bxitime_duration_str(double duration);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXIMISC_H_ */

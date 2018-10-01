@@ -13,6 +13,9 @@
 
 #ifndef BXIERR_H_
 #define BXIERR_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <unistd.h>
@@ -979,5 +982,7 @@ void bxierr_set_destroy(bxierr_set_p * errset_p);
  */
 bool bxierr_set_add(bxierr_set_p set, bxierr_p * err);
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXIERR_H_ */

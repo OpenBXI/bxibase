@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_REGISTRY_H_
 #define BXILOG_REGISTRY_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdbool.h>
@@ -105,4 +108,7 @@ size_t bxilog_registry_getall(bxilog_logger_p *loggers[]);
 void bxilog_registry_reset();
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

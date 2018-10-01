@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_CONFIG_H_
 #define BXILOG_CONFIG_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdbool.h>
@@ -160,4 +163,7 @@ void bxilog_config_add_handler(bxilog_config_p self,
                                ...);
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

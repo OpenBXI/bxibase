@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_FILTER_H_
 #define BXILOG_FILTER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <stdbool.h>
@@ -166,4 +169,7 @@ void bxilog_filters_add(bxilog_filters_p * filters,
  */
 bxierr_p bxilog_filters_parse(char * format, bxilog_filters_p * result);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

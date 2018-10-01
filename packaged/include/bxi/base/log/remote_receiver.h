@@ -14,6 +14,9 @@
 
 #ifndef BXILOG_REMOTE_RECEIVER_H_
 #define BXILOG_REMOTE_RECEIVER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "bxi/base/err.h"
 #include "bxi/base/log.h"
@@ -107,4 +110,7 @@ bxierr_p bxilog_remote_receiver_stop(bxilog_remote_receiver_p self,
 size_t bxilog_get_binded_urls(bxilog_remote_receiver_p self, const char*** result);
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif

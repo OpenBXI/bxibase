@@ -3,6 +3,9 @@
 #ifndef BXILOG_THREAD_H_
 #define BXILOG_THREAD_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #ifndef BXICFFI
 
 #endif
@@ -74,4 +77,7 @@ bxierr_p bxilog_set_thread_rank(uintptr_t rank);
 bxierr_p bxilog_get_thread_rank(uintptr_t * rank_p);
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */

@@ -2,6 +2,9 @@
 
 #ifndef BXILOG_SIGNAL_H_
 #define BXILOG_SIGNAL_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef BXICFFI
 #include <signal.h>
@@ -79,4 +82,7 @@ bxierr_p bxilog_sigset_new(sigset_t *sigset, int * signum, size_t n);
 #endif
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* BXILOG_H_ */
