@@ -53,8 +53,8 @@
 #define MINUTE_SIZE 2
 #define SECOND_SIZE 2
 #define SUBSECOND_SIZE 9
-#define PID_SIZE 5
-#define TID_SIZE 5
+#define PID_SIZE 7
+#define TID_SIZE 7
 #define THREAD_RANK_SIZE 5
 
 // WARNING: highly dependent on the log format
@@ -71,7 +71,7 @@
 #define FIXED_LOG_SIZE 2 + YEAR_SIZE + MONTH_SIZE + DAY_SIZE +\
                        1 + HOUR_SIZE + MINUTE_SIZE + SECOND_SIZE + 1 + SUBSECOND_SIZE +\
                        1 + PID_SIZE + 1 + THREAD_RANK_SIZE + \
-                       1 + 1 + 1 + 1 + 1 + 1 +1  // Add all remaining fixed characters
+                       1 + 1 + 1 + 1 + 1 + 1 + 1  // Add all remaining fixed characters
                                                  // such as ':|:@||\n' in that order
 #endif
 
