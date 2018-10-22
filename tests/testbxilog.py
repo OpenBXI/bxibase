@@ -66,7 +66,7 @@ def threads_in_process(again):
                        filemode='a',
                        level=bxilog.LOWEST)
     threads = []
-    for i in range(multiprocessing.cpu_count()):
+    for i in range(max(multiprocessing.cpu_count(), 20)):
         thread = threading.Thread(target=do_some_logs_threading)
         bxilog.out("Starting new thread")
         thread.start()
@@ -323,7 +323,7 @@ class BXILogTest(unittest.TestCase):
 
     def test_threading(self):
         threads = []
-        for i in range(multiprocessing.cpu_count() * 2):
+        for i in range(max(multiprocessing.cpu_count() * 2, 40)):
             thread = threading.Thread(target=do_some_logs_threading)
             bxilog.out("Starting new thread")
             thread.start()
@@ -343,7 +343,7 @@ class BXILogTest(unittest.TestCase):
     def test_multiprocessing(self):
         processes = []
         again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
-        for i in range(multiprocessing.cpu_count() * 2):
+        for i in range(max(multiprocessing.cpu_count() * 2, 40)):
             process = multiprocessing.Process(target=do_some_logs_multiprocessing,
                                               args=(again,))
             bxilog.out("Starting new process")
@@ -363,7 +363,7 @@ class BXILogTest(unittest.TestCase):
     def test_threads_and_forks(self):
         processes = []
         again = multiprocessing.Value(ctypes.c_bool, True, lock=False)
-        for i in range(multiprocessing.cpu_count()):
+        for i in range(max(multiprocessing.cpu_count(), 20)):
             process = multiprocessing.Process(target=threads_in_process,
                                               args=(again,))
             bxilog.out("Starting new process")

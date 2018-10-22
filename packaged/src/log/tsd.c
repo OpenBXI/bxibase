@@ -116,6 +116,10 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
                                         ZMQ_ROUTER,
                                         &tsd->data_channel);
             BXIERR_CHAIN(err, err2);
+            if (bxierr_isko(err)) {
+                bxierr_list_append(errlist, err);
+                continue;
+            };
 
             err2 = bxizmq_zocket_setopt(tsd->data_channel,
                                         ZMQ_SNDHWM,
@@ -134,9 +138,13 @@ bxierr_p bxilog__tsd_get(tsd_p * result) {
                                         ZMQ_REQ,
                                         &tsd->ctrl_channel);
             BXIERR_CHAIN(err, err2);
+            if (bxierr_isko(err)) {
+                bxierr_list_append(errlist, err);
+                continue;
+            };
 
             err2 = bxizmq_zocket_setopt(tsd->ctrl_channel,
-            	                        ZMQ_SNDHWM,
+                                        ZMQ_SNDHWM,
                                         &BXILOG__GLOBALS->config->ctrl_hwm,
                                         sizeof(BXILOG__GLOBALS->config->ctrl_hwm));
             BXIERR_CHAIN(err, err2);
