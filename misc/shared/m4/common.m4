@@ -265,6 +265,8 @@ define([BXI_CHECK_C_COMPILER],[
     AC_PROG_MKDIR_P
     AC_PROG_INSTALL
 
+    AX_CHECK_COMPILE_FLAG([-std=gnu99], [
+                          CFLAGS="$CFLAGS -std=gnu99"], [])
 
     #check the POSIX conformity
     AC_EGREP_CPP(posix_200809L_supported,
